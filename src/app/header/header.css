@@ -1,0 +1,86 @@
+/* Header sticky */
+.main-header {
+  position: sticky;
+  top: 0;
+  z-index: 3000;
+  background-color: #f4f4f4;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+/* Container */
+.container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 80px;
+}
+
+/* Logo */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logo img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.brand {
+  font-weight: 600;
+  font-size: 18px;
+  color: #3d6f2f;
+}
+
+/* Menu */
+.nav-menu {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+.nav-menu a,
+.dropdown span {
+  text-decoration: none;
+  color: #333;
+  font-weight: 500;
+  /* cursor: pointer; */
+  transition: 0.2s;
+}
+
+.nav-menu a:hover,
+.dropdown span:hover {
+  color: #3d6f2f;
+}
+
+/* Icons */
+.icons {
+  display: flex;
+  align-items: center;
+  gap: 20px; 
+} 
+.icons i {
+  font-size: 22px;
+  /* cursor: pointer; */
+  padding: 6px;
+  transition: 0.2s;
+}
+
+.icons i:hover {
+  transform: scale(1.1);
+}
+
+
+/* Responsive */
+@media (max-width: 992px) {
+  .container {
+    padding: 12px 20px;
+  }
+
+  .nav-menu {
+    gap: 18px;
+    font-size: 14px;
+  }
+}
