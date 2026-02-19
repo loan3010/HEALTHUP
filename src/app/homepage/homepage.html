@@ -1,1 +1,187 @@
-<p>homepage works!</p>
+<!-- ============================================================
+     HOMEPAGE — homepage.component.html  (Bootstrap 5)
+     ============================================================ -->
+
+<!-- HERO -->
+<section class="hero-section">
+  <div class="container-fluid px-0">
+    <div class="row g-0">
+
+      <!-- Left -->
+      <div class="col-lg-6 d-flex align-items-center">
+        <div class="px-5 py-5 py-lg-0">
+          <span class="hero-tag mb-3 d-inline-block">Thuc pham lanh manh so 1 Viet Nam</span>
+          <h1 class="hero-title mb-3">
+            Dinh duong <span class="highlight">thuan khiet</span><br>tu thien nhien
+          </h1>
+          <p class="hero-desc mb-4">
+            Kham pha hon 100 san pham hat dinh duong, granola va tra thao moc.
+            Khong phu gia, khong chat bao quan — chi thuan tuy tu thien nhien.
+          </p>
+          <div class="d-flex gap-3 flex-wrap">
+            <button class="btn-hero-primary" routerLink="/product-listing-page">Kham pha ngay</button>
+            <button class="btn-hero-outline">Xem combo tiet kiem</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right -->
+      <div class="col-lg-6 hero-right-panel d-none d-lg-flex">
+        <div class="position-relative">
+          <img
+            src="assets/images/hero-product.png"
+            alt="HealthUp Hero"
+            class="img-fluid rounded-4"
+            style="max-width:300px;"
+          />
+          <div class="position-absolute top-0 end-0 d-flex flex-column gap-2 me-n3">
+            <div class="hero-badge">100% Tu nhien</div>
+            <div class="hero-badge">Freeship don 299K</div>
+            <div class="hero-badge">Giao trong 2h</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- TRUST STRIP -->
+<div class="trust-strip py-3">
+  <div class="container">
+    <div class="row g-3 justify-content-center">
+      <div class="col-6 col-md-3 d-flex align-items-center gap-2 trust-item" *ngFor="let item of trustItems">
+        <span class="trust-icon">{{ item.icon }}</span>
+        <div>
+          <div class="trust-title">{{ item.title }}</div>
+          <div class="trust-sub">{{ item.sub }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DANH MUC -->
+<section class="py-5" style="background:#FAF6F0;">
+  <div class="container">
+    <div class="d-flex justify-content-between align-items-end mb-4">
+      <div>
+        <h2 class="section-title mb-1">Danh muc san pham</h2>
+        <p class="section-subtitle mb-0">Tim kiem theo nhu cau dinh duong cua ban</p>
+      </div>
+      <a class="link-more" routerLink="/product-listing-page">Xem tat ca</a>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-4 col-md-2" *ngFor="let cat of categories; let i = index">
+        <div
+          class="category-card p-3"
+          [class.active]="activeCategory === i"
+          [style.background]="cat.color"
+          (click)="onCategoryClick(i)"
+        >
+          <div class="cat-icon">{{ cat.icon }}</div>
+          <div class="cat-name">{{ cat.name }}</div>
+          <div class="cat-count">{{ cat.count }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SAN PHAM BAN CHAY -->
+<section class="py-5" style="background:#FAF6F0;">
+  <div class="container">
+    <div class="d-flex justify-content-between align-items-end mb-4">
+      <div>
+        <h2 class="section-title mb-1">Ban chay tuan nay</h2>
+        <p class="section-subtitle mb-0">Duoc khach hang tin dung nhieu nhat</p>
+      </div>
+      <a class="link-more" routerLink="/product-listing-page">Xem them</a>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-12 col-sm-6 col-md-3" *ngFor="let p of featuredProducts">
+        <div class="product-card h-100" (click)="goToDetail(p.id)">
+          <div class="product-img-wrap">
+            <span class="badge-new" *ngIf="p.badge === 'new'">Moi</span>
+            <span class="badge-hot" *ngIf="p.badge === 'hot'">Hot</span>
+            <span class="badge-sale" *ngIf="p.sale">{{ p.sale }}</span>
+            <img [src]="p.image" [alt]="p.name" />
+            <button
+              class="btn-wishlist"
+              [class.active]="isWishlisted(p.id)"
+              (click)="toggleWishlist($event, p.id)"
+            >
+              <i class="bi" [class.bi-heart-fill]="isWishlisted(p.id)" [class.bi-heart]="!isWishlisted(p.id)"></i>
+            </button>
+          </div>
+          <div class="p-3">
+            <div class="product-cat mb-1">{{ p.cat }}</div>
+            <div class="product-name mb-1">{{ p.name }}</div>
+            <div class="product-weight mb-2">{{ p.weight }}</div>
+            <div class="d-flex align-items-center justify-content-between pt-2 product-footer-row">
+              <div>
+                <span class="product-price">{{ p.price | currency:'VND':'symbol':'1.0-0' }}</span>
+                <span class="product-price-old ms-1" *ngIf="p.oldPrice">{{ p.oldPrice | currency:'VND':'symbol':'1.0-0' }}</span>
+                <div class="product-rating">
+                  <span class="stars">{{ p.stars }}</span>
+                  <span class="ms-1">({{ p.reviews }})</span>
+                </div>
+              </div>
+              <button class="btn-add" (click)="addToCart($event, p.id)">
+                <i class="bi bi-plus"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROMO BANNER -->
+<section class="py-5" style="background:#FAF6F0;">
+  <div class="container">
+    <div class="promo-banner p-5">
+      <div class="row align-items-center">
+        <div class="col-lg-8">
+          <span class="promo-tag mb-3 d-inline-block">Uu dai co han</span>
+          <h3 class="promo-title mb-2">Combo Gym &amp; Eat Clean<br><em>Tiet kiem den 25%</em></h3>
+          <p class="promo-desc mb-4">Bo doi Granola + Hat Macadamia danh rieng cho nguoi tap luyen the thao.</p>
+          <button class="btn-promo">Mua combo ngay</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- BLOG -->
+<section class="py-5" style="background:#FAF6F0;">
+  <div class="container">
+    <div class="d-flex justify-content-between align-items-end mb-4">
+      <div>
+        <h2 class="section-title mb-1">Cam nang suc khoe</h2>
+        <p class="section-subtitle mb-0">Bi quyet an uong lanh manh tu chuyen gia</p>
+      </div>
+      <a class="link-more">Xem tat ca</a>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-12 col-md-4" *ngFor="let post of blogPosts">
+        <div class="blog-card h-100">
+          <div class="blog-img">{{ post.emoji }}</div>
+          <div class="p-3">
+            <div class="blog-tag mb-1">{{ post.tag }}</div>
+            <div class="blog-title mb-2">{{ post.title }}</div>
+            <p class="blog-excerpt mb-3">{{ post.excerpt }}</p>
+            <div class="d-flex justify-content-between align-items-center border-top pt-2">
+              <span class="blog-date">{{ post.date }}</span>
+              <a class="blog-read">Doc tiep</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

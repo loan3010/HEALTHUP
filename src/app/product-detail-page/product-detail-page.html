@@ -1,1 +1,225 @@
-<p>product-detail-page works!</p>
+<!-- ============================================================
+     PRODUCT DETAIL PAGE — product-detail-page.component.html
+     ============================================================ -->
+
+<!-- BREADCRUMB -->
+<nav class="breadcrumb-bar py-2">
+  <div class="container">
+    <ol class="breadcrumb mb-0">
+      <li class="breadcrumb-item"><a routerLink="/">Trang chu</a></li>
+      <li class="breadcrumb-item"><a routerLink="/product-listing-page">{{ product?.cat }}</a></li>
+      <li class="breadcrumb-item active">{{ product?.name }}</li>
+    </ol>
+  </div>
+</nav>
+
+<!-- DETAIL LAYOUT -->
+<div class="container py-5" style="background:#FAF6F0; max-width:100%;" *ngIf="product">
+  <div class="container">
+    <div class="row g-5">
+
+      <!-- GALLERY -->
+      <div class="col-12 col-lg-5">
+        <div class="position-sticky" style="top:88px;">
+          <div class="gallery-main mb-3">
+            <img [src]="activeImage" [alt]="product.name" />
+          </div>
+          <div class="d-flex gap-2 overflow-auto pb-1">
+            <div
+              class="gallery-thumb"
+              *ngFor="let img of product.images"
+              [class.active]="activeImage === img"
+              (click)="activeImage = img"
+            >
+              <img [src]="img" [alt]="product.name" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- INFO -->
+      <div class="col-12 col-lg-7 d-flex flex-column gap-4">
+
+        <!-- Name & Category -->
+        <div>
+          <div class="detail-cat mb-2">{{ product.cat }}</div>
+          <h1 class="detail-title mb-0">{{ product.name }}</h1>
+        </div>
+
+        <!-- Rating -->
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <span class="rating-stars">{{ product.starsDisplay }}</span>
+          <span class="rating-score">{{ product.rating }}</span>
+          <span class="rating-meta">· {{ product.reviewCount }} danh gia · {{ product.sold }} da ban</span>
+          <a class="rating-link ms-1" routerLink="/order-review">Xem danh gia</a>
+        </div>
+
+        <!-- Price -->
+        <div class="d-flex align-items-baseline gap-3 flex-wrap">
+          <span class="detail-price">{{ product.price | currency:'VND':'symbol':'1.0-0' }}</span>
+          <span class="detail-price-old" *ngIf="product.oldPrice">{{ product.oldPrice | currency:'VND':'symbol':'1.0-0' }}</span>
+          <span class="save-badge" *ngIf="product.saving">Tiet kiem {{ product.saving }}</span>
+        </div>
+
+        <!-- Description -->
+        <p class="detail-desc mb-0">{{ product.shortDesc }}</p>
+
+        <!-- VARIANTS: Weight -->
+        <div>
+          <div class="variant-label mb-2">Trong luong</div>
+          <div class="d-flex gap-2 flex-wrap">
+            <button
+              class="variant-btn"
+              *ngFor="let w of product.weights"
+              [class.active]="selectedWeight === w.label"
+              [class.out-of-stock]="w.outOfStock"
+              (click)="!w.outOfStock && selectWeight(w.label)"
+            >{{ w.label }}</button>
+          </div>
+        </div>
+
+        <!-- VARIANTS: Packaging -->
+        <div>
+          <div class="variant-label mb-2">Loai dong goi</div>
+          <div class="d-flex gap-2 flex-wrap">
+            <button
+              class="variant-btn"
+              *ngFor="let t of product.packagingTypes"
+              [class.active]="selectedType === t"
+              (click)="selectedType = t"
+            >{{ t }}</button>
+          </div>
+        </div>
+
+        <!-- QTY + STOCK -->
+        <div class="d-flex align-items-center gap-3 flex-wrap">
+          <span class="variant-label">So luong:</span>
+          <div class="qty-control">
+            <button class="qty-btn" (click)="decreaseQty()" [disabled]="qty <= 1">
+              <i class="bi bi-dash"></i>
+            </button>
+            <span class="qty-value">{{ qty }}</span>
+            <button class="qty-btn" (click)="increaseQty()" [disabled]="qty >= product.stock">
+              <i class="bi bi-plus"></i>
+            </button>
+          </div>
+          <span class="stock-info" [class.low]="product.stock < 10">
+            <i class="bi me-1" [class.bi-check-circle]="product.stock >= 10" [class.bi-exclamation-triangle]="product.stock < 10"></i>
+            Con {{ product.stock }} san pham
+          </span>
+        </div>
+
+        <!-- CTA -->
+        <div class="d-flex gap-3">
+          <button class="btn-cart flex-grow-1" [class.added]="addedToCart" (click)="addToCart()">
+            <i class="bi bi-cart3"></i>
+            {{ addedToCart ? 'Da them vao gio!' : 'Them vao gio hang' }}
+          </button>
+          <button class="btn-buy flex-grow-1" (click)="buyNow()">
+            <i class="bi bi-lightning-charge-fill me-1"></i> Mua ngay
+          </button>
+        </div>
+
+        <!-- Wishlist + Share -->
+        <div class="d-flex gap-2">
+          <button class="btn-action" [class.wishlisted]="isWishlisted" (click)="toggleWishlist()">
+            <i class="bi me-1" [class.bi-heart-fill]="isWishlisted" [class.bi-heart]="!isWishlisted"></i>
+            {{ isWishlisted ? 'Da yeu thich' : 'Yeu thich' }}
+          </button>
+          <button class="btn-action" (click)="share()">
+            <i class="bi bi-share me-1"></i> Chia se
+          </button>
+        </div>
+
+        <!-- Trust Badges -->
+        <div class="d-flex gap-2 flex-wrap">
+          <span class="info-badge"><i class="bi bi-truck me-1"></i>Freeship tu 299K</span>
+          <span class="info-badge"><i class="bi bi-arrow-repeat me-1"></i>Doi tra 7 ngay</span>
+          <span class="info-badge"><i class="bi bi-patch-check me-1"></i>VSATTP</span>
+          <span class="info-badge"><i class="bi bi-box-seam me-1"></i>Dong goi can than</span>
+        </div>
+
+        <!-- TABS -->
+        <div class="detail-tabs-wrapper">
+          <div class="nav-tabs-detail">
+            <button class="tab-btn" [class.active]="activeTab === 'desc'"
+              (click)="activeTab = 'desc'">Mo ta</button>
+            <button class="tab-btn" [class.active]="activeTab === 'nutrition'"
+              (click)="activeTab = 'nutrition'">Dinh duong</button>
+            <button class="tab-btn" [class.active]="activeTab === 'policy'"
+              (click)="activeTab = 'policy'">Chinh sach</button>
+          </div>
+
+          <div class="tab-content">
+
+            <!-- Mo ta -->
+            <div *ngIf="activeTab === 'desc'">
+              <div class="desc-text" [innerHTML]="product.description"></div>
+            </div>
+
+            <!-- Dinh duong -->
+            <div *ngIf="activeTab === 'nutrition'">
+              <p class="nutrition-note mb-3">Thong tin dinh duong tren 100g san pham</p>
+              <table class="nutrition-table">
+                <thead>
+                  <tr>
+                    <th>Thanh phan</th>
+                    <th>Ham luong</th>
+                    <th>% NDH ngay</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let row of product.nutrition">
+                    <td>{{ row.name }}</td>
+                    <td><strong>{{ row.value }}</strong></td>
+                    <td [class.high]="row.percent > 50">{{ row.percent }}%</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p class="nutrition-disclaimer mt-2">* NDH = Nhu cau dinh duong hang ngay dua tren che do 2000 kcal.</p>
+            </div>
+
+            <!-- Chinh sach -->
+            <div *ngIf="activeTab === 'policy'">
+              <div class="policy-item" *ngFor="let item of policyItems">
+                <i class="policy-icon bi {{ item.icon }}"></i>
+                <div>
+                  <strong>{{ item.title }}</strong>
+                  <p>{{ item.desc }}</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div><!-- /col info -->
+    </div><!-- /row -->
+  </div>
+</div>
+
+<!-- RELATED PRODUCTS -->
+<section class="py-5" style="background:#FAF6F0;">
+  <div class="container">
+    <h2 class="section-title mb-4">Co the ban cung thich</h2>
+    <div class="row g-3">
+      <div class="col-6 col-md-3" *ngFor="let p of relatedProducts">
+        <div class="related-product-card" (click)="goToProduct(p.id)">
+          <div class="related-img">
+            <img [src]="p.image" [alt]="p.name" />
+          </div>
+          <div class="p-3">
+            <div class="product-cat mb-1">{{ p.cat }}</div>
+            <div class="product-name mb-2">{{ p.name }}</div>
+            <div class="d-flex align-items-center justify-content-between">
+              <span class="product-price">{{ p.price | currency:'VND':'symbol':'1.0-0' }}</span>
+              <button class="btn-add" (click)="addRelated($event, p.id)">
+                <i class="bi bi-plus"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

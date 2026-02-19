@@ -1,1 +1,131 @@
-<p>sidebar works!</p>
+<!-- ============================================================
+     SIDEBAR — sidebar.component.html  (Bootstrap 5)
+     ============================================================ -->
+
+<div class="sidebar-wrapper d-flex flex-column gap-3">
+
+  <!-- HEADER -->
+  <div class="sidebar-header-card p-3 d-flex justify-content-between align-items-center">
+    <span class="sidebar-title">
+      <i class="bi bi-sliders me-2"></i>Bo loc
+    </span>
+    <button class="btn-reset-all" (click)="onReset()">Xoa tat ca</button>
+  </div>
+
+  <!-- DANH MUC -->
+  <div class="filter-card">
+    <div class="filter-section-title px-3 py-3 d-flex justify-content-between align-items-center"
+      (click)="toggleSection('category')">
+      <span>Danh muc</span>
+      <i class="bi" [class.bi-chevron-up]="openSections['category']" [class.bi-chevron-down]="!openSections['category']"></i>
+    </div>
+    <div class="filter-body px-3" [class.collapsed]="!openSections['category']" style="padding-top:8px; padding-bottom:12px;">
+      <div class="filter-option" *ngFor="let cat of categories" (click)="toggleCategoryFilter(cat.key)">
+        <div class="filter-checkbox" [class.checked]="isCategorySelected(cat.key)">
+          <i class="bi bi-check" *ngIf="isCategorySelected(cat.key)"></i>
+        </div>
+        <span class="flex-grow-1">{{ cat.name }}</span>
+        <span class="filter-option-count">{{ cat.count }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- GIA -->
+  <div class="filter-card">
+    <div class="filter-section-title px-3 py-3 d-flex justify-content-between align-items-center"
+      (click)="toggleSection('price')">
+      <span>Khoang gia</span>
+      <i class="bi" [class.bi-chevron-up]="openSections['price']" [class.bi-chevron-down]="!openSections['price']"></i>
+    </div>
+    <div class="filter-body px-3" [class.collapsed]="!openSections['price']" style="padding-top:8px; padding-bottom:12px;">
+
+      <div class="d-flex flex-wrap gap-2 mb-3">
+        <button
+          class="price-preset-btn"
+          *ngFor="let preset of pricePresets"
+          [class.active]="activePricePreset === preset.key"
+          (click)="selectPricePreset(preset)"
+        >{{ preset.label }}</button>
+      </div>
+
+      <div class="text-center price-divider mb-2">hoac nhap tuy chinh</div>
+
+      <div class="slider-track mb-3">
+        <div class="slider-fill" [style.left.%]="sliderLeft" [style.right.%]="sliderRight"></div>
+      </div>
+
+      <div class="d-flex align-items-center gap-2">
+        <div class="price-input-wrap">
+          <span class="price-prefix">d</span>
+          <input class="price-input" type="number" placeholder="Tu" [(ngModel)]="priceMin" (change)="onPriceInputChange()" />
+        </div>
+        <span class="text-secondary">-</span>
+        <div class="price-input-wrap">
+          <span class="price-prefix">d</span>
+          <input class="price-input" type="number" placeholder="Den" [(ngModel)]="priceMax" (change)="onPriceInputChange()" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DANH GIA -->
+  <div class="filter-card">
+    <div class="filter-section-title px-3 py-3 d-flex justify-content-between align-items-center"
+      (click)="toggleSection('rating')">
+      <span>Danh gia</span>
+      <i class="bi" [class.bi-chevron-up]="openSections['rating']" [class.bi-chevron-down]="!openSections['rating']"></i>
+    </div>
+    <div class="filter-body px-3" [class.collapsed]="!openSections['rating']" style="padding-top:8px; padding-bottom:12px;">
+      <div class="star-row" *ngFor="let s of [5, 4, 3, 2, 1]"
+        [class.active]="selectedRating === s"
+        (click)="selectRating(s)">
+        <div class="filter-checkbox" [class.checked]="selectedRating === s">
+          <i class="bi bi-check" *ngIf="selectedRating === s"></i>
+        </div>
+        <span class="star-display">{{ getStars(s) }}</span>
+        <span class="star-label">{{ s === 5 ? 'Xuat sac' : s === 4 ? 'Tot' : s === 3 ? 'On' : 'Thap hon' }}</span>
+        <span class="star-count">({{ ratingCounts[s] }})</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRANG THAI -->
+  <div class="filter-card">
+    <div class="filter-section-title px-3 py-3 d-flex justify-content-between align-items-center"
+      (click)="toggleSection('status')">
+      <span>Trang thai</span>
+      <i class="bi" [class.bi-chevron-up]="openSections['status']" [class.bi-chevron-down]="!openSections['status']"></i>
+    </div>
+    <div class="filter-body px-3" [class.collapsed]="!openSections['status']" style="padding-top:8px; padding-bottom:12px;">
+      <div class="filter-option" *ngFor="let s of statusOptions" (click)="toggleStatusFilter(s.key)">
+        <div class="filter-checkbox" [class.checked]="isStatusSelected(s.key)">
+          <i class="bi bi-check" *ngIf="isStatusSelected(s.key)"></i>
+        </div>
+        <span class="status-dot" [style.background]="s.color"></span>
+        <span>{{ s.label }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRONG LUONG -->
+  <div class="filter-card">
+    <div class="filter-section-title px-3 py-3 d-flex justify-content-between align-items-center"
+      (click)="toggleSection('weight')">
+      <span>Trong luong</span>
+      <i class="bi" [class.bi-chevron-up]="openSections['weight']" [class.bi-chevron-down]="!openSections['weight']"></i>
+    </div>
+    <div class="filter-body px-3" [class.collapsed]="!openSections['weight']" style="padding-top:8px; padding-bottom:12px;">
+      <div class="d-flex flex-wrap gap-2">
+        <button class="weight-btn" *ngFor="let w of weightOptions"
+          [class.active]="isWeightSelected(w)" (click)="toggleWeight(w)">{{ w }}</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- APPLY -->
+  <button class="btn-apply-filter" (click)="applyFilters()">
+    Ap dung bo loc
+    <span class="filter-count-badge" *ngIf="activeFilterCount > 0">{{ activeFilterCount }}</span>
+  </button>
+
+</div>
