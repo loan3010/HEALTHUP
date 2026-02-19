@@ -1,1 +1,268 @@
-<p>order-review works!</p>
+<!-- ============================================================
+     ORDER REVIEW — order-review.component.html  (Bootstrap 5)
+     ============================================================ -->
+
+<!-- BREADCRUMB -->
+<nav class="breadcrumb-bar py-2">
+  <div class="container">
+    <ol class="breadcrumb mb-0">
+      <li class="breadcrumb-item"><a routerLink="/">Trang chu</a></li>
+      <li class="breadcrumb-item"><a routerLink="/product-detail-page">{{ productName }}</a></li>
+      <li class="breadcrumb-item active">Danh gia san pham</li>
+    </ol>
+  </div>
+</nav>
+
+<div class="container py-4" style="background:#FAF6F0; max-width:100%;">
+  <div class="container">
+    <div class="d-flex flex-column gap-4">
+
+      <!-- TONG QUAN -->
+      <div class="review-summary-card p-4">
+        <div class="row g-4 align-items-center">
+
+          <!-- Score -->
+          <div class="col-12 col-md-3 text-center border-end">
+            <div class="score-big">{{ averageRating }}</div>
+            <div class="score-stars mb-1">{{ starsDisplay }}</div>
+            <div class="score-meta">{{ totalReviews }} danh gia · {{ totalSold }} da mua</div>
+          </div>
+
+          <!-- Bars -->
+          <div class="col-12 col-md-5">
+            <div class="d-flex flex-column gap-2">
+              <div class="d-flex align-items-center gap-2" *ngFor="let s of [5, 4, 3, 2, 1]">
+                <span class="bar-label">{{ s }}</span>
+                <div class="bar-track flex-grow-1">
+                  <div class="bar-fill" [style.width.%]="getBarPercent(s)"></div>
+                </div>
+                <span class="bar-count">{{ ratingCounts[s] }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Highlights -->
+          <div class="col-12 col-md-4">
+            <div class="highlight-title mb-2">Khach hang thuong khen</div>
+            <div class="d-flex flex-wrap gap-2">
+              <span class="highlight-tag" *ngFor="let tag of praiseTags">{{ tag }}</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- VIET DANH GIA -->
+      <div class="write-review-card p-4" *ngIf="isLoggedIn">
+        <div class="write-title mb-4">Chia se trai nghiem cua ban</div>
+
+        <!-- Stars -->
+        <div class="mb-3">
+          <div class="write-label mb-2">Danh gia sao <span class="required">*</span></div>
+          <div class="d-flex align-items-center gap-1">
+            <button
+              class="star-btn"
+              *ngFor="let s of [1, 2, 3, 4, 5]"
+              [class.active]="s <= (hoverStar || selectedStar)"
+              (mouseenter)="hoverStar = s"
+              (mouseleave)="hoverStar = 0"
+              (click)="selectedStar = s"
+            >&#9733;</button>
+            <span class="star-hint ms-2" *ngIf="selectedStar > 0">{{ starLabels[selectedStar] }}</span>
+          </div>
+        </div>
+
+        <!-- Variant -->
+        <div class="mb-3">
+          <div class="write-label mb-2">Ban da mua loai nao?</div>
+          <div class="d-flex flex-wrap gap-2">
+            <button
+              class="variant-chip"
+              *ngFor="let v of purchasedVariants"
+              [class.active]="selectedVariant === v"
+              (click)="selectedVariant = v"
+            >{{ v }}</button>
+          </div>
+        </div>
+
+        <!-- Textarea -->
+        <div class="mb-3">
+          <div class="write-label mb-2">Nhan xet chi tiet <span class="required">*</span></div>
+          <textarea
+            class="review-textarea"
+            [(ngModel)]="reviewText"
+            placeholder="Chia se cam nhan: chat luong, mui vi, dong goi, so sanh voi ky vong..."
+            maxlength="500"
+            rows="4"
+          ></textarea>
+          <div class="char-count">{{ reviewText.length }}/500</div>
+        </div>
+
+        <!-- Quick Tags -->
+        <div class="mb-3">
+          <div class="write-label mb-2">Chon nhanh tu khoa</div>
+          <div class="d-flex flex-wrap gap-2">
+            <button
+              class="quick-tag"
+              *ngFor="let tag of quickTags"
+              [class.active]="isTagSelected(tag)"
+              (click)="toggleQuickTag(tag)"
+            >{{ tag }}</button>
+          </div>
+        </div>
+
+        <!-- Upload -->
+        <div class="mb-4">
+          <div class="write-label mb-2">Them hinh anh thuc te</div>
+          <div class="upload-area" (click)="fileInput.click()">
+            <i class="upload-icon bi bi-camera"></i>
+            <span class="upload-label">Them anh san pham thuc te (toi da 5 anh)</span>
+            <span class="upload-hint">JPG, PNG · Toi da 5MB/anh</span>
+          </div>
+          <input type="file" #fileInput accept="image/*" multiple hidden (change)="onFileSelected($event)" />
+        </div>
+
+        <!-- Submit -->
+        <div class="d-flex align-items-center gap-3">
+          <button
+            class="btn-submit-review"
+            [class.ready]="canSubmit()"
+            [disabled]="!canSubmit()"
+            (click)="submitReview()"
+          >{{ isSubmitting ? 'Dang gui...' : 'Gui danh gia' }}</button>
+          <span class="submit-hint" *ngIf="!canSubmit()">Vui long chon so sao va nhap nhan xet</span>
+        </div>
+      </div>
+
+      <!-- LOGIN PROMPT -->
+      <div class="login-prompt-card p-4 d-flex align-items-center gap-3" *ngIf="!isLoggedIn">
+        <i class="bi bi-lock-fill fs-2 text-secondary"></i>
+        <div class="flex-grow-1">
+          <strong class="d-block mb-1" style="color:#2D5016;">Dang nhap de danh gia san pham</strong>
+          <span style="font-size:13px; color:#8A9E72;">Chi nhung khach hang da mua san pham moi co the de lai danh gia.</span>
+        </div>
+        <button class="btn-login-now" routerLink="/user-authentication">Dang nhap ngay</button>
+      </div>
+
+      <!-- FILTER BAR -->
+      <div class="review-filter-bar p-3 d-flex flex-wrap align-items-center gap-2">
+        <button class="review-filter-btn" [class.active]="activeFilter === 'all'" (click)="setFilter('all')">
+          Tat ca ({{ totalReviews }})
+        </button>
+        <button
+          class="review-filter-btn"
+          *ngFor="let s of [5, 4, 3, 2, 1]"
+          [class.active]="activeFilter === s.toString()"
+          (click)="setFilter(s.toString())"
+        >{{ s }} sao ({{ ratingCounts[s] }})</button>
+        <button class="review-filter-btn" [class.active]="activeFilter === 'photo'" (click)="setFilter('photo')">
+          <i class="bi bi-camera me-1"></i>Co anh ({{ photoReviewCount }})
+        </button>
+        <div class="ms-auto">
+          <select class="sort-select" [(ngModel)]="reviewSort" (change)="onSortChange()">
+            <option value="newest">Moi nhat</option>
+            <option value="highest">Danh gia cao</option>
+            <option value="lowest">Danh gia thap</option>
+            <option value="helpful">Huu ich nhat</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- DANH SACH DANH GIA -->
+      <div class="d-flex flex-column gap-3">
+
+        <div class="review-card p-4" *ngFor="let review of filteredReviews">
+
+          <!-- Header -->
+          <div class="d-flex align-items-start justify-content-between mb-3">
+            <div class="d-flex align-items-center gap-3">
+              <div class="reviewer-avatar" [style.background]="review.avatarColor">
+                {{ review.initial }}
+              </div>
+              <div>
+                <div class="reviewer-name">{{ review.name }}</div>
+                <div class="reviewer-verified" *ngIf="review.verified">
+                  <i class="bi bi-patch-check-fill me-1"></i>Da mua hang
+                </div>
+              </div>
+            </div>
+            <div class="text-end">
+              <div class="review-stars">{{ getStarStr(review.rating) }}</div>
+              <div class="review-date">{{ review.date }}</div>
+            </div>
+          </div>
+
+          <!-- Variant -->
+          <div class="mb-2" *ngIf="review.variant">
+            <span class="review-variant">Da mua: <strong>{{ review.variant }}</strong></span>
+          </div>
+
+          <!-- Tags -->
+          <div class="d-flex flex-wrap gap-2 mb-2" *ngIf="review.tags?.length">
+            <span class="review-tag" *ngFor="let tag of review.tags">{{ tag }}</span>
+          </div>
+
+          <!-- Text -->
+          <p class="review-text mb-3">{{ review.text }}</p>
+
+          <!-- Images -->
+          <div class="d-flex gap-2 flex-wrap mb-3" *ngIf="review.imgs?.length">
+            <div class="review-img" *ngFor="let img of review.imgs" (click)="openImageViewer(img)">
+              <img [src]="img" alt="Review photo" />
+            </div>
+          </div>
+
+          <!-- Admin Reply -->
+          <div class="admin-reply p-3 mb-3" *ngIf="review.adminReply">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="admin-badge">HealthUp phan hoi</span>
+              <span class="admin-reply-date">{{ review.adminReplyDate }}</span>
+            </div>
+            <p class="admin-reply-text mb-0">{{ review.adminReply }}</p>
+          </div>
+
+          <!-- Helpful -->
+          <div class="d-flex align-items-center gap-2 flex-wrap pt-3 border-top">
+            <span class="helpful-text">Danh gia nay co huu ich khong?</span>
+            <button class="helpful-btn" (click)="markHelpful(review.id)">
+              <i class="bi bi-hand-thumbs-up"></i> Co ({{ review.helpful }})
+            </button>
+            <button class="helpful-btn" (click)="markNotHelpful(review.id)">
+              <i class="bi bi-hand-thumbs-down"></i> Khong
+            </button>
+            <button class="report-btn ms-auto" (click)="reportReview(review.id)">
+              <i class="bi bi-flag me-1"></i>Bao cao
+            </button>
+          </div>
+
+        </div>
+
+        <!-- SKELETON -->
+        <ng-container *ngIf="isLoading">
+          <div class="review-card p-4" *ngFor="let s of [1, 2]">
+            <div class="skeleton-line mb-2" style="width:30%"></div>
+            <div class="skeleton-line mb-2" style="width:60%"></div>
+            <div class="skeleton-line mb-2" style="width:100%"></div>
+            <div class="skeleton-line" style="width:80%"></div>
+          </div>
+        </ng-container>
+
+        <!-- EMPTY -->
+        <div class="no-reviews-card text-center py-5 px-3" *ngIf="filteredReviews.length === 0 && !isLoading">
+          <i class="bi bi-chat-square-text fs-1 text-secondary d-block mb-3"></i>
+          <div class="no-reviews-title mb-1">Chua co danh gia nao</div>
+          <p class="text-secondary mb-0" style="font-size:14px;">Hay la nguoi dau tien chia se cam nhan ve san pham nay.</p>
+        </div>
+
+        <!-- LOAD MORE -->
+        <div class="text-center mt-2" *ngIf="hasMoreReviews">
+          <button class="btn-load-more" (click)="loadMoreReviews()" [disabled]="isLoading">
+            {{ isLoading ? 'Dang tai...' : 'Xem them danh gia' }}
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+</div>
