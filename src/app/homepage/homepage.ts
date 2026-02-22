@@ -1,35 +1,23 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule, CurrencyPipe } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { ApiService } from '../services/api.service';
 
 export interface Category {
-  icon: string;
   name: string;
   count: string;
   color: string;
-}
-
-export interface Product {
-  id: number;
   image: string;
-  name: string;
-  cat: string;
-  weight: string;
-  price: number;
-  oldPrice?: number;
-  stars: string;
-  reviews: number;
-  sold?: number;
-  badge?: 'new' | 'hot';
-  sale?: string;
 }
 
 export interface BlogPost {
-  icon: string;
+  _id?: string;
   tag: string;
   title: string;
   excerpt: string;
+  coverImage: string;
+  author: string;
   date: string;
 }
 
@@ -37,11 +25,6 @@ export interface TrustItem {
   icon: string;
   title: string;
   sub: string;
-}
-
-export interface FooterColumn {
-  title: string;
-  links: string[];
 }
 
 @Component({
@@ -54,69 +37,142 @@ export interface FooterColumn {
 export class HomepageComponent implements OnInit {
 
   activeCategory = 0;
-  wishlist: number[] = [];
+  wishlist: string[] = [];
+  featuredProducts: any[] = [];
+  isLoading = true;
+  isBlogLoading = true;
+
+  readonly STATIC_BASE = 'http://localhost:3000';
 
   trustItems: TrustItem[] = [
-    { icon: 'bi-patch-check',  title: 'Nguồn gốc rõ ràng',   sub: 'Truy xuất tận nơi sản xuất' },
-    { icon: 'bi-star-fill',    title: '4.9/5 đánh giá',       sub: 'Từ 10.000+ khách hàng'      },
-    { icon: 'bi-arrow-repeat', title: 'Đổi trả 7 ngày',       sub: 'Không cần lý do'             },
-    { icon: 'bi-shield-check', title: 'Thanh toán bảo mật',   sub: 'VNPay · Momo · COD'         },
+    { icon: 'bi-patch-check',  title: 'Nguồn gốc rõ ràng',  sub: 'Truy xuất tận nơi sản xuất' },
+    { icon: 'bi-star-fill',    title: '4.9/5 đánh giá',      sub: 'Từ 10.000+ khách hàng'      },
+    { icon: 'bi-arrow-repeat', title: 'Đổi trả 7 ngày',      sub: 'Không cần lý do'             },
+    { icon: 'bi-shield-check', title: 'Thanh toán bảo mật',  sub: 'VNPay · Momo · COD'         },
   ];
 
   categories: Category[] = [
-    { icon: 'bi-egg-fried',  name: 'Hạt dinh dưỡng', count: '24 sp', color: '#EAF2E3' },
-    { icon: 'bi-cup-hot',    name: 'Granola',         count: '18 sp', color: '#FFF8EE' },
-    { icon: 'bi-apple',      name: 'Trái cây sấy',    count: '32 sp', color: '#F5EEFF' },
-    { icon: 'bi-basket2',    name: 'Đồ ăn vặt',       count: '15 sp', color: '#FFF0E8' },
-    { icon: 'bi-droplet',    name: 'Trà thảo mộc',    count: '20 sp', color: '#E8F5FF' },
-    { icon: 'bi-gift',       name: 'Combo',           count: '10 sp', color: '#FFF5E8' },
+    {
+      name: 'Hạt dinh dưỡng',
+      count: 'Xem tất cả',
+      color: '#EAF2E3',
+      image: `${this.STATIC_BASE}/images/products/black-bag-chia-500g.png`,
+    },
+    {
+      name: 'Granola',
+      count: 'Xem tất cả',
+      color: '#FFF8EE',
+      image: `${this.STATIC_BASE}/images/products/granola-500g-mix-flavors.png`,
+    },
+    {
+      name: 'Trái cây sấy',
+      count: 'Xem tất cả',
+      color: '#F5EEFF',
+      image: `${this.STATIC_BASE}/images/products/chuoi-say-lanh.jpg`,
+    },
+    {
+      name: 'Đồ ăn vặt',
+      count: 'Xem tất cả',
+      color: '#FFF0E8',
+      image: `${this.STATIC_BASE}/images/products/cheese-biscuit-baked-218g.png`,
+    },
+    {
+      name: 'Trà thảo mộc',
+      count: 'Xem tất cả',
+      color: '#E8F5FF',
+      image: `${this.STATIC_BASE}/images/products/seaweed-flakes-dried-korea.png`,
+    },
+    {
+      name: 'Combo',
+      count: 'Xem tất cả',
+      color: '#FFF5E8',
+      image: `${this.STATIC_BASE}/images/products/granola-matcha-combo-2x500g.png`,
+    },
   ];
 
-  featuredProducts: Product[] = [
-    { id: 1, image: 'assets/images/products/macadamia.png', name: 'Hạt Macadamia Rang Muối Úc',   cat: 'Hạt dinh dưỡng', weight: '250g / Hũ thủy tinh', price: 185000, oldPrice: 220000, stars: '★★★★★', reviews: 128, badge: 'hot', sale: '-16%' },
-    { id: 2, image: 'assets/images/products/granola.png',   name: 'Granola Hạnh Nhân Mật Ong',    cat: 'Granola',        weight: '400g / Túi zip',      price: 145000,                  stars: '★★★★☆', reviews: 89,  badge: 'new'              },
-    { id: 3, image: 'assets/images/products/nho-kho.png',  name: 'Nho Khô Không Hạt Nhập Khẩu',  cat: 'Trái cây sấy',   weight: '300g / Hộp giấy',     price: 98000,  oldPrice: 120000, stars: '★★★★★', reviews: 204, sale: '-18%'              },
-    { id: 4, image: 'assets/images/products/tra.png',      name: 'Trà Hoa Cúc Tâm Sen',           cat: 'Trà thảo mộc',   weight: '100g / Hộp thiếc',    price: 125000,                  stars: '★★★★☆', reviews: 56                               },
-  ];
+  blogPosts: BlogPost[] = [];
 
-  blogPosts: BlogPost[] = [
-    { icon: 'bi-journal-richtext', tag: 'Eat Clean',  title: 'Top 5 loại hạt nên ăn hàng ngày để tăng cường sức khỏe', excerpt: 'Hạt dinh dưỡng là nguồn cung cấp chất béo tốt, protein và vi chất khoáng thiết yếu cho cơ thể...', date: '15/01/2025' },
-    { icon: 'bi-fire',             tag: 'Công thức', title: 'Cách làm Granola thơm ngon tại nhà chỉ trong 30 phút',    excerpt: 'Granola tự làm vừa đảm bảo chất lượng, vừa tiết kiệm và có thể tùy chỉnh khẩu vị theo sở thích...', date: '10/01/2025' },
-    { icon: 'bi-heart-pulse',      tag: 'Sức khỏe',  title: 'Lợi ích của trà thảo mộc đối với hệ miễn dịch mùa lạnh', excerpt: 'Các loại trà thảo mộc tự nhiên có tác dụng tăng cường miễn dịch, giảm stress và cải thiện giấc ngủ...', date: '05/01/2025' },
-  ];
+  constructor(
+    private router: Router,
+    private api: ApiService,
+    private cdr: ChangeDetectorRef
+  ) {}
 
-  footerColumns: FooterColumn[] = [
-    { title: 'Sản phẩm',    links: ['Hạt dinh dưỡng', 'Granola', 'Trái cây sấy', 'Trà thảo mộc', 'Combo']              },
-    { title: 'Hỗ trợ',      links: ['Chính sách đổi trả', 'Hướng dẫn mua hàng', 'Tra cứu đơn hàng', 'Liên hệ']        },
-    { title: 'Về chúng tôi', links: ['Câu chuyện thương hiệu', 'Blog sức khỏe', 'Đại lý phân phối', 'Tuyển dụng']     },
-  ];
-
-  constructor(private router: Router) {}
-
-  ngOnInit(): void {}
-
-  onCategoryClick(index: number): void {
-    this.activeCategory = index;
-    this.router.navigate(['/product-listing-page']);
+  ngOnInit(): void {
+    this.loadFeaturedProducts();
+    this.loadBlogs();
   }
 
-  isWishlisted(id: number): boolean {
+  loadFeaturedProducts(): void {
+    this.api.getFeaturedProducts().subscribe({
+      next: (data) => {
+        this.featuredProducts = data;
+        this.isLoading = false;
+        this.cdr.detectChanges(); // ← Force Angular re-render
+      },
+      error: (err) => {
+        console.error('Lỗi tải sản phẩm nổi bật:', err);
+        this.isLoading = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  loadBlogs(): void {
+    this.api.getBlogs(3).subscribe({
+      next: (data) => {
+        this.blogPosts = data;
+        this.isBlogLoading = false;
+        this.cdr.detectChanges(); // ← Force Angular re-render
+      },
+      error: (err) => {
+        console.error('Lỗi tải blog:', err);
+        this.isBlogLoading = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  getBlogImageUrl(coverImage: string): string {
+    if (!coverImage) return 'assets/images/placeholder.png';
+    return coverImage.startsWith('http') ? coverImage : `${this.STATIC_BASE}${coverImage}`;
+  }
+
+  getStars(rating: number): string {
+    const full = Math.round(rating);
+    return '★'.repeat(full) + '☆'.repeat(5 - full);
+  }
+
+  onCategoryClick(index: number, catName: string): void {
+    this.activeCategory = index;
+    this.router.navigate(['/product-listing-page'], { queryParams: { cat: catName } });
+  }
+
+  isWishlisted(id: string): boolean {
     return this.wishlist.includes(id);
   }
 
-  toggleWishlist(event: Event, id: number): void {
+  toggleWishlist(event: Event, id: string): void {
     event.stopPropagation();
     this.wishlist = this.wishlist.includes(id)
       ? this.wishlist.filter(x => x !== id)
       : [...this.wishlist, id];
   }
 
-  addToCart(event: Event, id: number): void {
+  addToCart(event: Event, id: string): void {
     event.stopPropagation();
     console.log('Added to cart:', id);
   }
 
-  goToDetail(id: number): void {
-    this.router.navigate(['/product-detail-page', id]);
+  goToDetail(id: string): void {
+    if (id) this.router.navigate(['/product-detail-page', id]);
+  }
+
+  goToBlogDetail(id: string): void {
+    if (id) this.router.navigate(['/blog', id]);
+  }
+
+  goToAllBlogs(): void {
+    this.router.navigate(['/blog']);
   }
 }
