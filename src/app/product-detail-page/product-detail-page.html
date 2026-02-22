@@ -1,12 +1,8 @@
-<!-- ============================================================
-     PRODUCT DETAIL PAGE — product-detail-page.component.html
-     ============================================================ -->
-
 <!-- BREADCRUMB -->
 <nav class="breadcrumb-bar py-2">
   <div class="container">
     <ol class="breadcrumb mb-0">
-      <li class="breadcrumb-item"><a routerLink="/">Trang chu</a></li>
+      <li class="breadcrumb-item"><a routerLink="/">Trang chủ</a></li>
       <li class="breadcrumb-item"><a routerLink="/product-listing-page">{{ product?.cat }}</a></li>
       <li class="breadcrumb-item active">{{ product?.name }}</li>
     </ol>
@@ -40,33 +36,33 @@
       <!-- INFO -->
       <div class="col-12 col-lg-7 d-flex flex-column gap-4">
 
-        <!-- Name & Category -->
+        <!-- Tên & Danh mục -->
         <div>
           <div class="detail-cat mb-2">{{ product.cat }}</div>
           <h1 class="detail-title mb-0">{{ product.name }}</h1>
         </div>
 
-        <!-- Rating -->
+        <!-- Đánh giá -->
         <div class="d-flex align-items-center gap-2 flex-wrap">
           <span class="rating-stars">{{ product.starsDisplay }}</span>
           <span class="rating-score">{{ product.rating }}</span>
-          <span class="rating-meta">· {{ product.reviewCount }} danh gia · {{ product.sold }} da ban</span>
-          <a class="rating-link ms-1" routerLink="/order-review">Xem danh gia</a>
+          <span class="rating-meta">· {{ product.reviewCount }} đánh giá · {{ product.sold }} đã bán</span>
+          <a class="rating-link ms-1" routerLink="/order-review">Xem đánh giá</a>
         </div>
 
-        <!-- Price -->
+        <!-- Giá -->
         <div class="d-flex align-items-baseline gap-3 flex-wrap">
           <span class="detail-price">{{ product.price | currency:'VND':'symbol':'1.0-0' }}</span>
           <span class="detail-price-old" *ngIf="product.oldPrice">{{ product.oldPrice | currency:'VND':'symbol':'1.0-0' }}</span>
-          <span class="save-badge" *ngIf="product.saving">Tiet kiem {{ product.saving }}</span>
+          <span class="save-badge" *ngIf="product.saving">Tiết kiệm {{ product.saving }}</span>
         </div>
 
-        <!-- Description -->
+        <!-- Mô tả ngắn -->
         <p class="detail-desc mb-0">{{ product.shortDesc }}</p>
 
-        <!-- VARIANTS: Weight -->
+        <!-- Trọng lượng -->
         <div>
-          <div class="variant-label mb-2">Trong luong</div>
+          <div class="variant-label mb-2">Trọng lượng</div>
           <div class="d-flex gap-2 flex-wrap">
             <button
               class="variant-btn"
@@ -78,9 +74,9 @@
           </div>
         </div>
 
-        <!-- VARIANTS: Packaging -->
+        <!-- Loại đóng gói -->
         <div>
-          <div class="variant-label mb-2">Loai dong goi</div>
+          <div class="variant-label mb-2">Loại đóng gói</div>
           <div class="d-flex gap-2 flex-wrap">
             <button
               class="variant-btn"
@@ -91,9 +87,9 @@
           </div>
         </div>
 
-        <!-- QTY + STOCK -->
+        <!-- Số lượng & Tồn kho -->
         <div class="d-flex align-items-center gap-3 flex-wrap">
-          <span class="variant-label">So luong:</span>
+          <span class="variant-label">Số lượng:</span>
           <div class="qty-control">
             <button class="qty-btn" (click)="decreaseQty()" [disabled]="qty <= 1">
               <i class="bi bi-dash"></i>
@@ -105,7 +101,7 @@
           </div>
           <span class="stock-info" [class.low]="product.stock < 10">
             <i class="bi me-1" [class.bi-check-circle]="product.stock >= 10" [class.bi-exclamation-triangle]="product.stock < 10"></i>
-            Con {{ product.stock }} san pham
+            Còn {{ product.stock }} sản phẩm
           </span>
         </div>
 
@@ -113,59 +109,59 @@
         <div class="d-flex gap-3">
           <button class="btn-cart flex-grow-1" [class.added]="addedToCart" (click)="addToCart()">
             <i class="bi bi-cart3"></i>
-            {{ addedToCart ? 'Da them vao gio!' : 'Them vao gio hang' }}
+            {{ addedToCart ? 'Đã thêm vào giỏ!' : 'Thêm vào giỏ hàng' }}
           </button>
           <button class="btn-buy flex-grow-1" (click)="buyNow()">
-            <i class="bi bi-lightning-charge-fill me-1"></i> Mua ngay
+            <i class="bi bi-lightning-charge-fill me-1"></i>Mua ngay
           </button>
         </div>
 
-        <!-- Wishlist + Share -->
+        <!-- Yêu thích & Chia sẻ -->
         <div class="d-flex gap-2">
           <button class="btn-action" [class.wishlisted]="isWishlisted" (click)="toggleWishlist()">
             <i class="bi me-1" [class.bi-heart-fill]="isWishlisted" [class.bi-heart]="!isWishlisted"></i>
-            {{ isWishlisted ? 'Da yeu thich' : 'Yeu thich' }}
+            {{ isWishlisted ? 'Đã yêu thích' : 'Yêu thích' }}
           </button>
           <button class="btn-action" (click)="share()">
-            <i class="bi bi-share me-1"></i> Chia se
+            <i class="bi bi-share me-1"></i>Chia sẻ
           </button>
         </div>
 
         <!-- Trust Badges -->
         <div class="d-flex gap-2 flex-wrap">
-          <span class="info-badge"><i class="bi bi-truck me-1"></i>Freeship tu 299K</span>
-          <span class="info-badge"><i class="bi bi-arrow-repeat me-1"></i>Doi tra 7 ngay</span>
+          <span class="info-badge"><i class="bi bi-truck me-1"></i>Freeship từ 299K</span>
+          <span class="info-badge"><i class="bi bi-arrow-repeat me-1"></i>Đổi trả 7 ngày</span>
           <span class="info-badge"><i class="bi bi-patch-check me-1"></i>VSATTP</span>
-          <span class="info-badge"><i class="bi bi-box-seam me-1"></i>Dong goi can than</span>
+          <span class="info-badge"><i class="bi bi-box-seam me-1"></i>Đóng gói cẩn thận</span>
         </div>
 
         <!-- TABS -->
         <div class="detail-tabs-wrapper">
           <div class="nav-tabs-detail">
             <button class="tab-btn" [class.active]="activeTab === 'desc'"
-              (click)="activeTab = 'desc'">Mo ta</button>
+              (click)="activeTab = 'desc'">Mô tả</button>
             <button class="tab-btn" [class.active]="activeTab === 'nutrition'"
-              (click)="activeTab = 'nutrition'">Dinh duong</button>
+              (click)="activeTab = 'nutrition'">Dinh dưỡng</button>
             <button class="tab-btn" [class.active]="activeTab === 'policy'"
-              (click)="activeTab = 'policy'">Chinh sach</button>
+              (click)="activeTab = 'policy'">Chính sách</button>
           </div>
 
           <div class="tab-content">
 
-            <!-- Mo ta -->
+            <!-- Mô tả -->
             <div *ngIf="activeTab === 'desc'">
               <div class="desc-text" [innerHTML]="product.description"></div>
             </div>
 
-            <!-- Dinh duong -->
+            <!-- Dinh dưỡng -->
             <div *ngIf="activeTab === 'nutrition'">
-              <p class="nutrition-note mb-3">Thong tin dinh duong tren 100g san pham</p>
+              <p class="nutrition-note mb-3">Thông tin dinh dưỡng trên 100g sản phẩm</p>
               <table class="nutrition-table">
                 <thead>
                   <tr>
-                    <th>Thanh phan</th>
-                    <th>Ham luong</th>
-                    <th>% NDH ngay</th>
+                    <th>Thành phần</th>
+                    <th>Hàm lượng</th>
+                    <th>% NDH ngày</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -176,10 +172,10 @@
                   </tr>
                 </tbody>
               </table>
-              <p class="nutrition-disclaimer mt-2">* NDH = Nhu cau dinh duong hang ngay dua tren che do 2000 kcal.</p>
+              <p class="nutrition-disclaimer mt-2">* NDH = Nhu cầu dinh dưỡng hàng ngày dựa trên chế độ 2000 kcal.</p>
             </div>
 
-            <!-- Chinh sach -->
+            <!-- Chính sách -->
             <div *ngIf="activeTab === 'policy'">
               <div class="policy-item" *ngFor="let item of policyItems">
                 <i class="policy-icon bi {{ item.icon }}"></i>
@@ -193,15 +189,15 @@
           </div>
         </div>
 
-      </div><!-- /col info -->
-    </div><!-- /row -->
+      </div>
+    </div>
   </div>
 </div>
 
-<!-- RELATED PRODUCTS -->
+<!-- SẢN PHẨM LIÊN QUAN -->
 <section class="py-5" style="background:#FAF6F0;">
   <div class="container">
-    <h2 class="section-title mb-4">Co the ban cung thich</h2>
+    <h2 class="section-title mb-4">Có thể bạn cũng thích</h2>
     <div class="row g-3">
       <div class="col-6 col-md-3" *ngFor="let p of relatedProducts">
         <div class="related-product-card" (click)="goToProduct(p.id)">

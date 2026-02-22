@@ -30,25 +30,25 @@ export class SidebarComponent implements OnInit {
   };
 
   categories: CategoryFilter[] = [
-    { key: 'Hat dinh duong', name: 'Hat dinh duong', count: 24 },
-    { key: 'Granola',        name: 'Granola',        count: 18 },
-    { key: 'Trai cay say',   name: 'Trai cay say',   count: 32 },
-    { key: 'Do an vat',      name: 'Do an vat',      count: 15 },
-    { key: 'Tra thao moc',   name: 'Tra thao moc',   count: 20 },
-    { key: 'Combo',          name: 'Combo',          count: 10 },
+    { key: 'Hạt dinh dưỡng', name: 'Hạt dinh dưỡng', count: 24 },
+    { key: 'Granola',        name: 'Granola',         count: 18 },
+    { key: 'Trái cây sấy',   name: 'Trái cây sấy',    count: 32 },
+    { key: 'Đồ ăn vặt',      name: 'Đồ ăn vặt',       count: 15 },
+    { key: 'Trà thảo mộc',   name: 'Trà thảo mộc',    count: 20 },
+    { key: 'Combo',          name: 'Combo',           count: 10 },
   ];
 
   pricePresets: PricePreset[] = [
-    { key: 'all',     label: 'Tat ca',      min: 0,      max: 1000000 },
-    { key: 'u100',    label: 'Duoi 100K',   min: 0,      max: 100000  },
+    { key: 'all',     label: 'Tất cả',     min: 0,      max: 1000000 },
+    { key: 'u100',    label: 'Dưới 100K',  min: 0,      max: 100000  },
     { key: '100-200', label: '100K - 200K', min: 100000, max: 200000  },
-    { key: 'o200',    label: 'Tren 200K',   min: 200000, max: 1000000 },
+    { key: 'o200',    label: 'Trên 200K',  min: 200000, max: 1000000 },
   ];
 
   statusOptions: StatusOption[] = [
-    { key: 'in-stock', label: 'Con hang',      color: '#7FB069' },
-    { key: 'new',      label: 'Hang moi ve',   color: '#3A6FD4' },
-    { key: 'on-sale',  label: 'Dang giam gia', color: '#E8384F' },
+    { key: 'in-stock', label: 'Còn hàng',       color: '#7FB069' },
+    { key: 'new',      label: 'Hàng mới về',    color: '#3A6FD4' },
+    { key: 'on-sale',  label: 'Đang giảm giá',  color: '#E8384F' },
   ];
 
   weightOptions = ['100g', '200g', '250g', '300g', '400g', '500g', '1kg'];

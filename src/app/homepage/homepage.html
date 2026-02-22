@@ -1,7 +1,3 @@
-<!-- ============================================================
-     HOMEPAGE — homepage.component.html  (Bootstrap 5)
-     ============================================================ -->
-
 <!-- HERO -->
 <section class="hero-section">
   <div class="container-fluid px-0">
@@ -10,17 +6,17 @@
       <!-- Left -->
       <div class="col-lg-6 d-flex align-items-center">
         <div class="px-5 py-5 py-lg-0">
-          <span class="hero-tag mb-3 d-inline-block">Thuc pham lanh manh so 1 Viet Nam</span>
+          <span class="hero-tag mb-3 d-inline-block">Thực phẩm lành mạnh số 1 Việt Nam</span>
           <h1 class="hero-title mb-3">
-            Dinh duong <span class="highlight">thuan khiet</span><br>tu thien nhien
+            Dinh dưỡng <span class="highlight">thuần khiết</span><br>từ thiên nhiên
           </h1>
           <p class="hero-desc mb-4">
-            Kham pha hon 100 san pham hat dinh duong, granola va tra thao moc.
-            Khong phu gia, khong chat bao quan — chi thuan tuy tu thien nhien.
+            Khám phá hơn 100 sản phẩm hạt dinh dưỡng, granola và trà thảo mộc.
+            Không phụ gia, không chất bảo quản — chỉ thuần túy từ thiên nhiên.
           </p>
           <div class="d-flex gap-3 flex-wrap">
-            <button class="btn-hero-primary" routerLink="/product-listing-page">Kham pha ngay</button>
-            <button class="btn-hero-outline">Xem combo tiet kiem</button>
+            <button class="btn-hero-primary" routerLink="/product-listing-page">Khám phá ngay</button>
+            <button class="btn-hero-outline">Xem combo tiết kiệm</button>
           </div>
         </div>
       </div>
@@ -35,9 +31,9 @@
             style="max-width:300px;"
           />
           <div class="position-absolute top-0 end-0 d-flex flex-column gap-2 me-n3">
-            <div class="hero-badge">100% Tu nhien</div>
-            <div class="hero-badge">Freeship don 299K</div>
-            <div class="hero-badge">Giao trong 2h</div>
+            <div class="hero-badge"><i class="bi bi-check-circle-fill me-1"></i>100% Tự nhiên</div>
+            <div class="hero-badge"><i class="bi bi-truck me-1"></i>Freeship đơn 299K</div>
+            <div class="hero-badge"><i class="bi bi-lightning-charge me-1"></i>Giao trong 2h</div>
           </div>
         </div>
       </div>
@@ -51,7 +47,7 @@
   <div class="container">
     <div class="row g-3 justify-content-center">
       <div class="col-6 col-md-3 d-flex align-items-center gap-2 trust-item" *ngFor="let item of trustItems">
-        <span class="trust-icon">{{ item.icon }}</span>
+        <i class="trust-icon bi {{ item.icon }}"></i>
         <div>
           <div class="trust-title">{{ item.title }}</div>
           <div class="trust-sub">{{ item.sub }}</div>
@@ -61,15 +57,15 @@
   </div>
 </div>
 
-<!-- DANH MUC -->
+<!-- DANH MỤC -->
 <section class="py-5" style="background:#FAF6F0;">
   <div class="container">
     <div class="d-flex justify-content-between align-items-end mb-4">
       <div>
-        <h2 class="section-title mb-1">Danh muc san pham</h2>
-        <p class="section-subtitle mb-0">Tim kiem theo nhu cau dinh duong cua ban</p>
+        <h2 class="section-title mb-1">Danh mục sản phẩm</h2>
+        <p class="section-subtitle mb-0">Tìm kiếm theo nhu cầu dinh dưỡng của bạn</p>
       </div>
-      <a class="link-more" routerLink="/product-listing-page">Xem tat ca</a>
+      <a class="link-more" routerLink="/product-listing-page">Xem tất cả</a>
     </div>
 
     <div class="row g-3">
@@ -80,7 +76,7 @@
           [style.background]="cat.color"
           (click)="onCategoryClick(i)"
         >
-          <div class="cat-icon">{{ cat.icon }}</div>
+          <i class="cat-icon bi {{ cat.icon }}"></i>
           <div class="cat-name">{{ cat.name }}</div>
           <div class="cat-count">{{ cat.count }}</div>
         </div>
@@ -89,22 +85,22 @@
   </div>
 </section>
 
-<!-- SAN PHAM BAN CHAY -->
+<!-- SẢN PHẨM BÁN CHẠY -->
 <section class="py-5" style="background:#FAF6F0;">
   <div class="container">
     <div class="d-flex justify-content-between align-items-end mb-4">
       <div>
-        <h2 class="section-title mb-1">Ban chay tuan nay</h2>
-        <p class="section-subtitle mb-0">Duoc khach hang tin dung nhieu nhat</p>
+        <h2 class="section-title mb-1">Bán chạy tuần này</h2>
+        <p class="section-subtitle mb-0">Được khách hàng tin dùng nhiều nhất</p>
       </div>
-      <a class="link-more" routerLink="/product-listing-page">Xem them</a>
+      <a class="link-more" routerLink="/product-listing-page">Xem thêm</a>
     </div>
 
     <div class="row g-4">
       <div class="col-12 col-sm-6 col-md-3" *ngFor="let p of featuredProducts">
         <div class="product-card h-100" (click)="goToDetail(p.id)">
           <div class="product-img-wrap">
-            <span class="badge-new" *ngIf="p.badge === 'new'">Moi</span>
+            <span class="badge-new" *ngIf="p.badge === 'new'">Mới</span>
             <span class="badge-hot" *ngIf="p.badge === 'hot'">Hot</span>
             <span class="badge-sale" *ngIf="p.sale">{{ p.sale }}</span>
             <img [src]="p.image" [alt]="p.name" />
@@ -146,10 +142,14 @@
     <div class="promo-banner p-5">
       <div class="row align-items-center">
         <div class="col-lg-8">
-          <span class="promo-tag mb-3 d-inline-block">Uu dai co han</span>
-          <h3 class="promo-title mb-2">Combo Gym &amp; Eat Clean<br><em>Tiet kiem den 25%</em></h3>
-          <p class="promo-desc mb-4">Bo doi Granola + Hat Macadamia danh rieng cho nguoi tap luyen the thao.</p>
-          <button class="btn-promo">Mua combo ngay</button>
+          <span class="promo-tag mb-3 d-inline-block">
+            <i class="bi bi-lightning-charge-fill me-1"></i>Ưu đãi có hạn
+          </span>
+          <h3 class="promo-title mb-2">Combo Gym &amp; Eat Clean<br><em>Tiết kiệm đến 25%</em></h3>
+          <p class="promo-desc mb-4">Bộ đôi Granola + Hạt Macadamia dành riêng cho người tập luyện thể thao.</p>
+          <button class="btn-promo">
+            <i class="bi bi-bag-heart me-2"></i>Mua combo ngay
+          </button>
         </div>
       </div>
     </div>
@@ -161,23 +161,25 @@
   <div class="container">
     <div class="d-flex justify-content-between align-items-end mb-4">
       <div>
-        <h2 class="section-title mb-1">Cam nang suc khoe</h2>
-        <p class="section-subtitle mb-0">Bi quyet an uong lanh manh tu chuyen gia</p>
+        <h2 class="section-title mb-1">Cẩm nang sức khỏe</h2>
+        <p class="section-subtitle mb-0">Bí quyết ăn uống lành mạnh từ chuyên gia</p>
       </div>
-      <a class="link-more">Xem tat ca</a>
+      <a class="link-more">Xem tất cả</a>
     </div>
 
     <div class="row g-4">
       <div class="col-12 col-md-4" *ngFor="let post of blogPosts">
         <div class="blog-card h-100">
-          <div class="blog-img">{{ post.emoji }}</div>
+          <div class="blog-img">
+            <i class="bi {{ post.icon }}"></i>
+          </div>
           <div class="p-3">
             <div class="blog-tag mb-1">{{ post.tag }}</div>
             <div class="blog-title mb-2">{{ post.title }}</div>
             <p class="blog-excerpt mb-3">{{ post.excerpt }}</p>
             <div class="d-flex justify-content-between align-items-center border-top pt-2">
               <span class="blog-date">{{ post.date }}</span>
-              <a class="blog-read">Doc tiep</a>
+              <a class="blog-read">Đọc tiếp <i class="bi bi-arrow-right ms-1"></i></a>
             </div>
           </div>
         </div>

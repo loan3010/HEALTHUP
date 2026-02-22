@@ -29,7 +29,7 @@ export interface Review {
 })
 export class OrderReviewComponent implements OnInit {
 
-  productName    = 'Hat Macadamia Rang Muoi Uc';
+  productName    = 'Hạt Macadamia Rang Muối Úc';
   averageRating  = 4.9;
   starsDisplay   = '★★★★★';
   totalReviews   = 128;
@@ -45,7 +45,7 @@ export class OrderReviewComponent implements OnInit {
   ratingCounts: Record<number, number> = { 5: 92, 4: 24, 3: 8, 2: 3, 1: 1 };
   photoReviewCount = 38;
 
-  praiseTags = ['Chat luong tot', 'Giao hang nhanh', 'Dong goi dep', 'Dung nhu mo ta', 'Thom ngon'];
+  praiseTags = ['Chất lượng tốt', 'Giao hàng nhanh', 'Đóng gói đẹp', 'Đúng như mô tả', 'Thơm ngon'];
 
   selectedStar    = 0;
   hoverStar       = 0;
@@ -54,49 +54,49 @@ export class OrderReviewComponent implements OnInit {
   selectedTags:   string[] = [];
 
   starLabels: Record<number, string> = {
-    1: 'Rat te',
-    2: 'Khong hai long',
-    3: 'Binh thuong',
-    4: 'Tot',
-    5: 'Tuyet voi!',
+    1: 'Rất tệ',
+    2: 'Không hài lòng',
+    3: 'Bình thường',
+    4: 'Tốt',
+    5: 'Tuyệt vời!',
   };
 
-  purchasedVariants = ['250g · Hu thuy tinh', '500g · Hu nhua', '1kg · Tui zip'];
+  purchasedVariants = ['250g · Hũ thủy tinh', '500g · Hũ nhựa', '1kg · Túi zip'];
 
   quickTags = [
-    'Thom ngon', 'Gion', 'Dung nhu mo ta', 'Dong goi dep',
-    'Giao hang nhanh', 'Chat luong tot', 'Gia hop ly', 'Se mua lai',
+    'Thơm ngon', 'Giòn', 'Đúng như mô tả', 'Đóng gói đẹp',
+    'Giao hàng nhanh', 'Chất lượng tốt', 'Giá hợp lý', 'Sẽ mua lại',
   ];
 
   allReviews: Review[] = [
     {
-      id: 1, name: 'Ngoc Linh', initial: 'N', avatarColor: '#4A7C2F', rating: 5,
-      date: '15/01/2025', variant: '250g · Hu thuy tinh',
-      tags: ['Thom ngon', 'Dong goi dep', 'Se mua lai'],
-      text: 'Macadamia rang muoi vua phai, khong bi man, hat chac va thom lam. Dong goi ky, hu thuy tinh rat dep. Day la lan thu 3 minh mua roi, chac chan se quay lai!',
+      id: 1, name: 'Ngọc Linh', initial: 'N', avatarColor: '#4A7C2F', rating: 5,
+      date: '15/01/2025', variant: '250g · Hũ thủy tinh',
+      tags: ['Thơm ngon', 'Đóng gói đẹp', 'Sẽ mua lại'],
+      text: 'Macadamia rang muối vừa phải, không bị mặn, hạt chắc và thơm lắm. Đóng gói kỹ, hũ thủy tinh rất đẹp. Đây là lần thứ 3 mình mua rồi, chắc chắn sẽ quay lại!',
       imgs: ['assets/images/reviews/r1-1.jpg', 'assets/images/reviews/r1-2.jpg'],
-      adminReply: 'Cam on ban Ngoc Linh da tin tuong HealthUp! Chung toi rat vui khi san pham dap ung duoc ky vong.',
+      adminReply: 'Cảm ơn bạn Ngọc Linh đã tin tưởng HealthUp! Chúng tôi rất vui khi sản phẩm đáp ứng được kỳ vọng.',
       adminReplyDate: '16/01/2025', helpful: 24, verified: true,
     },
     {
-      id: 2, name: 'Minh Tuan', initial: 'M', avatarColor: '#3A6FD4', rating: 4,
-      date: '10/01/2025', variant: '500g · Hu nhua',
-      tags: ['Chat luong tot', 'Gia hop ly'],
-      text: 'San pham ngon, giao hang nhanh. Tru 1 sao vi lan nay hat hoi nho hon lan truoc mot chut. Nhin chung van on, se mua tiep.',
+      id: 2, name: 'Minh Tuấn', initial: 'M', avatarColor: '#3A6FD4', rating: 4,
+      date: '10/01/2025', variant: '500g · Hũ nhựa',
+      tags: ['Chất lượng tốt', 'Giá hợp lý'],
+      text: 'Sản phẩm ngon, giao hàng nhanh. Trừ 1 sao vì lần này hạt hơi nhỏ hơn lần trước một chút. Nhìn chung vẫn ổn, sẽ mua tiếp.',
       imgs: [], helpful: 8, verified: true,
     },
     {
-      id: 3, name: 'Thu Huong', initial: 'T', avatarColor: '#D4854A', rating: 5,
-      date: '05/01/2025', variant: '250g · Hu thuy tinh',
-      tags: ['Dong goi dep', 'Dung nhu mo ta'],
-      text: 'Qua tang cho me dip Tet. Dong goi dep lam, hu thuy tinh trong sang. Me thich lam. Se mua them combo qua tang gia dinh.',
+      id: 3, name: 'Thu Hương', initial: 'T', avatarColor: '#D4854A', rating: 5,
+      date: '05/01/2025', variant: '250g · Hũ thủy tinh',
+      tags: ['Đóng gói đẹp', 'Đúng như mô tả'],
+      text: 'Quà tặng cho mẹ dịp Tết. Đóng gói đẹp lắm, hũ thủy tinh trong sáng. Mẹ thích lắm. Sẽ mua thêm combo quà tặng gia đình.',
       imgs: ['assets/images/reviews/r3-1.jpg'], helpful: 42, verified: true,
     },
     {
-      id: 4, name: 'Duc Anh', initial: 'D', avatarColor: '#2D5016', rating: 5,
-      date: '02/01/2025', variant: '500g · Hu nhua',
-      tags: ['Thom ngon', 'Giao hang nhanh'],
-      text: 'Dat cho vo bau an them dinh duong. San pham sach, nguon goc ro rang. Giao hang nhanh, dong goi cac lop bao ve rat tot.',
+      id: 4, name: 'Đức Anh', initial: 'Đ', avatarColor: '#2D5016', rating: 5,
+      date: '02/01/2025', variant: '500g · Hũ nhựa',
+      tags: ['Thơm ngon', 'Giao hàng nhanh'],
+      text: 'Đặt cho vợ bầu ăn thêm dinh dưỡng. Sản phẩm sạch, nguồn gốc rõ ràng. Giao hàng nhanh, đóng gói các lớp bảo vệ rất tốt.',
       imgs: [], helpful: 17, verified: true,
     },
   ];
@@ -150,7 +150,7 @@ export class OrderReviewComponent implements OnInit {
     this.isSubmitting = true;
     setTimeout(() => {
       const newReview: Review = {
-        id: Date.now(), name: 'Ban', initial: 'B', avatarColor: '#7FB069',
+        id: Date.now(), name: 'Bạn', initial: 'B', avatarColor: '#7FB069',
         rating: this.selectedStar, date: new Date().toLocaleDateString('vi-VN'),
         variant: this.selectedVariant || undefined, tags: [...this.selectedTags],
         text: this.reviewText, imgs: [], helpful: 0, verified: true,
