@@ -1,13 +1,9 @@
-<!-- ============================================================
-     PRODUCT LISTING PAGE — product-listing-page.component.html
-     ============================================================ -->
-
 <!-- BREADCRUMB -->
 <nav class="breadcrumb-bar py-2 px-0">
   <div class="container">
     <ol class="breadcrumb mb-0">
-      <li class="breadcrumb-item"><a routerLink="/">Trang chu</a></li>
-      <li class="breadcrumb-item active">San pham</li>
+      <li class="breadcrumb-item"><a routerLink="/">Trang chủ</a></li>
+      <li class="breadcrumb-item active">Sản phẩm</li>
     </ol>
   </div>
 </nav>
@@ -36,21 +32,21 @@
           {{ tag.label }}
           <button class="tag-remove" (click)="removeFilter(tag.key)">x</button>
         </span>
-        <button class="btn-clear-all" (click)="clearAllFilters()">Xoa tat ca</button>
+        <button class="btn-clear-all" (click)="clearAllFilters()">Xóa tất cả</button>
       </div>
 
       <!-- RESULTS BAR -->
       <div class="results-bar d-flex align-items-center justify-content-between p-3 mb-4">
         <span class="results-count">
-          Tim thay <strong>{{ totalProducts }}</strong> san pham
+          Tìm thấy <strong>{{ totalProducts }}</strong> sản phẩm
         </span>
         <div class="d-flex align-items-center gap-2">
           <select class="sort-select" [(ngModel)]="sortBy" (change)="onSortChange()">
-            <option value="popular">Pho bien nhat</option>
-            <option value="newest">Moi nhat</option>
-            <option value="price-asc">Gia tang dan</option>
-            <option value="price-desc">Gia giam dan</option>
-            <option value="rating">Danh gia cao</option>
+            <option value="popular">Phổ biến nhất</option>
+            <option value="newest">Mới nhất</option>
+            <option value="price-asc">Giá tăng dần</option>
+            <option value="price-desc">Giá giảm dần</option>
+            <option value="rating">Đánh giá cao</option>
           </select>
           <button class="view-btn" [class.active]="viewMode === 'grid'" (click)="viewMode = 'grid'">
             <i class="bi bi-grid"></i>
@@ -67,7 +63,7 @@
         <div class="col-6 col-md-4" *ngFor="let p of displayedProducts">
           <div class="product-card h-100" (click)="goToDetail(p.id)">
             <div class="product-img-wrap">
-              <span class="badge-new" *ngIf="p.badge === 'new'">Moi</span>
+              <span class="badge-new" *ngIf="p.badge === 'new'">Mới</span>
               <span class="badge-hot" *ngIf="p.badge === 'hot'">Hot</span>
               <span class="badge-sale" *ngIf="p.sale">{{ p.sale }}</span>
               <img [src]="p.image" [alt]="p.name" />
@@ -133,12 +129,12 @@
             <div class="list-name mb-2">{{ p.name }}</div>
             <div class="d-flex gap-2 flex-wrap mb-2">
               <span class="chip chip-green">{{ p.weight }}</span>
-              <span class="chip chip-amber" *ngIf="p.badge === 'hot'">Ban chay</span>
-              <span class="chip chip-blue"  *ngIf="p.badge === 'new'">Moi</span>
+              <span class="chip chip-amber" *ngIf="p.badge === 'hot'">Bán chạy</span>
+              <span class="chip chip-blue"  *ngIf="p.badge === 'new'">Mới</span>
             </div>
             <div class="product-rating">
               <span class="stars">{{ p.stars }}</span>
-              <span class="ms-1">{{ p.reviews }} danh gia</span>
+              <span class="ms-1">{{ p.reviews }} đánh giá</span>
             </div>
           </div>
           <div class="d-flex flex-column align-items-end justify-content-between" style="min-width:130px;">
@@ -146,7 +142,7 @@
               <div class="product-price">{{ p.price | currency:'VND':'symbol':'1.0-0' }}</div>
               <div class="product-price-old" *ngIf="p.oldPrice">{{ p.oldPrice | currency:'VND':'symbol':'1.0-0' }}</div>
             </div>
-            <button class="btn-add-list" (click)="addToCart($event, p.id)">+ Gio hang</button>
+            <button class="btn-add-list" (click)="addToCart($event, p.id)">+ Giỏ hàng</button>
           </div>
         </div>
       </div>
@@ -154,9 +150,9 @@
       <!-- EMPTY STATE -->
       <div class="empty-state text-center py-5 px-3" *ngIf="displayedProducts.length === 0 && !isLoading">
         <i class="bi bi-search fs-1 text-secondary d-block mb-3"></i>
-        <div class="empty-title mb-2">Khong tim thay san pham</div>
-        <p class="empty-desc mb-4">Thu dieu chinh bo loc hoac tu khoa tim kiem.</p>
-        <button class="btn-reset" (click)="clearAllFilters()">Xoa bo loc</button>
+        <div class="empty-title mb-2">Không tìm thấy sản phẩm</div>
+        <p class="empty-desc mb-4">Thử điều chỉnh bộ lọc hoặc từ khóa tìm kiếm.</p>
+        <button class="btn-reset" (click)="clearAllFilters()">Xóa bộ lọc</button>
       </div>
 
       <!-- PAGINATION -->

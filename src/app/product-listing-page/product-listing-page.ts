@@ -46,15 +46,15 @@ export class ProductListingPageComponent implements OnInit {
   skeletons = Array(6).fill(0);
 
   allProducts: ProductItem[] = [
-    { id: 1, image: 'assets/images/products/macadamia.png',  name: 'Hat Macadamia Rang Muoi Uc',        cat: 'Hat dinh duong', weight: '250g / Hu thuy tinh', price: 185000, oldPrice: 220000, stars: '★★★★★', reviews: 128, badge: 'hot', sale: '-16%' },
-    { id: 2, image: 'assets/images/products/granola.png',    name: 'Granola Hanh Nhan Mat Ong',          cat: 'Granola',        weight: '400g / Tui zip',      price: 145000,                  stars: '★★★★☆', reviews: 89,  badge: 'new'              },
-    { id: 3, image: 'assets/images/products/nho-kho.png',   name: 'Nho Kho Khong Hat Nhap Khau',        cat: 'Trai cay say',   weight: '300g / Hop giay',     price: 98000,  oldPrice: 120000, stars: '★★★★★', reviews: 204, sale: '-18%'              },
-    { id: 4, image: 'assets/images/products/tra.png',       name: 'Tra Hoa Cuc Tam Sen',                cat: 'Tra thao moc',   weight: '100g / Hop thiec',    price: 125000,                  stars: '★★★★☆', reviews: 56                               },
-    { id: 5, image: 'assets/images/products/hat-dieu.png',  name: 'Hat Dieu Rang Muoi',                 cat: 'Hat dinh duong', weight: '300g / Hu nhua',      price: 155000,                  stars: '★★★★★', reviews: 97                               },
-    { id: 6, image: 'assets/images/products/combo1.png',    name: 'Combo Eat Clean Cho Nguoi Tap Gym',  cat: 'Combo',          weight: '3 san pham',          price: 390000, oldPrice: 450000, stars: '★★★★★', reviews: 312, sale: '-13%'              },
-    { id: 7, image: 'assets/images/products/xoai-say.png',  name: 'Xoai Say Deo Khong Duong',           cat: 'Trai cay say',   weight: '200g / Tui zip',      price: 75000,                   stars: '★★★★☆', reviews: 144, badge: 'new'              },
-    { id: 8, image: 'assets/images/products/granola2.png',  name: 'Granola Socola Den Dua',             cat: 'Granola',        weight: '300g / Hu thuy tinh', price: 138000,                  stars: '★★★★☆', reviews: 61                               },
-    { id: 9, image: 'assets/images/products/hanh-nhan.png', name: 'Hanh Nhan Nguyen Vo California',     cat: 'Hat dinh duong', weight: '500g / Tui zip',      price: 210000, oldPrice: 250000, stars: '★★★★★', reviews: 178, sale: '-16%'              },
+    { id: 1, image: 'assets/images/products/macadamia.png',  name: 'Hạt Macadamia Rang Muối Úc',         cat: 'Hạt dinh dưỡng', weight: '250g / Hũ thủy tinh', price: 185000, oldPrice: 220000, stars: '★★★★★', reviews: 128, badge: 'hot', sale: '-16%' },
+    { id: 2, image: 'assets/images/products/granola.png',    name: 'Granola Hạnh Nhân Mật Ong',           cat: 'Granola',        weight: '400g / Túi zip',      price: 145000,                  stars: '★★★★☆', reviews: 89,  badge: 'new'              },
+    { id: 3, image: 'assets/images/products/nho-kho.png',   name: 'Nho Khô Không Hạt Nhập Khẩu',         cat: 'Trái cây sấy',   weight: '300g / Hộp giấy',     price: 98000,  oldPrice: 120000, stars: '★★★★★', reviews: 204, sale: '-18%'              },
+    { id: 4, image: 'assets/images/products/tra.png',       name: 'Trà Hoa Cúc Tâm Sen',                  cat: 'Trà thảo mộc',   weight: '100g / Hộp thiếc',    price: 125000,                  stars: '★★★★☆', reviews: 56                               },
+    { id: 5, image: 'assets/images/products/hat-dieu.png',  name: 'Hạt Điều Rang Muối',                   cat: 'Hạt dinh dưỡng', weight: '300g / Hũ nhựa',      price: 155000,                  stars: '★★★★★', reviews: 97                               },
+    { id: 6, image: 'assets/images/products/combo1.png',    name: 'Combo Eat Clean Cho Người Tập Gym',    cat: 'Combo',          weight: '3 sản phẩm',          price: 390000, oldPrice: 450000, stars: '★★★★★', reviews: 312, sale: '-13%'              },
+    { id: 7, image: 'assets/images/products/xoai-say.png',  name: 'Xoài Sấy Dẻo Không Đường',            cat: 'Trái cây sấy',   weight: '200g / Túi zip',      price: 75000,                   stars: '★★★★☆', reviews: 144, badge: 'new'              },
+    { id: 8, image: 'assets/images/products/granola2.png',  name: 'Granola Socola Đen Dừa',               cat: 'Granola',        weight: '300g / Hũ thủy tinh', price: 138000,                  stars: '★★★★☆', reviews: 61                               },
+    { id: 9, image: 'assets/images/products/hanh-nhan.png', name: 'Hạnh Nhân Nguyên Vỏ California',      cat: 'Hạt dinh dưỡng', weight: '500g / Túi zip',      price: 210000, oldPrice: 250000, stars: '★★★★★', reviews: 178, sale: '-16%'              },
   ];
 
   displayedProducts: ProductItem[] = [];

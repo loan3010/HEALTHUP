@@ -1,22 +1,18 @@
-<!-- ============================================================
-     SIDEBAR — sidebar.component.html  (Bootstrap 5)
-     ============================================================ -->
-
 <div class="sidebar-wrapper d-flex flex-column gap-3">
 
   <!-- HEADER -->
   <div class="sidebar-header-card p-3 d-flex justify-content-between align-items-center">
     <span class="sidebar-title">
-      <i class="bi bi-sliders me-2"></i>Bo loc
+      <i class="bi bi-sliders me-2"></i>Bộ lọc
     </span>
-    <button class="btn-reset-all" (click)="onReset()">Xoa tat ca</button>
+    <button class="btn-reset-all" (click)="onReset()">Xóa tất cả</button>
   </div>
 
-  <!-- DANH MUC -->
+  <!-- DANH MỤC -->
   <div class="filter-card">
     <div class="filter-section-title px-3 py-3 d-flex justify-content-between align-items-center"
       (click)="toggleSection('category')">
-      <span>Danh muc</span>
+      <span>Danh mục</span>
       <i class="bi" [class.bi-chevron-up]="openSections['category']" [class.bi-chevron-down]="!openSections['category']"></i>
     </div>
     <div class="filter-body px-3" [class.collapsed]="!openSections['category']" style="padding-top:8px; padding-bottom:12px;">
@@ -30,11 +26,11 @@
     </div>
   </div>
 
-  <!-- GIA -->
+  <!-- GIÁ -->
   <div class="filter-card">
     <div class="filter-section-title px-3 py-3 d-flex justify-content-between align-items-center"
       (click)="toggleSection('price')">
-      <span>Khoang gia</span>
+      <span>Khoảng giá</span>
       <i class="bi" [class.bi-chevron-up]="openSections['price']" [class.bi-chevron-down]="!openSections['price']"></i>
     </div>
     <div class="filter-body px-3" [class.collapsed]="!openSections['price']" style="padding-top:8px; padding-bottom:12px;">
@@ -48,7 +44,7 @@
         >{{ preset.label }}</button>
       </div>
 
-      <div class="text-center price-divider mb-2">hoac nhap tuy chinh</div>
+      <div class="text-center price-divider mb-2">hoặc nhập tùy chỉnh</div>
 
       <div class="slider-track mb-3">
         <div class="slider-fill" [style.left.%]="sliderLeft" [style.right.%]="sliderRight"></div>
@@ -56,23 +52,23 @@
 
       <div class="d-flex align-items-center gap-2">
         <div class="price-input-wrap">
-          <span class="price-prefix">d</span>
-          <input class="price-input" type="number" placeholder="Tu" [(ngModel)]="priceMin" (change)="onPriceInputChange()" />
+          <span class="price-prefix">đ</span>
+          <input class="price-input" type="number" placeholder="Từ" [(ngModel)]="priceMin" (change)="onPriceInputChange()" />
         </div>
         <span class="text-secondary">-</span>
         <div class="price-input-wrap">
-          <span class="price-prefix">d</span>
-          <input class="price-input" type="number" placeholder="Den" [(ngModel)]="priceMax" (change)="onPriceInputChange()" />
+          <span class="price-prefix">đ</span>
+          <input class="price-input" type="number" placeholder="Đến" [(ngModel)]="priceMax" (change)="onPriceInputChange()" />
         </div>
       </div>
     </div>
   </div>
 
-  <!-- DANH GIA -->
+  <!-- ĐÁNH GIÁ -->
   <div class="filter-card">
     <div class="filter-section-title px-3 py-3 d-flex justify-content-between align-items-center"
       (click)="toggleSection('rating')">
-      <span>Danh gia</span>
+      <span>Đánh giá</span>
       <i class="bi" [class.bi-chevron-up]="openSections['rating']" [class.bi-chevron-down]="!openSections['rating']"></i>
     </div>
     <div class="filter-body px-3" [class.collapsed]="!openSections['rating']" style="padding-top:8px; padding-bottom:12px;">
@@ -83,17 +79,17 @@
           <i class="bi bi-check" *ngIf="selectedRating === s"></i>
         </div>
         <span class="star-display">{{ getStars(s) }}</span>
-        <span class="star-label">{{ s === 5 ? 'Xuat sac' : s === 4 ? 'Tot' : s === 3 ? 'On' : 'Thap hon' }}</span>
+        <span class="star-label">{{ s === 5 ? 'Xuất sắc' : s === 4 ? 'Tốt' : s === 3 ? 'Ổn' : 'Thấp hơn' }}</span>
         <span class="star-count">({{ ratingCounts[s] }})</span>
       </div>
     </div>
   </div>
 
-  <!-- TRANG THAI -->
+  <!-- TRẠNG THÁI -->
   <div class="filter-card">
     <div class="filter-section-title px-3 py-3 d-flex justify-content-between align-items-center"
       (click)="toggleSection('status')">
-      <span>Trang thai</span>
+      <span>Trạng thái</span>
       <i class="bi" [class.bi-chevron-up]="openSections['status']" [class.bi-chevron-down]="!openSections['status']"></i>
     </div>
     <div class="filter-body px-3" [class.collapsed]="!openSections['status']" style="padding-top:8px; padding-bottom:12px;">
@@ -107,11 +103,11 @@
     </div>
   </div>
 
-  <!-- TRONG LUONG -->
+  <!-- TRỌNG LƯỢNG -->
   <div class="filter-card">
     <div class="filter-section-title px-3 py-3 d-flex justify-content-between align-items-center"
       (click)="toggleSection('weight')">
-      <span>Trong luong</span>
+      <span>Trọng lượng</span>
       <i class="bi" [class.bi-chevron-up]="openSections['weight']" [class.bi-chevron-down]="!openSections['weight']"></i>
     </div>
     <div class="filter-body px-3" [class.collapsed]="!openSections['weight']" style="padding-top:8px; padding-bottom:12px;">
@@ -122,9 +118,9 @@
     </div>
   </div>
 
-  <!-- APPLY -->
+  <!-- ÁP DỤNG -->
   <button class="btn-apply-filter" (click)="applyFilters()">
-    Ap dung bo loc
+    Áp dụng bộ lọc
     <span class="filter-count-badge" *ngIf="activeFilterCount > 0">{{ activeFilterCount }}</span>
   </button>
 

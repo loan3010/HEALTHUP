@@ -1,14 +1,10 @@
-<!-- ============================================================
-     ORDER REVIEW — order-review.component.html  (Bootstrap 5)
-     ============================================================ -->
-
 <!-- BREADCRUMB -->
 <nav class="breadcrumb-bar py-2">
   <div class="container">
     <ol class="breadcrumb mb-0">
-      <li class="breadcrumb-item"><a routerLink="/">Trang chu</a></li>
+      <li class="breadcrumb-item"><a routerLink="/">Trang chủ</a></li>
       <li class="breadcrumb-item"><a routerLink="/product-detail-page">{{ productName }}</a></li>
-      <li class="breadcrumb-item active">Danh gia san pham</li>
+      <li class="breadcrumb-item active">Đánh giá sản phẩm</li>
     </ol>
   </div>
 </nav>
@@ -17,18 +13,18 @@
   <div class="container">
     <div class="d-flex flex-column gap-4">
 
-      <!-- TONG QUAN -->
+      <!-- TỔNG QUAN -->
       <div class="review-summary-card p-4">
         <div class="row g-4 align-items-center">
 
-          <!-- Score -->
+          <!-- Điểm -->
           <div class="col-12 col-md-3 text-center border-end">
             <div class="score-big">{{ averageRating }}</div>
             <div class="score-stars mb-1">{{ starsDisplay }}</div>
-            <div class="score-meta">{{ totalReviews }} danh gia · {{ totalSold }} da mua</div>
+            <div class="score-meta">{{ totalReviews }} đánh giá · {{ totalSold }} đã mua</div>
           </div>
 
-          <!-- Bars -->
+          <!-- Thanh đánh giá -->
           <div class="col-12 col-md-5">
             <div class="d-flex flex-column gap-2">
               <div class="d-flex align-items-center gap-2" *ngFor="let s of [5, 4, 3, 2, 1]">
@@ -41,9 +37,9 @@
             </div>
           </div>
 
-          <!-- Highlights -->
+          <!-- Điểm nổi bật -->
           <div class="col-12 col-md-4">
-            <div class="highlight-title mb-2">Khach hang thuong khen</div>
+            <div class="highlight-title mb-2">Khách hàng thường khen</div>
             <div class="d-flex flex-wrap gap-2">
               <span class="highlight-tag" *ngFor="let tag of praiseTags">{{ tag }}</span>
             </div>
@@ -52,13 +48,13 @@
         </div>
       </div>
 
-      <!-- VIET DANH GIA -->
+      <!-- VIẾT ĐÁNH GIÁ -->
       <div class="write-review-card p-4" *ngIf="isLoggedIn">
-        <div class="write-title mb-4">Chia se trai nghiem cua ban</div>
+        <div class="write-title mb-4">Chia sẻ trải nghiệm của bạn</div>
 
-        <!-- Stars -->
+        <!-- Sao -->
         <div class="mb-3">
-          <div class="write-label mb-2">Danh gia sao <span class="required">*</span></div>
+          <div class="write-label mb-2">Đánh giá sao <span class="required">*</span></div>
           <div class="d-flex align-items-center gap-1">
             <button
               class="star-btn"
@@ -72,9 +68,9 @@
           </div>
         </div>
 
-        <!-- Variant -->
+        <!-- Biến thể -->
         <div class="mb-3">
-          <div class="write-label mb-2">Ban da mua loai nao?</div>
+          <div class="write-label mb-2">Bạn đã mua loại nào?</div>
           <div class="d-flex flex-wrap gap-2">
             <button
               class="variant-chip"
@@ -85,22 +81,22 @@
           </div>
         </div>
 
-        <!-- Textarea -->
+        <!-- Nội dung -->
         <div class="mb-3">
-          <div class="write-label mb-2">Nhan xet chi tiet <span class="required">*</span></div>
+          <div class="write-label mb-2">Nhận xét chi tiết <span class="required">*</span></div>
           <textarea
             class="review-textarea"
             [(ngModel)]="reviewText"
-            placeholder="Chia se cam nhan: chat luong, mui vi, dong goi, so sanh voi ky vong..."
+            placeholder="Chia sẻ cảm nhận: chất lượng, mùi vị, đóng gói, so sánh với kỳ vọng..."
             maxlength="500"
             rows="4"
           ></textarea>
           <div class="char-count">{{ reviewText.length }}/500</div>
         </div>
 
-        <!-- Quick Tags -->
+        <!-- Từ khóa nhanh -->
         <div class="mb-3">
-          <div class="write-label mb-2">Chon nhanh tu khoa</div>
+          <div class="write-label mb-2">Chọn nhanh từ khóa</div>
           <div class="d-flex flex-wrap gap-2">
             <button
               class="quick-tag"
@@ -111,43 +107,43 @@
           </div>
         </div>
 
-        <!-- Upload -->
+        <!-- Tải ảnh lên -->
         <div class="mb-4">
-          <div class="write-label mb-2">Them hinh anh thuc te</div>
+          <div class="write-label mb-2">Thêm hình ảnh thực tế</div>
           <div class="upload-area" (click)="fileInput.click()">
             <i class="upload-icon bi bi-camera"></i>
-            <span class="upload-label">Them anh san pham thuc te (toi da 5 anh)</span>
-            <span class="upload-hint">JPG, PNG · Toi da 5MB/anh</span>
+            <span class="upload-label">Thêm ảnh sản phẩm thực tế (tối đa 5 ảnh)</span>
+            <span class="upload-hint">JPG, PNG · Tối đa 5MB/ảnh</span>
           </div>
           <input type="file" #fileInput accept="image/*" multiple hidden (change)="onFileSelected($event)" />
         </div>
 
-        <!-- Submit -->
+        <!-- Gửi -->
         <div class="d-flex align-items-center gap-3">
           <button
             class="btn-submit-review"
             [class.ready]="canSubmit()"
             [disabled]="!canSubmit()"
             (click)="submitReview()"
-          >{{ isSubmitting ? 'Dang gui...' : 'Gui danh gia' }}</button>
-          <span class="submit-hint" *ngIf="!canSubmit()">Vui long chon so sao va nhap nhan xet</span>
+          >{{ isSubmitting ? 'Đang gửi...' : 'Gửi đánh giá' }}</button>
+          <span class="submit-hint" *ngIf="!canSubmit()">Vui lòng chọn số sao và nhập nhận xét</span>
         </div>
       </div>
 
-      <!-- LOGIN PROMPT -->
+      <!-- ĐĂNG NHẬP -->
       <div class="login-prompt-card p-4 d-flex align-items-center gap-3" *ngIf="!isLoggedIn">
         <i class="bi bi-lock-fill fs-2 text-secondary"></i>
         <div class="flex-grow-1">
-          <strong class="d-block mb-1" style="color:#2D5016;">Dang nhap de danh gia san pham</strong>
-          <span style="font-size:13px; color:#8A9E72;">Chi nhung khach hang da mua san pham moi co the de lai danh gia.</span>
+          <strong class="d-block mb-1" style="color:#2D5016;">Đăng nhập để đánh giá sản phẩm</strong>
+          <span style="font-size:13px; color:#8A9E72;">Chỉ những khách hàng đã mua sản phẩm mới có thể để lại đánh giá.</span>
         </div>
-        <button class="btn-login-now" routerLink="/user-authentication">Dang nhap ngay</button>
+        <button class="btn-login-now" routerLink="/user-authentication">Đăng nhập ngay</button>
       </div>
 
-      <!-- FILTER BAR -->
+      <!-- BỘ LỌC -->
       <div class="review-filter-bar p-3 d-flex flex-wrap align-items-center gap-2">
         <button class="review-filter-btn" [class.active]="activeFilter === 'all'" (click)="setFilter('all')">
-          Tat ca ({{ totalReviews }})
+          Tất cả ({{ totalReviews }})
         </button>
         <button
           class="review-filter-btn"
@@ -156,19 +152,19 @@
           (click)="setFilter(s.toString())"
         >{{ s }} sao ({{ ratingCounts[s] }})</button>
         <button class="review-filter-btn" [class.active]="activeFilter === 'photo'" (click)="setFilter('photo')">
-          <i class="bi bi-camera me-1"></i>Co anh ({{ photoReviewCount }})
+          <i class="bi bi-camera me-1"></i>Có ảnh ({{ photoReviewCount }})
         </button>
         <div class="ms-auto">
           <select class="sort-select" [(ngModel)]="reviewSort" (change)="onSortChange()">
-            <option value="newest">Moi nhat</option>
-            <option value="highest">Danh gia cao</option>
-            <option value="lowest">Danh gia thap</option>
-            <option value="helpful">Huu ich nhat</option>
+            <option value="newest">Mới nhất</option>
+            <option value="highest">Đánh giá cao</option>
+            <option value="lowest">Đánh giá thấp</option>
+            <option value="helpful">Hữu ích nhất</option>
           </select>
         </div>
       </div>
 
-      <!-- DANH SACH DANH GIA -->
+      <!-- DANH SÁCH ĐÁNH GIÁ -->
       <div class="d-flex flex-column gap-3">
 
         <div class="review-card p-4" *ngFor="let review of filteredReviews">
@@ -182,7 +178,7 @@
               <div>
                 <div class="reviewer-name">{{ review.name }}</div>
                 <div class="reviewer-verified" *ngIf="review.verified">
-                  <i class="bi bi-patch-check-fill me-1"></i>Da mua hang
+                  <i class="bi bi-patch-check-fill me-1"></i>Đã mua hàng
                 </div>
               </div>
             </div>
@@ -192,9 +188,9 @@
             </div>
           </div>
 
-          <!-- Variant -->
+          <!-- Biến thể -->
           <div class="mb-2" *ngIf="review.variant">
-            <span class="review-variant">Da mua: <strong>{{ review.variant }}</strong></span>
+            <span class="review-variant">Đã mua: <strong>{{ review.variant }}</strong></span>
           </div>
 
           <!-- Tags -->
@@ -202,36 +198,36 @@
             <span class="review-tag" *ngFor="let tag of review.tags">{{ tag }}</span>
           </div>
 
-          <!-- Text -->
+          <!-- Nội dung -->
           <p class="review-text mb-3">{{ review.text }}</p>
 
-          <!-- Images -->
+          <!-- Hình ảnh -->
           <div class="d-flex gap-2 flex-wrap mb-3" *ngIf="review.imgs?.length">
             <div class="review-img" *ngFor="let img of review.imgs" (click)="openImageViewer(img)">
-              <img [src]="img" alt="Review photo" />
+              <img [src]="img" alt="Ảnh đánh giá" />
             </div>
           </div>
 
-          <!-- Admin Reply -->
+          <!-- Phản hồi của shop -->
           <div class="admin-reply p-3 mb-3" *ngIf="review.adminReply">
             <div class="d-flex align-items-center gap-2 mb-2">
-              <span class="admin-badge">HealthUp phan hoi</span>
+              <span class="admin-badge">HealthUp phản hồi</span>
               <span class="admin-reply-date">{{ review.adminReplyDate }}</span>
             </div>
             <p class="admin-reply-text mb-0">{{ review.adminReply }}</p>
           </div>
 
-          <!-- Helpful -->
+          <!-- Hữu ích -->
           <div class="d-flex align-items-center gap-2 flex-wrap pt-3 border-top">
-            <span class="helpful-text">Danh gia nay co huu ich khong?</span>
+            <span class="helpful-text">Đánh giá này có hữu ích không?</span>
             <button class="helpful-btn" (click)="markHelpful(review.id)">
-              <i class="bi bi-hand-thumbs-up"></i> Co ({{ review.helpful }})
+              <i class="bi bi-hand-thumbs-up"></i> Có ({{ review.helpful }})
             </button>
             <button class="helpful-btn" (click)="markNotHelpful(review.id)">
-              <i class="bi bi-hand-thumbs-down"></i> Khong
+              <i class="bi bi-hand-thumbs-down"></i> Không
             </button>
             <button class="report-btn ms-auto" (click)="reportReview(review.id)">
-              <i class="bi bi-flag me-1"></i>Bao cao
+              <i class="bi bi-flag me-1"></i>Báo cáo
             </button>
           </div>
 
@@ -247,17 +243,17 @@
           </div>
         </ng-container>
 
-        <!-- EMPTY -->
+        <!-- TRỐNG -->
         <div class="no-reviews-card text-center py-5 px-3" *ngIf="filteredReviews.length === 0 && !isLoading">
           <i class="bi bi-chat-square-text fs-1 text-secondary d-block mb-3"></i>
-          <div class="no-reviews-title mb-1">Chua co danh gia nao</div>
-          <p class="text-secondary mb-0" style="font-size:14px;">Hay la nguoi dau tien chia se cam nhan ve san pham nay.</p>
+          <div class="no-reviews-title mb-1">Chưa có đánh giá nào</div>
+          <p class="text-secondary mb-0" style="font-size:14px;">Hãy là người đầu tiên chia sẻ cảm nhận về sản phẩm này.</p>
         </div>
 
-        <!-- LOAD MORE -->
+        <!-- TẢI THÊM -->
         <div class="text-center mt-2" *ngIf="hasMoreReviews">
           <button class="btn-load-more" (click)="loadMoreReviews()" [disabled]="isLoading">
-            {{ isLoading ? 'Dang tai...' : 'Xem them danh gia' }}
+            {{ isLoading ? 'Đang tải...' : 'Xem thêm đánh giá' }}
           </button>
         </div>
 

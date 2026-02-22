@@ -26,7 +26,7 @@ export interface Product {
 }
 
 export interface BlogPost {
-  emoji: string;
+  icon: string;
   tag: string;
   title: string;
   excerpt: string;
@@ -57,38 +57,38 @@ export class HomepageComponent implements OnInit {
   wishlist: number[] = [];
 
   trustItems: TrustItem[] = [
-    { icon: 'bi bi-patch-check',  title: 'Nguon goc ro rang',    sub: 'Truy xuat tan noi san xuat' },
-    { icon: 'bi bi-star-fill',    title: '4.9/5 danh gia',       sub: 'Tu 10.000+ khach hang'      },
-    { icon: 'bi bi-arrow-repeat', title: 'Doi tra 7 ngay',       sub: 'Khong can ly do'             },
-    { icon: 'bi bi-shield-check', title: 'Thanh toan bao mat',   sub: 'VNPay · Momo · COD'         },
+    { icon: 'bi-patch-check',  title: 'Nguồn gốc rõ ràng',   sub: 'Truy xuất tận nơi sản xuất' },
+    { icon: 'bi-star-fill',    title: '4.9/5 đánh giá',       sub: 'Từ 10.000+ khách hàng'      },
+    { icon: 'bi-arrow-repeat', title: 'Đổi trả 7 ngày',       sub: 'Không cần lý do'             },
+    { icon: 'bi-shield-check', title: 'Thanh toán bảo mật',   sub: 'VNPay · Momo · COD'         },
   ];
 
   categories: Category[] = [
-    { icon: 'bi bi-circle', name: 'Hat dinh duong', count: '24 sp', color: '#EAF2E3' },
-    { icon: 'bi bi-circle', name: 'Granola',        count: '18 sp', color: '#FFF8EE' },
-    { icon: 'bi bi-circle', name: 'Trai cay say',   count: '32 sp', color: '#F5EEFF' },
-    { icon: 'bi bi-circle', name: 'Do an vat',      count: '15 sp', color: '#FFF0E8' },
-    { icon: 'bi bi-circle', name: 'Tra thao moc',   count: '20 sp', color: '#E8F5FF' },
-    { icon: 'bi bi-circle', name: 'Combo',          count: '10 sp', color: '#FFF5E8' },
+    { icon: 'bi-egg-fried',  name: 'Hạt dinh dưỡng', count: '24 sp', color: '#EAF2E3' },
+    { icon: 'bi-cup-hot',    name: 'Granola',         count: '18 sp', color: '#FFF8EE' },
+    { icon: 'bi-apple',      name: 'Trái cây sấy',    count: '32 sp', color: '#F5EEFF' },
+    { icon: 'bi-basket2',    name: 'Đồ ăn vặt',       count: '15 sp', color: '#FFF0E8' },
+    { icon: 'bi-droplet',    name: 'Trà thảo mộc',    count: '20 sp', color: '#E8F5FF' },
+    { icon: 'bi-gift',       name: 'Combo',           count: '10 sp', color: '#FFF5E8' },
   ];
 
   featuredProducts: Product[] = [
-    { id: 1, image: 'assets/images/products/macadamia.png', name: 'Hat Macadamia Rang Muoi Uc',   cat: 'Hat dinh duong', weight: '250g / Hu thuy tinh', price: 185000, oldPrice: 220000, stars: '★★★★★', reviews: 128, badge: 'hot', sale: '-16%' },
-    { id: 2, image: 'assets/images/products/granola.png',   name: 'Granola Hanh Nhan Mat Ong',    cat: 'Granola',        weight: '400g / Tui zip',      price: 145000,                  stars: '★★★★☆', reviews: 89,  badge: 'new'              },
-    { id: 3, image: 'assets/images/products/nho-kho.png',  name: 'Nho Kho Khong Hat Nhap Khau',  cat: 'Trai cay say',   weight: '300g / Hop giay',     price: 98000,  oldPrice: 120000, stars: '★★★★★', reviews: 204, sale: '-18%'              },
-    { id: 4, image: 'assets/images/products/tra.png',      name: 'Tra Hoa Cuc Tam Sen',           cat: 'Tra thao moc',   weight: '100g / Hop thiec',    price: 125000,                  stars: '★★★★☆', reviews: 56                               },
+    { id: 1, image: 'assets/images/products/macadamia.png', name: 'Hạt Macadamia Rang Muối Úc',   cat: 'Hạt dinh dưỡng', weight: '250g / Hũ thủy tinh', price: 185000, oldPrice: 220000, stars: '★★★★★', reviews: 128, badge: 'hot', sale: '-16%' },
+    { id: 2, image: 'assets/images/products/granola.png',   name: 'Granola Hạnh Nhân Mật Ong',    cat: 'Granola',        weight: '400g / Túi zip',      price: 145000,                  stars: '★★★★☆', reviews: 89,  badge: 'new'              },
+    { id: 3, image: 'assets/images/products/nho-kho.png',  name: 'Nho Khô Không Hạt Nhập Khẩu',  cat: 'Trái cây sấy',   weight: '300g / Hộp giấy',     price: 98000,  oldPrice: 120000, stars: '★★★★★', reviews: 204, sale: '-18%'              },
+    { id: 4, image: 'assets/images/products/tra.png',      name: 'Trà Hoa Cúc Tâm Sen',           cat: 'Trà thảo mộc',   weight: '100g / Hộp thiếc',    price: 125000,                  stars: '★★★★☆', reviews: 56                               },
   ];
 
   blogPosts: BlogPost[] = [
-    { emoji: '🥗', tag: 'Eat Clean',  title: 'Top 5 loai hat nen an hang ngay de tang cuong suc khoe', excerpt: 'Hat dinh duong la nguon cung cap chat beo tot, protein va vi chat khoang thiet yeu cho co the...', date: '15/01/2025' },
-    { emoji: '🌾', tag: 'Cong thuc', title: 'Cach lam Granola thom ngon tai nha chi trong 30 phut',   excerpt: 'Granola tu lam vua dam bao chat luong, vua tiet kiem va co the tuy chinh khau vi theo so thich...', date: '10/01/2025' },
-    { emoji: '🍵', tag: 'Suc khoe',  title: 'Loi ich cua tra thao moc doi voi he mien dich mua lanh', excerpt: 'Cac loai tra thao moc tu nhien co tac dung tang cuong mien dich, giam stress va cai thien giac ngu...', date: '05/01/2025' },
+    { icon: 'bi-journal-richtext', tag: 'Eat Clean',  title: 'Top 5 loại hạt nên ăn hàng ngày để tăng cường sức khỏe', excerpt: 'Hạt dinh dưỡng là nguồn cung cấp chất béo tốt, protein và vi chất khoáng thiết yếu cho cơ thể...', date: '15/01/2025' },
+    { icon: 'bi-fire',             tag: 'Công thức', title: 'Cách làm Granola thơm ngon tại nhà chỉ trong 30 phút',    excerpt: 'Granola tự làm vừa đảm bảo chất lượng, vừa tiết kiệm và có thể tùy chỉnh khẩu vị theo sở thích...', date: '10/01/2025' },
+    { icon: 'bi-heart-pulse',      tag: 'Sức khỏe',  title: 'Lợi ích của trà thảo mộc đối với hệ miễn dịch mùa lạnh', excerpt: 'Các loại trà thảo mộc tự nhiên có tác dụng tăng cường miễn dịch, giảm stress và cải thiện giấc ngủ...', date: '05/01/2025' },
   ];
 
   footerColumns: FooterColumn[] = [
-    { title: 'San pham',     links: ['Hat dinh duong', 'Granola', 'Trai cay say', 'Tra thao moc', 'Combo']                  },
-    { title: 'Ho tro',       links: ['Chinh sach doi tra', 'Huong dan mua hang', 'Tra cuu don hang', 'Lien he']             },
-    { title: 'Ve chung toi', links: ['Cau chuyen thuong hieu', 'Blog suc khoe', 'Dai ly phan phoi', 'Tuyen dung']          },
+    { title: 'Sản phẩm',    links: ['Hạt dinh dưỡng', 'Granola', 'Trái cây sấy', 'Trà thảo mộc', 'Combo']              },
+    { title: 'Hỗ trợ',      links: ['Chính sách đổi trả', 'Hướng dẫn mua hàng', 'Tra cứu đơn hàng', 'Liên hệ']        },
+    { title: 'Về chúng tôi', links: ['Câu chuyện thương hiệu', 'Blog sức khỏe', 'Đại lý phân phối', 'Tuyển dụng']     },
   ];
 
   constructor(private router: Router) {}
