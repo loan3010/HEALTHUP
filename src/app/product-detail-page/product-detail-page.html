@@ -1,16 +1,33 @@
+<!-- LOADING STATE -->
+<div class="container py-5 text-center" *ngIf="isLoading">
+  <div class="spinner-border text-success" role="status">
+    <span class="visually-hidden">Đang tải...</span>
+  </div>
+  <p class="mt-3 text-secondary">Đang tải thông tin sản phẩm...</p>
+</div>
+
+<!-- KHÔNG TÌM THẤY -->
+<div class="container py-5 text-center" *ngIf="!isLoading && !product">
+  <i class="bi bi-box-seam fs-1 text-secondary d-block mb-3"></i>
+  <h5 class="text-secondary">Không tìm thấy sản phẩm</h5>
+  <button class="btn-reset mt-3" routerLink="/product-listing-page">Quay lại danh sách</button>
+</div>
+
+<ng-container *ngIf="!isLoading && product">
+
 <!-- BREADCRUMB -->
 <nav class="breadcrumb-bar py-2">
   <div class="container">
     <ol class="breadcrumb mb-0">
       <li class="breadcrumb-item"><a routerLink="/">Trang chủ</a></li>
-      <li class="breadcrumb-item"><a routerLink="/product-listing-page">{{ product?.cat }}</a></li>
-      <li class="breadcrumb-item active">{{ product?.name }}</li>
+      <li class="breadcrumb-item"><a routerLink="/product-listing-page">{{ product.cat }}</a></li>
+      <li class="breadcrumb-item active">{{ product.name }}</li>
     </ol>
   </div>
 </nav>
 
 <!-- DETAIL LAYOUT -->
-<div class="container py-5" style="background:#FAF6F0; max-width:100%;" *ngIf="product">
+<div class="container py-5" style="background:#FAF6F0; max-width:100%;">
   <div class="container">
     <div class="row g-5">
 
@@ -18,15 +35,14 @@
       <div class="col-12 col-lg-5">
         <div class="position-sticky" style="top:88px;">
           <div class="gallery-main mb-3">
-            <img [src]="activeImage" [alt]="product.name" />
+            <!-- ✅ activeImage đã được fix URL trong loadProduct() -->
+            <img [src]="activeImage || 'assets/images/placeholder.png'" [alt]="product.name" />
           </div>
           <div class="d-flex gap-2 overflow-auto pb-1">
-            <div
-              class="gallery-thumb"
+            <div class="gallery-thumb"
               *ngFor="let img of product.images"
               [class.active]="activeImage === img"
-              (click)="activeImage = img"
-            >
+              (click)="activeImage = img">
               <img [src]="img" [alt]="product.name" />
             </div>
           </div>
@@ -36,7 +52,6 @@
       <!-- INFO -->
       <div class="col-12 col-lg-7 d-flex flex-column gap-4">
 
-        <!-- Tên & Danh mục -->
         <div>
           <div class="detail-cat mb-2">{{ product.cat }}</div>
           <h1 class="detail-title mb-0">{{ product.name }}</h1>
@@ -44,46 +59,50 @@
 
         <!-- Đánh giá -->
         <div class="d-flex align-items-center gap-2 flex-wrap">
-          <span class="rating-stars">{{ product.starsDisplay }}</span>
-          <span class="rating-score">{{ product.rating }}</span>
-          <span class="rating-meta">· {{ product.reviewCount }} đánh giá · {{ product.sold }} đã bán</span>
-          <a class="rating-link ms-1" routerLink="/order-review">Xem đánh giá</a>
+          <span class="rating-stars">{{ getStars(product.rating || 0) }}</span>
+          <span class="rating-score">{{ product.rating || 0 }}</span>
+          <span class="rating-meta">· {{ product.reviewCount || 0 }} đánh giá · {{ product.sold || 0 }} đã bán</span>
+          <a class="rating-link ms-1"
+            [routerLink]="['/order-review']"
+            [queryParams]="{productId: product._id}">Xem đánh giá</a>
         </div>
 
         <!-- Giá -->
         <div class="d-flex align-items-baseline gap-3 flex-wrap">
           <span class="detail-price">{{ product.price | currency:'VND':'symbol':'1.0-0' }}</span>
-          <span class="detail-price-old" *ngIf="product.oldPrice">{{ product.oldPrice | currency:'VND':'symbol':'1.0-0' }}</span>
-          <span class="save-badge" *ngIf="product.saving">Tiết kiệm {{ product.saving }}</span>
+          <span class="detail-price-old" *ngIf="product.oldPrice">
+            {{ product.oldPrice | currency:'VND':'symbol':'1.0-0' }}
+          </span>
+          <span class="save-badge" *ngIf="product.oldPrice">
+            Tiết kiệm {{ (product.oldPrice - product.price) | currency:'VND':'symbol':'1.0-0' }}
+          </span>
         </div>
 
         <!-- Mô tả ngắn -->
         <p class="detail-desc mb-0">{{ product.shortDesc }}</p>
 
         <!-- Trọng lượng -->
-        <div>
+        <div *ngIf="product.weights?.length">
           <div class="variant-label mb-2">Trọng lượng</div>
           <div class="d-flex gap-2 flex-wrap">
-            <button
-              class="variant-btn"
+            <button class="variant-btn"
               *ngFor="let w of product.weights"
               [class.active]="selectedWeight === w.label"
               [class.out-of-stock]="w.outOfStock"
-              (click)="!w.outOfStock && selectWeight(w.label)"
-            >{{ w.label }}</button>
+              (click)="!w.outOfStock && selectWeight(w.label)">
+              {{ w.label }}
+            </button>
           </div>
         </div>
 
         <!-- Loại đóng gói -->
-        <div>
+        <div *ngIf="product.packagingTypes?.length">
           <div class="variant-label mb-2">Loại đóng gói</div>
           <div class="d-flex gap-2 flex-wrap">
-            <button
-              class="variant-btn"
+            <button class="variant-btn"
               *ngFor="let t of product.packagingTypes"
               [class.active]="selectedType === t"
-              (click)="selectedType = t"
-            >{{ t }}</button>
+              (click)="selectedType = t">{{ t }}</button>
           </div>
         </div>
 
@@ -100,7 +119,9 @@
             </button>
           </div>
           <span class="stock-info" [class.low]="product.stock < 10">
-            <i class="bi me-1" [class.bi-check-circle]="product.stock >= 10" [class.bi-exclamation-triangle]="product.stock < 10"></i>
+            <i class="bi me-1"
+              [class.bi-check-circle]="product.stock >= 10"
+              [class.bi-exclamation-triangle]="product.stock < 10"></i>
             Còn {{ product.stock }} sản phẩm
           </span>
         </div>
@@ -119,7 +140,9 @@
         <!-- Yêu thích & Chia sẻ -->
         <div class="d-flex gap-2">
           <button class="btn-action" [class.wishlisted]="isWishlisted" (click)="toggleWishlist()">
-            <i class="bi me-1" [class.bi-heart-fill]="isWishlisted" [class.bi-heart]="!isWishlisted"></i>
+            <i class="bi me-1"
+              [class.bi-heart-fill]="isWishlisted"
+              [class.bi-heart]="!isWishlisted"></i>
             {{ isWishlisted ? 'Đã yêu thích' : 'Yêu thích' }}
           </button>
           <button class="btn-action" (click)="share()">
@@ -138,14 +161,10 @@
         <!-- TABS -->
         <div class="detail-tabs-wrapper">
           <div class="nav-tabs-detail">
-            <button class="tab-btn" [class.active]="activeTab === 'desc'"
-              (click)="activeTab = 'desc'">Mô tả</button>
-            <button class="tab-btn" [class.active]="activeTab === 'nutrition'"
-              (click)="activeTab = 'nutrition'">Dinh dưỡng</button>
-            <button class="tab-btn" [class.active]="activeTab === 'policy'"
-              (click)="activeTab = 'policy'">Chính sách</button>
+            <button class="tab-btn" [class.active]="activeTab === 'desc'"      (click)="activeTab = 'desc'">Mô tả</button>
+            <button class="tab-btn" [class.active]="activeTab === 'nutrition'" (click)="activeTab = 'nutrition'">Dinh dưỡng</button>
+            <button class="tab-btn" [class.active]="activeTab === 'policy'"   (click)="activeTab = 'policy'">Chính sách</button>
           </div>
-
           <div class="tab-content">
 
             <!-- Mô tả -->
@@ -156,7 +175,10 @@
             <!-- Dinh dưỡng -->
             <div *ngIf="activeTab === 'nutrition'">
               <p class="nutrition-note mb-3">Thông tin dinh dưỡng trên 100g sản phẩm</p>
-              <table class="nutrition-table">
+              <div *ngIf="!product.nutrition?.length" class="text-secondary" style="font-size:14px;">
+                Chưa có thông tin dinh dưỡng.
+              </div>
+              <table class="nutrition-table" *ngIf="product.nutrition?.length">
                 <thead>
                   <tr>
                     <th>Thành phần</th>
@@ -195,21 +217,22 @@
 </div>
 
 <!-- SẢN PHẨM LIÊN QUAN -->
-<section class="py-5" style="background:#FAF6F0;">
+<section class="py-5" style="background:#FAF6F0;" *ngIf="relatedProducts.length > 0">
   <div class="container">
     <h2 class="section-title mb-4">Có thể bạn cũng thích</h2>
     <div class="row g-3">
       <div class="col-6 col-md-3" *ngFor="let p of relatedProducts">
-        <div class="related-product-card" (click)="goToProduct(p.id)">
+        <div class="related-product-card" (click)="goToProduct(p._id)">
           <div class="related-img">
-            <img [src]="p.image" [alt]="p.name" />
+            <!-- ✅ Dùng p.image đã fix URL -->
+            <img [src]="p.image || 'assets/images/placeholder.png'" [alt]="p.name" />
           </div>
           <div class="p-3">
             <div class="product-cat mb-1">{{ p.cat }}</div>
             <div class="product-name mb-2">{{ p.name }}</div>
             <div class="d-flex align-items-center justify-content-between">
               <span class="product-price">{{ p.price | currency:'VND':'symbol':'1.0-0' }}</span>
-              <button class="btn-add" (click)="addRelated($event, p.id)">
+              <button class="btn-add" (click)="addRelated($event, p._id)">
                 <i class="bi bi-plus"></i>
               </button>
             </div>
@@ -219,3 +242,5 @@
     </div>
   </div>
 </section>
+
+</ng-container>

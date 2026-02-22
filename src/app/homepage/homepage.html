@@ -2,8 +2,6 @@
 <section class="hero-section">
   <div class="container-fluid px-0">
     <div class="row g-0">
-
-      <!-- Left -->
       <div class="col-lg-6 d-flex align-items-center">
         <div class="px-5 py-5 py-lg-0">
           <span class="hero-tag mb-3 d-inline-block">Thực phẩm lành mạnh số 1 Việt Nam</span>
@@ -16,28 +14,34 @@
           </p>
           <div class="d-flex gap-3 flex-wrap">
             <button class="btn-hero-primary" routerLink="/product-listing-page">Khám phá ngay</button>
-            <button class="btn-hero-outline">Xem combo tiết kiệm</button>
+            <button class="btn-hero-outline"
+              [routerLink]="['/product-listing-page']"
+              [queryParams]="{cat: 'Combo'}">
+              Xem combo tiết kiệm
+            </button>
           </div>
         </div>
       </div>
 
-      <!-- Right -->
-      <div class="col-lg-6 hero-right-panel d-none d-lg-flex">
-        <div class="position-relative">
+      <!-- Hero: ảnh sản phẩm nổi bật đầu tiên từ MongoDB -->
+      <div class="col-lg-6 hero-right-panel d-none d-lg-flex align-items-center justify-content-center">
+        <div class="position-relative" *ngIf="!isLoading && featuredProducts.length > 0">
           <img
-            src="assets/images/hero-product.png"
-            alt="HealthUp Hero"
-            class="img-fluid rounded-4"
-            style="max-width:300px;"
-          />
+            [src]="featuredProducts[0].image || 'assets/images/placeholder.png'"
+            [alt]="featuredProducts[0].name"
+            class="img-fluid rounded-4 hero-product-img"
+            (click)="goToDetail(featuredProducts[0]._id)"
+            style="max-width:300px; cursor:pointer;" />
           <div class="position-absolute top-0 end-0 d-flex flex-column gap-2 me-n3">
             <div class="hero-badge"><i class="bi bi-check-circle-fill me-1"></i>100% Tự nhiên</div>
             <div class="hero-badge"><i class="bi bi-truck me-1"></i>Freeship đơn 299K</div>
             <div class="hero-badge"><i class="bi bi-lightning-charge me-1"></i>Giao trong 2h</div>
           </div>
         </div>
+        <!-- Skeleton hero image -->
+        <div *ngIf="isLoading" style="width:300px;height:300px;background:linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%);
+          background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:16px;"></div>
       </div>
-
     </div>
   </div>
 </section>
@@ -67,16 +71,19 @@
       </div>
       <a class="link-more" routerLink="/product-listing-page">Xem tất cả</a>
     </div>
-
     <div class="row g-3">
       <div class="col-4 col-md-2" *ngFor="let cat of categories; let i = index">
-        <div
-          class="category-card p-3"
+        <div class="category-card p-3"
           [class.active]="activeCategory === i"
           [style.background]="cat.color"
-          (click)="onCategoryClick(i)"
-        >
-          <i class="cat-icon bi {{ cat.icon }}"></i>
+          (click)="onCategoryClick(i, cat.name)">
+          <!-- ✅ Ảnh sản phẩm từ MongoDB -->
+          <div class="cat-img-wrap mb-2">
+            <img [src]="cat.image"
+              [alt]="cat.name"
+              class="cat-img"
+              onerror="this.style.display='none'" />
+          </div>
           <div class="cat-name">{{ cat.name }}</div>
           <div class="cat-count">{{ cat.count }}</div>
         </div>
@@ -96,36 +103,60 @@
       <a class="link-more" routerLink="/product-listing-page">Xem thêm</a>
     </div>
 
-    <div class="row g-4">
+    <!-- SKELETON -->
+    <div class="row g-4" *ngIf="isLoading">
+      <div class="col-12 col-sm-6 col-md-3" *ngFor="let s of [1,2,3,4]">
+        <div class="product-card">
+          <div style="height:200px;background:linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%);
+            background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:14px 14px 0 0;"></div>
+          <div class="p-3 d-flex flex-column gap-2">
+            <div style="height:10px;border-radius:5px;background:#eee;width:50%"></div>
+            <div style="height:10px;border-radius:5px;background:#eee;width:80%"></div>
+            <div style="height:10px;border-radius:5px;background:#eee;width:40%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DANH SÁCH SẢN PHẨM -->
+    <div class="row g-4" *ngIf="!isLoading">
+      <div class="col-12 text-center py-5" *ngIf="featuredProducts.length === 0">
+        <i class="bi bi-box-seam fs-1 text-secondary d-block mb-2"></i>
+        <p class="text-secondary">Chưa có sản phẩm nào. Hãy chạy seed.js để thêm dữ liệu.</p>
+      </div>
+
       <div class="col-12 col-sm-6 col-md-3" *ngFor="let p of featuredProducts">
-        <div class="product-card h-100" (click)="goToDetail(p.id)">
+        <div class="product-card h-100" (click)="goToDetail(p._id)">
           <div class="product-img-wrap">
             <span class="badge-new" *ngIf="p.badge === 'new'">Mới</span>
             <span class="badge-hot" *ngIf="p.badge === 'hot'">Hot</span>
             <span class="badge-sale" *ngIf="p.sale">{{ p.sale }}</span>
-            <img [src]="p.image" [alt]="p.name" />
-            <button
-              class="btn-wishlist"
-              [class.active]="isWishlisted(p.id)"
-              (click)="toggleWishlist($event, p.id)"
-            >
-              <i class="bi" [class.bi-heart-fill]="isWishlisted(p.id)" [class.bi-heart]="!isWishlisted(p.id)"></i>
+            <!-- ✅ Ảnh sản phẩm từ MongoDB (đã fix URL trong ApiService) -->
+            <img [src]="p.image || 'assets/images/placeholder.png'" [alt]="p.name" />
+            <button class="btn-wishlist"
+              [class.active]="isWishlisted(p._id)"
+              (click)="toggleWishlist($event, p._id)">
+              <i class="bi"
+                [class.bi-heart-fill]="isWishlisted(p._id)"
+                [class.bi-heart]="!isWishlisted(p._id)"></i>
             </button>
           </div>
           <div class="p-3">
             <div class="product-cat mb-1">{{ p.cat }}</div>
             <div class="product-name mb-1">{{ p.name }}</div>
-            <div class="product-weight mb-2">{{ p.weight }}</div>
+            <div class="product-weight mb-2">{{ p.weight || p.weights?.[0]?.label }}</div>
             <div class="d-flex align-items-center justify-content-between pt-2 product-footer-row">
               <div>
                 <span class="product-price">{{ p.price | currency:'VND':'symbol':'1.0-0' }}</span>
-                <span class="product-price-old ms-1" *ngIf="p.oldPrice">{{ p.oldPrice | currency:'VND':'symbol':'1.0-0' }}</span>
+                <span class="product-price-old ms-1" *ngIf="p.oldPrice">
+                  {{ p.oldPrice | currency:'VND':'symbol':'1.0-0' }}
+                </span>
                 <div class="product-rating">
-                  <span class="stars">{{ p.stars }}</span>
-                  <span class="ms-1">({{ p.reviews }})</span>
+                  <span class="stars">{{ getStars(p.rating || 0) }}</span>
+                  <span class="ms-1">({{ p.reviewCount || p.reviews || 0 }})</span>
                 </div>
               </div>
-              <button class="btn-add" (click)="addToCart($event, p.id)">
+              <button class="btn-add" (click)="addToCart($event, p._id)">
                 <i class="bi bi-plus"></i>
               </button>
             </div>
@@ -147,9 +178,21 @@
           </span>
           <h3 class="promo-title mb-2">Combo Gym &amp; Eat Clean<br><em>Tiết kiệm đến 25%</em></h3>
           <p class="promo-desc mb-4">Bộ đôi Granola + Hạt Macadamia dành riêng cho người tập luyện thể thao.</p>
-          <button class="btn-promo">
+          <button class="btn-promo"
+            [routerLink]="['/product-listing-page']"
+            [queryParams]="{cat: 'Combo'}">
             <i class="bi bi-bag-heart me-2"></i>Mua combo ngay
           </button>
+        </div>
+        <!-- ✅ Ảnh combo từ MongoDB -->
+        <div class="col-lg-4 d-none d-lg-flex justify-content-end">
+          <img
+            [src]="categories[5].image"
+            alt="Combo Gym & Eat Clean"
+            class="img-fluid rounded-3"
+            style="max-height:200px; object-fit:contain; cursor:pointer;"
+            [routerLink]="['/product-listing-page']"
+            [queryParams]="{cat: 'Combo'}" />
         </div>
       </div>
     </div>
@@ -164,26 +207,55 @@
         <h2 class="section-title mb-1">Cẩm nang sức khỏe</h2>
         <p class="section-subtitle mb-0">Bí quyết ăn uống lành mạnh từ chuyên gia</p>
       </div>
-      <a class="link-more">Xem tất cả</a>
+      <a class="link-more" style="cursor:pointer;" (click)="goToAllBlogs()">Xem tất cả</a>
     </div>
 
-    <div class="row g-4">
+    <!-- SKELETON BLOG -->
+    <div class="row g-4" *ngIf="isBlogLoading">
+      <div class="col-12 col-md-4" *ngFor="let s of [1,2,3]">
+        <div class="blog-card">
+          <div style="height:200px;background:linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%);
+            background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:14px 14px 0 0;"></div>
+          <div class="p-3 d-flex flex-column gap-2">
+            <div style="height:10px;border-radius:5px;background:#eee;width:30%"></div>
+            <div style="height:10px;border-radius:5px;background:#eee;width:80%"></div>
+            <div style="height:10px;border-radius:5px;background:#eee;width:60%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DANH SÁCH BLOG -->
+    <div class="row g-4" *ngIf="!isBlogLoading">
       <div class="col-12 col-md-4" *ngFor="let post of blogPosts">
-        <div class="blog-card h-100">
-          <div class="blog-img">
-            <i class="bi {{ post.icon }}"></i>
+        <div class="blog-card h-100" style="cursor:pointer;" (click)="goToBlogDetail(post._id || '')">
+          <!-- ✅ Ảnh bìa blog từ MongoDB -->
+          <div class="blog-img-wrap">
+            <img
+              [src]="getBlogImageUrl(post.coverImage)"
+              [alt]="post.title"
+              class="blog-cover-img"
+              onerror="this.src='assets/images/placeholder.png'" />
           </div>
           <div class="p-3">
             <div class="blog-tag mb-1">{{ post.tag }}</div>
             <div class="blog-title mb-2">{{ post.title }}</div>
             <p class="blog-excerpt mb-3">{{ post.excerpt }}</p>
             <div class="d-flex justify-content-between align-items-center border-top pt-2">
-              <span class="blog-date">{{ post.date }}</span>
+              <div class="d-flex flex-column gap-1">
+                <span class="blog-author">
+                  <i class="bi bi-person-circle me-1"></i>{{ post.author }}
+                </span>
+                <span class="blog-date">
+                  <i class="bi bi-calendar3 me-1"></i>{{ post.date }}
+                </span>
+              </div>
               <a class="blog-read">Đọc tiếp <i class="bi bi-arrow-right ms-1"></i></a>
             </div>
           </div>
         </div>
       </div>
     </div>
+
   </div>
 </section>

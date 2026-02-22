@@ -8,7 +8,6 @@
   </div>
 </nav>
 
-<!-- LAYOUT -->
 <div class="container py-4" style="background:#FAF6F0; max-width:100%;">
   <div class="row g-4">
 
@@ -17,10 +16,10 @@
       <app-sidebar
         [selectedFilters]="selectedFilters"
         [priceRange]="priceRange"
-        (filtersChanged)="onFiltersChanged($event)"
-        (priceChanged)="onPriceChanged($event)"
-        (reset)="onResetFilters()"
-      ></app-sidebar>
+        [categoryCounts]="categoryCounts"
+        (allFiltersChanged)="onAllFiltersChanged($event)"
+        (reset)="onResetFilters()">
+      </app-sidebar>
     </div>
 
     <!-- PRODUCTS AREA -->
@@ -30,7 +29,7 @@
       <div class="d-flex flex-wrap gap-2 align-items-center mb-3" *ngIf="activeFilterTags.length > 0">
         <span class="filter-tag" *ngFor="let tag of activeFilterTags">
           {{ tag.label }}
-          <button class="tag-remove" (click)="removeFilter(tag.key)">x</button>
+          <button class="tag-remove" (click)="removeFilter(tag.key)">×</button>
         </span>
         <button class="btn-clear-all" (click)="clearAllFilters()">Xóa tất cả</button>
       </div>
@@ -57,22 +56,35 @@
         </div>
       </div>
 
-      <!-- GRID VIEW -->
-      <div class="row g-3" *ngIf="viewMode === 'grid'">
+      <!-- SKELETON -->
+      <div class="row g-3" *ngIf="isLoading">
+        <div class="col-6 col-md-4" *ngFor="let s of skeletons">
+          <div class="product-card">
+            <div class="skeleton-img"></div>
+            <div class="p-3 d-flex flex-column gap-2">
+              <div class="skeleton-line" style="width:50%"></div>
+              <div class="skeleton-line" style="width:80%"></div>
+              <div class="skeleton-line" style="width:40%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
 
+      <!-- GRID VIEW -->
+      <div class="row g-3" *ngIf="viewMode === 'grid' && !isLoading">
         <div class="col-6 col-md-4" *ngFor="let p of displayedProducts">
-          <div class="product-card h-100" (click)="goToDetail(p.id)">
+          <div class="product-card h-100" (click)="goToDetail(p._id)">
             <div class="product-img-wrap">
               <span class="badge-new" *ngIf="p.badge === 'new'">Mới</span>
               <span class="badge-hot" *ngIf="p.badge === 'hot'">Hot</span>
               <span class="badge-sale" *ngIf="p.sale">{{ p.sale }}</span>
-              <img [src]="p.image" [alt]="p.name" />
-              <button
-                class="btn-wishlist"
-                [class.active]="isWishlisted(p.id)"
-                (click)="toggleWishlist($event, p.id)"
-              >
-                <i class="bi" [class.bi-heart-fill]="isWishlisted(p.id)" [class.bi-heart]="!isWishlisted(p.id)"></i>
+              <img [src]="p.image || 'assets/images/placeholder.png'" [alt]="p.name" />
+              <button class="btn-wishlist"
+                [class.active]="isWishlisted(p._id)"
+                (click)="toggleWishlist($event, p._id)">
+                <i class="bi"
+                  [class.bi-heart-fill]="isWishlisted(p._id)"
+                  [class.bi-heart]="!isWishlisted(p._id)"></i>
               </button>
             </div>
             <div class="p-3">
@@ -86,43 +98,26 @@
                     {{ p.oldPrice | currency:'VND':'symbol':'1.0-0' }}
                   </span>
                   <div class="product-rating">
-                    <span class="stars">{{ p.stars }}</span>
-                    <span class="ms-1">({{ p.reviews }})</span>
+                    <span class="stars">{{ getStars(p.rating || 0) }}</span>
+                    <span class="ms-1">({{ p.reviewCount || p.reviews || 0 }})</span>
                   </div>
                 </div>
-                <button class="btn-add" (click)="addToCart($event, p.id)">
+                <button class="btn-add" (click)="addToCart($event, p._id)">
                   <i class="bi bi-plus"></i>
                 </button>
               </div>
             </div>
           </div>
         </div>
-
-        <!-- SKELETON -->
-        <ng-container *ngIf="isLoading">
-          <div class="col-6 col-md-4" *ngFor="let s of skeletons">
-            <div class="product-card">
-              <div class="skeleton-img"></div>
-              <div class="p-3 d-flex flex-column gap-2">
-                <div class="skeleton-line" style="width:50%"></div>
-                <div class="skeleton-line" style="width:80%"></div>
-                <div class="skeleton-line" style="width:40%"></div>
-              </div>
-            </div>
-          </div>
-        </ng-container>
-
       </div>
 
       <!-- LIST VIEW -->
-      <div class="d-flex flex-column gap-3" *ngIf="viewMode === 'list'">
-        <div
-          class="product-list-item d-flex gap-3 p-3"
+      <div class="d-flex flex-column gap-3" *ngIf="viewMode === 'list' && !isLoading">
+        <div class="product-list-item d-flex gap-3 p-3"
           *ngFor="let p of displayedProducts"
-          (click)="goToDetail(p.id)"
-        >
+          (click)="goToDetail(p._id)">
           <div class="list-img">
-            <img [src]="p.image" [alt]="p.name" />
+            <img [src]="p.image || 'assets/images/placeholder.png'" [alt]="p.name" />
           </div>
           <div class="flex-grow-1">
             <div class="product-cat mb-1">{{ p.cat }}</div>
@@ -133,25 +128,28 @@
               <span class="chip chip-blue"  *ngIf="p.badge === 'new'">Mới</span>
             </div>
             <div class="product-rating">
-              <span class="stars">{{ p.stars }}</span>
-              <span class="ms-1">{{ p.reviews }} đánh giá</span>
+              <span class="stars">{{ getStars(p.rating || 0) }}</span>
+              <span class="ms-1">{{ p.reviewCount || p.reviews || 0 }} đánh giá</span>
             </div>
           </div>
           <div class="d-flex flex-column align-items-end justify-content-between" style="min-width:130px;">
             <div class="text-end">
               <div class="product-price">{{ p.price | currency:'VND':'symbol':'1.0-0' }}</div>
-              <div class="product-price-old" *ngIf="p.oldPrice">{{ p.oldPrice | currency:'VND':'symbol':'1.0-0' }}</div>
+              <div class="product-price-old" *ngIf="p.oldPrice">
+                {{ p.oldPrice | currency:'VND':'symbol':'1.0-0' }}
+              </div>
             </div>
-            <button class="btn-add-list" (click)="addToCart($event, p.id)">+ Giỏ hàng</button>
+            <button class="btn-add-list" (click)="addToCart($event, p._id)">+ Giỏ hàng</button>
           </div>
         </div>
       </div>
 
       <!-- EMPTY STATE -->
-      <div class="empty-state text-center py-5 px-3" *ngIf="displayedProducts.length === 0 && !isLoading">
+      <div class="empty-state text-center py-5 px-3"
+        *ngIf="displayedProducts.length === 0 && !isLoading">
         <i class="bi bi-search fs-1 text-secondary d-block mb-3"></i>
         <div class="empty-title mb-2">Không tìm thấy sản phẩm</div>
-        <p class="empty-desc mb-4">Thử điều chỉnh bộ lọc hoặc từ khóa tìm kiếm.</p>
+        <p class="empty-desc mb-4">Thử điều chỉnh bộ lọc hoặc kiểm tra kết nối server.</p>
         <button class="btn-reset" (click)="clearAllFilters()">Xóa bộ lọc</button>
       </div>
 
@@ -161,17 +159,17 @@
           <i class="bi bi-chevron-left"></i>
         </button>
         <ng-container *ngFor="let p of pageNumbers">
-          <button
-            class="page-btn"
+          <span class="page-btn page-ellipsis" *ngIf="p === '...'">...</span>
+          <button class="page-btn"
+            *ngIf="p !== '...'"
             [class.active]="p === currentPage"
-            (click)="p !== '...' && changePage(+p)"
-          >{{ p }}</button>
+            (click)="changePage(+p)">{{ p }}</button>
         </ng-container>
         <button class="page-btn" [disabled]="currentPage === totalPages" (click)="changePage(currentPage + 1)">
           <i class="bi bi-chevron-right"></i>
         </button>
       </div>
 
-    </div><!-- /col products area -->
-  </div><!-- /row -->
+    </div>
+  </div>
 </div>
