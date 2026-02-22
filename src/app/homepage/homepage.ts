@@ -2,7 +2,7 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule, CurrencyPipe } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { ApiService } from '../services/api.service';
+import { ApiService, STATIC_BASE } from '../services/api.service';
 
 export interface Category {
   name: string;
@@ -42,7 +42,9 @@ export class HomepageComponent implements OnInit {
   isLoading = true;
   isBlogLoading = true;
 
-  readonly STATIC_BASE = 'http://localhost:3000';
+  readonly STATIC_BASE = STATIC_BASE;
+  readonly PLACEHOLDER_PRODUCT = `${STATIC_BASE}/images/products/placeholder.png`;
+  readonly PLACEHOLDER_BLOG    = `${STATIC_BASE}/images/blogs/placeholder.png`;
 
   trustItems: TrustItem[] = [
     { icon: 'bi-patch-check',  title: 'Nguồn gốc rõ ràng',  sub: 'Truy xuất tận nơi sản xuất' },
@@ -52,42 +54,12 @@ export class HomepageComponent implements OnInit {
   ];
 
   categories: Category[] = [
-    {
-      name: 'Hạt dinh dưỡng',
-      count: 'Xem tất cả',
-      color: '#EAF2E3',
-      image: `${this.STATIC_BASE}/images/products/black-bag-chia-500g.png`,
-    },
-    {
-      name: 'Granola',
-      count: 'Xem tất cả',
-      color: '#FFF8EE',
-      image: `${this.STATIC_BASE}/images/products/granola-500g-mix-flavors.png`,
-    },
-    {
-      name: 'Trái cây sấy',
-      count: 'Xem tất cả',
-      color: '#F5EEFF',
-      image: `${this.STATIC_BASE}/images/products/chuoi-say-lanh.jpg`,
-    },
-    {
-      name: 'Đồ ăn vặt',
-      count: 'Xem tất cả',
-      color: '#FFF0E8',
-      image: `${this.STATIC_BASE}/images/products/cheese-biscuit-baked-218g.png`,
-    },
-    {
-      name: 'Trà thảo mộc',
-      count: 'Xem tất cả',
-      color: '#E8F5FF',
-      image: `${this.STATIC_BASE}/images/products/seaweed-flakes-dried-korea.png`,
-    },
-    {
-      name: 'Combo',
-      count: 'Xem tất cả',
-      color: '#FFF5E8',
-      image: `${this.STATIC_BASE}/images/products/granola-matcha-combo-2x500g.png`,
-    },
+    { name: 'Hạt dinh dưỡng', count: 'Xem tất cả', color: '#EAF2E3', image: `${STATIC_BASE}/images/products/black-bag-chia-500g.png` },
+    { name: 'Granola',         count: 'Xem tất cả', color: '#FFF8EE', image: `${STATIC_BASE}/images/products/granola-500g-mix-flavors.png` },
+    { name: 'Trái cây sấy',   count: 'Xem tất cả', color: '#F5EEFF', image: `${STATIC_BASE}/images/products/chuoi-say-lanh.jpg` },
+    { name: 'Đồ ăn vặt',      count: 'Xem tất cả', color: '#FFF0E8', image: `${STATIC_BASE}/images/products/cheese-biscuit-baked-218g.png` },
+    { name: 'Trà thảo mộc',   count: 'Xem tất cả', color: '#E8F5FF', image: `${STATIC_BASE}/images/products/seaweed-flakes-dried-korea.png` },
+    { name: 'Combo',           count: 'Xem tất cả', color: '#FFF5E8', image: `${STATIC_BASE}/images/products/granola-matcha-combo-2x500g.png` },
   ];
 
   blogPosts: BlogPost[] = [];
@@ -108,7 +80,7 @@ export class HomepageComponent implements OnInit {
       next: (data) => {
         this.featuredProducts = data;
         this.isLoading = false;
-        this.cdr.detectChanges(); // ← Force Angular re-render
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Lỗi tải sản phẩm nổi bật:', err);
@@ -123,7 +95,7 @@ export class HomepageComponent implements OnInit {
       next: (data) => {
         this.blogPosts = data;
         this.isBlogLoading = false;
-        this.cdr.detectChanges(); // ← Force Angular re-render
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Lỗi tải blog:', err);
@@ -134,8 +106,8 @@ export class HomepageComponent implements OnInit {
   }
 
   getBlogImageUrl(coverImage: string): string {
-    if (!coverImage) return 'assets/images/placeholder.png';
-    return coverImage.startsWith('http') ? coverImage : `${this.STATIC_BASE}${coverImage}`;
+    if (!coverImage) return this.PLACEHOLDER_BLOG;
+    return coverImage.startsWith('http') ? coverImage : `${STATIC_BASE}${coverImage}`;
   }
 
   getStars(rating: number): string {

@@ -95,6 +95,19 @@
   position: relative;
 }
 
+/* ✅ Fix: badges xuống dưới ảnh, không che ảnh */
+.hero-product-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.hero-badges-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-left: 16px;
+}
+
 .hero-badge {
   background: #fff;
   border-radius: 10px;
@@ -103,6 +116,7 @@
   font-weight: 600;
   color: #2D5016;
   box-shadow: 0 2px 16px rgba(45, 80, 22, 0.10);
+  white-space: nowrap;
 }
 
 /* TRUST STRIP */
@@ -185,6 +199,20 @@
 .cat-icon {
   font-size: 40px;
   line-height: 1;
+}
+
+.cat-img-wrap {
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cat-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .cat-name {
@@ -441,13 +469,21 @@
   box-shadow: 0 8px 32px rgba(45, 80, 22, 0.10);
 }
 
-.blog-img {
-  height: 160px;
-  background: linear-gradient(135deg, #EAF2E3 0%, #E8F5DA 100%);
+/* ✅ Fix: blog image căn giữa, đúng tỉ lệ */
+.blog-img-wrap {
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 60px;
+  background: #EAF2E3;
+}
+
+.blog-cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .blog-tag {
@@ -469,6 +505,11 @@
   font-size: 13px;
   color: #8A9E72;
   line-height: 1.7;
+}
+
+.blog-author {
+  font-size: 12px;
+  color: #8A9E72;
 }
 
 .blog-date {
