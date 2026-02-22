@@ -23,22 +23,22 @@
         </div>
       </div>
 
-      <!-- Hero: ảnh sản phẩm nổi bật đầu tiên từ MongoDB -->
+      <!-- ✅ Hero right: ảnh + badges cạnh nhau, không che nhau -->
       <div class="col-lg-6 hero-right-panel d-none d-lg-flex align-items-center justify-content-center">
-        <div class="position-relative" *ngIf="!isLoading && featuredProducts.length > 0">
+        <div class="d-flex align-items-center gap-3" *ngIf="!isLoading && featuredProducts.length > 0">
           <img
-            [src]="featuredProducts[0].image || 'assets/images/placeholder.png'"
+            [src]="featuredProducts[0].image || 'http://localhost:3000/images/products/placeholder.png'"
             [alt]="featuredProducts[0].name"
             class="img-fluid rounded-4 hero-product-img"
             (click)="goToDetail(featuredProducts[0]._id)"
-            style="max-width:300px; cursor:pointer;" />
-          <div class="position-absolute top-0 end-0 d-flex flex-column gap-2 me-n3">
+            onerror="this.src='http://localhost:3000/images/products/placeholder.png'"
+            style="max-width:260px; cursor:pointer;" />
+          <div class="hero-badges-col">
             <div class="hero-badge"><i class="bi bi-check-circle-fill me-1"></i>100% Tự nhiên</div>
             <div class="hero-badge"><i class="bi bi-truck me-1"></i>Freeship đơn 299K</div>
             <div class="hero-badge"><i class="bi bi-lightning-charge me-1"></i>Giao trong 2h</div>
           </div>
         </div>
-        <!-- Skeleton hero image -->
         <div *ngIf="isLoading" style="width:300px;height:300px;background:linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%);
           background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:16px;"></div>
       </div>
@@ -77,7 +77,6 @@
           [class.active]="activeCategory === i"
           [style.background]="cat.color"
           (click)="onCategoryClick(i, cat.name)">
-          <!-- ✅ Ảnh sản phẩm từ MongoDB -->
           <div class="cat-img-wrap mb-2">
             <img [src]="cat.image"
               [alt]="cat.name"
@@ -131,8 +130,10 @@
             <span class="badge-new" *ngIf="p.badge === 'new'">Mới</span>
             <span class="badge-hot" *ngIf="p.badge === 'hot'">Hot</span>
             <span class="badge-sale" *ngIf="p.sale">{{ p.sale }}</span>
-            <!-- ✅ Ảnh sản phẩm từ MongoDB (đã fix URL trong ApiService) -->
-            <img [src]="p.image || 'assets/images/placeholder.png'" [alt]="p.name" />
+            <img
+              [src]="p.image || 'http://localhost:3000/images/products/placeholder.png'"
+              [alt]="p.name"
+              onerror="this.src='http://localhost:3000/images/products/placeholder.png'" />
             <button class="btn-wishlist"
               [class.active]="isWishlisted(p._id)"
               (click)="toggleWishlist($event, p._id)">
@@ -184,12 +185,12 @@
             <i class="bi bi-bag-heart me-2"></i>Mua combo ngay
           </button>
         </div>
-        <!-- ✅ Ảnh combo từ MongoDB -->
         <div class="col-lg-4 d-none d-lg-flex justify-content-end">
           <img
             [src]="categories[5].image"
             alt="Combo Gym & Eat Clean"
             class="img-fluid rounded-3"
+            onerror="this.src='http://localhost:3000/images/products/placeholder.png'"
             style="max-height:200px; object-fit:contain; cursor:pointer;"
             [routerLink]="['/product-listing-page']"
             [queryParams]="{cat: 'Combo'}" />
@@ -229,13 +230,13 @@
     <div class="row g-4" *ngIf="!isBlogLoading">
       <div class="col-12 col-md-4" *ngFor="let post of blogPosts">
         <div class="blog-card h-100" style="cursor:pointer;" (click)="goToBlogDetail(post._id || '')">
-          <!-- ✅ Ảnh bìa blog từ MongoDB -->
+          <!-- ✅ blog-img-wrap + blog-cover-img căn giữa đúng -->
           <div class="blog-img-wrap">
             <img
               [src]="getBlogImageUrl(post.coverImage)"
               [alt]="post.title"
               class="blog-cover-img"
-              onerror="this.src='assets/images/placeholder.png'" />
+              onerror="this.src='http://localhost:3000/images/blogs/placeholder.png'" />
           </div>
           <div class="p-3">
             <div class="blog-tag mb-1">{{ post.tag }}</div>
