@@ -1,0 +1,24 @@
+<div class="blog-section-wrapper">
+  <nav class="breadcrumb">
+    <span>Quản trị viên</span> 
+    <span class="separator">/</span>
+    <span>Quản lý Blogs</span> 
+    <span class="separator">/</span>
+    <span class="active">{{ breadcrumbActiveText }}</span>
+  </nav>
+
+  <div [ngSwitch]="viewMode">
+    <app-blog-list 
+      *ngSwitchCase="'list'" 
+      (goEdit)="handleGoEdit($event)" 
+      (goAdd)="handleGoAdd()">
+    </app-blog-list>
+
+    <app-blog-form 
+      *ngSwitchCase="'form'" 
+      [mode]="formMode" 
+      [postData]="selectedPost" 
+      (goBack)="handleBack()">
+    </app-blog-form>
+  </div>
+</div>

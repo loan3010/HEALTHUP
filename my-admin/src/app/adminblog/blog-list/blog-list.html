@@ -1,0 +1,62 @@
+<div class="blog-list-wrapper">
+
+  <div class="header-row">
+    <div class="title-section">
+      <h1>DANH SÁCH BÀI VIẾT</h1>
+      <p class="subtitle">Hiển thị <strong style="color:var(--color-primary)">{{posts.length}}</strong> bài viết</p>
+    </div>
+    <button class="btn-add" (click)="goAdd.emit()">
+      <i class="bi bi-plus-circle"></i> Thêm bài viết
+    </button>
+  </div>
+
+  <div class="toolbar">
+    <div class="search-box">
+      <i class="bi bi-search"></i>
+      <input type="text" [(ngModel)]="searchText" placeholder="Tìm kiếm">
+    </div>
+
+    <div class="action-group">
+      <span class="count-label">{{selectedCount}} đã chọn</span>
+      
+      <button class="btn-tool" [disabled]="selectedCount !== 1" (click)="onEdit()">
+        <i class="bi bi-pencil"></i> Chỉnh
+      </button>
+
+      <button class="btn-tool btn-danger-soft" [disabled]="selectedCount === 0">
+        <i class="bi bi-trash"></i> Xoá
+      </button>
+
+      <button class="btn-tool">
+        <i class="bi bi-arrow-down-up"></i> Sắp xếp <i class="bi bi-caret-down-fill ms-1" style="font-size: 0.7rem;"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="table-card shadow-sm">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th width="50"><input type="checkbox" (change)="toggleAll($event)"></th>
+          <th>MÃ BÀI VIẾT</th>
+          <th class="text-start">BÀI VIẾT</th>
+          <th>NGÀY CẬP NHẬT</th>
+          <th>NGƯỜI VIẾT</th> <th>CATEGORY</th>
+          <th>LƯỢT XEM</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let p of posts" [class.row-selected]="p.selected">
+          <td class="text-center"><input type="checkbox" [(ngModel)]="p.selected"></td>
+          <td class="col-id text-center">{{p.id}}</td>
+          <td class="col-title">{{p.title}}</td>
+          <td class="text-center">{{p.updatedAt}}</td>
+          <td class="text-center">{{p.author}}</td> <td class="text-center">
+            <span class="badge-category">{{p.category}}</span>
+          </td>
+          <td class="text-center"><strong>{{p.views}}</strong></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

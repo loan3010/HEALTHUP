@@ -1,0 +1,90 @@
+<div class="modal-container shadow-lg">
+  <div class="modal-header">
+    <h2 class="modal-title">Chi tiết khuyến mãi</h2>
+    <button class="btn-close-x" (click)="goBack.emit()">&times;</button>
+  </div>
+
+  <div class="modal-body">
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Mã khuyến mãi <span class="required">*</span></label>
+        <input type="text" [(ngModel)]="formData.code" placeholder="NEWYEAR25">
+      </div>
+      <div class="form-group">
+        <label>Tên khuyến mãi <span class="required">*</span></label>
+        <input type="text" [(ngModel)]="formData.name" placeholder="Mừng năm mới - Giảm 25%">
+      </div>
+
+      <div class="form-group full-width">
+        <label>Mô tả</label>
+        <textarea rows="3" [(ngModel)]="formData.description" placeholder="Mô tả chi tiết..."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Loại khuyến mãi <span class="required">*</span></label>
+        <select [(ngModel)]="formData.type">
+          <option value="user">Người dùng (User)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Trạng thái <span class="required">*</span></label>
+        <select [(ngModel)]="formData.status">
+          <option value="upcoming">Sắp diễn ra (Upcoming)</option>
+          <option value="ongoing">Đang diễn ra</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Loại giảm giá <span class="required">*</span></label>
+        <select [(ngModel)]="formData.discountType">
+          <option value="percent">Phần trăm (%)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Giá trị giảm <span class="required">*</span></label>
+        <input type="number" [(ngModel)]="formData.discountValue">
+      </div>
+
+      <div class="form-group">
+        <label>Giá trị đơn hàng tối thiểu</label>
+        <input type="number" [(ngModel)]="formData.minOrder">
+      </div>
+      <div class="form-group">
+        <label>Giảm tối đa (đ)</label>
+        <input type="number" [(ngModel)]="formData.maxDiscount">
+      </div>
+
+      <div class="form-group">
+        <label>Ngày bắt đầu <span class="required">*</span></label>
+        <div class="date-input-wrapper">
+          <input type="date" [(ngModel)]="formData.startDate">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Ngày kết thúc <span class="required">*</span></label>
+        <div class="date-input-wrapper">
+          <input type="date" [(ngModel)]="formData.endDate">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Giới hạn sử dụng</label>
+        <input type="number" [(ngModel)]="formData.totalLimit">
+      </div>
+      <div class="form-group">
+        <label>Giới hạn mỗi người dùng</label>
+        <input type="number" [(ngModel)]="formData.userLimit">
+      </div>
+    </div>
+
+    <div class="checkbox-group mt-3">
+      <input type="checkbox" id="firstOrder" [(ngModel)]="formData.firstOrderOnly">
+      <label for="firstOrder">Chỉ áp dụng cho đơn hàng đầu tiên</label>
+    </div>
+  </div>
+
+  <div class="modal-footer">
+    <button class="btn-huy" (click)="goBack.emit()">HỦY</button>
+    <button class="btn-luu" (click)="onSave()">LƯU THAY ĐỔI</button>
+  </div>
+</div>

@@ -1,0 +1,243 @@
+.blog-form-wrapper { 
+  padding: 10px; 
+  animation: fadeIn 0.4s ease-out; 
+}
+
+/* --- BREADCRUMB & QUAY LẠI --- */
+.back-link {
+  display: inline-flex; 
+  align-items: center; 
+  gap: 8px;
+  color: var(--color-primary); 
+  text-decoration: none;
+  font-weight: 600; 
+  margin-bottom: 20px; 
+  transition: 0.2s;
+}
+
+.back-link:hover { 
+  color: var(--color-accent); 
+  transform: translateX(-3px); 
+}
+
+.page-title { 
+  color: var(--color-primary); 
+  font-size: 1.8rem; 
+  font-weight: 800; 
+  margin-bottom: 25px; 
+}
+
+/* --- STYLE CHUNG CHO THẺ (CARD) --- */
+.info-card, .editor-card {
+  background: white; 
+  border-radius: 20px; 
+  padding: 40px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.05); 
+  margin-bottom: 30px;
+}
+
+/* --- PHẦN THÔNG TIN TỔNG QUAN (INFO CARD) --- */
+.info-card { 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: flex-start; 
+}
+
+.info-left { 
+  display: flex; 
+  gap: 40px; 
+  flex: 1; 
+}
+
+.avatar-circle {
+  width: 130px; 
+  height: 130px; 
+  background: #e9ecef;
+  border-radius: 50%; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+  font-size: 4.5rem; 
+  color: #adb5bd;
+  flex-shrink: 0;
+}
+
+/* Tiêu đề & Icon bút chì nằm sát nhau nhưng cách xa nút Xóa/Lưu */
+.title-edit-row {
+  display: flex; 
+  align-items: center; 
+  gap: 10px;
+  border-bottom: 1px solid #eee; 
+  padding-bottom: 8px; 
+  margin-bottom: 20px;
+}
+
+.input-main-title {
+  border: none; 
+  font-size: 1.6rem; 
+  font-weight: 700;
+  outline: none; 
+  background: transparent; 
+  width: 100%;
+}
+
+.btn-edit-title { 
+  background: none; 
+  border: none; 
+  color: #333; 
+  font-size: 1.2rem; 
+  cursor: pointer; 
+}
+
+/* CĂN DỌC CÁC TRƯỜNG THÔNG TIN (NGAY HÀNG THẲNG LỐI) */
+.fields-grid { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 15px; 
+}
+
+.field-item { 
+  display: flex; 
+  align-items: center; 
+}
+
+.field-label { 
+  font-weight: 700; 
+  width: 140px; /* Độ rộng cố định giúp các cột thẳng hàng dọc */
+  color: #333; 
+  font-size: 1rem; 
+}
+
+.field-input, .field-select, .field-value {
+  font-size: 1rem; 
+  color: #666; 
+  border: none; 
+  outline: none; 
+  background: transparent; 
+  width: 300px;
+}
+
+/* --- NHÓM NÚT HÀNH ĐỘNG (Bên phải) --- */
+.info-right { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 15px; 
+  min-width: 200px; 
+}
+
+.btn-action {
+  border: none; 
+  border-radius: 12px; 
+  padding: 12px 20px;
+  color: white; 
+  font-weight: 700; 
+  display: flex; 
+  align-items: center;
+  justify-content: center; 
+  gap: 10px; 
+  cursor: pointer; 
+  transition: 0.3s;
+}
+
+.btn-red { background: #e74c3c; } /* Nút Xóa bài viết */
+.btn-red:hover { background: #c0392b; transform: translateY(-2px); }
+
+.btn-green { background: var(--color-primary); } /* Nút Lưu/Thêm bài viết */
+.btn-green:hover { 
+  background: var(--color-accent); 
+  transform: translateY(-2px); 
+}
+
+/* --- EDITOR TOOLBAR (100% GIỐNG ẢNH MẪU) --- */
+.editor-label { 
+  font-size: 1.3rem; 
+  font-weight: 700; 
+  margin-bottom: 25px; 
+}
+
+.full-toolbar { 
+  border: 1px solid #eee; 
+  border-radius: 12px; 
+  background: #fdfdfd; 
+  margin-bottom: 25px; 
+}
+
+.toolbar-row { 
+  display: flex; 
+  gap: 10px; 
+  padding: 10px; 
+  flex-wrap: wrap; 
+  align-items: center;
+}
+
+/* Hàng thứ 2 có gạch ngang ngăn cách */
+.toolbar-row.border-top { 
+  border-top: 1px solid #eee; 
+}
+
+.t-group { 
+  display: flex; 
+  gap: 6px; 
+  padding-right: 10px; 
+  border-right: 1px solid #ddd; 
+  align-items: center; 
+}
+
+.no-border { 
+  border-right: none; 
+}
+
+.t-btn {
+  background: white; 
+  border: 1px solid #ddd; 
+  border-radius: 6px;
+  padding: 5px 10px; 
+  cursor: pointer; 
+  color: #555; 
+  transition: 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;
+}
+
+.t-btn:hover { 
+  border-color: var(--color-primary); 
+  color: var(--color-primary); 
+}
+
+/* Điều chỉnh ô chọn lựa dài ra theo ý bà */
+.t-select { 
+  border: 1px solid #ddd; 
+  border-radius: 6px; 
+  padding: 6px 10px; 
+  outline: none; 
+  background: white; 
+  font-size: 0.9rem;
+  min-width: 120px; /* Cho nó dài ra một chút nhìn cho đẹp */
+}
+
+/* --- VÙNG SOẠN THẢO VỚI VIỀN XANH LÁ --- */
+.editor-main { 
+  border-left: 5px solid var(--color-primary); 
+  padding-left: 25px; 
+  margin-top: 10px; 
+}
+
+.editor-textarea {
+  width: 100%; 
+  min-height: 450px; 
+  border: none; 
+  outline: none;
+  font-size: 1.1rem; 
+  line-height: 1.8; 
+  color: #444; 
+  resize: vertical;
+  background: transparent;
+}
+
+/* --- HIỆU ỨNG --- */
+@keyframes fadeIn { 
+  from { opacity: 0; transform: translateY(10px); } 
+  to { opacity: 1; transform: translateY(0); } 
+}
