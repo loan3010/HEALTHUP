@@ -1,0 +1,167 @@
+/* --- CONTAINER TỔNG THỂ --- */
+.chat-sidebar-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #ffffff;
+  border-left: 1px solid #f0f0f0;
+}
+
+/* --- HEADER: CÔNG CỤ --- */
+.chat-sidebar-header {
+  flex: 0 0 auto;
+  padding: 18px 25px;
+  background: #ffffff;
+  border-bottom: 1px solid #f8f8f8;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.h-info { display: flex; align-items: center; }
+.header-title { 
+  color: var(--color-primary); 
+  font-weight: 800; 
+  font-size: 0.85rem; 
+  letter-spacing: 0.8px; 
+}
+
+.h-actions { display: flex; gap: 10px; }
+
+/* Nút Header */
+.btn-h-tool, .btn-h-close {
+  width: 34px; height: 34px; border-radius: 10px; border: none;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-h-tool { background: #f1f3f5; color: #666; }
+.btn-h-tool:hover { transform: rotate(180deg); color: var(--color-primary); background: #eef7ee; }
+
+.btn-h-close { background: #fff5f5; color: #ff4d4d; font-size: 1.2rem; }
+.btn-h-close:hover { background: #ff4d4d; color: white; transform: scale(1.1); }
+
+/* --- KHÔNG GIAN CHAT --- */
+.chat-content {
+  flex: 1 1 auto;
+  padding: 25px;
+  overflow-y: auto;
+  background: #fcfdfc;
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+/* Thanh cuộn mảnh */
+.custom-scroll::-webkit-scrollbar { width: 4px; }
+.custom-scroll::-webkit-scrollbar-thumb { background: #eee; border-radius: 10px; }
+.custom-scroll { scrollbar-width: thin; scrollbar-color: #eee transparent; }
+
+/* --- BONG BÓNG CHAT --- */
+/* Admin: Màu Accent Blue */
+.chat-item.admin { align-self: flex-end; max-width: 85%; }
+.chat-item.admin .bubble {
+  background: var(--color-accent); 
+  color: white;
+  padding: 12px 18px;
+  border-radius: 20px 20px 4px 20px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  box-shadow: 0 4px 15px rgba(106, 174, 219, 0.15);
+}
+.chat-time { display: block; font-size: 0.7rem; color: #adb5bd; margin-top: 6px; text-align: right; }
+
+/* Bot: Màu trắng tinh tế */
+.chat-item.bot { align-self: flex-start; max-width: 90%; }
+.bot-info { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.bot-ava {
+  width: 28px; height: 28px; background: var(--color-primary);
+  color: white; border-radius: 50%; display: flex;
+  align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 800;
+}
+.bot-name { font-size: 0.8rem; font-weight: 700; color: #495057; }
+
+.chat-item.bot .bubble {
+  background: #ffffff;
+  color: #333;
+  padding: 14px 20px;
+  border-radius: 4px 20px 20px 20px;
+  border: 1px solid #f0f0f0;
+  line-height: 1.6;
+  font-size: 0.95rem;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+}
+
+/* --- BẢNG PHÂN TÍCH (Analysis) --- */
+.analysis-box {
+  margin-top: 15px;
+  background: #f0f9f0; /* Green tint nhẹ */
+  border: 1px solid rgba(76, 175, 80, 0.12);
+  border-radius: 16px;
+  padding: 15px;
+}
+
+.a-header {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+  letter-spacing: 0.5px;
+}
+
+.a-body { display: flex; flex-direction: column; gap: 8px; }
+.a-row { display: flex; justify-content: space-between; font-size: 0.85rem; }
+.a-row span { color: #888; }
+.text-success { color: #2e7d32 !important; font-weight: 800; }
+.text-accent { color: var(--color-accent) !important; font-weight: 700; }
+
+/* --- INPUT FOOTER --- */
+.chat-input-wrapper {
+  flex: 0 0 auto;
+  padding: 20px 25px;
+  background: white;
+  border-top: 1px solid #f5f5f5;
+}
+
+.input-container-inner {
+  display: flex;
+  background: #f8f9fa;
+  border-radius: 15px;
+  padding: 10px 18px;
+  align-items: center;
+  transition: all 0.2s;
+  border: 1.5px solid transparent;
+}
+
+.input-container-inner:focus-within {
+  background: white;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px rgba(54, 135, 58, 0.05);
+}
+
+.input-container-inner input {
+  flex: 1; border: none; background: transparent; outline: none;
+  font-size: 0.95rem; color: #333;
+}
+
+.btn-send-chat {
+  background: none; border: none; color: var(--color-primary);
+  font-size: 1.4rem; cursor: pointer; display: flex; transition: all 0.2s;
+}
+
+.btn-send-chat:hover {
+  transform: scale(1.1) translateX(3px);
+  color: var(--color-accent);
+}
+
+/* --- HIỆU ỨNG HIỆN TIN NHẮN --- */
+.fadeInScale {
+  animation: fadeInScale 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(0.9) translateY(15px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
