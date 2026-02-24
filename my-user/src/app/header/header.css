@@ -49,6 +49,7 @@
   font-weight: 500;
   transition: 0.2s;
   position: relative;
+  font-size: 14px; 
 }
 
 .nav-menu a:hover {
@@ -101,35 +102,6 @@
 }
 
 /* Buttons */
-/* .btn-login {
-  background: transparent;
-  border: 1px solid #3d6f2f;
-  color: #3d6f2f;
-  padding: 6px 14px;
-  border-radius: 20px;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.btn-login:hover {
-  background: #3d6f2f;
-  color: white;
-}
-
-.btn-register {
-  background: #3d6f2f;
-  color: white;
-  border: none;
-  padding: 6px 14px;
-  border-radius: 20px;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.btn-register:hover {
-  opacity: 0.9;
-} */
-/* Login & Register giống nhau */
 .btn-login,
 .btn-register {
   background: transparent;
@@ -140,6 +112,7 @@
   cursor: pointer;
   font-weight: 500;
   transition: all 0.25s ease;
+  font-size: 14px; 
 }
 
 /* Hover chung */
