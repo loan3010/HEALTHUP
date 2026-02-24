@@ -1,15 +1,18 @@
-// src/app/app.routes.ts
 import { Routes } from '@angular/router';
 import { HomepageComponent }           from './homepage/homepage';
 import { ProductListingPageComponent } from './product-listing-page/product-listing-page';
 import { ProductDetailPageComponent }  from './product-detail-page/product-detail-page';
 import { OrderReviewComponent }        from './order-review/order-review';
+import { AboutTheBrand } from './about-the-brand/about-the-brand';
 
 export const routes: Routes = [
-  { path: '',                           component: HomepageComponent },
-  { path: 'product-listing-page',       component: ProductListingPageComponent },
-  // ✅ Sửa: thêm /:id để nhận productId từ router.navigate(['/product-detail-page', id])
-  { path: 'product-detail-page/:id',    component: ProductDetailPageComponent },
-  { path: 'order-review',               component: OrderReviewComponent },
-  { path: '**',                         redirectTo: '' }
+  { path: '',                        component: HomepageComponent },
+  { path: 'product-listing-page',    component: ProductListingPageComponent },
+  { path: 'product-detail-page/:id', component: ProductDetailPageComponent },
+  { path: 'order-review',            component: OrderReviewComponent },
+
+  // ✅ THÊM ROUTE MỚI
+  { path: 'about-the-brand',         component: AboutTheBrand },
+
+  { path: '**', redirectTo: '' }
 ];
