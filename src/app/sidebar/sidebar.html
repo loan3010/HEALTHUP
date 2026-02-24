@@ -1,0 +1,64 @@
+<div class="sidebar-wrapper d-flex flex-column gap-3">
+
+  <!-- HEADER -->
+  <div class="sidebar-header-card p-3 d-flex justify-content-between align-items-center">
+    <span class="sidebar-title">
+      <i class="bi bi-sliders me-2"></i>Bộ lọc
+      <span class="filter-count-badge ms-1" *ngIf="activeFilterCount > 0">{{ activeFilterCount }}</span>
+    </span>
+    <button class="btn-reset-all" (click)="onReset()">Xóa tất cả</button>
+  </div>
+
+  <!-- DANH MỤC -->
+  <div class="filter-card">
+    <div class="filter-section-title px-3 py-3 d-flex justify-content-between align-items-center"
+      (click)="toggleSection('category')">
+      <span>Danh mục</span>
+      <i class="bi" [class.bi-chevron-up]="openSections['category']" [class.bi-chevron-down]="!openSections['category']"></i>
+    </div>
+    <div class="filter-body px-3" [class.collapsed]="!openSections['category']" style="padding-top:8px;padding-bottom:12px;">
+      <div class="filter-option" *ngFor="let cat of categories" (click)="toggleCategoryFilter(cat.key)">
+        <div class="filter-checkbox" [class.checked]="isCategorySelected(cat.key)">
+          <i class="bi bi-check" *ngIf="isCategorySelected(cat.key)"></i>
+        </div>
+        <span class="flex-grow-1">{{ cat.name }}</span>
+        <span class="filter-option-count">{{ cat.count }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- GIÁ -->
+  <div class="filter-card">
+    <div class="filter-section-title px-3 py-3 d-flex justify-content-between align-items-center"
+      (click)="toggleSection('price')">
+      <span>Khoảng giá</span>
+      <i class="bi" [class.bi-chevron-up]="openSections['price']" [class.bi-chevron-down]="!openSections['price']"></i>
+    </div>
+    <div class="filter-body px-3" [class.collapsed]="!openSections['price']" style="padding-top:8px;padding-bottom:12px;">
+      <div class="d-flex flex-wrap gap-2 mb-3">
+        <button class="price-preset-btn"
+          *ngFor="let preset of pricePresets"
+          [class.active]="activePricePreset === preset.key"
+          (click)="selectPricePreset(preset)">{{ preset.label }}</button>
+      </div>
+      <div class="text-center price-divider mb-2">hoặc nhập tùy chỉnh</div>
+      <div class="slider-track mb-3">
+        <div class="slider-fill" [style.left.%]="sliderLeft" [style.right.%]="sliderRight"></div>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <div class="price-input-wrap">
+          <span class="price-prefix">đ</span>
+          <input class="price-input" type="number" placeholder="Từ"
+            [(ngModel)]="priceMin" (change)="onPriceInputChange()" />
+        </div>
+        <span class="text-secondary">-</span>
+        <div class="price-input-wrap">
+          <span class="price-prefix">đ</span>
+          <input class="price-input" type="number" placeholder="Đến"
+            [(ngModel)]="priceMax" (change)="onPriceInputChange()" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

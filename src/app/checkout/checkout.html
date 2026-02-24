@@ -1,0 +1,191 @@
+<div class="checkout">
+  <!-- LEFT -->
+  <div class="left">
+    <h3 class="section-title">Thông tin nhận hàng</h3>
+
+    <div class="alert error" *ngIf="errorMsg()">{{ errorMsg() }}</div>
+
+    <form [formGroup]="form" class="card">
+      <div class="field">
+        <input class="inp" placeholder="Email (tuỳ chọn)" formControlName="email" />
+      </div>
+
+      <div class="field">
+        <input class="inp" placeholder="Họ và tên *" formControlName="fullName" />
+        <div class="err" *ngIf="hasError('fullName','required')">Bắt buộc</div>
+      </div>
+
+      <div class="field">
+        <input class="inp" placeholder="Số điện thoại *" formControlName="phone" />
+        <div class="err" *ngIf="hasError('phone','required')">Bắt buộc</div>
+        <div class="err" *ngIf="hasError('phone','pattern')">Không hợp lệ</div>
+      </div>
+
+      <!-- Địa chỉ -->
+      <div class="field">
+        <input class="inp" placeholder="Địa chỉ *" formControlName="address" />
+        <div class="err" *ngIf="hasError('address','required')">Bắt buộc</div>
+      </div>
+
+      <!-- Tỉnh/Huyện/Xã (lựa chọn phụ thuộc) -->
+      <div class="grid3">
+        <select
+          class="inp"
+          formControlName="province"
+          (change)="onProvinceChange($any($event.target).value)"
+        >
+          <option value="">Tỉnh/Thành *</option>
+          <option *ngFor="let p of provinces" [value]="p">{{ p }}</option>
+        </select>
+
+        <select
+          class="inp"
+          formControlName="district"
+          (change)="onDistrictChange($any($event.target).value)"
+          [disabled]="districts.length === 0"
+        >
+          <option value="">Quận/Huyện *</option>
+          <option *ngFor="let d of districts" [value]="d">{{ d }}</option>
+        </select>
+
+        <select
+          class="inp"
+          formControlName="ward"
+          [disabled]="wards.length === 0"
+        >
+          <option value="">Phường/Xã *</option>
+          <option *ngFor="let w of wards" [value]="w">{{ w }}</option>
+        </select>
+      </div>
+
+      <div class="err" *ngIf="hasError('province','required')">Chọn Tỉnh/Thành</div>
+      <div class="err" *ngIf="hasError('district','required')">Chọn Quận/Huyện</div>
+      <div class="err" *ngIf="hasError('ward','required')">Chọn Phường/Xã</div>
+
+      <textarea class="inp" rows="3" placeholder="Ghi chú" formControlName="note"></textarea>
+    </form>
+
+    <h3 class="section-title">Vận chuyển</h3>
+    <div class="card options">
+      <label class="opt" [class.active]="shippingMethod() === 'standard'">
+        <input
+          type="radio"
+          [checked]="shippingMethod() === 'standard'"
+          (change)="setShipping('standard')"
+        />
+        <div class="opt-body">
+          <div class="opt-title">Giao tiêu chuẩn</div>
+          <div class="opt-sub">2–4 ngày • Phí rẻ hơn</div>
+        </div>
+        <div class="opt-right">
+          {{ vnd(orderService.calcShippingFee('standard', subTotal())) }}
+        </div>
+      </label>
+
+      <label class="opt" [class.active]="shippingMethod() === 'express'">
+        <input
+          type="radio"
+          [checked]="shippingMethod() === 'express'"
+          (change)="setShipping('express')"
+        />
+        <div class="opt-body">
+          <div class="opt-title">Giao nhanh</div>
+          <div class="opt-sub">1–2 ngày • Ưu tiên xử lý</div>
+        </div>
+        <div class="opt-right">
+          {{ vnd(orderService.calcShippingFee('express', subTotal())) }}
+        </div>
+      </label>
+    </div>
+
+    <h3 class="section-title">Thanh toán</h3>
+    <div class="card options">
+      <label class="opt" [class.active]="paymentMethod() === 'cod'">
+        <input
+          type="radio"
+          [checked]="paymentMethod() === 'cod'"
+          (change)="setPayment('cod')"
+        />
+        <div class="opt-body">
+          <div class="opt-title">COD</div>
+          <div class="opt-sub">Thanh toán khi nhận hàng</div>
+        </div>
+        <div class="tag">Phổ biến</div>
+      </label>
+
+      <label class="opt" [class.active]="paymentMethod() === 'momo'">
+        <input
+          type="radio"
+          [checked]="paymentMethod() === 'momo'"
+          (change)="setPayment('momo')"
+        />
+        <div class="opt-body">
+          <div class="opt-title">MoMo</div>
+          <div class="opt-sub">Quét QR • Thanh toán nhanh</div>
+        </div>
+        <div class="tag">QR</div>
+      </label>
+
+      <label class="opt" [class.active]="paymentMethod() === 'vnpay'">
+        <input
+          type="radio"
+          [checked]="paymentMethod() === 'vnpay'"
+          (change)="setPayment('vnpay')"
+        />
+        <div class="opt-body">
+          <div class="opt-title">VNPay</div>
+          <div class="opt-sub">ATM/Visa/Master • Bảo mật</div>
+        </div>
+        <div class="tag">ATM</div>
+      </label>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right">
+    <div class="summary card">
+      <div class="summary-title">Đơn hàng</div>
+
+      <div class="sum-item" *ngFor="let it of items">
+        <div
+          class="sum-thumb"
+          [style.backgroundImage]="'url(' + (it.imageUrl || '') + ')'"
+        >
+          <span class="sum-qty">{{ it.quantity }}</span>
+        </div>
+
+        <div class="sum-meta">
+          <div class="sum-name">{{ it.name }}</div>
+          <div class="sum-sub">{{ vnd(it.price) }} / sp</div>
+        </div>
+
+        <div class="sum-price">{{ vnd(it.price * it.quantity) }}</div>
+      </div>
+
+      <div class="voucher">
+        <input
+          class="inp"
+          placeholder="Mã giảm giá"
+          [value]="voucherCode()"
+          (input)="onVoucherInput($any($event.target).value)"
+        />
+        <button class="btn outline" type="button" (click)="applyVoucher()">Áp dụng</button>
+        <button class="btn ghost" type="button" *ngIf="voucherCode()" (click)="removeVoucher()">×</button>
+      </div>
+
+      <div class="hint" *ngIf="voucherMsg()">{{ voucherMsg() }}</div>
+
+      <div class="line"><span>Tạm tính</span><b>{{ vnd(subTotal()) }}</b></div>
+      <div class="line"><span>Ship</span><b>{{ vnd(shippingFee()) }}</b></div>
+      <div class="line" *ngIf="discount() > 0"><span>Giảm</span><b>-{{ vnd(discount()) }}</b></div>
+
+      <div class="total">
+        <span>Tổng</span><b>{{ vnd(total()) }}</b>
+      </div>
+
+      <button class="btn primary full" type="button" (click)="placeOrder()">
+        HOÀN TẤT ĐƠN
+      </button>
+    </div>
+  </div>
+</div>

@@ -4,7 +4,6 @@ import { ProductListingPageComponent } from './product-listing-page/product-list
 import { ProductDetailPageComponent }  from './product-detail-page/product-detail-page';
 import { OrderReviewComponent }        from './order-review/order-review';
 import { AboutTheBrand } from './about-the-brand/about-the-brand';
-import { UserProfile } from './user-profile/user-profile';
 
 export const routes: Routes = [
   { path: '',                        component: HomepageComponent },
@@ -14,7 +13,6 @@ export const routes: Routes = [
 
   // ✅ THÊM ROUTE MỚI
   { path: 'about-the-brand',         component: AboutTheBrand },
-  { path: 'user-profile',         component: UserProfile },
 
   { path: '**', redirectTo: '' }
 ];

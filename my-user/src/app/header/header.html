@@ -1,36 +1,53 @@
 <header class="main-header">
-  <div class="container">
+  <div class="header-container">
 
     <!-- Logo -->
     <div class="logo">
-      <img src="assets/logo.png" alt="HealthUp">
-      <!-- <span class="brand">HealthUp</span> -->
+      <img src="assets/logo.png" alt="Logo">
+      <span>HealthUp</span>
     </div>
 
     <!-- Menu -->
     <nav class="nav-menu">
       <a routerLink="/">Trang chủ</a>
-
       <a routerLink="/about-the-brand">Giới thiệu</a>
-
-      <div class="dropdown">
-        <span>Sản phẩm ▾</span>
-      </div>
-
-      <div class="dropdown">
-        <span>Blogs ▾</span>
-      </div>
-
+      <a routerLink="/products">Sản phẩm</a>
+      <a routerLink="/blogs">Blogs</a>
       <a routerLink="/faqs">FAQs</a>
     </nav>
 
-    <!-- Icons -->
-    <div class="icons">
-        <i class="bi bi-share"></i>
-        <i class="bi bi-cart3"></i>
-        <i class="bi bi-person-circle"></i>
+    <!-- Search -->
+    <div class="search-box">
+      <input type="text" placeholder="Tìm sản phẩm..." />
+      <i class="bi bi-search"></i>
     </div>
 
+    <!-- Right section -->
+    <div class="header-actions">
+
+      <!-- Nếu chưa login -->
+      <ng-container *ngIf="!isLoggedIn">
+        <button class="btn-login">Đăng nhập</button>
+        <button class="btn-register">Đăng ký</button>
+      </ng-container>
+
+      <!-- Nếu đã login -->
+      <ng-container *ngIf="isLoggedIn">
+        <i class="bi bi-bell icon"></i>
+        <i class="bi bi-cart icon"></i>
+
+        <div class="user-menu">
+          <i class="bi bi-person-circle icon"
+             (click)="toggleDropdown()"></i>
+
+          <div class="dropdown" *ngIf="showDropdown">
+            <a routerLink="/profile">User Profile</a>
+            <a (click)="logout()">Đăng xuất</a>
+          </div>
+        </div>
+      </ng-container>
+
+    </div>
 
   </div>
 </header>
