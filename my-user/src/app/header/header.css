@@ -1,4 +1,4 @@
-/* Header sticky */
+/* ===== HEADER ===== */
 .main-header {
   position: sticky;
   top: 0;
@@ -8,18 +8,20 @@
 }
 
 /* Container */
-.container {
+.header-container {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 12px 80px;
+  gap: 30px;
 }
 
-/* Logo */
+/* ===== LOGO ===== */
 .logo {
   display: flex;
   align-items: center;
   gap: 8px;
+  cursor: pointer;
 }
 
 .logo img {
@@ -28,59 +30,177 @@
   object-fit: contain;
 }
 
-.brand {
+.logo span {
   font-weight: 600;
   font-size: 18px;
   color: #3d6f2f;
 }
 
-/* Menu */
+/* ===== MENU ===== */
 .nav-menu {
   display: flex;
   align-items: center;
-  gap: 32px;
+  gap: 28px;
 }
 
-.nav-menu a,
-.dropdown span {
+.nav-menu a {
   text-decoration: none;
   color: #333;
   font-weight: 500;
-  /* cursor: pointer; */
   transition: 0.2s;
+  position: relative;
 }
 
-.nav-menu a:hover,
-.dropdown span:hover {
+.nav-menu a:hover {
   color: #3d6f2f;
 }
 
-/* Icons */
-.icons {
+/* underline effect */
+.nav-menu a::after {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0%;
+  height: 2px;
+  background: #3d6f2f;
+  transition: 0.3s;
+}
+
+.nav-menu a:hover::after {
+  width: 100%;
+}
+
+/* ===== SEARCH ===== */
+.search-box {
+  position: relative;
+  width: 280px;
+}
+
+.search-box input {
+  width: 100%;
+  padding: 8px 35px 8px 14px;
+  border-radius: 20px;
+  border: 1px solid #ddd;
+  outline: none;
+  font-size: 14px;
+}
+
+.search-box i {
+  position: absolute;
+  right: 12px;
+  top: 8px;
+  color: #3d6f2f;
+}
+
+/* ===== ACTIONS ===== */
+.header-actions {
   display: flex;
   align-items: center;
-  gap: 20px; 
-} 
-.icons i {
-  font-size: 22px;
-  /* cursor: pointer; */
-  padding: 6px;
+  gap: 16px;
+}
+
+/* Buttons */
+/* .btn-login {
+  background: transparent;
+  border: 1px solid #3d6f2f;
+  color: #3d6f2f;
+  padding: 6px 14px;
+  border-radius: 20px;
+  cursor: pointer;
   transition: 0.2s;
 }
 
-.icons i:hover {
-  transform: scale(1.1);
+.btn-login:hover {
+  background: #3d6f2f;
+  color: white;
 }
 
+.btn-register {
+  background: #3d6f2f;
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: 0.2s;
+}
 
-/* Responsive */
+.btn-register:hover {
+  opacity: 0.9;
+} */
+/* Login & Register giống nhau */
+.btn-login,
+.btn-register {
+  background: transparent;
+  border: 1.5px solid #3d6f2f;
+  color: #3d6f2f;
+  padding: 6px 16px;
+  border-radius: 25px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.25s ease;
+}
+
+/* Hover chung */
+.btn-login:hover,
+.btn-register:hover {
+  background: #3d6f2f;
+  color: white;
+}
+
+/* Icons */
+.icon {
+  font-size: 22px;
+  cursor: pointer;
+  color: #333;
+  transition: 0.2s;
+}
+
+.icon:hover {
+  transform: scale(1.1);
+  color: #3d6f2f;
+}
+
+/* ===== USER DROPDOWN ===== */
+.user-menu {
+  position: relative;
+}
+
+.dropdown {
+  position: absolute;
+  right: 0;
+  top: 38px;
+  background: white;
+  border-radius: 10px;
+  padding: 10px 0;
+  min-width: 150px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.dropdown a {
+  display: block;
+  padding: 8px 16px;
+  text-decoration: none;
+  color: #333;
+  font-size: 14px;
+}
+
+.dropdown a:hover {
+  background: #f2f2f2;
+}
+
+/* ===== RESPONSIVE ===== */
 @media (max-width: 992px) {
-  .container {
+  .header-container {
     padding: 12px 20px;
   }
 
   .nav-menu {
-    gap: 18px;
-    font-size: 14px;
+    display: none; /* sau này làm hamburger */
+  }
+
+  .search-box {
+    width: 180px;
   }
 }

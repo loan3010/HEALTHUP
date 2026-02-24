@@ -1,0 +1,52 @@
+/* ================================================
+   src/styles.css — Global styles cho HealthUp
+   ================================================ */
+
+/* Font tiếng Việt — hỗ trợ đầy đủ dấu */
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
+
+/* Reset & Base */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  background: #FAF6F0;
+  color: #1C2B0E;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Đảm bảo tất cả text dùng font tiếng Việt */
+h1, h2, h3, h4, h5, h6,
+p, span, a, button, input,
+textarea, select, label, div {
+  font-family: 'Be Vietnam Pro', sans-serif;
+}
+
+/* Fix ảnh bị lỗi — hiện placeholder màu xanh */
+img {
+  max-width: 100%;
+}
+
+img:not([src]),
+img[src=""],
+img[src*="assets/images/products"] {
+  background: linear-gradient(135deg, #EAF2E3 0%, #D4E8C2 100%);
+}
+
+/* Scrollbar tùy chỉnh */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: #7FB069; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #2D5016; }
