@@ -1,11 +1,11 @@
 import { Component } from '@angular/core';
+import { RouterModule } from '@angular/router'; // ✅ thêm dòng này
 
 @Component({
   selector: 'app-footer',
-  imports: [],
+  standalone: true,
+  imports: [RouterModule], // ✅ thêm dòng này
   templateUrl: './footer.html',
-  styleUrl: './footer.css',
+  styleUrl: './footer.css'
 })
-export class Footer {
-
-}
+export class Footer {}
