@@ -1,0 +1,161 @@
+<div class="auth-page">
+  <div class="auth-bg"></div>
+
+
+  <div class="box">
+    <h2 class="title">ĐĂNG KÝ</h2>
+
+
+    <form [formGroup]="form" (ngSubmit)="openOtpPopup()">
+
+
+      <!-- USERNAME -->
+      <div class="field">
+        <div class="label">Tên tài khoản <span class="req">*</span></div>
+        <div class="control">
+          <input class="inp" formControlName="username" placeholder="Nhập tên của bạn" />
+          <button type="button" class="clear"
+                  (click)="form.controls['username'].setValue('')">×</button>
+        </div>
+        <div class="err" *ngIf="showErr('username')">
+          {{ errText('username') }}
+        </div>
+      </div>
+
+
+      <!-- PHONE -->
+      <div class="field">
+        <div class="label">Số điện thoại <span class="req">*</span></div>
+        <div class="control">
+          <input class="inp" formControlName="phone" placeholder="Nhập số điện thoại của bạn" />
+          <button type="button" class="clear"
+                  (click)="form.controls['phone'].setValue('')">×</button>
+        </div>
+        <div class="err" *ngIf="showErr('phone')">
+          {{ errText('phone') }}
+        </div>
+      </div>
+
+
+      <!-- EMAIL -->
+      <div class="field">
+        <div class="label">Email (nếu có)</div>
+        <div class="control">
+          <input class="inp" formControlName="email" placeholder="Nhập email của bạn" />
+          <button type="button" class="clear"
+                  (click)="form.controls['email'].setValue('')">×</button>
+        </div>
+        <div class="err" *ngIf="showErr('email')">
+          {{ errText('email') }}
+        </div>
+      </div>
+
+
+      <!-- PASSWORD -->
+      <div class="field">
+        <div class="label">Mật khẩu <span class="req">*</span></div>
+        <div class="control">
+          <input class="inp" type="password"
+                 formControlName="password"
+                 placeholder="Mật khẩu tối thiểu 6 ký tự" />
+          <button type="button" class="clear"
+                  (click)="form.controls['password'].setValue('')">×</button>
+        </div>
+        <div class="err" *ngIf="showErr('password')">
+          {{ errText('password') }}
+        </div>
+      </div>
+
+
+      <!-- CONFIRM PASSWORD -->
+      <div class="field">
+        <div class="label">Nhập lại mật khẩu <span class="req">*</span></div>
+        <div class="control">
+          <input class="inp" type="password"
+                 formControlName="confirmPassword"
+                 placeholder="Nhập lại mật khẩu" />
+          <button type="button" class="clear"
+                  (click)="form.controls['confirmPassword'].setValue('')">×</button>
+        </div>
+        <div class="err"
+             *ngIf="passwordMismatch && (form.dirty || form.touched)">
+          Mật khẩu nhập lại không khớp.
+        </div>
+      </div>
+
+
+      <!-- SUBMIT -->
+      <button class="submit" type="submit" [disabled]="loading">
+        {{ loading ? 'Đang xử lý...' : 'Đăng ký' }}
+      </button>
+
+
+      <div class="sys ok" *ngIf="message">{{ message }}</div>
+      <div class="sys bad" *ngIf="error">{{ error }}</div>
+
+
+      <div class="bottom">
+        <span>Bạn đã có tài khoản?</span>
+        <a routerLink="/login">Đăng nhập ngay</a>
+      </div>
+
+
+    </form>
+  </div>
+</div>
+
+
+<!-- OTP POPUP -->
+<div class="modal-backdrop"
+     *ngIf="showOtp"
+     (click)="showOtp = false">
+
+
+  <div class="otp-modal"
+       (click)="$event.stopPropagation()">
+
+
+    <div class="otp-title">NHẬP MÃ OTP</div>
+    <div class="otp-sub">
+      Mã OTP đã được gửi đến số điện thoại của bạn.
+    </div>
+
+
+    <div class="otp-boxes" (paste)="onOtpPaste($event)">
+      <input #otpInput class="otp-input" maxlength="1" inputmode="numeric"
+             (input)="onOtpInput($event, 0)"
+             (keydown)="onOtpKeydown($event, 0)" />
+      <input #otpInput class="otp-input" maxlength="1" inputmode="numeric"
+             (input)="onOtpInput($event, 1)"
+             (keydown)="onOtpKeydown($event, 1)" />
+      <input #otpInput class="otp-input" maxlength="1" inputmode="numeric"
+             (input)="onOtpInput($event, 2)"
+             (keydown)="onOtpKeydown($event, 2)" />
+      <input #otpInput class="otp-input" maxlength="1" inputmode="numeric"
+             (input)="onOtpInput($event, 3)"
+             (keydown)="onOtpKeydown($event, 3)" />
+      <input #otpInput class="otp-input" maxlength="1" inputmode="numeric"
+             (input)="onOtpInput($event, 4)"
+             (keydown)="onOtpKeydown($event, 4)" />
+      <input #otpInput class="otp-input" maxlength="1" inputmode="numeric"
+             (input)="onOtpInput($event, 5)"
+             (keydown)="onOtpKeydown($event, 5)" />
+    </div>
+
+
+    <div class="otp-err" *ngIf="otpError">{{ otpError }}</div>
+
+
+    <button class="otp-confirm"
+            type="button"
+            (click)="confirmOtpAndRegister()"
+            [disabled]="loading">
+
+
+      Xác nhận OTP ({{ otpSecondsLeft }}s)
+    </button>
+
+
+  </div>
+</div>
+

@@ -1,0 +1,360 @@
+:host {
+  --bg: #0b1020;
+  --card: #d9d9d9;
+  --input: #cfcfcf;
+  --primary: #2f6b38;
+  --danger: #d10000;
+  --success: #116b2e;
+  --text: #111;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+
+* {
+  box-sizing: border-box;
+}
+
+
+/* ================= PAGE ================= */
+
+
+.auth-page {
+  position: relative;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+
+/* ảnh nền mờ */
+.auth-bg{
+  position:absolute;
+  inset:0;
+  background:url('../../../../backend/public/images/image/background-pp-xanh-la-hoa-bo-cong-anh.jpg') center/cover no-repeat;
+  filter:blur(7px);
+  opacity:.7;
+  transform:scale(1.1);
+  z-index:0;
+}
+
+
+/* ================= MAIN BOX ================= */
+
+
+.box {
+  position: relative;
+  z-index: 1;
+  width: min(480px, 95vw);
+  background: var(--card);
+  border-radius: 24px;
+  padding: 35px 30px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
+}
+
+
+.title {
+  text-align: center;
+  font-size: 26px;
+  font-weight: 900;
+  margin-bottom: 25px;
+  color: var(--text);
+}
+
+
+/* ================= FORM ================= */
+
+
+.field {
+  margin-bottom: 18px;
+}
+
+
+.label {
+  font-weight: 800;
+  margin-bottom: 6px;
+  color: var(--text);
+}
+
+
+.req {
+  color: var(--danger);
+}
+
+
+.control {
+  position: relative;
+}
+
+
+.inp {
+  width: 100%;
+  background: var(--input);
+  border: none;
+  border-radius: 14px;
+  padding: 14px 45px 14px 16px;
+  font-size: 15px;
+  outline: none;
+  transition: 0.2s;
+}
+
+
+.inp:focus {
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(47, 107, 56, 0.2);
+}
+
+
+.clear {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  font-weight: 900;
+  cursor: pointer;
+  color: #555;
+}
+
+
+.err {
+  font-size: 13px;
+  margin-top: 6px;
+  color: var(--danger);
+  font-weight: 700;
+}
+
+
+/* ================= SUBMIT BUTTON ================= */
+
+
+.submit {
+  width: 100%;
+  height: 50px;
+  border: none;
+  border-radius: 14px;
+  background: var(--primary);
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: 0.2s;
+  margin-top: 5px;
+}
+
+
+.submit:hover {
+  transform: scale(1.02);
+}
+
+
+.submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+
+/* ================= BOTTOM LOGIN LINK ================= */
+
+
+.bottom {
+  margin-top: 18px;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+
+.bottom a {
+  color: #0a4cff;
+  text-decoration: underline;
+  font-weight: 900;
+}
+
+
+/* ================= SYSTEM MESSAGE ================= */
+
+
+.sys {
+  margin-top: 10px;
+  font-weight: 800;
+  font-size: 14px;
+}
+
+
+.sys.ok {
+  color: var(--success);
+}
+
+
+.sys.bad {
+  color: var(--danger);
+}
+
+
+/* ================= OTP OVERLAY ================= */
+
+
+.otp-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+
+/* ================= OTP MODAL ================= */
+
+
+.otp-modal {
+  width: min(520px, 95vw);
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 40px 35px;
+  text-align: center;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+  animation: scaleUp 0.2s ease;
+}
+
+
+/* Animation */
+
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+
+@keyframes scaleUp {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+
+/* ================= OTP TITLE ================= */
+
+
+.otp-title {
+  font-size: 24px;
+  font-weight: 900;
+  margin-bottom: 8px;
+}
+
+
+.otp-sub {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 30px;
+}
+
+
+/* ================= OTP INPUTS ================= */
+
+
+.otp-inputs {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+
+.otp-input {
+  width: 55px;
+  height: 55px;
+  border-radius: 14px;
+  border: 2px solid #ddd;
+  font-size: 20px;
+  font-weight: 700;
+  text-align: center;
+  outline: none;
+  transition: 0.2s;
+}
+
+
+.otp-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(47, 107, 56, 0.15);
+}
+
+
+/* ================= OTP ERROR ================= */
+
+
+.otp-error {
+  min-height: 18px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--danger);
+  margin-bottom: 12px;
+}
+
+
+/* ================= OTP BUTTON ================= */
+
+
+.otp-btn {
+  width: 100%;
+  height: 48px;
+  border: none;
+  border-radius: 14px;
+  background: var(--primary);
+  color: white;
+  font-size: 15px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+
+.otp-btn:hover {
+  transform: scale(1.02);
+}
+
+
+.otp-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+
+/* ================= RESPONSIVE ================= */
+
+
+@media (max-width: 480px) {
+
+
+  .box {
+    padding: 25px 20px;
+  }
+
+
+  .otp-modal {
+    padding: 30px 20px;
+  }
+
+
+  .otp-inputs {
+    gap: 8px;
+  }
+
+
+  .otp-input {
+    width: 45px;
+    height: 45px;
+    font-size: 16px;
+  }
+}
+
