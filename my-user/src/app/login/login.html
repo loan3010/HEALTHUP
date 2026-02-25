@@ -1,0 +1,76 @@
+<div class="auth-page">
+  <div class="auth-bg"></div>
+
+  <div class="box">
+    <h2 class="title">ĐĂNG NHẬP</h2>
+
+    <form (ngSubmit)="onLogin()">
+      <!-- USERNAME -->
+      <div class="field">
+        <div class="label">
+          Tên tài khoản <span class="req">*</span>
+        </div>
+
+        <div class="control">
+          <input
+            type="text"
+            class="inp"
+            placeholder="Nhập email của bạn"
+            name="email"
+            [(ngModel)]="email"
+            required
+          />
+
+          <!-- nút clear -->
+          <button type="button" class="clear" (click)="email=''">×</button>
+        </div>
+      </div>
+
+      <!-- PASSWORD -->
+      <div class="field">
+        <div class="label">
+          Mật khẩu <span class="req">*</span>
+        </div>
+
+        <div class="control">
+          <input
+            type="password"
+            class="inp has-two"
+            placeholder="Mật khẩu tối thiểu 6 ký tự"
+            name="password"
+            [(ngModel)]="password"
+            minlength="6"
+            required
+          />
+
+          <!-- nút clear -->
+          <button type="button" class="clear" (click)="password=''">×</button>
+        </div>
+      </div>
+
+      <div class="row">
+        <a routerLink="/forgotpw" class="link">Quên mật khẩu?</a>
+      </div>
+
+      <!-- nút submit phải có type="submit" để ngSubmit chạy -->
+      <button type="submit" class="submit">Đăng nhập</button>
+
+      <div class="divider">hoặc đăng nhập bằng</div>
+
+      <div class="social">
+        <button type="button" class="social-btn">
+          <span class="ico">G</span> Google
+        </button>
+
+        <button type="button" class="social-btn">
+          <span class="ico">f</span> Facebook
+        </button>
+      </div>
+
+      <div class="bottom">
+        <span>Bạn chưa có tài khoản?</span>
+        <a routerLink="/register">Đăng ký ngay</a>
+      </div>
+    </form>
+  </div>
+</div>
