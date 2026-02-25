@@ -1,1 +1,51 @@
-<p>address-book works!</p>
+<h3 class="mb-4">Sổ địa chỉ</h3>
+
+<div class="address-container">
+
+  <div
+    class="address-card"
+    *ngFor="let item of addresses"
+    [class.default]="item.isDefault"
+  >
+
+    <div>
+      <div class="name">
+        {{ item.name }}
+
+        <span *ngIf="item.isDefault" class="default-badge">
+          Địa chỉ mặc định
+        </span>
+      </div>
+
+      <div class="address">
+        {{ item.address }}
+      </div>
+    </div>
+
+    <div>
+      <div class="phone">
+        Số điện thoại: {{ item.phone }}
+      </div>
+
+      <div class="actions">
+        <button class="btn-edit">Chỉnh sửa</button>
+        <button class="btn-delete">🗑</button>
+
+        <button
+          *ngIf="!item.isDefault"
+          class="btn-default"
+        >
+          Đặt làm mặc định
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="add-btn-wrapper">
+    <button class="btn-add">
+      + THÊM ĐỊA CHỈ MỚI
+    </button>
+  </div>
+
+</div>
