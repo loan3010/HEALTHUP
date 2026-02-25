@@ -1,0 +1,49 @@
+<div class="layout-wrapper">
+  
+  <app-admin-header (toggleSidebarEvent)="toggleSidebar()"></app-admin-header>
+
+  <div class="main-body">
+    
+    <app-admin-sidebar 
+      [isOpen]="isSidebarOpen" 
+      (tabChange)="onTabChange($event)">
+    </app-admin-sidebar>
+
+    <main class="content-area">
+      <div [ngSwitch]="currentTab">
+        
+        <div *ngSwitchCase="'tong-quan'">
+          <div style="padding: 20px; background: white; border-radius: 8px;">
+            <h2>Chào mừng bạn đến với Dashboard</h2>
+            <p>Chọn một mục bên trái để bắt đầu quản lý.</p>
+          </div>
+        </div>
+
+        <div *ngSwitchCase="'blog'">
+          <app-admin-blog></app-admin-blog>
+        </div>
+
+        <div *ngSwitchCase="'khuyen-mai'">
+          <app-promotion></app-promotion>
+        </div>
+
+        <div *ngSwitchCase="'tu-van'">
+          <app-consulting></app-consulting>
+        </div>
+
+        <div *ngSwitchCase="'chatbot'">
+          <app-admin-chatbot></app-admin-chatbot>
+        </div>
+
+        <div *ngSwitchDefault>
+          <div class="text-center mt-5">
+            <i class="bi bi-cone-striped" style="font-size: 3rem; color: #ccc;"></i>
+            <p>Tính năng quản lý <strong>{{currentTab}}</strong> đang được phát triển.</p>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+  </div>
+</div>

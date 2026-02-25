@@ -1,0 +1,70 @@
+.logic-engine-container { padding-top: 5px; }
+
+.engine-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr; /* Chia tỉ lệ bảng to hơn slider */
+  gap: 30px;
+}
+
+.logic-card {
+  background: white;
+  border-radius: 20px;
+  border: 1px solid #eee;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.card-header-logic {
+  padding: 20px 25px;
+  border-bottom: 1px solid #f8f8f8;
+  background: #fafafa;
+}
+
+.card-title-text {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #888;
+  letter-spacing: 0.5px;
+}
+
+/* TABLE STYLE */
+.logic-table { width: 100%; border-collapse: collapse; }
+.logic-table th {
+  padding: 15px 20px; text-align: left; font-size: 0.75rem;
+  color: #aaa; border-bottom: 1px solid #f0f0f0;
+}
+.logic-table td { padding: 12px 20px; border-bottom: 1px solid #f9f9f9; }
+
+.table-input {
+  width: 100%; border: 1px solid #eee; border-radius: 8px;
+  padding: 8px 12px; font-size: 0.9rem; transition: 0.2s;
+  background: #fcfdfc;
+}
+.table-input:focus { border-color: var(--color-primary); outline: none; background: white; }
+
+.btn-row-del {
+  background: none; border: none; color: #ffbcbc; cursor: pointer; font-size: 1.1rem;
+}
+.btn-row-del:hover { color: #ff4d4d; }
+
+.btn-add-mapping {
+  width: 100%; padding: 12px; border: 1px dashed #ddd;
+  background: #fafafa; color: #888; border-radius: 10px;
+  font-weight: 700; cursor: pointer; transition: 0.3s;
+}
+.btn-add-mapping:hover { background: #f0f9f0; color: var(--color-primary); border-color: var(--color-primary); }
+
+/* SLIDER STYLE */
+.center-content { padding: 40px 30px; text-align: center; }
+.fuzzy-value-display { margin-bottom: 30px; }
+.value-num { font-size: 3.5rem; font-weight: 900; color: var(--color-primary); display: block; line-height: 1; }
+.value-label { font-size: 0.8rem; color: #999; font-weight: 600; text-transform: uppercase; }
+
+.primary-slider {
+  width: 100%; height: 6px; border-radius: 5px; background: #eee;
+  outline: none; appearance: none; accent-color: var(--color-primary);
+}
+
+.slider-steps { display: flex; justify-content: space-between; margin-top: 10px; color: #ccc; font-size: 0.8rem; font-weight: 700; }
+.logic-desc { margin-top: 30px; color: #aaa; font-size: 0.85rem; line-height: 1.5; font-style: italic; }

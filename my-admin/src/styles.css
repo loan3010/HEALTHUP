@@ -1,0 +1,64 @@
+/* Nhúng Bootstrap vào Angular */
+@import 'bootstrap/dist/css/bootstrap.min.css';
+@import 'bootstrap-icons/font/bootstrap-icons.css';
+
+/* Setup màu thương hiệu */
+:root {
+  --bg-color: #ffffff;
+  --color-light: #ffee97;
+  --color-secondary: #a2c37f;
+  --color-accent: #6aaedb;
+  --color-primary: #36873a;
+  
+  --text-dark: #333333;
+  --text-gray: #6c757d;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-dark);
+  font-family: system-ui, -apple-system, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+/* Style cho Sidebar */
+.admin-sidebar {
+  width: 250px;
+  height: 100vh;
+  background-color: var(--bg-color);
+  border-right: 1px solid #e0e0e0;
+  transition: all 0.3s;
+}
+
+.sidebar-link {
+  color: var(--text-dark);
+  border-radius: 8px;
+  margin-bottom: 5px;
+  transition: all 0.2s;
+}
+
+.sidebar-link:hover {
+  background-color: var(--color-light); 
+  color: var(--color-primary);
+}
+
+.sidebar-link.active {
+  background-color: var(--color-primary); 
+  color: var(--bg-color);
+}
+
+/* Đặt ở đây để nó không bị chặn bởi cơ chế đóng gói của Angular */
+.modal-overlay {
+  position: fixed; /* Bắt buộc phải là fixed để thoát khỏi luồng hiển thị của bảng */
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.4); /* Nền mờ */
+  backdrop-filter: blur(5px); /* Hiệu ứng blur bà thích */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999 !important; /* Số cực lớn và dùng !important để đè bẹp mọi thứ khác */
+}

@@ -1,0 +1,48 @@
+<div class="modal-chatbot-card shadow-lg fadeInScale">
+  <div class="modal-header-custom">
+    <div class="header-title-group">
+      <i class="bi bi-robot primary-text me-2"></i>
+      <h2 class="modal-title primary-text">
+        {{ data ? 'CHỈNH SỬA CÂU HỎI' : 'THÊM CÂU HỎI MỚI' }}
+      </h2>
+    </div>
+    <button class="btn-close-modal-custom" (click)="close.emit()">&times;</button>
+  </div>
+
+  <div class="modal-body-custom">
+    <div class="form-section mb-4">
+      <label class="field-label">DANH MỤC SẢN PHẨM</label>
+      <select class="form-control-custom" [value]="data?.category || 'Granola'">
+        <option *ngFor="let cat of categories">{{cat}}</option>
+      </select>
+    </div>
+
+    <div class="form-section mb-4">
+      <label class="field-label">CÂU HỎI CHÍNH</label>
+      <input type="text" class="form-control-custom" 
+             [value]="data?.question || ''" 
+             placeholder="Nhập câu hỏi khách thường hỏi...">
+    </div>
+
+    <div class="form-section mb-4">
+      <label class="field-label">BIẾN THỂ (VARIATIONS)</label>
+      <div class="tag-input-container">
+        <div class="tag-pill" *ngIf="data">granola giảm cân ko <i class="bi bi-x"></i></div>
+        <input type="text" placeholder="Thêm biến thể...">
+      </div>
+    </div>
+
+    <div class="form-section">
+      <label class="field-label">BOT TRẢ LỜI</label>
+      <textarea rows="5" class="form-control-custom no-resize" 
+                placeholder="Nội dung bot phản hồi...">{{data?.answer || ''}}</textarea>
+    </div>
+  </div>
+
+  <div class="modal-footer-custom">
+    <button class="btn-secondary-custom" (click)="close.emit()">HỦY BỎ</button>
+    <button class="btn-primary-custom">
+      <i class="bi bi-cpu-fill"></i> LƯU & HUẤN LUYỆN BOT
+    </button>
+  </div>
+</div>
