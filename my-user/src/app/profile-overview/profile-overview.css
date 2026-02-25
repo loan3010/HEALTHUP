@@ -1,0 +1,49 @@
+.profile-card {
+  border-radius: 16px;
+  border: none;
+  background: white;
+  max-width: 620px;
+  margin: 0 auto;
+  padding: 24px 28px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
+}
+
+.avatar-lg {
+  width: 90px;
+  height: 90px;
+  background: #ddd;
+  border-radius: 50%;
+}
+
+.profile-card label {
+  font-weight: 500;
+  font-size: 13px;
+  margin-bottom: 4px;
+  color: #444;
+}
+
+.form-control {
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  padding: 8px 12px;
+  font-size: 13.5px;
+  background: #fafafa;
+}
+
+.form-control:focus {
+  border-color: #3d6f2f;
+  background: white;
+  box-shadow: 0 0 0 0.15rem rgba(61, 111, 47, 0.15);
+}
+
+.profile-card .btn-secondary {
+  background-color: #3d6f2f;
+  border: none;
+  border-radius: 20px;
+  padding: 7px 24px;
+  font-size: 13.5px;
+}
+
+.profile-card .btn-secondary:hover {
+  background-color: #2f5c24;
+}

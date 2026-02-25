@@ -5,6 +5,8 @@ import { ProductDetailPageComponent }  from './product-detail-page/product-detai
 import { OrderReviewComponent }        from './order-review/order-review';
 import { AboutTheBrand } from './about-the-brand/about-the-brand';
 import { UserProfile } from './user-profile/user-profile';
+import { AddressBook } from './address-book/address-book';
+import { ProfileOverview } from './profile-overview/profile-overview';
 
 export const routes: Routes = [
   { path: '',                        component: HomepageComponent },
@@ -14,7 +16,19 @@ export const routes: Routes = [
 
   // ✅ THÊM ROUTE MỚI
   { path: 'about-the-brand',         component: AboutTheBrand },
-  { path: 'user-profile',         component: UserProfile },
+
+  {
+  path: 'user-profile',
+  component: UserProfile,
+  children: [
+    { path: '', redirectTo: 'profile', pathMatch: 'full' },
+    { path: 'profile', component: ProfileOverview },
+    { path: 'address', component: AddressBook }
+  ]
+  },
+  // { path: 'user-profile',         component: UserProfile },
+  // { path: 'address-book',  component: AddressBook},
+
 
   { path: '**', redirectTo: '' }
 ];

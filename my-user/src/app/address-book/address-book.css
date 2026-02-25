@@ -1,0 +1,92 @@
+.address-container {
+  max-width: 620px;
+  margin: 0 auto;
+}
+
+/* ===== CARD ===== */
+.address-card {
+  background: white;
+  border-radius: 16px;
+  padding: 18px 22px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
+
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: center;
+}
+
+.address-card.default {
+  border: 2px solid #3d6f2f;
+}
+
+/* ===== TEXT ===== */
+.name {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+.address {
+  font-size: 13.5px;
+  color: #555;
+}
+
+.default-badge {
+  background: #3d6f2f;
+  color: white;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  margin-left: 8px;
+}
+
+.phone {
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+/* ===== ACTIONS ===== */
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Chỉ áp dụng cho button trong address */
+.address-card button,
+.btn-add {
+  border-radius: 6px;
+  border: none;
+  font-size: 12.5px;
+  padding: 5px 12px;
+  cursor: pointer;
+}
+
+.btn-edit {
+  background: #444;
+  color: white;
+}
+
+.btn-delete {
+  background: #eee;
+}
+
+.btn-default {
+  background: white;
+  border: 1px solid #ccc;
+}
+
+/* ===== ADD BUTTON ===== */
+.add-btn-wrapper {
+  text-align: center;
+}
+
+.btn-add {
+  margin-top: 10px;
+  background: #444;
+  color: white;
+  border-radius: 8px;
+  padding: 8px 18px;
+}
