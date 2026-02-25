@@ -1,0 +1,24 @@
+<div class="consulting-wrapper">
+  <nav class="pro-breadcrumb">
+    <span class="pro-crumb-link">Quản trị viên</span> 
+    <span class="pro-crumb-separator">/</span>
+    <span class="pro-crumb-link">Quản lý tư vấn</span> 
+    <span class="pro-crumb-separator">/</span>
+    <span class="pro-crumb-active">
+      {{ viewMode === 'list' ? 'Danh sách tư vấn' : selectedProduct?.name }}
+    </span>
+  </nav>
+
+  <div class="consulting-main-content">
+    <app-consulting-list 
+      *ngIf="viewMode === 'list'" 
+      (selectProduct)="handleSelectProduct($event)">
+    </app-consulting-list>
+
+    <app-consulting-detail 
+      *ngIf="viewMode === 'detail'" 
+      [product]="selectedProduct"
+      (goBack)="handleBack()">
+    </app-consulting-detail>
+  </div>
+</div>

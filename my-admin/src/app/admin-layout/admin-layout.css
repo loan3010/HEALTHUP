@@ -1,0 +1,20 @@
+.layout-wrapper {
+  display: flex;
+  flex-direction: column; /* Đổi hướng Flex thành cột (trên-dưới) */
+  height: 100vh;
+  overflow: hidden;
+  background-color: #f8f9fa; 
+}
+
+.main-body {
+  display: flex; 
+  flex: 1; /* Chiếm hết chiều cao còn lại bên dưới Header */
+  overflow: hidden;
+}
+
+.content-area {
+  flex: 1;
+  padding: 30px;
+  overflow-y: auto; /* Chỉ scroll ở phần nội dung */
+  transition: all 0.3s ease-in-out; /* Mượt mà khi sidebar mở ra thụt vào */
+}
