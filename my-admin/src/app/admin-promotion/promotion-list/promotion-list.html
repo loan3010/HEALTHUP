@@ -1,0 +1,88 @@
+<div class="promotion-list-container">
+  <div class="header-row">
+    <h1 class="page-title">DANH SÁCH KHUYẾN MÃI</h1>
+    <button class="btn-add-main" (click)="goAdd.emit()">
+      <i class="bi bi-plus-circle"></i> Thêm khuyến mãi
+    </button>
+  </div>
+
+  <div class="summary-cards">
+    <div class="s-card">
+      <span class="s-label">TỔNG KHUYẾN MÃI</span>
+      <span class="s-value">11</span>
+    </div>
+    <div class="s-card">
+      <span class="s-label text-danger">ĐÃ KẾT THÚC</span>
+      <span class="s-value">1</span>
+    </div>
+    <div class="s-card">
+      <span class="s-label text-success">ĐANG DIỄN RA</span>
+      <span class="s-value">7</span>
+    </div>
+    <div class="s-card">
+      <span class="s-label text-warning">SẮP DIỄN RA</span>
+      <span class="s-value">3</span>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div class="search-box">
+      <i class="bi bi-search"></i>
+      <input type="text" [(ngModel)]="searchText" placeholder="Tìm kiếm mã khuyến mãi">
+    </div>
+
+    <div class="action-group">
+      <span class="count">{{selectedCount}} đã chọn</span>
+      
+      <button class="btn-tool" [disabled]="selectedCount !== 1" (click)="onEditClick()">
+        <i class="bi bi-pencil"></i> Chỉnh
+      </button>
+
+      <button class="btn-tool text-danger" [disabled]="selectedCount === 0">
+        <i class="bi bi-trash"></i> Xoá
+      </button>
+
+      <button class="btn-tool btn-group-tool" [disabled]="selectedCount < 2">
+        <i class="bi bi-folder"></i> Nhóm
+      </button>
+
+      <button class="btn-tool"><i class="bi bi-arrow-down-up"></i> Sắp xếp</button>
+    </div>
+  </div>
+
+  <div class="table-card shadow-sm">
+    <table class="promo-table">
+      <thead>
+        <tr>
+          <th width="50"><input type="checkbox" (change)="toggleAll($event)"></th>
+          <th class="text-start">TÊN KHUYẾN MÃI</th>
+          <th>LƯỢT SỬ DỤNG</th>
+          <th>TRẠNG THÁI</th>
+          <th>BẮT ĐẦU</th>
+          <th>KẾT THÚC</th>
+          <th>CẬP NHẬT GẦN NHẤT</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let p of promotions" (click)="goEdit.emit(p)" [class.selected]="p.selected">
+          <td (click)="$event.stopPropagation()">
+            <input type="checkbox" [(ngModel)]="p.selected">
+          </td>
+          <td class="col-name">
+            <div class="p-title">{{p.name}}</div>
+            <div class="p-code">{{p.code}}</div>
+          </td>
+          <td class="text-center">{{p.usage}}</td>
+          <td class="text-center">
+            <span class="status-badge" [ngClass]="p.status">
+              {{ p.status === 'ongoing' ? 'Đang diễn ra' : (p.status === 'upcoming' ? 'Sắp diễn ra' : 'Đã kết thúc') }}
+            </span>
+          </td>
+          <td class="text-center">{{p.start}}</td>
+          <td class="text-center">{{p.end}}</td>
+          <td class="text-center">{{p.updated}}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
