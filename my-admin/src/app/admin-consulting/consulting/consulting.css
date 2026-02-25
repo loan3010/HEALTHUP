@@ -1,0 +1,45 @@
+/* --- TỔNG THỂ & BREADCRUMB --- */
+.consulting-wrapper { padding: 10px; }
+.pro-breadcrumb { display: flex; align-items: center; gap: 12px; font-size: 0.85rem; margin-bottom: 30px; }
+.pro-crumb-link { color: #666; cursor: pointer; text-decoration: none; }
+.pro-crumb-link:hover { color: var(--color-accent) }
+.pro-crumb-separator { color: #ccc; }
+.pro-crumb-active { color: #333; font-weight: 700; }
+.pro-crumb-active:hover { color: var(--color-accent) }
+
+
+/* --- PRODUCT CARDS --- */
+.p-card-consult {
+  background: white; border-radius: 12px; padding: 25px;
+  display: flex; flex-direction: column; gap: 15px;
+  margin-bottom: 15px; cursor: pointer; transition: 0.2s;
+}
+.p-card-consult:hover { transform: translateX(8px); background: #f8fcf8; }
+.p-footer { display: flex; gap: 40px; align-items: center; position: relative; }
+.stat strong { color: #333; }
+.arrow-icon { position: absolute; right: 0; color: var(--color-primary); }
+
+/* --- QUESTION CARDS --- */
+.question-card {
+  background: white; border: 1.5px solid #ffeeba; border-radius: 15px;
+  padding: 30px; margin-bottom: 25px;
+}
+.status-badge-consult { 
+  padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; 
+}
+.status-badge-consult.pending { background: #fff3cd; color: #856404; }
+.status-badge-consult.answered { background: var(--color-primary); color: white; }
+
+/* --- MODAL BLUR & SUCCESS --- */
+.modal-overlay-consult {
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+  background: rgba(0,0,0,0.3); backdrop-filter: blur(5px);
+  display: flex; align-items: center; justify-content: center; z-index: 10000;
+}
+.modal-reply { background: white; border-radius: 15px; width: 600px; padding: 30px; }
+.modal-success { background: white; border-radius: 15px; padding: 40px; text-align: center; width: 350px; }
+.success-icon { font-size: 4rem; color: #28a745; }
+
+/* ANIMATION */
+.fadeIn { animation: fadeIn 0.4s ease-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }

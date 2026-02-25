@@ -1,0 +1,77 @@
+<div class="sidebar-container" [class.closed]="!isOpen">
+  
+  <ul class="nav flex-column sidebar-nav mt-3">
+    <li class="nav-item">
+      <a href="javascript:void(0)" class="nav-link" 
+         [class.active]="activeTab === 'tong-quan'" 
+         (click)="setActiveTab('tong-quan')">
+        <i class="bi bi-house-door"></i>
+        <span>Tổng quan</span>
+      </a>
+    </li>
+
+    <li class="nav-item">
+      <a href="javascript:void(0)" class="nav-link" 
+         [class.active]="activeTab === 'san-pham'" 
+         (click)="setActiveTab('san-pham')">
+        <i class="bi bi-box-seam"></i>
+        <span>Sản phẩm</span>
+      </a>
+    </li>
+
+    <li class="nav-item">
+      <a href="javascript:void(0)" class="nav-link" 
+         [class.active]="activeTab === 'khach-hang'" 
+         (click)="setActiveTab('khach-hang')">
+        <i class="bi bi-person"></i>
+        <span>Khách hàng</span>
+      </a>
+    </li>
+
+    <li class="nav-item">
+      <a href="javascript:void(0)" class="nav-link" 
+         [class.active]="activeTab === 'don-hang'" 
+         (click)="setActiveTab('don-hang')">
+        <i class="bi bi-receipt"></i>
+        <span>Đơn hàng</span>
+      </a>
+    </li>
+
+    <li class="nav-item">
+      <a href="javascript:void(0)" class="nav-link" 
+         [class.active]="activeTab === 'khuyen-mai'" 
+         (click)="setActiveTab('khuyen-mai')">
+        <i class="bi bi-tags"></i>
+        <span>Khuyến mãi</span>
+      </a>
+    </li>
+
+    <li class="nav-item">
+      <a href="javascript:void(0)" class="nav-link" 
+         [class.active]="activeTab === 'blog'" 
+         (click)="setActiveTab('blog')">
+        <i class="bi bi-pencil-square"></i>
+        <span>Blog</span>
+      </a>
+    </li>
+
+    <li class="nav-item">
+      <a href="javascript:void(0)" class="nav-link" 
+         [class.active]="activeTab === 'tu-van'" 
+         (click)="setActiveTab('tu-van')">
+        <i class="bi bi-headset"></i>
+        <span>Tư vấn</span>
+      </a>
+    </li>
+
+    <li class="nav-item">
+      <a href="javascript:void(0)" class="nav-link" 
+         [class.active]="activeTab === 'chatbot'" 
+         (click)="setActiveTab('chatbot')">
+        <i class="bi bi-chat-dots"></i>
+        <span>Chatbot</span>
+      </a>
+    </li>
+    
+    </ul>
+</div>

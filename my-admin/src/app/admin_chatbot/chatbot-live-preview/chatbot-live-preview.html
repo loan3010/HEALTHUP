@@ -1,0 +1,51 @@
+<div class="chat-sidebar-wrapper">
+  <div class="chat-sidebar-header">
+    <div class="h-info">
+      <i class="bi bi-robot primary-text me-2"></i>
+      <span class="header-title">LIVE PREVIEW & TEST</span>
+    </div>
+    <div class="h-actions">
+      <button class="btn-h-tool" title="Làm mới Chat">
+        <i class="bi bi-arrow-clockwise"></i>
+      </button>
+      <button class="btn-h-close" (click)="closeChat.emit()" title="Đóng bảng test">
+        <i class="bi bi-x"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="chat-content custom-scroll">
+    <div class="chat-item admin fadeInScale">
+      <div class="bubble">Granola có giảm cân không shop?</div>
+      <span class="chat-time">10:15 AM</span>
+    </div>
+
+    <div class="chat-item bot fadeInScale">
+      <div class="bot-info">
+        <div class="bot-ava">B</div>
+        <span class="bot-name">Smart Bot</span>
+      </div>
+      <div class="bubble">
+        Chào bạn, Granola rất tốt cho việc giảm cân nhờ hàm lượng chất xơ cao từ các loại hạt tự nhiên...
+      </div>
+      
+      <div class="analysis-box">
+        <div class="a-header">BẢNG PHÂN TÍCH KẾT QUẢ</div>
+        <div class="a-body">
+          <div class="a-row"><span>Ý định (Intent):</span> <strong>Hỏi giảm cân</strong></div>
+          <div class="a-row"><span>Độ khớp (Score):</span> <strong class="text-success">95%</strong></div>
+          <div class="a-row"><span>Từ khóa:</span> <strong class="text-accent">granola, giảm cân</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="chat-input-wrapper">
+    <div class="input-container-inner">
+      <input type="text" placeholder="Nhập tin nhắn test bot...">
+      <button class="btn-send-chat" title="Gửi tin nhắn">
+        <i class="bi bi-send-fill"></i>
+      </button>
+    </div>
+  </div>
+</div>
