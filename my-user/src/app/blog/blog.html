@@ -1,1 +1,112 @@
-<p>blog works!</p>
+<div class="blog-page">
+
+  <!-- LOADING -->
+  <div *ngIf="loading" class="loading-wrap">
+    <div class="spinner"></div>
+  </div>
+
+  <!-- CONTENT -->
+  <div *ngIf="!loading">
+
+<!-- CONTENT -->
+<div *ngIf="!loading">
+
+    <!-- FEATURED -->
+    <section class="featured" *ngIf="featuredBlog">
+      <div class="featured-inner">
+        <div class="featured-image">
+          <img [src]="getImageUrl(featuredBlog.coverImage)" [alt]="featuredBlog.title" />
+          <span class="featured-badge">Nổi bật</span>
+        </div>
+        <div class="featured-content">
+          <span class="tag-chip">{{ featuredBlog.tag }}</span>
+          <h1 class="featured-title">{{ featuredBlog.title }}</h1>
+          <p class="featured-excerpt">{{ featuredBlog.excerpt }}</p>
+          <div class="featured-meta">
+            <span class="meta-author">
+              <i class="bi bi-person-circle"></i> {{ featuredBlog.author }}
+            </span>
+            <span class="meta-date">
+              <i class="bi bi-calendar3"></i> {{ formatDate(featuredBlog.date || featuredBlog.createdAt) }}
+            </span>
+          </div>
+          <a [routerLink]="['/blog', featuredBlog._id]" class="btn-read">
+            Đọc thêm <i class="bi bi-arrow-right"></i>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- BLOG LIST -->
+    <section class="blog-list-section">
+
+      <!-- TOOLBAR: search + filter -->
+      <div class="toolbar">
+        <h2 class="section-title">Bài đăng mới nhất</h2>
+
+        <div class="toolbar-right">
+          <!-- Search -->
+          <div class="search-box">
+            <i class="bi bi-search"></i>
+            <input
+              type="text"
+              placeholder="Tìm kiếm bài viết..."
+              [(ngModel)]="searchQuery"
+              (input)="onSearch()"
+            />
+          </div>
+
+          <!-- Tags -->
+          <div class="tag-filter">
+            <button
+              *ngFor="let tag of tags"
+              class="tag-btn"
+              [class.active]="selectedTag === tag"
+              (click)="selectTag(tag)"
+            >
+              {{ tag }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- EMPTY STATE -->
+      <div class="empty-state" *ngIf="filteredBlogs.length === 0">
+        <i class="bi bi-journal-x"></i>
+        <p>Không tìm thấy bài viết nào.</p>
+      </div>
+
+      <!-- GRID -->
+      <div class="blog-grid" *ngIf="filteredBlogs.length > 0">
+        <div class="blog-card" *ngFor="let blog of displayedBlogs"
+             [routerLink]="['/blog', blog._id]">
+          <div class="card-image">
+            <img [src]="getImageUrl(blog.coverImage)" [alt]="blog.title" />
+            <span class="tag-chip small">{{ blog.tag }}</span>
+          </div>
+          <div class="card-body">
+            <div class="card-meta">
+              <span><i class="bi bi-person"></i> {{ blog.author }}</span>
+              <span><i class="bi bi-calendar3"></i> {{ formatDate(blog.date || blog.createdAt) }}</span>
+            </div>
+            <h3 class="card-title">{{ blog.title }}</h3>
+            <p class="card-excerpt">{{ blog.excerpt }}</p>
+            <span class="card-read-more">
+              Đọc thêm <i class="bi bi-arrow-right-short"></i>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- LOAD MORE -->
+      <div class="load-more-wrap" *ngIf="hasMore">
+        <button class="btn-load-more" (click)="loadMore()">
+          Xem thêm <i class="bi bi-chevron-down"></i>
+        </button>
+      </div>
+
+    </section>
+
+  <!-- </ng-container> -->
+</div>
+</div>
