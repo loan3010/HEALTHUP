@@ -1,1 +1,69 @@
-<p>policies works!</p>
+<section class="policies-page">
+
+  <!-- Hero -->
+  <div class="policies-hero">
+    <div class="hero-badge">Cam kết của chúng tôi</div>
+    <h1 class="hero-title">Chính Sách <span class="highlight">&</span> Điều Khoản</h1>
+    <p class="hero-desc">Mọi giao dịch tại HealthUp đều được bảo vệ bởi các chính sách minh bạch, công bằng và luôn đặt quyền lợi khách hàng lên hàng đầu.</p>
+
+    <div class="hero-stats">
+      <div class="stat-item">
+        <span class="stat-num">7</span>
+        <span class="stat-label">ngày đổi trả</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <span class="stat-num">24h</span>
+        <span class="stat-label">hỗ trợ khách hàng</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <span class="stat-num">100%</span>
+        <span class="stat-label">bảo mật thông tin</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Accordion list -->
+  <div class="policies-container">
+
+    <div class="policy-card" *ngFor="let policy of policies; let i = index"
+         [class.open]="policy.open"
+         (click)="toggle(i)">
+
+      <div class="policy-header">
+        <div class="policy-left">
+          <div class="policy-icon-wrap" [style.background]="policy.color + '18'">
+            <i class="bi" [ngClass]="policy.icon" [style.color]="policy.color"></i>
+          </div>
+          <div>
+            <div class="policy-tag" [style.color]="policy.color">{{ policy.tag }}</div>
+            <div class="policy-title">{{ policy.title }}</div>
+          </div>
+        </div>
+        <div class="policy-chevron">
+          <i class="bi bi-chevron-down"></i>
+        </div>
+      </div>
+
+      <div class="policy-body">
+        <div class="policy-content" [innerHTML]="policy.content"></div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Footer CTA -->
+  <div class="policies-footer">
+    <div class="footer-inner">
+      <i class="bi bi-headset footer-icon"></i>
+      <div>
+        <p class="footer-text">Bạn cần hỗ trợ thêm?</p>
+        <p class="footer-sub">Liên hệ qua hotline <strong>0123 456 789</strong> hoặc email <strong>support&#64;healthup.vn</strong></p>
+      </div>
+      <button class="footer-btn">Liên hệ ngay</button>
+    </div>
+  </div>
+
+</section>
