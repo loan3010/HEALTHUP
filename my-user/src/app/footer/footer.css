@@ -1,98 +1,237 @@
+/* ===== BASE ===== */
 .footer {
-  background-color: #2F6F3E;
+  background-color: #1e5c2e;
   color: white;
-  margin-top: 60px;
+  /* margin-top: 60px; */
+  font-family: 'Segoe UI', sans-serif;
 }
 
-/* Thanh trên */
+/* ===== FOOTER TOP ===== */
 .footer-top {
   display: flex;
   justify-content: center;
-  gap: 80px;
-  padding: 18px;
-  background-color: #245C32;
+  gap: 0;
+  background-color: #174d26;
 }
 
 .footer-top .feature {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-weight: 600;
+  gap: 14px;
+  padding: 20px 60px;
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+  transition: background 0.2s;
 }
 
-/* Nội dung */
+.footer-top .feature:last-child {
+  border-right: none;
+}
+
+.footer-top .feature:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.footer-top .feature i {
+  font-size: 22px;
+  color: #5dba74;
+  background: rgba(93, 186, 116, 0.15);
+  padding: 10px;
+  border-radius: 50%;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.footer-top .feature p {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: white;
+}
+
+/* ===== FOOTER CONTENT ===== */
 .footer-content {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+  grid-template-columns: 2.2fr 1fr 1fr 1fr 0.9fr;
   gap: 40px;
-  padding: 50px 80px;
+  padding: 52px 80px 44px;
 }
 
-.footer .col h4 {
-  margin-bottom: 18px;
-  font-size: 16px;
-}
-
+/* ===== CỘT 1 – Brand ===== */
 .brand {
-  font-size: 26px;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
   margin-bottom: 10px;
+  color: #fff;
 }
 
 .slogan {
-  font-size: 14px;
-  margin-bottom: 15px;
-  opacity: 0.9;
+  font-size: 13.5px;
+  color: rgba(255, 255, 255, 0.75);
+  line-height: 1.6;
+  margin-bottom: 20px;
+  max-width: 240px;
 }
 
+/* Divider dưới slogan */
+.footer .col:first-child .slogan::after {
+  content: '';
+  display: block;
+  width: 40px;
+  height: 2px;
+  background: #5dba74;
+  margin-top: 18px;
+  border-radius: 2px;
+}
+
+/* Contact info cột 1 */
+.footer .col:first-child p {
+  font-size: 13.5px;
+  color: rgba(255, 255, 255, 0.75);
+  margin-bottom: 9px;
+  cursor: default;
+}
+
+.footer .col:first-child p:hover {
+  color: white;
+  text-decoration: none;
+  padding-left: 0;
+}
+
+.footer .col:first-child p::before {
+  display: none;
+}
+
+/* ===== HEADING CỘT ===== */
+.footer .col h4 {
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: white;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* ===== LINKS ===== */
 .footer .col p {
-  margin-bottom: 10px;
-  font-size: 14px;
+  font-size: 13.5px;
+  color: rgba(255, 255, 255, 0.75);
+  margin-bottom: 11px;
   cursor: pointer;
-  transition: 0.2s;
+  transition: color 0.2s, padding-left 0.2s;
+  position: relative;
 }
 
-/* Hover đổi màu + gạch chân */
+.footer .col p::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #5dba74;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
 .footer .col p:hover {
-  color: #A8F0B6;
-  text-decoration: underline;
+  color: white;
+  text-decoration: none;
+  padding-left: 10px;
 }
 
-/* Social */
-.social i {
-  font-size: 22px;
-  margin-right: 15px;
-  cursor: pointer;
-  transition: 0.3s;
+.footer .col p:hover::before {
+  opacity: 1;
 }
 
-.social i:hover {
-  color: #A8F0B6;
-  transform: scale(1.2);
+/* ===== SOCIAL ICONS ===== */
+.social a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  transition: all 0.25s;
 }
 
-/* Bottom */
+.social a img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.social a:hover {
+  background: #5dba74;
+  border-color: #5dba74;
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(93, 186, 116, 0.35);
+}
+
+/* ===== FOOTER BOTTOM ===== */
 .footer-bottom {
-  text-align: center;
-  padding: 18px;
-  border-top: 1px solid rgba(255,255,255,0.2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 80px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
   font-size: 13px;
-  opacity: 0.9;
+  color: rgba(255, 255, 255, 0.75);
 }
 
-/* Responsive */
-@media (max-width: 992px) {
+.footer-bottom p {
+  margin: 0;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 1100px) {
   .footer-content {
-    grid-template-columns: 1fr 1fr;
-    padding: 40px 30px;
+    grid-template-columns: 1fr 1fr 1fr;
+    padding: 40px 40px;
+    gap: 32px;
   }
 
+  .footer-top .feature {
+    padding: 18px 30px;
+  }
+}
+
+@media (max-width: 768px) {
   .footer-top {
     flex-direction: column;
-    gap: 15px;
+  }
+
+  .footer-top .feature {
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    padding: 16px 24px;
+  }
+
+  .footer-top .feature:last-child {
+    border-bottom: none;
+  }
+
+  .footer-content {
+    grid-template-columns: 1fr 1fr;
+    padding: 32px 24px;
+  }
+
+  .footer-bottom {
+    flex-direction: column;
+    gap: 6px;
+    text-align: center;
+    padding: 16px 24px;
   }
 }
 
-@media (max-width: 576px) {
+@media (max-width: 480px) {
   .footer-content {
     grid-template-columns: 1fr;
   }

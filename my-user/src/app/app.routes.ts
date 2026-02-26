@@ -10,6 +10,7 @@ import { ProfileOverview } from './profile-overview/profile-overview';
 import { Login } from './login/login';
 import { Forgotpw } from './forgotpw/forgotpw';
 import { Register } from './register/register';
+import { BlogComponent } from './blog/blog';
 
 
 export const routes: Routes = [
@@ -23,6 +24,7 @@ export const routes: Routes = [
 
   // ✅ THÊM ROUTE MỚI
   { path: 'about-the-brand',         component: AboutTheBrand },
+  { path: 'blog',         component: BlogComponent },
 
   {
   path: 'user-profile',
