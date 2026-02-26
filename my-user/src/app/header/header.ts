@@ -11,8 +11,17 @@ import { RouterModule } from '@angular/router';
 })
 export class Header {
 
-  isLoggedIn = false;   // mock login
+  isLoggedIn = false;
   showDropdown = false;
+  menuOpen = false;
+
+  toggleMenu() {
+    this.menuOpen = !this.menuOpen;
+  }
+
+  closeMenu() {
+    this.menuOpen = false;
+  }
 
   toggleDropdown() {
     this.showDropdown = !this.showDropdown;
@@ -22,5 +31,4 @@ export class Header {
     this.isLoggedIn = false;
     this.showDropdown = false;
   }
-
 }

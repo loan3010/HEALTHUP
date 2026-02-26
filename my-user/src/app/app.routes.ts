@@ -11,6 +11,7 @@ import { Login } from './login/login';
 import { Forgotpw } from './forgotpw/forgotpw';
 import { Register } from './register/register';
 import { BlogComponent } from './blog/blog';
+import { PoliciesComponent } from './policies/policies';
 
 
 export const routes: Routes = [
@@ -25,6 +26,7 @@ export const routes: Routes = [
   // ✅ THÊM ROUTE MỚI
   { path: 'about-the-brand',         component: AboutTheBrand },
   { path: 'blog',         component: BlogComponent },
+  { path: 'policies',         component: PoliciesComponent },
 
   {
   path: 'user-profile',
