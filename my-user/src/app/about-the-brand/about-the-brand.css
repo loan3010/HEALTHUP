@@ -1,0 +1,594 @@
+/* =====================
+   BASE
+===================== */
+.about-page {
+  color: #1a1a1a;
+  font-family: 'Segoe UI', sans-serif;
+  overflow-x: hidden;
+}
+
+/* =====================
+   HERO
+===================== */
+.hero {
+  position: relative;
+  background: linear-gradient(135deg, #1a4a27 0%, #2f6f3e 50%, #3d8a50 100%);
+  color: white;
+  text-align: center;
+  padding: 140px 20px 120px;
+  overflow: hidden;
+}
+
+/* Vòng trang trí nền */
+.hero::before {
+  content: '';
+  position: absolute;
+  top: -80px;
+  right: -80px;
+  width: 400px;
+  height: 400px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.04);
+  pointer-events: none;
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  bottom: -100px;
+  left: -60px;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.04);
+  pointer-events: none;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.hero-content h1 {
+  font-size: 46px;
+  font-weight: 800;
+  line-height: 1.2;
+  margin-bottom: 22px;
+  letter-spacing: -0.5px;
+}
+
+.hero-content h1 span {
+  color: #8de0a0;
+}
+
+.hero-content p {
+  font-size: 18px;
+  line-height: 1.7;
+  opacity: 0.88;
+  max-width: 540px;
+  margin: 0 auto 36px;
+}
+
+/* Đường kẻ trang trí dưới hero */
+.hero-divider {
+  width: 60px;
+  height: 3px;
+  background: #8de0a0;
+  margin: 0 auto;
+  border-radius: 2px;
+}
+
+/* =====================
+   STORY
+===================== */
+.story {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 100px 80px;
+  gap: 80px;
+  align-items: center;
+  max-width: 1300px;
+  margin: 0 auto;
+}
+
+.story-text h2 {
+  font-size: 36px;
+  font-weight: 800;
+  color: #1a4a27;
+  margin-bottom: 10px;
+  line-height: 1.2;
+}
+
+/* Gạch nhấn dưới tiêu đề */
+.story-text h2::after {
+  content: '';
+  display: block;
+  width: 48px;
+  height: 3px;
+  background: #2f6f3e;
+  margin-top: 14px;
+  margin-bottom: 24px;
+  border-radius: 2px;
+}
+
+.story-text p {
+  font-size: 15.5px;
+  line-height: 1.8;
+  color: #4a4a4a;
+  margin-bottom: 16px;
+}
+
+.story-text blockquote {
+  position: relative;
+  margin-top: 30px;
+  padding: 20px 24px 20px 36px;
+  background: #f0faf3;
+  border-left: 4px solid #2f6f3e;
+  border-radius: 0 12px 12px 0;
+  font-style: italic;
+  font-size: 16px;
+  color: #2f6f3e;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+.story-text blockquote::before {
+  content: '"';
+  position: absolute;
+  top: -10px;
+  left: 12px;
+  font-size: 60px;
+  color: #2f6f3e;
+  opacity: 0.2;
+  font-family: Georgia, serif;
+  line-height: 1;
+}
+
+.story-image {
+  background: linear-gradient(135deg, #c8ecd2, #e8f5e9);
+  height: 440px;
+  border-radius: 24px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(47, 111, 62, 0.15);
+}
+
+/* Nếu sau này có thêm ảnh thật */
+.story-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 24px;
+}
+
+/* Placeholder decoration */
+.story-image::after {
+  content: '';
+  position: absolute;
+  bottom: -30px;
+  right: -30px;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: rgba(47, 111, 62, 0.1);
+}
+
+/* =====================
+   VALUES
+===================== */
+.values {
+  background-color: #f6faf7;
+  text-align: center;
+  padding: 90px 80px;
+}
+
+.values h2 {
+  font-size: 34px;
+  font-weight: 800;
+  color: #1a4a27;
+  margin-bottom: 10px;
+}
+
+.values h2::after {
+  content: '';
+  display: block;
+  width: 48px;
+  height: 3px;
+  background: #2f6f3e;
+  margin: 14px auto 0;
+  border-radius: 2px;
+}
+
+.value-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  margin-top: 50px;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.value-card {
+  background: white;
+  padding: 36px 24px;
+  border-radius: 18px;
+  transition: all 0.3s ease;
+  border: 1px solid #e6f2e9;
+  position: relative;
+  overflow: hidden;
+}
+
+.value-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #2f6f3e, #5dba74);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s ease;
+  border-radius: 18px 18px 0 0;
+}
+
+.value-card:hover::before {
+  transform: scaleX(1);
+}
+
+.value-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 16px 40px rgba(47, 111, 62, 0.12);
+  border-color: transparent;
+}
+
+.value-card h3 {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1a4a27;
+  margin-bottom: 12px;
+}
+
+.value-card p {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.7;
+  margin: 0;
+}
+
+/* =====================
+   QUALITY
+===================== */
+.quality {
+  padding: 90px 80px;
+  text-align: center;
+  background: white;
+}
+
+.quality h2 {
+  font-size: 34px;
+  font-weight: 800;
+  color: #1a4a27;
+}
+
+.quality h2::after {
+  content: '';
+  display: block;
+  width: 48px;
+  height: 3px;
+  background: #2f6f3e;
+  margin: 14px auto 0;
+  border-radius: 2px;
+}
+
+.quality-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  margin-top: 50px;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.quality-card {
+  background: #1e5c2e;
+  color: white;
+  padding: 36px 24px;
+  border-radius: 18px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.quality-card::after {
+  content: '';
+  position: absolute;
+  bottom: -20px;
+  right: -20px;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  transition: transform 0.3s;
+}
+
+.quality-card:hover::after {
+  transform: scale(2);
+}
+
+.quality-card:hover {
+  background: #174d26;
+  transform: translateY(-6px);
+  box-shadow: 0 16px 40px rgba(30, 92, 46, 0.3);
+}
+
+.quality-card h3 {
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+.quality-card p {
+  font-size: 14px;
+  opacity: 0.82;
+  line-height: 1.7;
+  margin: 0;
+  position: relative;
+  z-index: 1;
+}
+
+/* =====================
+   DISTRIBUTION
+===================== */
+.distribution {
+  background: #f6faf7;
+  padding: 100px 80px;
+}
+
+.distribution-header {
+  text-align: center;
+  margin-bottom: 70px;
+}
+
+.distribution-header .sub-title {
+  display: inline-block;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  color: #2f6f3e;
+  text-transform: uppercase;
+  background: #e3f5e8;
+  padding: 6px 16px;
+  border-radius: 20px;
+  margin-bottom: 16px;
+}
+
+.distribution-header h2 {
+  font-size: 36px;
+  font-weight: 800;
+  color: #1a4a27;
+  line-height: 1.2;
+}
+
+.distribution-header h2::after {
+  content: '';
+  display: block;
+  width: 48px;
+  height: 3px;
+  background: #2f6f3e;
+  margin: 14px auto 0;
+  border-radius: 2px;
+}
+
+.distribution-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: center;
+}
+
+/* LEFT */
+.distribution-left h3 {
+  font-size: 28px;
+  font-weight: 800;
+  color: #1a4a27;
+  margin-bottom: 20px;
+  line-height: 1.3;
+}
+
+.distribution-left h3::after {
+  content: '';
+  display: block;
+  width: 40px;
+  height: 3px;
+  background: #2f6f3e;
+  margin-top: 14px;
+  margin-bottom: 0;
+  border-radius: 2px;
+}
+
+.distribution-left p {
+  font-size: 15px;
+  color: #555;
+  line-height: 1.8;
+  margin: 20px 0 36px;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+
+.stats > div {
+  background: white;
+  padding: 24px 20px;
+  border-radius: 16px;
+  border: 1px solid #e3f0e6;
+  transition: box-shadow 0.2s;
+}
+
+.stats > div:hover {
+  box-shadow: 0 8px 24px rgba(47, 111, 62, 0.1);
+}
+
+.stats h4 {
+  font-size: 30px;
+  font-weight: 800;
+  color: #2f6f3e;
+  margin-bottom: 6px;
+  line-height: 1;
+}
+
+.stats p {
+  font-size: 13px;
+  color: #888;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* RIGHT IMAGE GRID */
+.distribution-right {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 200px 200px 200px;
+  gap: 16px;
+}
+
+.distribution-right img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 16px;
+  display: block;
+}
+
+.img-large {
+  grid-column: 1 / 3;
+  grid-row: 1 / 2;
+}
+
+.img-vertical {
+  grid-column: 1 / 2;
+  grid-row: 2 / 4;
+}
+
+.img-small:nth-child(3) {
+  grid-column: 2 / 3;
+  grid-row: 2 / 3;
+}
+
+.img-small:nth-child(4) {
+  grid-column: 2 / 3;
+  grid-row: 3 / 4;
+}
+
+/* =====================
+   RESPONSIVE
+===================== */
+@media (max-width: 1100px) {
+  .story,
+  .quality,
+  .distribution {
+    padding: 70px 40px;
+  }
+
+  .values {
+    padding: 70px 40px;
+  }
+
+  .value-grid,
+  .quality-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 992px) {
+  .story {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+
+  .story-image {
+    height: 300px;
+  }
+
+  .distribution-container {
+    grid-template-columns: 1fr;
+    gap: 50px;
+  }
+
+  .distribution-right {
+    grid-template-rows: 180px 180px 180px;
+  }
+
+  .hero-content h1 {
+    font-size: 34px;
+  }
+}
+
+@media (max-width: 600px) {
+  .hero {
+    padding: 90px 20px 80px;
+  }
+
+  .hero-content h1 {
+    font-size: 26px;
+  }
+
+  .hero-content p {
+    font-size: 15px;
+  }
+
+  .story,
+  .quality,
+  .distribution,
+  .values {
+    padding: 60px 20px;
+  }
+
+  .value-grid,
+  .quality-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stats {
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .distribution-right {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+  }
+
+  .img-large,
+  .img-vertical,
+  .img-small:nth-child(3),
+  .img-small:nth-child(4) {
+    grid-column: auto;
+    grid-row: auto;
+    height: 200px;
+  }
+}
+/* =====================
+   SCROLL FADE-IN
+===================== */
+.fade-in {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+
+.fade-in.visible {
+  opacity: 1;
+  transform: translateY(0);
+}

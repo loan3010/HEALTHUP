@@ -1,0 +1,102 @@
+<div class="consulting-detail-container fadeIn">
+  <a href="javascript:void(0)" class="back-link-consult" (click)="goBack.emit()">
+    <i class="bi bi-chevron-left"></i> Quay lại trang quản lý tư vấn
+  </a>
+
+  <div class="detail-header-consult">
+    <div class="header-left">
+      <h1 class="detail-title">{{product.name}}</h1>
+    </div>
+    <div class="header-right">
+      <span class="detail-sku">SKU: {{product.sku}}</span>
+    </div>
+  </div>
+
+  <div class="summary-cards">
+    <div class="s-card">
+      <span class="s-label">TỔNG CÂU HỎI</span>
+      <span class="s-value text-total">1</span>
+    </div>
+    <div class="s-card">
+      <span class="s-label">CHỜ TRẢ LỜI</span>
+      <span class="s-value text-warning">1</span>
+    </div>
+    <div class="s-card">
+      <span class="s-label">ĐÃ TRẢ LỜI</span>
+      <span class="s-value text-success">0</span>
+    </div>
+  </div>
+
+  <div class="toolbar-consult">
+     <div class="search-box">
+      <input type="text" placeholder="Tìm kiếm theo câu hỏi, khách hàng...">
+      <i class="bi bi-search"></i>
+    </div>
+    <button class="btn-filter-consult">
+      <i class="bi bi-funnel"></i> <span>Tất cả</span> <i class="bi bi-chevron-down"></i>
+    </button>
+  </div>
+
+  <div class="question-list">
+    <div class="question-card shadow-sm" *ngFor="let q of questions" [ngClass]="q.status">
+      <div class="q-header">
+        <span class="q-label">CÂU HỎI:</span>
+        <span class="status-badge-consult" [ngClass]="q.status">
+          {{ q.status === 'pending' ? 'CHỜ TRẢ LỜI' : 'ĐÃ TRẢ LỜI' }}
+        </span>
+      </div>
+      
+      <p class="q-content">{{q.content}}</p>
+      <div class="q-meta">{{q.user}} <span class="q-time">{{q.time}}</span></div>
+
+      <div class="answer-box mt-4" *ngIf="q.status === 'answered'">
+        <span class="q-label">TRẢ LỜI:</span>
+        <p class="a-content">{{q.answer}}</p>
+        <div class="q-meta text-success">Admin <span class="q-time">Vừa xong</span></div>
+      </div>
+
+      <div class="q-actions mt-4">
+        <div class="btn-group">
+          <button class="btn-reply" (click)="openModal(q)">
+            {{ q.status === 'pending' ? 'Trả lời' : 'Sửa trả lời' }}
+          </button>
+          <button class="btn-delete-q">Xóa</button>
+        </div>
+        <i class="bi bi-chevron-right arrow-icon"></i>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay-consult" *ngIf="isModalOpen">
+    <div class="modal-reply shadow-lg fadeInScale">
+      <div class="modal-header">
+        <h2 class="modal-title">Trả lời câu hỏi</h2>
+        <button class="btn-close-modal" (click)="isModalOpen = false">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="q-preview-box">
+          <span class="q-label-mini">CÂU HỎI:</span>
+          <p class="mb-1">{{activeQuestion?.content}}</p>
+          <span class="q-meta-mini">Khách hàng: {{activeQuestion?.user}}</span>
+        </div>
+        <div class="reply-input-group mt-3">
+          <label>Câu trả lời:</label>
+          <textarea rows="5" placeholder="Nhập câu trả lời..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" (click)="isModalOpen = false">Hủy</button>
+        <button class="btn-send" (click)="showSuccess()">Gửi trả lời</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay-consult" *ngIf="isSuccessModalOpen">
+    <div class="modal-success shadow-lg">
+      <div class="success-icon"><i class="bi bi-check-circle-fill"></i></div>
+      <h3 class="mt-3">Thành công!</h3>
+      <p>Câu trả lời đã được cập nhật thành công.</p>
+      <button class="btn-ok" (click)="closeAllModals()">ĐỒNG Ý</button>
+    </div>
+  </div>
+</div>

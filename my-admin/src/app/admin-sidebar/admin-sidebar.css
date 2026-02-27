@@ -1,0 +1,88 @@
+/* Dùng biến màu đã khai báo trong styles.css cho nhất quán */
+:host {
+  --sidebar-bg: var(--color-primary); /* Màu xanh lá chủ đạo #36873a */
+  --sidebar-text: #ffffff;
+  --sidebar-active-bg: var(--color-accent); /* Màu xanh dương #6aaedb cho tab đang chọn */
+  --sidebar-hover-bg: rgba(255, 255, 255, 0.1); /* Màu hover sáng nhẹ */
+}
+
+/* ... giữ nguyên các biến màu và code ở trên ... */
+
+.sidebar-container {
+  width: 260px;
+  height: 100%; /* Đổi từ 100vh thành 100% vì giờ nó nằm dưới header */
+  background-color: var(--sidebar-bg);
+  display: flex;
+  flex-direction: column;
+  color: var(--sidebar-text);
+  
+  /* Hiệu ứng trượt mượt mà */
+  margin-left: 0;
+  transition: margin-left 0.3s ease-in-out; 
+}
+
+.sidebar-container.closed {
+  margin-left: -260px; 
+}
+
+.sidebar-nav {
+  padding: 0 16px;
+  list-style: none;
+  min-width: 260px; 
+}
+
+.brand-logo {
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--sidebar-text) !important; /* Logo màu trắng */
+  text-decoration: none;
+}
+
+.brand-logo i {
+  font-size: 1.8rem;
+}
+
+.sidebar-divider {
+  margin: 0 24px 15px 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2); /* Đường kẻ mờ màu trắng */
+  opacity: 1;
+}
+
+.sidebar-nav {
+  padding: 0 16px;
+  list-style: none; /* Bỏ dấu chấm đầu dòng của thẻ ul */
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 12px 20px;
+  color: var(--sidebar-text); /* Chữ và icon tab bình thường màu trắng */
+  border-radius: 8px;
+  margin-bottom: 6px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s ease-in-out;
+}
+
+.nav-link i {
+  font-size: 1.2rem;
+}
+
+/* Khi hover chuột vào tab */
+.nav-link:hover {
+  background-color: var(--sidebar-hover-bg); 
+  color: var(--sidebar-text);
+}
+
+/* Style cho Tab đang được chọn (Tổng quan) */
+.nav-link.active {
+  background-color: var(--sidebar-active-bg) !important; /* Nền xanh dương đặc */
+  color: var(--sidebar-text) !important; /* Chữ vẫn trắng */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Thêm chút bóng đổ cho nổi */
+}

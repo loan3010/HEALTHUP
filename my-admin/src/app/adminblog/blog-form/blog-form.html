@@ -1,0 +1,109 @@
+<div class="blog-form-wrapper">
+  <a href="javascript:void(0)" class="back-link" (click)="goBack.emit()">
+    <i class="bi bi-chevron-left"></i> Quay lại danh sách
+  </a>
+
+  <h1 class="page-title">{{ mode === 'add' ? 'THÊM BÀI VIẾT MỚI' : 'CHI TIẾT BÀI VIẾT' }}</h1>
+
+  <div class="info-card shadow-sm">
+    <div class="info-left">
+      <div class="avatar-section">
+        <div class="avatar-circle">
+          <i class="bi bi-person"></i>
+        </div>
+      </div>
+
+      <div class="meta-section">
+        <div class="title-edit-row">
+          <input type="text" class="input-main-title" [(ngModel)]="formData.title" placeholder="Chưa có tiêu đề">
+          <button class="btn-edit-title"><i class="bi bi-pencil-fill"></i></button>
+        </div>
+
+        <div class="fields-grid">
+          <div class="field-item">
+            <span class="field-label">Tác giả:</span>
+            <input type="text" class="field-input" [(ngModel)]="formData.author" placeholder="Chưa nhập">
+          </div>
+          <div class="field-item">
+            <span class="field-label">Email:</span>
+            <input type="text" class="field-input" [(ngModel)]="formData.email" placeholder="Chưa nhập">
+          </div>
+          <div class="field-item">
+            <span class="field-label">Ngày cập nhật:</span>
+            <span class="field-value">{{ formData.updatedAt }}</span>
+          </div>
+          <div class="field-item">
+            <span class="field-label">Category:</span>
+            <select class="field-select" [(ngModel)]="formData.category">
+              <option value="Trái cây">Trái cây</option>
+              <option value="Sức khỏe">Sức khỏe</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-right">
+      <button *ngIf="mode === 'edit'" class="btn-action btn-red">
+        <i class="bi bi-trash3"></i> Xóa bài viết
+      </button>
+      <button class="btn-action btn-green" (click)="onSave()">
+        <i class="bi bi-pencil"></i> {{ mode === 'add' ? 'Thêm bài viết' : 'Lưu bài viết' }}
+      </button>
+    </div>
+  </div>
+
+  <div class="editor-card shadow-sm">
+    <h3 class="editor-label">Nội dung bài viết</h3>
+
+    <div class="full-toolbar">
+      <div class="toolbar-row">
+        <div class="t-group">
+          <button class="t-btn"><i class="bi bi-arrow-counterclockwise"></i></button>
+          <button class="t-btn"><i class="bi bi-arrow-clockwise"></i></button>
+        </div>
+        <div class="t-group">
+          <select class="t-select"><option>Đoạn văn</option></select>
+          <select class="t-select"><option>Mặc định</option></select>
+          <select class="t-select"><option>14pt</option></select>
+        </div>
+        <div class="t-group">
+          <button class="t-btn"><strong>B</strong></button>
+          <button class="t-btn"><em>I</em></button>
+          <button class="t-btn"><u>U</u></button>
+          <button class="t-btn"><del>S</del></button>
+        </div>
+        <div class="t-group">
+          <button class="t-btn"><i class="bi bi-fonts"></i></button>
+          <button class="t-btn"><i class="bi bi-paint-bucket"></i></button>
+        </div>
+        <div class="t-group no-border">
+          <button class="t-btn">x<sub>2</sub></button>
+          <button class="t-btn">x<sup>2</sup></button>
+        </div>
+        <div class="t-group">
+          <button class="t-btn"><i class="bi bi-text-left"></i></button>
+          <button class="t-btn"><i class="bi bi-text-center"></i></button>
+          <button class="t-btn"><i class="bi bi-text-right"></i></button>
+          <button class="t-btn"><i class="bi bi-justify"></i></button>
+        </div>
+        <div class="t-group">
+          <select class="t-select"><option>1.0</option></select>
+        </div>
+        <div class="t-group">
+          <button class="t-btn"><i class="bi bi-list-ul"></i></button>
+          <button class="t-btn"><i class="bi bi-list-ol"></i></button>
+        </div>
+        <div class="t-group no-border">
+          <button class="t-btn"><i class="bi bi-link-45deg"></i></button>
+          <button class="t-btn"><i class="bi bi-image"></i></button>
+          <button class="t-btn"><i class="bi bi-eraser"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="editor-main">
+      <textarea class="editor-textarea" [(ngModel)]="formData.content" placeholder="Nhập nội dung bài viết ở đây..."></textarea>
+    </div>
+  </div>
+</div>

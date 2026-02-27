@@ -1,0 +1,59 @@
+<div class="consulting-list-container">
+  <h1 class="page-title">QUẢN LÝ TƯ VẤN SẢN PHẨM</h1>
+
+  <div class="summary-cards">
+    <div class="s-card card-total">
+      <span class="s-label">TỔNG CÂU HỎI</span>
+      <span class="s-value text-total">8</span>
+    </div>
+    <div class="s-card card-pending">
+      <span class="s-label">CHỜ TRẢ LỜI</span>
+      <span class="s-value text-warning">5</span>
+    </div>
+    <div class="s-card card-answered">
+      <span class="s-label">ĐÃ TRẢ LỜI</span>
+      <span class="s-value text-success">3</span>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div class="search-box">
+      <input type="text" placeholder="Tìm kiếm theo sản phẩm, câu hỏi, khách hàng...">
+      <i class="bi bi-search"></i>
+    </div>
+    <button class="btn-filter-consult">
+      <i class="bi bi-funnel"></i>
+      <span>Tất cả</span>
+      <i class="bi bi-chevron-down"></i>
+    </button>
+  </div>
+
+  <div class="product-grid">
+    <div class="p-card-consult" *ngFor="let p of products" (click)="selectProduct.emit(p)">
+      
+      <div class="p-left-content">
+        <h3 class="p-name">{{p.name}}</h3>
+        <span class="p-sku">SKU: {{p.sku}}</span>
+      </div>
+
+      <div class="p-right-content">
+        <div class="stat-group">
+          <div class="stat-item">
+            <span class="st-label">TỔNG:</span>
+            <span class="st-val text-total">{{p.total}}</span>
+          </div>
+          <div class="stat-item">
+            <span class="st-label">CHỜ TRẢ LỜI:</span>
+            <span class="st-val text-warning">{{p.pending}}</span>
+          </div>
+          <div class="stat-item">
+            <span class="st-label">ĐÃ TRẢ LỜI:</span>
+            <span class="st-val text-success">{{p.answered}}</span>
+          </div>
+        </div>
+        <i class="bi bi-chevron-right arrow-icon"></i>
+      </div>
+
+    </div>
+  </div>
+</div>

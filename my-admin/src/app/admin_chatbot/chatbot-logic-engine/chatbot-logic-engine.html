@@ -1,0 +1,64 @@
+<div class="logic-engine-container fadeIn">
+  <div class="engine-grid">
+    <div class="logic-card shadow-card">
+      <div class="card-header-logic">
+        <i class="bi bi-spellcheck primary-text me-2"></i>
+        <span class="card-title-text">BẢNG ÁNH XẠ CHUẨN HÓA (NORMALIZATION)</span>
+      </div>
+      
+      <div class="card-body-logic custom-scroll">
+        <table class="logic-table">
+          <thead>
+            <tr>
+              <th>Từ viết tắt / Biến thể</th>
+              <th class="text-center"></th>
+              <th>Từ chuẩn hóa</th>
+              <th class="text-center">Hành động</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let mapping of mappingList; let i = index">
+              <td><input type="text" class="table-input" [(ngModel)]="mapping.from" placeholder="k, ko..."></td>
+              <td class="text-center"><i class="bi bi-arrow-right primary-text"></i></td>
+              <td><input type="text" class="table-input" [(ngModel)]="mapping.to" placeholder="không..."></td>
+              <td class="text-center">
+                <button class="btn-row-del" (click)="removeMapping(i)"><i class="bi bi-trash"></i></button>
+              </td>
+            </tr>
+            <tr class="add-new-row">
+              <td colspan="4">
+                <button class="btn-add-mapping" (click)="addNewMapping()">
+                  <i class="bi bi-plus-lg"></i> Thêm ánh xạ mới
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="logic-card shadow-card">
+      <div class="card-header-logic">
+        <i class="bi bi-sliders primary-text me-2"></i>
+        <span class="card-title-text">CẤU HÌNH ĐỘ KHỚP MỜ (FUZZY MATCHING)</span>
+      </div>
+      <div class="card-body-logic center-content">
+        <div class="fuzzy-value-display">
+          <span class="value-num">{{ fuzzyValue }}%</span>
+          <span class="value-label">Độ khớp tối thiểu</span>
+        </div>
+        <div class="slider-wrapper">
+          <input type="range" min="0" max="100" [(ngModel)]="fuzzyValue" class="primary-slider">
+          <div class="slider-steps">
+            <span>0%</span>
+            <span>50%</span>
+            <span>100%</span>
+          </div>
+        </div>
+        <p class="logic-desc">
+          Bot sẽ nhận diện câu hỏi nếu độ tương đồng đạt trên mức này.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>

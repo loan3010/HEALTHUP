@@ -1,0 +1,252 @@
+:host {
+  --bg: #0b1020;
+  --card: #d9d9d9;
+  --input: #cfcfcf;
+  --otp-card: #d7d7d7;
+  --danger: #d10000;
+  --success: #116b2e;
+  --primary: #2f6b38;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+
+* { box-sizing: border-box; }
+
+
+/* ✅ wrapper full page + center */
+.auth-page {
+  position: relative;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: clamp(10px, 2vw, 20px);
+  background: var(--bg);
+  overflow: hidden;
+}
+
+/* ảnh nền mờ */
+.auth-bg{
+  position:absolute;
+  inset:0;
+  background:url('../../../../backend/public/images/image/background-pp-xanh-la-hoa-bo-cong-anh.jpg') center/cover no-repeat;
+  filter:blur(7px);
+  opacity:.7;
+  transform:scale(1.1);
+  z-index:0;
+}
+
+
+
+/* ✅ chỉ có 1 box */
+.box{
+  position: relative;
+  z-index: 1;
+  width: min(860px, 94vw);
+  background: var(--card);
+  border-radius: 16px;
+  padding: clamp(14px, 2.4vw, 22px) clamp(14px, 2.8vw, 24px) clamp(12px, 2vw, 18px);
+  box-shadow: 0 18px 50px rgba(0,0,0,.35);
+}
+
+
+/* title */
+.title{
+  margin: 0 0 clamp(8px, 1.6vw, 14px);
+  text-align: center;
+  font-size: clamp(20px, 2.4vw, 28px);
+  letter-spacing: .4px;
+  color: #111;
+  font-weight: 900;
+}
+
+
+.field{ margin: clamp(10px, 1.8vw, 14px) 0; }
+
+
+.label{
+  font-size: clamp(13px, 1.4vw, 17px);
+  color:#111;
+  margin-bottom: 6px;
+  font-weight: 800;
+}
+.req{ color: var(--danger); }
+
+
+.control{ position: relative; }
+
+
+.inp{
+  width: 100%;
+  background: var(--input);
+  border: 0;
+  outline: none;
+  border-radius: 12px;
+  padding: 12px 46px 12px 16px;
+  color: #111;
+  font-size: clamp(14px, 1.6vw, 18px);
+  line-height: 1.2;
+}
+
+
+/* ✅ chỉ icon X, không khung */
+.clear{
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: 18px;
+  font-weight: 900;
+  color: #6b6a6a;
+  cursor: pointer;
+}
+
+
+.err{
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--danger);
+  font-weight: 800;
+}
+
+
+.submit{
+  width: 100%;
+  margin-top: 16px;
+  height: 56px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--primary);
+  color: #fff;
+  font-weight: 900;
+  font-size: clamp(16px, 2vw, 20px);
+  cursor: pointer;
+}
+.submit:disabled{ opacity:.6; cursor:not-allowed; }
+
+
+.sys{
+  margin-top: 10px;
+  font-size: 14px;
+  font-weight: 900;
+}
+.sys.ok{ color: var(--success); }
+.sys.bad{ color: var(--danger); }
+
+
+.bottom{
+  margin-top: 12px;
+  display:flex;
+  justify-content:center;
+  gap: 10px;
+  font-size: 14px;
+  color:#111;
+  font-weight: 700;
+  flex-wrap: wrap;
+}
+.bottom a{
+  color:#0a4cff;
+  text-decoration: underline;
+  font-weight: 900;
+}
+
+
+/* ================= OTP MODAL ================= */
+.modal-backdrop{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  z-index: 10;
+}
+
+
+.otp-modal{
+  width: min(720px, 94vw);
+  background: var(--otp-card);
+  border-radius: 14px;
+  padding: clamp(14px, 2.4vw, 20px);
+  box-shadow: 0 18px 60px rgba(0,0,0,.45);
+  text-align: center;
+}
+
+
+.otp-title{
+  font-weight: 900;
+  font-size: 18px;
+  letter-spacing: .4px;
+  color: #111;
+  margin-bottom: 6px;
+}
+
+
+.otp-sub{
+  font-size: 12px;
+  color: #222;
+  opacity: .75;
+  margin-bottom: 14px;
+}
+
+
+.otp-boxes{
+  display:flex;
+  justify-content:center;
+  gap: 12px;
+  margin: 10px 0;
+  flex-wrap: wrap;
+}
+
+
+.otp-input{
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  border: 2px solid rgba(0,0,0,.12);
+  background: #eee;
+  font-size: 18px;
+  text-align:center;
+  outline: none;
+}
+
+
+.otp-input:focus{
+  border-color: rgba(0,0,0,.25);
+  box-shadow: 0 0 0 4px rgba(0,0,0,.06);
+}
+
+
+.otp-err{
+  color: var(--danger);
+  font-weight: 800;
+  font-size: 12px;
+  margin-top: 6px;
+  min-height: 16px;
+}
+
+
+.otp-confirm{
+  width: min(520px, 92%);
+  height: 40px;
+  border: 0;
+  border-radius: 10px;
+  margin-top: 10px;
+  background: var(--primary);
+  color:#fff;
+  font-weight: 900;
+  font-size: 14px;
+  cursor:pointer;
+}
+.otp-confirm:disabled{ opacity:.6; cursor:not-allowed; }
+
+
+@media (max-width: 480px){
+  .box{ width: 96vw; border-radius: 14px; }
+  .inp{ padding: 11px 42px 11px 14px; }
+  .otp-modal{ width: 96vw; }
+  .otp-input{ width: 44px; height: 44px; }
+}
+
