@@ -1,0 +1,24 @@
+<div class="promotion-wrapper">
+  <nav class="promo-breadcrumb-box">
+    <span class="p-crumb">Quản trị viên</span> 
+    <span class="p-sep">/</span>
+    <span class="p-crumb">Quản lý khuyến mãi</span> 
+    <span class="p-sep">/</span>
+    <span class="p-active">{{ breadcrumbActiveText }}</span>
+  </nav>
+
+  <div class="promotion-main-content">
+    <app-promotion-list 
+      (goEdit)="handleGoEdit($event)" 
+      (goAdd)="handleGoAdd()">
+    </app-promotion-list>
+
+    <div class="modal-overlay" *ngIf="isModalOpen">
+      <app-promotion-form 
+        [mode]="formMode" 
+        [promoData]="selectedPromotion" 
+        (goBack)="closeModal()">
+      </app-promotion-form>
+    </div>
+  </div>
+</div>

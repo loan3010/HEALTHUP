@@ -1,0 +1,135 @@
+/* --- KHO TRI THỨC SECTION --- */
+.knowledge-base-container {
+  padding-top: 10px;
+}
+
+/* BỘ LỌC CHIPS */
+.kb-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 25px;
+}
+
+.filter-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #888;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+}
+
+.chip-container {
+  display: flex;
+  gap: 10px;
+}
+
+.chip {
+  padding: 8px 20px;
+  border-radius: 8px;
+  border: 1px solid #eee;
+  background: white;
+  font-weight: 600;
+  color: #555;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.chip:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.chip.active {
+  background: #eef7ee; /* Nền xanh nhạt thương hiệu */
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+/* NÚT LƯU & HUẤN LUYỆN BOT */
+.btn-train-all {
+  background-color: #4CAF50 !important; /* Màu xanh lá đặc trưng huấn luyện */
+  color: white !important;
+  border: none !important;
+  padding: 12px 25px !important;
+  border-radius: 10px !important;
+  font-weight: 800 !important;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(76, 175, 80, 0.2);
+  transition: all 0.3s ease;
+}
+
+.btn-train-all:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(76, 175, 80, 0.3);
+  filter: brightness(1.1);
+}
+
+/* BẢNG DỮ LIỆU */
+.kb-table-card {
+  background: white;
+  border-radius: 15px;
+  overflow: hidden;
+  border: 1px solid #f0f0f0;
+}
+
+.kb-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.kb-table th {
+  background: #fafafa;
+  padding: 18px 25px;
+  text-align: left;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #444;
+  border-bottom: 1px solid #eee;
+}
+
+.kb-table td {
+  padding: 20px 25px;
+  border-bottom: 1px solid #f9f9f9;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.kb-table tr:hover {
+  background-color: #fcfdfc;
+}
+
+/* Tags & Indicators */
+.category-tag {
+  color: #666;
+  font-weight: 500;
+}
+
+.variation-count {
+  font-weight: 700;
+  color: #333;
+  font-size: 1.1rem;
+}
+
+.row-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-edit-inline {
+  background: none; border: none; color: var(--color-accent); /* Xanh dương */
+  font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;
+}
+
+.btn-delete-inline {
+  background: none; border: none; color: #ff4d4d;
+  font-weight: 600; cursor: pointer;
+}
+
+.divider { color: #ddd; }

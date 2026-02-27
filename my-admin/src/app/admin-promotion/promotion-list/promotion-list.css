@@ -1,0 +1,87 @@
+/* --- TỔNG THỂ & TIÊU ĐỀ --- */
+.promotion-list-container { padding: 5px; animation: fadeIn 0.4s ease-out; }
+.header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+.page-title { color: var(--color-primary); font-size: 1.8rem; font-weight: 800; text-transform: uppercase; }
+
+.btn-add-main {
+  background-color: var(--color-primary); color: white; border: none;
+  padding: 10px 22px; border-radius: 8px; font-weight: 600;
+  display: flex; align-items: center; gap: 8px; cursor: pointer; transition: 0.3s;
+}
+.btn-add-main:hover { background-color: var(--color-accent); transform: translateY(-2px); }
+
+/* --- THẺ THỐNG KÊ --- */
+.summary-cards { display: flex; gap: 20px; margin-bottom: 30px; }
+.s-card {
+  flex: 1; background: white; border-radius: 15px; padding: 25px;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04); border: 1px solid #f0f0f0;
+}
+.s-label { font-size: 0.85rem; font-weight: 700; color: #666; }
+.s-value { font-size: 2.2rem; font-weight: 800; color: #333; }
+.text-danger { color: #d9534f !important; }
+.text-success { color: var(--color-primary) !important; }
+.text-warning { color: #f39c12 !important; }
+
+/* --- TOOLBAR & NÚT BẤM --- */
+.toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.search-box { position: relative; width: 350px; }
+.search-box i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #999; }
+.search-box input { width: 100%; padding: 10px 45px; border: 1px solid #eee; border-radius: 8px; outline: none; }
+.search-box input:focus { border-color: var(--color-primary); }
+
+.action-group { display: flex; align-items: center; gap: 12px; }
+.btn-tool {
+  background: white; border: 1px solid #eee; padding: 8px 16px;
+  border-radius: 6px; color: #444; font-weight: 500;
+  display: flex; align-items: center; gap: 6px; cursor: pointer; transition: 0.2s;
+}
+
+/* HIỆU ỨNG MỜ KHI BỊ DISABLED */
+.btn-tool:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); }
+
+/* HOVER NỔI BẬT THEO TỪNG LOẠI NÚT */
+.btn-tool:hover:not(:disabled) { border-color: #ccc; transform: translateY(-1px); }
+
+/* Hover Chỉnh (Xanh dương) */
+.btn-tool:hover:not(:disabled):has(.bi-pencil) {
+  color: var(--color-accent); border-color: var(--color-accent);
+  background-color: rgba(106, 174, 219, 0.05);
+}
+
+/* Hover Xoá (Đỏ) */
+.btn-tool.text-danger:hover:not(:disabled) {
+  color: white !important; background-color: #dc3545 !important; border-color: #dc3545 !important;
+}
+
+/* HOVER NHÓM (MÀU XANH LÁ HOẶC TÍM) */
+.btn-tool.btn-group-tool:hover:not(:disabled) {
+  color: var(--color-primary); border-color: var(--color-primary);
+  background-color: rgba(54, 135, 58, 0.05);
+}
+
+/* --- BẢNG DỮ LIỆU --- */
+.table-card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); border: 1px solid #eee; }
+.promo-table { width: 100%; border-collapse: collapse; }
+.promo-table th { background: #fcfdfc; padding: 15px; font-size: 0.8rem; font-weight: 700; border-bottom: 1px solid #eee; }
+.promo-table td { padding: 15px; border-bottom: 1px solid #f9f9f9; font-size: 0.9rem; }
+
+.col-name { text-align: left; }
+.p-title { font-weight: 700; color: #333; }
+.p-code { font-size: 0.75rem; color: #888; }
+
+/* Status Badges */
+.status-badge { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+.status-badge::before { content: ''; width: 8px; height: 8px; border-radius: 50%; }
+.status-badge.ongoing { color: #28a745; } .status-badge.ongoing::before { background: #28a745; }
+.status-badge.upcoming { color: #f39c12; } .status-badge.upcoming::before { background: #f39c12; }
+.status-badge.ended { color: #d9534f; } .status-badge.ended::before { background: #d9534f; }
+
+/* HOVER & SELECTED ROW */
+.promo-table tbody tr { cursor: pointer; transition: 0.2s; }
+.promo-table tbody tr:hover { background-color: #f8fcf8 !important; }
+tr.selected { background-color: #f1f8f1 !important; }
+
+.text-center { text-align: center; }
+.text-start { text-align: left; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }

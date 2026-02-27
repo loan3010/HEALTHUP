@@ -1,0 +1,53 @@
+<div class="chatbot-layout-fixed" [class.has-sidebar]="isChatOpen">
+  
+  <div class="main-workspace-scroll custom-scroll-style">
+    
+    <nav class="breadcrumb">
+      <span>Quản trị viên</span> 
+      <span class="separator">/</span>
+      <span>Quản lý Chatbot</span> 
+      <span class="separator">/</span>
+      <span class="active">{{ viewMode === 'knowledge' ? 'Kho tri thức' : 'Cài đặt chuẩn hóa' }}</span>
+    </nav>
+
+    <div class="content-body slide-up-animation">
+      <div class="header-action-clean">
+        <h1 class="page-title primary-text">QUẢN LÝ CHATBOT</h1>
+        
+        <div class="action-buttons-group">
+          <button class="btn-global btn-add" (click)="openAddModal()">
+            <i class="bi bi-plus-circle"></i> Thêm câu hỏi mới
+          </button>
+          <button class="btn-global btn-save-train">
+            <i class="bi bi-cpu-fill"></i> Lưu & Huấn luyện bot
+          </button>
+          <button class="btn-global btn-logic" (click)="toggleView(viewMode === 'knowledge' ? 'logic' : 'knowledge')">
+            <i class="bi bi-gear"></i> {{ viewMode === 'knowledge' ? 'Cài đặt chuẩn hóa' : 'Về kho tri thức' }}
+          </button>
+        </div>
+      </div>
+
+      <div class="dynamic-view-port">
+        <div *ngIf="viewMode === 'knowledge'">
+          <app-chatbot-knowledge-base (editRequest)="openEditModal($event)"></app-chatbot-knowledge-base>
+        </div>
+        <div *ngIf="viewMode === 'logic'">
+          <app-chatbot-logic-engine></app-chatbot-logic-engine>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <aside class="fixed-right-sidebar" *ngIf="isChatOpen">
+    <app-chatbot-live-preview (closeChat)="toggleChat()"></app-chatbot-live-preview>
+  </aside>
+
+  <button class="btn-chat-floating shadow-lg" *ngIf="!isChatOpen" (click)="toggleChat()">
+    <i class="bi bi-chat-dots-fill"></i>
+    <span class="pulse-ring"></span>
+  </button>
+</div>
+
+<div class="modal-overlay-consult" *ngIf="isModalOpen">
+     <app-chatbot-form-editor [data]="editingData" (close)="closeModal()"></app-chatbot-form-editor>
+  </div>

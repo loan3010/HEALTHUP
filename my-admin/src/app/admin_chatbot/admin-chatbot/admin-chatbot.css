@@ -1,0 +1,133 @@
+/* --- LAYOUT CHA: KHÓA KHUNG CỐ ĐỊNH --- */
+.chatbot-layout-fixed {
+  display: flex; 
+  width: 100%;
+  height: calc(100vh - 70px); /* Bám sát Header chính */
+  background: #fcfdfc; 
+  overflow: hidden; /* Chỉ cho phép cuộn bên trong các ngăn */
+  position: relative;
+}
+
+/* --- NGĂN TRÁI (WORKSPACE): TỐI ƯU HÓA ĐỂ KHÔNG GIẬT KHI CO GIÃN --- */
+.main-workspace-scroll {
+  flex: 1 1 auto; 
+  height: 100%;
+  padding: 25px 50px 50px 50px;
+  overflow-y: auto; 
+  background: transparent !important;
+  
+  /* CẬP NHẬT: Dùng flex-basis thay cho flex để mượt hơn */
+  transition: flex-basis 0.5s cubic-bezier(0.4, 0, 0.2, 1), 
+              max-width 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+              padding 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: flex-basis, max-width; /* Ép trình duyệt chuẩn bị tài nguyên GPU */
+}
+
+/* Ẩn scrollbar cho Workspace */
+.main-workspace-scroll::-webkit-scrollbar { display: none; }
+.main-workspace-scroll { scrollbar-width: none; }
+
+/* Trạng thái co lại khi mở sidebar */
+.chatbot-layout-fixed.has-sidebar .main-workspace-scroll {
+  flex: 0 0 70% !important;
+  max-width: 70% !important;
+  padding: 25px 30px;
+}
+
+/* --- NGĂN PHẢI (SIDEBAR): LƯỚT VÀO NHƯ LỤA --- */
+.fixed-right-sidebar {
+  flex: 0 0 30%;
+  height: 100%; /* Bao trọn chiều dọc từ đỉnh đến đáy */
+  background: white;
+  border-left: 1px solid #eee;
+  z-index: 500;
+  box-shadow: -15px 0 35px rgba(0,0,0,0.02);
+  
+  /* Chuyển động lướt và mờ dần nhẹ nhàng */
+  animation: ultraSmoothSlide 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  will-change: transform, opacity;
+}
+
+@keyframes ultraSmoothSlide {
+  from { transform: translateX(30px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* --- BREADCRUMB & TITLE (BỎ MỌI KHUNG BAO) --- */
+.breadcrumb {
+  font-size: 0.85rem; color: #666; margin-bottom: 25px;
+  display: flex; align-items: center; gap: 10px;
+}
+.breadcrumb span { cursor: pointer; transition: 0.2s; }
+.breadcrumb span:hover { color: var(--color-accent); }
+.breadcrumb .separator { color: #ccc; }
+.breadcrumb .active { color: #333; font-weight: 700; cursor: default; }
+
+.header-action-clean {
+  display: flex; justify-content: space-between; align-items: flex-end;
+  margin-bottom: 35px; border: none; padding: 0; background: transparent;
+}
+
+.page-title.primary-text {
+  color: var(--color-primary) !important; /* Xanh lá rực rỡ */
+  font-weight: 900 !important;
+  text-transform: uppercase;
+  margin: 0; font-size: 1.85rem; letter-spacing: -1px;
+}
+
+/* --- NÚT BẤM TOÀN CỤC --- */
+.action-buttons-group { display: flex; gap: 12px; }
+.btn-global {
+  border: none; border-radius: 12px; padding: 12px 22px;
+  font-weight: 700; display: flex; align-items: center; gap: 8px;
+  cursor: pointer; transition: 0.3s ease;
+}
+.btn-add { background: var(--color-primary); color: white; }
+.btn-save-train { background: #4CAF50; color: white; box-shadow: 0 4px 15px rgba(76, 175, 80, 0.15); }
+.btn-logic { background: white; border: 1px solid #eee; color: #555; }
+.btn-global:hover { transform: translateY(-2px); filter: brightness(1.05); }
+
+/* --- HIỆU ỨNG HIỆN NỘI DUNG --- */
+.slide-up-animation {
+  animation: softFadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  opacity: 0;
+}
+
+@keyframes softFadeIn {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* --- ICON CHAT NỔI: SÓNG TRÒN KHI HOVER (MƯỢT MÀ) --- */
+.btn-chat-floating {
+  position: fixed; bottom: 35px; right: 35px;
+  width: 65px; height: 65px; border-radius: 50%;
+  background: var(--color-primary); color: white; border: none;
+  font-size: 1.8rem; cursor: pointer; display: flex;
+  align-items: center; justify-content: center; z-index: 1000;
+  transition: transform 0.3s ease, background 0.3s ease;
+}
+
+.btn-chat-floating:hover { transform: scale(1.08); }
+
+.pulse-ring {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  border-radius: 50%; border: 3px solid var(--color-primary);
+  opacity: 0; pointer-events: none;
+}
+
+.btn-chat-floating:hover .pulse-ring {
+  animation: rippleSmooth 1.8s infinite ease-out;
+}
+
+@keyframes rippleSmooth {
+  0% { transform: scale(1); opacity: 0.5; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+/* --- MODAL OVERLAY (NỀN BLUR) --- */
+.modal-overlay-consult {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(255, 255, 255, 0.4); backdrop-filter: blur(12px);
+  display: flex; align-items: center; justify-content: center; z-index: 10000;
+}
