@@ -115,4 +115,25 @@ export class ApiService {
   getBlogById(id: string): Observable<any> {
     return this.http.get<any>(`${API_BASE}/blogs/${id}`);
   }
+
+  // ✅ Consulting / Q&A API
+  getConsultingQuestions(productId: string, filters: {
+    filter?: string;
+    page?: number;
+    limit?: number;
+  } = {}): Observable<any> {
+    let params = new HttpParams();
+    params = params.set('productId', productId);
+    if (filters.filter && filters.filter !== 'all') params = params.set('status', filters.filter);
+    if (filters.page)  params = params.set('page',  filters.page.toString());
+    if (filters.limit) params = params.set('limit', filters.limit.toString());
+    return this.http.get<any>(`${API_BASE}/consulting`, { params });
+  }
+
+  submitConsultingQuestion(data: {
+    productId: string;
+    content: string;
+  }): Observable<any> {
+    return this.http.post<any>(`${API_BASE}/consulting`, data);
+  }
 }
