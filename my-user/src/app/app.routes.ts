@@ -12,6 +12,8 @@ import { Forgotpw } from './forgotpw/forgotpw';
 import { Register } from './register/register';
 import { BlogComponent } from './blog/blog';
 import { PoliciesComponent } from './policies/policies';
+import { Checkout } from './checkout/checkout';
+import { Cart } from './cart/cart';
 
 
 export const routes: Routes = [
@@ -23,10 +25,15 @@ export const routes: Routes = [
   {path: 'forgotpw', component:Forgotpw},
   {path: 'register', component: Register},
 
+
+
+
   // ✅ THÊM ROUTE MỚI
   { path: 'about-the-brand',         component: AboutTheBrand },
   { path: 'blog',         component: BlogComponent },
   { path: 'policies',         component: PoliciesComponent },
+  {path: 'checkout', component: Checkout},
+  {path: 'cart', component: Cart},
 
   {
   path: 'user-profile',
@@ -35,6 +42,7 @@ export const routes: Routes = [
     { path: '', redirectTo: 'profile', pathMatch: 'full' },
     { path: 'profile', component: ProfileOverview },
     { path: 'address', component: AddressBook }
+
   ]
   },
   // { path: 'user-profile',         component: UserProfile },

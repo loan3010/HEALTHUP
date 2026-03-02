@@ -1,40 +1,57 @@
+// =======================đăng nhập đăng ký============================
 const router = require('express').Router();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
-// REGISTER – tạo user trong DB (dùng cho phần sau/admin)
+
+// =============================
+// ===== REGISTER ==============
+// =============================
 router.post('/register', async (req, res) => {
   try {
     const { username, phone, email, password, role } = req.body;
 
-    // ✅ bắt buộc: username + phone + password
     if (!username || !phone || !password) {
-      return res.status(400).json({ message: 'Thiếu username/phone/password' });
+      return res.status(400).json({
+        message: 'Thiếu username/phone/password'
+      });
     }
 
-    // ✅ check trùng phone
-    const existsPhone = await User.findOne({ phone: String(phone).trim() });
-    if (existsPhone) return res.status(409).json({ message: 'Số điện thoại đã tồn tại' });
+    const usernameVal = String(username).trim();
+    const phoneVal = String(phone).trim();
+    const emailVal = (email || '').trim().toLowerCase();
 
-    // ✅ email optional: nếu có mới check
-    const emailVal = (email || '').trim();
+    // Check trùng username
+    const existsUsername = await User.findOne({ username: usernameVal });
+    if (existsUsername) {
+      return res.status(409).json({ message: 'Tên tài khoản đã tồn tại' });
+    }
+
+    // Check trùng phone
+    const existsPhone = await User.findOne({ phone: phoneVal });
+    if (existsPhone) {
+      return res.status(409).json({ message: 'Số điện thoại đã tồn tại' });
+    }
+
+    // Check email nếu có nhập
     if (emailVal) {
-      const existsEmail = await User.findOne({ email: emailVal.toLowerCase() });
-      if (existsEmail) return res.status(409).json({ message: 'Email đã tồn tại' });
+      const existsEmail = await User.findOne({ email: emailVal });
+      if (existsEmail) {
+        return res.status(409).json({ message: 'Email đã tồn tại' });
+      }
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
 
     const user = await User.create({
-      username: String(username).trim(),
-      phone: String(phone).trim(),
-      email: emailVal ? emailVal.toLowerCase() : undefined,
+      username: usernameVal,
+      phone: phoneVal,
+      email: emailVal || undefined,
       passwordHash,
-      role: role === 'admin' ? 'admin' : 'user',
+      role: role === 'admin' ? 'admin' : 'user'
     });
 
-    // ✅ (tuỳ chọn) trả token luôn để khỏi login lại
     const token = jwt.sign(
       { userId: String(user._id), role: user.role },
       process.env.JWT_SECRET,
@@ -49,34 +66,74 @@ router.post('/register', async (req, res) => {
         username: user.username,
         phone: user.phone,
         email: user.email || '',
-        role: user.role,
-      },
+        role: user.role
+      }
     });
+
   } catch (err) {
     console.error('REGISTER ERROR:', err);
+
+    if (err?.code === 11000) {
+      const field =
+        Object.keys(err.keyPattern || err.keyValue || {})[0] || 'field';
+
+      const map = {
+        phone: 'Số điện thoại đã tồn tại',
+        email: 'Email đã tồn tại',
+        username: 'Tên tài khoản đã tồn tại'
+      };
+
+      return res.status(409).json({
+        message: map[field] || `${field} đã tồn tại`
+      });
+    }
+
     return res.status(500).json({ message: err.message });
   }
 });
 
-// LOGIN – cho phép login bằng email hoặc phone
+
+// =============================
+// ===== LOGIN =================
+// =============================
 router.post('/login', async (req, res) => {
   try {
-    const { emailOrPhone, password, email, phone } = req.body;
+    const { username, password, identifier, emailOrPhone } = req.body;
 
-    const identifier = (emailOrPhone || email || phone || '').trim();
-    if (!identifier || !password) {
-      return res.status(400).json({ message: 'Thiếu thông tin đăng nhập' });
+    const loginId = String(
+      username || identifier || emailOrPhone || ''
+    ).trim();
+
+    if (!loginId || !password) {
+      return res.status(400).json({
+        message: 'Thiếu tài khoản hoặc mật khẩu'
+      });
     }
 
-    const query = identifier.includes('@')
-      ? { email: identifier.toLowerCase() }
-      : { phone: identifier };
+    // Ưu tiên tìm theo username
+    let user = await User.findOne({ username: loginId });
 
-    const user = await User.findOne(query);
-    if (!user) return res.status(401).json({ message: 'Sai tài khoản hoặc mật khẩu' });
+    // Fallback
+    if (!user) {
+      if (loginId.includes('@')) {
+        user = await User.findOne({ email: loginId.toLowerCase() });
+      } else if (/^[0-9]{9,11}$/.test(loginId)) {
+        user = await User.findOne({ phone: loginId });
+      }
+    }
+
+    if (!user) {
+      return res.status(401).json({
+        message: 'Sai tài khoản hoặc mật khẩu'
+      });
+    }
 
     const ok = await bcrypt.compare(password, user.passwordHash);
-    if (!ok) return res.status(401).json({ message: 'Sai tài khoản hoặc mật khẩu' });
+    if (!ok) {
+      return res.status(401).json({
+        message: 'Sai tài khoản hoặc mật khẩu'
+      });
+    }
 
     const token = jwt.sign(
       { userId: String(user._id), role: user.role },
@@ -91,13 +148,64 @@ router.post('/login', async (req, res) => {
         username: user.username,
         phone: user.phone,
         email: user.email || '',
-        role: user.role,
-      },
+        role: user.role
+      }
     });
+
   } catch (err) {
     console.error('LOGIN ERROR:', err);
     return res.status(500).json({ message: err.message });
   }
 });
+
+
+// =====================================
+// ===== FORGOT PASSWORD (NO OTP CHECK)
+// =====================================
+router.post('/forgotpw/verify', async (req, res) => {
+  try {
+    const { phone } = req.body;
+
+    const phoneVal = String(phone || '').trim();
+
+    if (!phoneVal) {
+      return res.status(400).json({
+        message: 'Thiếu số điện thoại'
+      });
+    }
+
+    // ❌ KHÔNG CHECK OTP
+    const user = await User.findOne({ phone: phoneVal });
+
+    if (!user) {
+      return res.status(404).json({
+        message: 'Số điện thoại chưa đăng ký'
+      });
+    }
+
+    const token = jwt.sign(
+      { userId: String(user._id), role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    return res.json({
+      message: 'verified',
+      token,
+      user: {
+        id: String(user._id),
+        username: user.username,
+        phone: user.phone,
+        email: user.email || '',
+        role: user.role
+      }
+    });
+
+  } catch (err) {
+    console.error('FORGOT VERIFY ERROR:', err);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 
 module.exports = router;
