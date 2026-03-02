@@ -5,9 +5,9 @@ import {
   inject,
   setClassMetadata,
   ɵɵdefineInjectable
-} from "./chunk-5WBGBYQW.js";
+} from "./chunk-G3CTVJDB.js";
 
-// node_modules/@angular/common/fesm2022/_platform_location-chunk.mjs
+// ../../node_modules/@angular/common/fesm2022/_platform_location-chunk.mjs
 var _DOM = null;
 function getDOM() {
   return _DOM;
@@ -123,7 +123,7 @@ var BrowserPlatformLocation = class _BrowserPlatformLocation extends PlatformLoc
   }], () => [], null);
 })();
 
-// node_modules/@angular/common/fesm2022/_xhr-chunk.mjs
+// ../../node_modules/@angular/common/fesm2022/_xhr-chunk.mjs
 function parseCookieValue(cookieStr, name) {
   name = encodeURIComponent(name);
   for (const cookie of cookieStr.split(";")) {
@@ -148,4 +148,4 @@ export {
   parseCookieValue,
   XhrFactory
 };
-//# sourceMappingURL=chunk-7VRASU2T.js.map
+//# sourceMappingURL=chunk-QU66NNKQ.js.map

@@ -1,0 +1,146 @@
+<div class="cart-page">
+  <div class="head">
+    <h2 class="title">Giỏ hàng</h2>
+  </div>
+
+
+  <!-- EMPTY -->
+  <div *ngIf="items.length === 0" class="empty">
+    <div class="empty-icon">🛒</div>
+    <div class="empty-title">Giỏ hàng đang trống</div>
+    <div class="empty-desc">Bạn chưa thêm sản phẩm nào.</div>
+    <button class="btn primary" (click)="buyNow()">Mua sắm ngay</button>
+  </div>
+
+
+  <!-- CONTENT -->
+  <div *ngIf="items.length > 0" class="content">
+
+
+    <div class="cart-box">
+
+
+      <!-- SELECT ALL -->
+      <div class="select-all-bar">
+        <div class="left">
+          <input type="checkbox"
+                 [checked]="isAllSelected()"
+                 (change)="toggleSelectAll($event)" />
+          <span>Chọn tất cả</span>
+        </div>
+
+
+        <div class="right">
+          Đã chọn:
+          <b>{{ selectedCount }}</b>
+          sản phẩm
+        </div>
+      </div>
+
+
+      <!-- ITEM -->
+      <div class="item"
+           *ngFor="let it of items; trackBy: trackById"
+           [class.selected]="it.selected">
+
+
+        <input type="checkbox"
+               [(ngModel)]="it.selected"
+               (change)="updateTotal()" />
+
+
+        <img *ngIf="it.imageUrl"
+             class="thumb"
+             [src]="it.imageUrl" />
+
+
+        <div class="info">
+          <div class="name">{{ it.name }}</div>
+          <div class="price">{{ it.price | number }} đ</div>
+        </div>
+
+
+        <!-- QTY -->
+        <div class="qty">
+          <button class="btn icon"
+                  (click)="confirmDecrease(it)">
+            −
+          </button>
+
+
+          <input type="number"
+                 min="1"
+                 [value]="it.quantity"
+                 (input)="onQtyInput(it, $any($event.target).value)" />
+
+
+          <button class="btn icon"
+                  (click)="inc(it)">
+            +
+          </button>
+        </div>
+
+
+        <div class="line-total">
+          {{ (it.price * it.quantity) | number }} đ
+        </div>
+
+
+        <button class="btn remove"
+                (click)="confirmRemove(it)">
+          ×
+        </button>
+      </div>
+
+
+    </div>
+
+
+    <!-- SUMMARY -->
+    <div class="summary">
+      <div class="sum-row">
+        <span>Tổng tiền</span>
+        <b>{{ total | number }} đ</b>
+      </div>
+
+
+      <button class="btn primary"
+              [disabled]="!selectedCount"
+              (click)="checkout()">
+        Thanh toán
+      </button>
+
+
+      <button class="btn ghost"
+              (click)="buyNow()">
+        Tiếp tục mua
+      </button>
+    </div>
+
+
+  </div>
+
+
+  <!-- CONFIRM MODAL -->
+  <div class="modal-overlay" *ngIf="showConfirm">
+    <div class="confirm-modal">
+      <h3>Xác nhận</h3>
+      <p>{{ confirmMessage }}</p>
+
+
+      <div class="modal-actions">
+        <button class="btn ghost" (click)="cancelConfirm()">
+          Hủy
+        </button>
+
+
+        <button class="btn danger" (click)="acceptConfirm()">
+          Đồng ý
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+</div>
+

@@ -10,6 +10,8 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { finalize } from 'rxjs/operators';
 
 @Component({
   selector: 'app-forgotpw',
@@ -21,6 +23,14 @@ import { RouterModule, Router } from '@angular/router';
 export class Forgotpw implements OnDestroy, AfterViewInit {
   private fb = inject(FormBuilder);
   private router = inject(Router);
+  private http = inject(HttpClient);
+  closeOtp() {
+  this.showOtp = false;
+  this.otpError = '';
+  this.clearOtpInterval();
+}
+
+  private API = 'http://localhost:3000/api';
 
   loading = false;
   message = '';
@@ -36,42 +46,38 @@ export class Forgotpw implements OnDestroy, AfterViewInit {
   @ViewChildren('otpInput')
   otpInputs!: QueryList<ElementRef<HTMLInputElement>>;
 
-  // trackBy để Angular không recreate input => hết “nhảy”
   trackByIndex = (i: number) => i;
 
-  // ===== FORM =====
   form = this.fb.group({
     phone: ['', [Validators.required, Validators.pattern(/^(0|\+84)\d{9,10}$/)]]
   });
 
   ngAfterViewInit() {
-    // Khi popup render xong list input, focus vào ô đầu
     this.otpInputs?.changes.subscribe(() => {
       if (this.showOtp) setTimeout(() => this.focusOtp(0), 0);
     });
   }
 
-  // ===== GỬI OTP =====
+  // ===== OPEN OTP =====
   openOtpPopup() {
     this.error = '';
     this.message = '';
-    this.form.markAllAsTouched();
+    this.otpError = '';
 
+    this.form.markAllAsTouched();
     if (this.form.invalid) {
       this.error = 'Vui lòng nhập số điện thoại hợp lệ.';
       return;
     }
 
-    // ✅ HIỆN OTP LIỀN (không chờ)
+    // ✅ demo: mở OTP liền
     this.showOtp = true;
-
     this.resetOtp();
     this.startCountdown();
 
-    // focus ngay sau khi render
     setTimeout(() => this.focusOtp(0), 0);
 
-    // ✅ Nếu vẫn muốn hiệu ứng "Đang gửi..." (không chặn OTP)
+    // demo message
     this.loading = true;
     setTimeout(() => {
       this.loading = false;
@@ -86,7 +92,6 @@ export class Forgotpw implements OnDestroy, AfterViewInit {
 
     this.otpInterval = setInterval(() => {
       this.otpSecondsLeft--;
-
       if (this.otpSecondsLeft <= 0) {
         this.clearOtpInterval();
         this.showOtp = false;
@@ -103,7 +108,6 @@ export class Forgotpw implements OnDestroy, AfterViewInit {
   }
 
   private resetOtp() {
-    // chỉ reset khi mở popup
     this.otpValues = Array(6).fill('');
     this.otpError = '';
   }
@@ -122,20 +126,16 @@ export class Forgotpw implements OnDestroy, AfterViewInit {
   // ===== OTP INPUT =====
   onOtpInput(event: Event, index: number) {
     const input = event.target as HTMLInputElement;
-
-    // Chỉ lấy số
     const digits = (input.value ?? '').replace(/\D/g, '');
 
-    // Nếu paste nhiều số vào 1 ô
+    // paste nhiều số vào 1 ô
     if (digits.length > 1) {
       this.fillOtpFrom(index, digits);
       return;
     }
 
-    // Bình thường: 0 hoặc 1 số
     const d = digits.length === 1 ? digits : '';
     this.otpValues[index] = d;
-
     this.otpError = '';
 
     if (d) {
@@ -144,59 +144,37 @@ export class Forgotpw implements OnDestroy, AfterViewInit {
     }
   }
 
-  // ===== KEYDOWN =====
   onOtpKeydown(event: KeyboardEvent, index: number) {
     const key = event.key;
 
-    if (key === 'Tab') return;
-
-    // Chặn ký tự không phải số (trừ các phím điều hướng)
-    const allowed = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight'];
     if (key.length === 1 && !/^\d$/.test(key)) {
       event.preventDefault();
       return;
     }
 
-    if (key === 'ArrowLeft') {
+    if (key === 'ArrowLeft' && index > 0) {
       event.preventDefault();
-      if (index > 0) this.focusOtp(index - 1);
+      this.focusOtp(index - 1);
       return;
     }
 
-    if (key === 'ArrowRight') {
+    if (key === 'ArrowRight' && index < 5) {
       event.preventDefault();
-      if (index < 5) this.focusOtp(index + 1);
+      this.focusOtp(index + 1);
       return;
     }
 
     if (key === 'Backspace') {
       event.preventDefault();
-
-      // nếu ô hiện tại có số -> xóa tại chỗ
       if (this.otpValues[index]) {
         this.otpValues[index] = '';
-        return;
-      }
-
-      // nếu ô rỗng -> lùi về ô trước và xóa ô trước
-      if (index > 0) {
+      } else if (index > 0) {
         this.otpValues[index - 1] = '';
         this.focusOtp(index - 1);
       }
-      return;
     }
-
-    if (key === 'Delete') {
-      event.preventDefault();
-      this.otpValues[index] = '';
-      return;
-    }
-
-    // các phím khác thì cho chạy bình thường
-    if (!allowed.includes(key) && key.length > 1) return;
   }
 
-  // ===== PASTE =====
   onOtpPaste(event: ClipboardEvent, index: number) {
     event.preventDefault();
     const text = event.clipboardData?.getData('text') ?? '';
@@ -225,20 +203,47 @@ export class Forgotpw implements OnDestroy, AfterViewInit {
     if (otp.length === 6) this.confirmOtp();
   }
 
-  // ===== CONFIRM =====
+  // ===== CONFIRM OTP (DEMO: OTP tự do, chỉ check SĐT tồn tại) =====
   confirmOtp() {
-    const otp = this.otpValues.join('');
+    this.error = '';
+    this.otpError = '';
 
-    if (otp.length !== 6) {
+    const otp = this.otpValues.join('');
+    const phoneVal = String(this.form.controls.phone.value || '').trim();
+
+    // ✅ demo: OTP “tự do” nhưng vẫn bắt đủ 6 số
+    if (!/^\d{6}$/.test(otp)) {
       this.otpError = 'Vui lòng nhập đủ 6 số OTP.';
       return;
     }
 
-    // demo: coi như đúng
-    this.clearOtpInterval();
-    this.showOtp = false;
+    this.loading = true;
 
-    setTimeout(() => this.router.navigateByUrl('/login'), 100);
+    // ✅ chỉ check số điện thoại có tồn tại không
+    this.http
+      .post<any>(`${this.API}/auth/check-phone`, { phone: phoneVal })
+      .pipe(finalize(() => (this.loading = false)))
+      .subscribe({
+        next: (res) => {
+          if (!res?.user) {
+            this.otpError = 'Số điện thoại chưa đăng ký.';
+            return;
+          }
+
+          // ✅ lưu token/user (token demo nếu backend không trả)
+          localStorage.setItem('token', res.token || 'demo-token');
+          localStorage.setItem('user', JSON.stringify(res.user));
+
+          this.clearOtpInterval();
+          this.showOtp = false;
+
+          // ✅ chuyển sang homepage
+          this.router.navigate(['/homepage']);
+        },
+        error: (err: HttpErrorResponse) => {
+          this.otpError = err?.error?.message || 'Số điện thoại chưa đăng ký.';
+        }
+      });
   }
 
   // ===== VALIDATION =====
