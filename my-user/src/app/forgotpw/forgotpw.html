@@ -61,7 +61,8 @@
   <div class="otp-overlay" *ngIf="showOtp">
     <div class="otp-modal">
 
-
+      <button class="otp-close" type="button" (click)="closeOtp()">×</button>
+      
       <h2 class="otp-title">NHẬP MÃ OTP</h2>
       <p class="otp-sub">
         Mã OTP đã được gửi đến số điện thoại của bạn

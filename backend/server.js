@@ -33,6 +33,9 @@ mongoose.connect(MONGODB_URI)
 app.use('/api/products', require('./routes/products'));
 app.use('/api/reviews', require('./routes/reviews'));
 app.use('/api/blogs',   require('./routes/blogs'));   // ✅ Thêm mới
+app.use('/api/auth', require('./routes/auth'));   //thêm cho register
+app.use('/api/orders', require('./routes/orders')); //thêm cho checkout
+app.use('/api/carts', require('./routes/carts'));
 
 // Health check
 app.get('/api/health', (req, res) => {

@@ -1,6 +1,6 @@
 :host {
   --bg: #0b1020;
-  --card: #d9d9d9;
+  --card: #f7f3f3;
   --input: #cfcfcf;
   --primary: #2f6b38;
   --danger: #d10000;
@@ -356,5 +356,37 @@
     height: 45px;
     font-size: 16px;
   }
+}
+/* BẮT BUỘC: để nút X bám góc modal */
+.otp-modal {
+  position: relative !important;
+}
+
+/* NÚT X: đảm bảo luôn nổi lên và hiện ra */
+.otp-close {
+  position: absolute !important;
+  top: 14px !important;
+  right: 14px !important;
+  z-index: 9999 !important;
+
+  width: 32px !important;
+  height: 32px !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  border: none !important;
+  background: rgba(0,0,0,0.06) !important;
+  border-radius: 50% !important;
+
+  color: #111 !important;
+  font-size: 20px !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+}
+
+.otp-close:hover {
+  background: rgba(0,0,0,0.12) !important;
 }
 

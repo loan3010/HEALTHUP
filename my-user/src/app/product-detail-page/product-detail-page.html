@@ -35,7 +35,6 @@
       <div class="col-12 col-lg-5">
         <div class="position-sticky" style="top:88px;">
           <div class="gallery-main mb-3">
-            <!-- ✅ activeImage đã được fix URL trong loadProduct() -->
             <img [src]="activeImage || 'assets/images/placeholder.png'" [alt]="product.name" />
           </div>
           <div class="d-flex gap-2 overflow-auto pb-1">
@@ -216,28 +215,248 @@
   </div>
 </div>
 
-<!-- SẢN PHẨM LIÊN QUAN -->
+<!-- ============================================================
+     SẢN PHẨM LIÊN QUAN — dùng product-card giống "Bán chạy"
+     ============================================================ -->
 <section class="py-5" style="background:#FAF6F0;" *ngIf="relatedProducts.length > 0">
   <div class="container">
-    <h2 class="section-title mb-4">Có thể bạn cũng thích</h2>
-    <div class="row g-3">
-      <div class="col-6 col-md-3" *ngFor="let p of relatedProducts">
-        <div class="related-product-card" (click)="goToProduct(p._id)">
-          <div class="related-img">
-            <!-- ✅ Dùng p.image đã fix URL -->
-            <img [src]="p.image || 'assets/images/placeholder.png'" [alt]="p.name" />
+    <div class="d-flex justify-content-between align-items-end mb-4">
+      <div>
+        <h2 class="section-title mb-1">Có thể bạn cũng thích</h2>
+        <p class="section-subtitle mb-0" style="font-size:15px;color:#A2C37F;">Sản phẩm tương tự bạn có thể quan tâm</p>
+      </div>
+      <a class="link-more" routerLink="/product-listing-page"
+        style="font-size:14px;font-weight:600;color:#D4A017;text-decoration:none;cursor:pointer;">
+        Xem thêm
+      </a>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-12 col-sm-6 col-md-3" *ngFor="let p of relatedProducts">
+        <div class="product-card h-100" (click)="goToProduct(p._id)">
+          <div class="product-img-wrap">
+            <span class="badge-new" *ngIf="p.badge === 'new'">Mới</span>
+            <span class="badge-hot" *ngIf="p.badge === 'hot'">Hot</span>
+            <span class="badge-sale" *ngIf="p.sale">{{ p.sale }}</span>
+            <img
+              [src]="p.image || 'assets/images/placeholder.png'"
+              [alt]="p.name"
+              onerror="this.src='assets/images/placeholder.png'" />
           </div>
           <div class="p-3">
             <div class="product-cat mb-1">{{ p.cat }}</div>
-            <div class="product-name mb-2">{{ p.name }}</div>
-            <div class="d-flex align-items-center justify-content-between">
-              <span class="product-price">{{ p.price | currency:'VND':'symbol':'1.0-0' }}</span>
+            <div class="product-name mb-1">{{ p.name }}</div>
+            <div class="product-weight mb-2">{{ p.weight || p.weights?.[0]?.label }}</div>
+            <div class="d-flex align-items-center justify-content-between pt-2 product-footer-row">
+              <div>
+                <span class="product-price">{{ p.price | currency:'VND':'symbol':'1.0-0' }}</span>
+                <span class="product-price-old ms-1" *ngIf="p.oldPrice">
+                  {{ p.oldPrice | currency:'VND':'symbol':'1.0-0' }}
+                </span>
+                <div class="product-rating">
+                  <span class="stars">{{ getStars(p.rating || 0) }}</span>
+                  <span class="ms-1">({{ p.reviewCount || p.reviews || 0 }})</span>
+                </div>
+              </div>
               <button class="btn-add" (click)="addRelated($event, p._id)">
                 <i class="bi bi-plus"></i>
               </button>
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     TƯ VẤN SẢN PHẨM (USER SIDE)
+     ============================================================ -->
+<section class="consulting-section py-5">
+  <div class="container">
+
+    <!-- Tiêu đề section -->
+    <div class="d-flex justify-content-between align-items-end mb-4">
+      <div>
+        <h2 class="section-title mb-1">Hỏi & Đáp về sản phẩm</h2>
+        <p style="font-size:15px;color:#A2C37F;margin:0;">Đặt câu hỏi để được tư vấn từ chuyên gia HealthUp</p>
+      </div>
+      <!-- Thống kê nhanh -->
+      <div class="d-none d-md-flex align-items-center gap-3">
+        <span style="font-size:13px;color:#A2C37F;">
+          <strong style="color:#36873A;">{{ consultingStats.total }}</strong> câu hỏi
+        </span>
+        <span style="font-size:13px;color:#A2C37F;">·</span>
+        <span style="font-size:13px;color:#A2C37F;">
+          <strong style="color:#D4A017;">{{ consultingStats.pending }}</strong> chờ trả lời
+        </span>
+        <span style="font-size:13px;color:#A2C37F;">·</span>
+        <span style="font-size:13px;color:#A2C37F;">
+          <strong style="color:#36873A;">{{ consultingStats.answered }}</strong> đã trả lời
+        </span>
+      </div>
+    </div>
+
+    <div class="d-flex flex-column gap-4">
+
+      <!-- FORM ĐẶT CÂU HỎI (đã đăng nhập) -->
+      <div class="consulting-ask-card p-4" *ngIf="isLoggedIn">
+        <div class="consulting-ask-title mb-1">
+          <i class="bi bi-chat-dots me-2"></i>Đặt câu hỏi của bạn
+        </div>
+        <p class="consulting-ask-desc mb-3">
+          Đội ngũ chuyên gia HealthUp sẽ phản hồi trong vòng 24 giờ làm việc.
+        </p>
+
+        <!-- Success message -->
+        <div class="ask-success-msg mb-3" *ngIf="askSubmitSuccess">
+          <i class="bi bi-check-circle-fill"></i>
+          Câu hỏi của bạn đã được gửi! Chúng tôi sẽ phản hồi sớm nhất.
+        </div>
+
+        <div *ngIf="!askSubmitSuccess">
+          <textarea
+            class="consulting-input mb-1"
+            [(ngModel)]="askText"
+            placeholder="Ví dụ: Sản phẩm này có phù hợp với người tiểu đường không? Nên dùng bao nhiêu gram mỗi ngày?..."
+            maxlength="500"
+            rows="4">
+          </textarea>
+          <div class="consulting-char-count mb-3">{{ askText.length }}/500</div>
+
+          <div class="d-flex align-items-center gap-3">
+            <button
+              class="btn-ask-submit"
+              [disabled]="askText.trim().length < 10 || isAskSubmitting"
+              (click)="submitQuestion()">
+              <i class="bi bi-send"></i>
+              {{ isAskSubmitting ? 'Đang gửi...' : 'Gửi câu hỏi' }}
+            </button>
+            <span style="font-size:13px;color:#A2C37F;" *ngIf="askText.trim().length < 10 && askText.length > 0">
+              Vui lòng nhập ít nhất 10 ký tự
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- LOGIN PROMPT -->
+      <div class="consulting-login-prompt p-4 d-flex align-items-center gap-3" *ngIf="!isLoggedIn">
+        <i class="bi bi-chat-dots-fill fs-2" style="color:#A2C37F;"></i>
+        <div class="flex-grow-1">
+          <strong class="d-block mb-1" style="color:#36873A;">Đăng nhập để đặt câu hỏi tư vấn</strong>
+          <span style="font-size:13px;color:#A2C37F;">
+            Nhận tư vấn chuyên sâu từ chuyên gia dinh dưỡng HealthUp miễn phí.
+          </span>
+        </div>
+        <button
+          class="btn-ask-submit"
+          routerLink="/user-authentication">
+          <i class="bi bi-person-circle"></i>Đăng nhập
+        </button>
+      </div>
+
+      <!-- BỘ LỌC -->
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2" *ngIf="consultingQuestions.length > 0 || consultingFilter !== 'all'">
+        <div class="consulting-filter-bar">
+          <button class="consulting-filter-btn"
+            [class.active]="consultingFilter === 'all'"
+            (click)="setConsultingFilter('all')">
+            Tất cả ({{ consultingStats.total }})
+          </button>
+          <button class="consulting-filter-btn"
+            [class.active]="consultingFilter === 'answered'"
+            (click)="setConsultingFilter('answered')">
+            <i class="bi bi-check-circle me-1"></i>Đã trả lời ({{ consultingStats.answered }})
+          </button>
+          <button class="consulting-filter-btn"
+            [class.active]="consultingFilter === 'pending'"
+            (click)="setConsultingFilter('pending')">
+            <i class="bi bi-clock me-1"></i>Chờ trả lời ({{ consultingStats.pending }})
+          </button>
+        </div>
+      </div>
+
+      <!-- DANH SÁCH CÂU HỎI -->
+      <div class="d-flex flex-column gap-3">
+
+        <!-- Skeleton loading -->
+        <ng-container *ngIf="isConsultingLoading">
+          <div class="consulting-skeleton p-4" *ngFor="let s of [1,2]">
+            <div class="skeleton-line mb-2" style="width:30%"></div>
+            <div class="skeleton-line mb-2" style="width:80%"></div>
+            <div class="skeleton-line" style="width:60%"></div>
+          </div>
+        </ng-container>
+
+        <!-- Danh sách câu hỏi thực -->
+        <div
+          class="question-card-user p-4"
+          [class.pending]="q.status === 'pending'"
+          [class.answered]="q.status === 'answered'"
+          *ngFor="let q of filteredConsultingQuestions; let i = index">
+
+          <!-- Header: user + status -->
+          <div class="d-flex align-items-start justify-content-between mb-3">
+            <div class="d-flex align-items-center gap-2">
+              <div class="q-user-avatar" [style.background]="getAvatarColor(i)">
+                {{ getAvatarInitial(q.user) }}
+              </div>
+              <div>
+                <div class="q-user-name">{{ q.user }}</div>
+                <div class="q-time">{{ q.time }}</div>
+              </div>
+            </div>
+            <span class="q-status-badge" [class.pending]="q.status === 'pending'" [class.answered]="q.status === 'answered'">
+              <i class="bi" [class.bi-clock]="q.status === 'pending'" [class.bi-check-circle-fill]="q.status === 'answered'"></i>
+              {{ q.status === 'pending' ? 'Chờ trả lời' : 'Đã trả lời' }}
+            </span>
+          </div>
+
+          <!-- Nội dung câu hỏi -->
+          <div class="mb-1">
+            <span class="q-label-tag">Câu hỏi</span>
+          </div>
+          <p class="q-content-text mb-3">{{ q.content }}</p>
+
+          <!-- Câu trả lời (nếu có) -->
+          <div class="q-answer-box p-3 mb-3" *ngIf="q.status === 'answered' && q.answer">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="q-answer-badge">
+                <i class="bi bi-patch-check-fill me-1"></i>HealthUp phản hồi
+              </span>
+              <span class="q-answer-time" *ngIf="q.answerTime">{{ q.answerTime }}</span>
+            </div>
+            <p class="q-answer-text mb-0">{{ q.answer }}</p>
+          </div>
+
+          <!-- Helpful -->
+          <div class="d-flex align-items-center gap-2 flex-wrap pt-3 border-top" style="border-color:#F0F7F0 !important;">
+            <span class="q-helpful-text">Câu hỏi này có hữu ích không?</span>
+            <button class="q-helpful-btn">
+              <i class="bi bi-hand-thumbs-up"></i> Có ({{ q.helpful || 0 }})
+            </button>
+          </div>
+        </div>
+
+        <!-- EMPTY STATE -->
+        <div class="consulting-empty text-center py-5 px-3"
+          *ngIf="filteredConsultingQuestions.length === 0 && !isConsultingLoading">
+          <i class="bi bi-chat-square-dots fs-1 text-secondary d-block mb-3"></i>
+          <div class="consulting-empty-title mb-1">Chưa có câu hỏi nào</div>
+          <p style="font-size:14px;color:#A2C37F;margin:0;">
+            Hãy là người đầu tiên đặt câu hỏi về sản phẩm này!
+          </p>
+        </div>
+
+        <!-- LOAD MORE -->
+        <div class="text-center mt-2" *ngIf="hasMoreQuestions">
+          <button class="btn-load-more-q"
+            (click)="loadMoreQuestions()"
+            [disabled]="isConsultingLoading">
+            {{ isConsultingLoading ? 'Đang tải...' : 'Xem thêm câu hỏi' }}
+          </button>
+        </div>
+
       </div>
     </div>
   </div>
