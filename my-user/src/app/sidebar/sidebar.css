@@ -11,14 +11,14 @@
 .sidebar-header-card {
   background: #fff;
   border-radius: 12px;
-  border: 1px solid rgba(127, 176, 105, 0.12);
-  box-shadow: 0 2px 16px rgba(45, 80, 22, 0.07);
+  border: 1px solid rgba(162, 195, 127, 0.12);
+  box-shadow: 0 2px 16px rgba(54, 135, 58, 0.07);
 }
 
 .sidebar-title {
   font-size: 15px;
   font-weight: 700;
-  color: #2D5016;
+  color: #36873A;
 }
 
 .btn-reset-all {
@@ -26,7 +26,7 @@
   border: none;
   font-size: 12px;
   font-weight: 600;
-  color: #D4854A;
+  color: #D4A017;
   cursor: pointer;
   padding: 0;
   transition: opacity 0.2s;
@@ -40,23 +40,23 @@
 .filter-card {
   background: #fff;
   border-radius: 12px;
-  border: 1px solid rgba(127, 176, 105, 0.12);
+  border: 1px solid rgba(162, 195, 127, 0.12);
   overflow: hidden;
-  box-shadow: 0 2px 16px rgba(45, 80, 22, 0.07);
+  box-shadow: 0 2px 16px rgba(54, 135, 58, 0.07);
 }
 
 .filter-section-title {
   font-size: 13px;
   font-weight: 700;
-  color: #2D5016;
+  color: #36873A;
   cursor: pointer;
-  border-bottom: 1px solid rgba(127, 176, 105, 0.10);
+  border-bottom: 1px solid rgba(162, 195, 127, 0.10);
   user-select: none;
   transition: background 0.2s;
 }
 
 .filter-section-title:hover {
-  background: #EAF2E3;
+  background: #F0F7F0;
 }
 
 .filter-body {
@@ -80,13 +80,13 @@
   cursor: pointer;
   border-radius: 8px;
   font-size: 13px;
-  color: #4A5C35;
+  color: #36873A;
   transition: all 0.15s;
 }
 
 .filter-option:hover {
-  background: #EAF2E3;
-  color: #2D5016;
+  background: #F0F7F0;
+  color: #36873A;
   padding-left: 8px;
 }
 
@@ -94,7 +94,7 @@
   width: 18px;
   height: 18px;
   border-radius: 4px;
-  border: 2px solid #7FB069;
+  border: 2px solid #A2C37F;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -107,14 +107,14 @@
 }
 
 .filter-checkbox.checked {
-  background: #2D5016;
-  border-color: #2D5016;
+  background: #36873A;
+  border-color: #36873A;
   color: #fff;
 }
 
 .filter-option-count {
   font-size: 11px;
-  color: #8A9E72;
+  color: #A2C37F;
   background: #FAF6F0;
   border-radius: 999px;
   padding: 1px 8px;
@@ -123,9 +123,9 @@
 
 /* PRICE PRESETS */
 .price-preset-btn {
-  border: 1.5px solid #EAF2E3;
+  border: 1.5px solid #F0F7F0;
   background: #fff;
-  color: #4A5C35;
+  color: #36873A;
   border-radius: 999px;
   padding: 5px 11px;
   font-size: 12px;
@@ -135,19 +135,19 @@
 }
 
 .price-preset-btn:hover {
-  border-color: #7FB069;
-  color: #2D5016;
+  border-color: #A2C37F;
+  color: #36873A;
 }
 
 .price-preset-btn.active {
-  background: #2D5016;
+  background: #36873A;
   color: #fff;
-  border-color: #2D5016;
+  border-color: #36873A;
 }
 
 .price-divider {
   font-size: 11px;
-  color: #8A9E72;
+  color: #A2C37F;
   text-align: center;
   position: relative;
 }
@@ -155,7 +155,7 @@
 /* SLIDER */
 .slider-track {
   height: 4px;
-  background: #EAF2E3;
+  background: #F0F7F0;
   border-radius: 2px;
   position: relative;
 }
@@ -164,7 +164,7 @@
   position: absolute;
   top: 0;
   height: 100%;
-  background: linear-gradient(90deg, #7FB069, #4A7C2F);
+  background: linear-gradient(90deg, #A2C37F, #2A6B2E);
   border-radius: 2px;
 }
 
@@ -173,7 +173,7 @@
   flex: 1;
   display: flex;
   align-items: center;
-  border: 1.5px solid #EAF2E3;
+  border: 1.5px solid #F0F7F0;
   border-radius: 8px;
   background: #FAF6F0;
   overflow: hidden;
@@ -181,14 +181,14 @@
 }
 
 .price-input-wrap:focus-within {
-  border-color: #7FB069;
+  border-color: #A2C37F;
 }
 
 .price-prefix {
   padding: 0 8px;
   font-size: 12px;
-  color: #8A9E72;
-  border-right: 1px solid #EAF2E3;
+  color: #A2C37F;
+  border-right: 1px solid #F0F7F0;
 }
 
 .price-input {
@@ -197,7 +197,7 @@
   border: none;
   background: transparent;
   font-size: 13px;
-  color: #1C2B0E;
+  color: #1a1a1a;
   width: 100%;
 }
 
@@ -223,12 +223,12 @@
 
 .star-row:hover,
 .star-row.active {
-  background: #EAF2E3;
+  background: #F0F7F0;
   padding-left: 8px;
 }
 
 .star-display {
-  color: #D4854A;
+  color: #D4A017;
   font-size: 13px;
   letter-spacing: 1px;
 }
@@ -236,12 +236,12 @@
 .star-label {
   flex: 1;
   font-size: 12px;
-  color: #4A5C35;
+  color: #36873A;
 }
 
 .star-count {
   font-size: 11px;
-  color: #8A9E72;
+  color: #A2C37F;
 }
 
 /* STATUS DOT */
@@ -256,29 +256,29 @@
 .weight-btn {
   padding: 6px 13px;
   border-radius: 999px;
-  border: 1.5px solid #EAF2E3;
+  border: 1.5px solid #F0F7F0;
   background: #fff;
   font-size: 12px;
   font-weight: 500;
-  color: #4A5C35;
+  color: #36873A;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .weight-btn:hover {
-  border-color: #7FB069;
-  color: #2D5016;
+  border-color: #A2C37F;
+  color: #36873A;
 }
 
 .weight-btn.active {
-  background: #2D5016;
+  background: #36873A;
   color: #fff;
-  border-color: #2D5016;
+  border-color: #36873A;
 }
 
 /* APPLY BUTTON */
 .btn-apply-filter {
-  background: #2D5016;
+  background: #36873A;
   color: #fff;
   border: none;
   border-radius: 12px;
@@ -288,7 +288,7 @@
   cursor: pointer;
   width: 100%;
   transition: all 0.2s;
-  box-shadow: 0 4px 16px rgba(45, 80, 22, 0.22);
+  box-shadow: 0 4px 16px rgba(54, 135, 58, 0.22);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -296,13 +296,13 @@
 }
 
 .btn-apply-filter:hover {
-  background: #4A7C2F;
+  background: #2A6B2E;
   transform: translateY(-1px);
-  box-shadow: 0 8px 24px rgba(45, 80, 22, 0.28);
+  box-shadow: 0 8px 24px rgba(54, 135, 58, 0.28);
 }
 
 .filter-count-badge {
-  background: #D4854A;
+  background: #D4A017;
   color: #fff;
   border-radius: 50%;
   width: 20px;

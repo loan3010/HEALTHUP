@@ -5,7 +5,7 @@
     <h2 class="title">ĐĂNG NHẬP</h2>
 
     <form (ngSubmit)="onLogin()">
-      <!-- USERNAME -->
+      <!-- USERNAME / EMAIL / PHONE -->
       <div class="field">
         <div class="label">
           Tên tài khoản <span class="req">*</span>
@@ -15,14 +15,14 @@
           <input
             type="text"
             class="inp"
-            placeholder="Nhập email của bạn"
-            name="email"
-            [(ngModel)]="email"
+            placeholder="Nhập email hoặc số điện thoại"
+            name="emailOrPhone"
+            [(ngModel)]="emailOrPhone"
             required
           />
 
           <!-- nút clear -->
-          <button type="button" class="clear" (click)="email=''">×</button>
+          <button type="button" class="clear" (click)="emailOrPhone=''">×</button>
         </div>
       </div>
 
@@ -53,7 +53,9 @@
       </div>
 
       <!-- nút submit phải có type="submit" để ngSubmit chạy -->
-      <button type="submit" class="submit">Đăng nhập</button>
+      <button type="submit" class="submit" [disabled]="isLoading">
+        {{ isLoading ? 'Đang đăng nhập...' : 'Đăng nhập' }}
+      </button>
 
       <div class="divider">hoặc đăng nhập bằng</div>
 

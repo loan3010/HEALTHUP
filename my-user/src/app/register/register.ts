@@ -1,4 +1,11 @@
-import { Component, ElementRef, QueryList, ViewChildren } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  QueryList,
+  ViewChildren,
+  OnInit,
+  OnDestroy
+} from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -19,7 +26,7 @@ type RegisterRes = {
   templateUrl: './register.html',
   styleUrls: ['./register.css']
 })
-export class Register {
+export class Register implements OnInit, OnDestroy {
   form!: FormGroup;
 
   loading = false;
@@ -44,16 +51,71 @@ export class Register {
     private http: HttpClient
   ) {
     this.form = this.fb.group({
-      username: ['', Validators.required],
+      // ✅ username: cho phép tiếng Việt + khoảng trắng, chỉ cấm toàn số
+      username: [
+        '',
+        [
+          Validators.required,
+          Validators.minLength(3),
+          Validators.maxLength(50),
+          Validators.pattern(/^(?!\d+$)[\p{L}\d\s]+$/u)
+        ]
+      ],
       phone: ['', [Validators.required, Validators.pattern(/^[0-9]{9,11}$/)]],
-      email: ['', [Validators.email]], // email optional
+      email: ['', [Validators.email]],
       password: ['', [Validators.required, Validators.minLength(6)]],
       confirmPassword: ['', Validators.required]
     });
   }
 
+  ngOnInit(): void {
+    // reset sạch khi vừa vào trang (giảm bị autofill)
+    setTimeout(() => this.resetRegisterForm(), 0);
+  }
+
+  ngOnDestroy(): void {
+    if (this.otpInterval) {
+      clearInterval(this.otpInterval);
+      this.otpInterval = null;
+    }
+  }
+
   get passwordMismatch(): boolean {
     return this.form.get('password')?.value !== this.form.get('confirmPassword')?.value;
+  }
+
+  // ===== RESET HELPERS =====
+  private resetOtpUI(): void {
+    this.otpValues = ['', '', '', '', '', ''];
+    this.otpError = '';
+
+    const inputs = this.otpInputs?.toArray?.() || [];
+    inputs.forEach((el) => (el.nativeElement.value = ''));
+  }
+
+  private resetRegisterForm(): void {
+    this.form.reset();
+    this.form.markAsPristine();
+    this.form.markAsUntouched();
+
+    Object.keys(this.form.controls).forEach((k) => {
+      this.form.get(k)?.setErrors(null);
+    });
+
+    this.resetOtpUI();
+    this.message = '';
+    this.error = '';
+  }
+
+  closeOtpPopup(): void {
+    this.showOtp = false;
+
+    if (this.otpInterval) {
+      clearInterval(this.otpInterval);
+      this.otpInterval = null;
+    }
+
+    this.resetOtpUI();
   }
 
   openOtpPopup(): void {
@@ -68,12 +130,15 @@ export class Register {
     }
 
     this.showOtp = true;
+    this.resetOtpUI();
     this.startOtpCountdown();
+
     setTimeout(() => this.otpInputs?.first?.nativeElement?.focus(), 0);
   }
 
   private startOtpCountdown(): void {
     this.otpSecondsLeft = 60;
+
     if (this.otpInterval) clearInterval(this.otpInterval);
 
     this.otpInterval = setInterval(() => {
@@ -86,9 +151,11 @@ export class Register {
     }, 1000);
   }
 
+  // ===== OTP HANDLERS =====
   onOtpInput(event: any, index: number): void {
     const value = (event.target.value || '').replace(/[^0-9]/g, '');
     event.target.value = value;
+
     this.otpValues[index] = value;
     this.otpError = '';
 
@@ -112,7 +179,9 @@ export class Register {
       const inputs = this.otpInputs.toArray();
       inputs.forEach((input, i) => (input.nativeElement.value = this.otpValues[i]));
       inputs[5]?.nativeElement?.focus();
+      this.otpError = '';
     }
+
     event.preventDefault();
   }
 
@@ -142,17 +211,19 @@ export class Register {
       this.otpInterval = null;
     }
 
+    const usernameVal = String(this.form.get('username')?.value || '').trim();
+    const phoneVal = String(this.form.get('phone')?.value || '').trim();
+    const passwordVal = String(this.form.get('password')?.value || '');
+
     const payload: any = {
-      username: String(this.form.get('username')?.value || '').trim(),
-      phone: String(this.form.get('phone')?.value || '').trim(),
-      password: String(this.form.get('password')?.value || ''),
+      username: usernameVal,
+      phone: phoneVal,
+      password: passwordVal,
       role: 'user'
     };
 
     const emailVal = String(this.form.get('email')?.value || '').trim();
     if (emailVal) payload.email = emailVal;
-
-    console.log('[REGISTER] payload =>', payload);
 
     this.loading = true;
 
@@ -161,45 +232,50 @@ export class Register {
       .pipe(finalize(() => (this.loading = false)))
       .subscribe({
         next: (res) => {
-          console.log('[REGISTER] response =>', res);
-
           this.showOtp = false;
           this.message = res?.message || 'Đăng ký thành công!';
           this.error = '';
 
-          // nếu backend trả token thì lưu luôn (tuỳ bạn)
-          if (res?.token) localStorage.setItem('token', res.token);
-          if (res?.user) localStorage.setItem('user', JSON.stringify(res.user));
+          // ✅ Lưu để trang Login tự điền
+          sessionStorage.setItem(
+            'prefill_login',
+            JSON.stringify({ username: usernameVal, password: passwordVal })
+          );
 
-          setTimeout(() => this.router.navigate(['/login']), 800);
+          // ✅ reset để quay lại register đăng ký cái khác vẫn trống
+          this.resetRegisterForm();
+
+          setTimeout(() => this.router.navigate(['/login']), 300);
         },
         error: (err: HttpErrorResponse) => {
-          console.log('[REGISTER] error =>', err);
           this.showOtp = false;
           this.error = err?.error?.message || 'Đăng ký thất bại!';
         }
       });
   }
 
-  // ===== VALIDATION HELPERS (PHẢI CÓ VÌ HTML ĐANG DÙNG) =====
-showErr(controlName: string): boolean {
-  const control = this.form.get(controlName);
-  return !!(control && control.invalid && (control.dirty || control.touched));
-}
-
-errText(controlName: string): string {
-  const control = this.form.get(controlName);
-  if (!control) return '';
-
-  // email KHÔNG bắt buộc
-  if (controlName !== 'email' && control.errors?.['required']) {
-    return 'Trường này là bắt buộc.';
+  // ===== VALIDATION HELPERS =====
+  showErr(controlName: string): boolean {
+    const control = this.form.get(controlName);
+    return !!(control && control.invalid && (control.dirty || control.touched));
   }
 
-  if (control.errors?.['email']) return 'Email không hợp lệ.';
-  if (control.errors?.['pattern']) return 'Số điện thoại không hợp lệ.';
-  if (control.errors?.['minlength']) return 'Mật khẩu tối thiểu 6 ký tự.';
+  errText(controlName: string): string {
+    const control = this.form.get(controlName);
+    if (!control) return '';
 
-  return '';
-}
+    if (controlName !== 'email' && control.errors?.['required']) {
+      return 'Trường này là bắt buộc.';
+    }
+
+    if (controlName === 'username' && control.errors?.['minlength']) return 'Tên tài khoản tối thiểu 3 ký tự.';
+    if (controlName === 'username' && control.errors?.['maxlength']) return 'Tên tài khoản tối đa 50 ký tự.';
+    if (controlName === 'username' && control.errors?.['pattern']) return 'Tên tài khoản không được chỉ gồm chữ số.';
+
+    if (controlName === 'phone' && control.errors?.['pattern']) return 'Số điện thoại không hợp lệ.';
+    if (control.errors?.['email']) return 'Email không hợp lệ.';
+    if (controlName === 'password' && control.errors?.['minlength']) return 'Mật khẩu tối thiểu 6 ký tự.';
+
+    return '';
+  }
 }
