@@ -19,11 +19,7 @@ import {
   mapOneOrManyArgs,
   noop,
   popResultSelector
-<<<<<<<< HEAD:my-user/.angular/cache/21.1.4/HEALTHUP/vite/deps/chunk-6L4UTDQX.js
 } from "./chunk-T2UPE7AW.js";
-========
-} from "./chunk-K3WGHAM4.js";
->>>>>>>> db8975ce4dd328d0272c24ddcaa6b221fe02bb17:my-user/.angular/cache/21.1.4/HEALTHUP/vite/deps/chunk-54BGGPQE.js
 
 // node_modules/@angular/core/fesm2022/_effect-chunk.mjs
 var activeConsumer = null;
@@ -27041,8 +27037,4 @@ export {
   RESPONSE_INIT,
   REQUEST_CONTEXT
 };
-<<<<<<<< HEAD:my-user/.angular/cache/21.1.4/HEALTHUP/vite/deps/chunk-6L4UTDQX.js
 //# sourceMappingURL=chunk-6L4UTDQX.js.map
-========
-//# sourceMappingURL=chunk-54BGGPQE.js.map
->>>>>>>> db8975ce4dd328d0272c24ddcaa6b221fe02bb17:my-user/.angular/cache/21.1.4/HEALTHUP/vite/deps/chunk-54BGGPQE.js

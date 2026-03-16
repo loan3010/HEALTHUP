@@ -59,8 +59,12 @@ export class Login implements OnInit {
           localStorage.setItem('token', res.token);
           localStorage.setItem('user', JSON.stringify(res.user));
 
-          if (res.user.role === 'admin') this.router.navigate(['/admin']);
-          else this.router.navigate(['/home']);
+          // Reload trang để header cập nhật trạng thái đăng nhập
+          if (res.user.role === 'admin') {
+            this.router.navigate(['/admin']).then(() => window.location.reload());
+          } else {
+            this.router.navigate(['/home']).then(() => window.location.reload());
+          }
 
           this.isLoading = false;
         },
