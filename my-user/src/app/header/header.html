@@ -26,7 +26,12 @@
 
       <!-- Actions -->
       <div class="header-actions">
+        <!-- Chưa đăng nhập -->
         <ng-container *ngIf="!isLoggedIn">
+          <button type="button" class="btn-track-order" (click)="openTrackOrder()" title="Tra cứu đơn hàng">
+            <i class="bi bi-search btn-icon-only"></i>
+            <span class="btn-text">Tra cứu đơn hàng</span>
+          </button>
           <button type="button" class="btn-login" routerLink="/login" title="Đăng nhập">
             <i class="bi bi-box-arrow-in-right btn-icon-only"></i>
             <span class="btn-text">Đăng nhập</span>
@@ -37,14 +42,35 @@
           </button>
         </ng-container>
 
+        <!-- Đã đăng nhập -->
         <ng-container *ngIf="isLoggedIn">
-          <i class="bi bi-bell icon"></i>
-          <i class="bi bi-cart icon"></i>
+          <i class="bi bi-bell icon" title="Thông báo"></i>
+          <i class="bi bi-cart icon" routerLink="/cart" title="Giỏ hàng"></i>
+          
           <div class="user-menu">
-            <i class="bi bi-person-circle icon" (click)="toggleDropdown()"></i>
+            <div class="user-greeting" (click)="toggleDropdown()">
+              <div class="user-avatar">{{ getInitials() }}</div>
+              <span class="user-name">Xin chào, {{ userName }}</span>
+              <i class="bi bi-chevron-down dropdown-icon"></i>
+            </div>
+            
             <div class="user-dropdown" *ngIf="showDropdown">
-              <a routerLink="/profile">User Profile</a>
-              <a (click)="logout()">Đăng xuất</a>
+              <a routerLink="/profile" (click)="closeDropdown()">
+                <i class="bi bi-person"></i> Tài khoản của tôi
+              </a>
+              <a routerLink="/orders" (click)="closeDropdown()">
+                <i class="bi bi-box-seam"></i> Đơn hàng
+              </a>
+              <a routerLink="/wishlist" (click)="closeDropdown()">
+                <i class="bi bi-heart"></i> Yêu thích
+              </a>
+              <a routerLink="/settings" (click)="closeDropdown()">
+                <i class="bi bi-gear"></i> Cài đặt
+              </a>
+              <div class="dropdown-divider"></div>
+              <a (click)="logout()" class="logout-link">
+                <i class="bi bi-box-arrow-right"></i> Đăng xuất
+              </a>
             </div>
           </div>
         </ng-container>
@@ -69,3 +95,9 @@
     <a routerLink="/faqs" routerLinkActive="active" (click)="closeMenu()">FAQs</a>
   </div>
 </header>
+
+<!-- Track Order Modal -->
+<app-track-order-modal 
+  [isOpen]="showTrackOrderModal" 
+  (closeModal)="closeTrackOrderModal()">
+</app-track-order-modal>

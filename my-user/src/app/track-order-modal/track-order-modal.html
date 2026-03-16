@@ -1,0 +1,53 @@
+<!-- Modal Backdrop -->
+<div class="modal-backdrop" *ngIf="isOpen" (click)="close()">
+  
+  <!-- Modal Content -->
+  <div class="track-modal" (click)="$event.stopPropagation()">
+    
+    <div class="modal-header">
+      <h3 class="modal-title">TRA CỨU ĐƠN HÀNG</h3>
+      <button class="close-btn" (click)="close()" type="button">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <p class="modal-desc">
+        Nhập số điện thoại đã đặt hàng để tra cứu thông tin đơn hàng của bạn.
+      </p>
+
+      <form (ngSubmit)="onSubmit()">
+        <div class="form-group">
+          <label for="phone">Số điện thoại <span class="required">*</span></label>
+          <input 
+            type="tel" 
+            id="phone"
+            class="form-input"
+            [(ngModel)]="phoneNumber"
+            name="phone"
+            placeholder="Nhập số điện thoại (10 số)"
+            maxlength="11"
+            pattern="[0-9]*"
+            inputmode="numeric"
+            required
+          />
+        </div>
+
+        <button type="submit" class="submit-btn" [disabled]="isLoading">
+          <i class="bi bi-search"></i>
+          {{ isLoading ? 'Đang tra cứu...' : 'Tra cứu đơn hàng' }}
+        </button>
+
+        <div class="error-message" *ngIf="errorMessage">
+          {{ errorMessage }}
+        </div>
+
+        <div class="success-message" *ngIf="successMessage">
+          {{ successMessage }}
+        </div>
+      </form>
+    </div>
+
+  </div>
+
+</div>

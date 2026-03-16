@@ -3,8 +3,9 @@
   position: sticky;
   top: 0;
   z-index: 3000;
-  background-color: #f4f4f4;
+  background-color: #FAF6F0; /* Brand background main */
   box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .header-container {
@@ -45,11 +46,12 @@
   position: relative;
   transition: color 0.2s;
   white-space: nowrap;
+  font-family: 'Be Vietnam Pro', sans-serif;
 }
 
 .nav-menu a:hover,
 .nav-menu a.active {
-  color: #3d6f2f;
+  color: #36873A; /* Brand primary */
 }
 
 .nav-menu a::after {
@@ -59,7 +61,7 @@
   left: 0;
   width: 0%;
   height: 2px;
-  background: #3d6f2f;
+  background: #36873A; /* Brand primary */
   transition: 0.3s;
 }
 
@@ -93,7 +95,7 @@
 }
 
 .search-box input:focus {
-  border-color: #3d6f2f;
+  border-color: #36873A; /* Brand primary */
   width: 240px;
 }
 
@@ -102,7 +104,7 @@
   right: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: #3d6f2f;
+  color: #36873A; /* Brand primary */
   pointer-events: none;
 }
 
@@ -114,14 +116,15 @@
 }
 
 /* ===== BUTTONS (desktop: chữ, mobile: icon) ===== */
+.btn-track-order,
 .btn-login,
 .btn-register {
   display: flex;
   align-items: center;
   gap: 6px;
   background: transparent;
-  border: 1.5px solid #3d6f2f;
-  color: #3d6f2f;
+  border: 1.5px solid #36873A; /* Brand primary */
+  color: #36873A; /* Brand primary */
   padding: 6px 16px;
   border-radius: 25px;
   cursor: pointer;
@@ -129,11 +132,22 @@
   font-size: 14px;
   transition: all 0.25s ease;
   white-space: nowrap;
+  font-family: 'Be Vietnam Pro', sans-serif;
+}
+
+.btn-track-order {
+  background: #36873A; /* Brand primary */
+  color: #fff;
+}
+
+.btn-track-order:hover {
+  background: #2A6B2E; /* Brand primary hover */
+  border-color: #2A6B2E;
 }
 
 .btn-login:hover,
 .btn-register:hover {
-  background: #3d6f2f;
+  background: #36873A; /* Brand primary */
   color: #fff;
 }
 
@@ -148,6 +162,7 @@
 
 /* Mobile: ẩn chữ, hiện icon — button thành hình tròn */
 @media (max-width: 992px) {
+  .btn-track-order,
   .btn-login,
   .btn-register {
     width: 38px;
@@ -177,38 +192,141 @@
 
 .icon:hover {
   transform: scale(1.1);
-  color: #3d6f2f;
+  color: #36873A; /* Brand primary */
 }
 
-/* ===== USER DROPDOWN ===== */
+/* ===== USER MENU & GREETING ===== */
 .user-menu {
   position: relative;
+}
+
+.user-greeting {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px 6px 6px;
+  border-radius: 25px;
+  cursor: pointer;
+  transition: background 0.2s;
+  border: 1.5px solid transparent;
+}
+
+.user-greeting:hover {
+  background: #F0F7F0; /* Brand bg color */
+  border-color: #36873A; /* Brand primary */
+}
+
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #36873A 0%, #2A6B2E 100%); /* Brand primary gradient */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+  font-family: 'Be Vietnam Pro', sans-serif;
+}
+
+.user-name {
+  color: #333;
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+  font-family: 'Be Vietnam Pro', sans-serif;
+}
+
+.dropdown-icon {
+  font-size: 12px;
+  color: #666;
+  transition: transform 0.2s;
+}
+
+.user-greeting:hover .dropdown-icon {
+  transform: rotate(180deg);
 }
 
 .user-dropdown {
   position: absolute;
   right: 0;
-  top: 36px;
+  top: calc(100% + 8px);
   background: white;
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 8px 0;
-  min-width: 150px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  min-width: 220px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
   z-index: 100;
+  animation: dropdown-fade-in 0.2s ease;
+}
+
+@keyframes dropdown-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .user-dropdown a {
-  display: block;
-  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
   text-decoration: none;
   color: #333;
   font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  font-family: 'Be Vietnam Pro', sans-serif;
 }
 
 .user-dropdown a:hover {
-  background: #f0f7ed;
-  color: #3d6f2f;
+  background: #F0F7F0; /* Brand bg color */
+  color: #36873A; /* Brand primary */
+}
+
+.user-dropdown a i {
+  font-size: 16px;
+  width: 20px;
+  text-align: center;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: #e0e0e0;
+  margin: 6px 0;
+}
+
+.logout-link {
+  color: #C62828 !important; /* Brand danger */
+}
+
+.logout-link:hover {
+  background: #FFEBEE !important; /* Brand danger bg */
+  color: #8E1C1C !important; /* Brand danger hover */
+}
+
+/* Mobile: ẩn tên, chỉ hiện avatar */
+@media (max-width: 768px) {
+  .user-name {
+    display: none;
+  }
+
+  .user-greeting {
+    padding: 6px;
+  }
+
+  .dropdown-icon {
+    display: none;
+  }
 }
 
 /* ===== HAMBURGER (mobile only) ===== */
@@ -221,7 +339,7 @@
   width: 38px;
   height: 38px;
   background: none;
-  border: 1.5px solid #3d6f2f;
+  border: 1.5px solid #36873A; /* Brand primary */
   border-radius: 8px;
   cursor: pointer;
   padding: 0;
@@ -232,7 +350,7 @@
   display: block;
   width: 18px;
   height: 2px;
-  background-color: #3d6f2f;
+  background-color: #36873A; /* Brand primary */
   border-radius: 2px;
   transition: all 0.3s ease;
 }
@@ -251,7 +369,7 @@
 .mobile-nav-menu {
   display: none;
   flex-direction: column;
-  background: #f4f4f4;
+  background: #FAF6F0; /* Brand background main */
   border-top: 1px solid #e0e0e0;
   overflow: hidden;
   max-height: 0;
@@ -270,6 +388,7 @@
   font-weight: 500;
   border-bottom: 1px solid #ebebeb;
   transition: background 0.2s, color 0.2s;
+  font-family: 'Be Vietnam Pro', sans-serif;
 }
 
 .mobile-nav-menu a:last-child {
@@ -278,8 +397,8 @@
 
 .mobile-nav-menu a:hover,
 .mobile-nav-menu a.active {
-  background: #e8f0e3;
-  color: #3d6f2f;
+  background: #F0F7F0; /* Brand bg color */
+  color: #36873A; /* Brand primary */
 }
 
 /* ===== RESPONSIVE ===== */

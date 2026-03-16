@@ -1,29 +1,17 @@
 import {
   withHttpTransferCache
-<<<<<<<< HEAD:my-user/.angular/cache/21.1.4/HEALTHUP/vite/deps/chunk-HNQ2RIEX.js
-} from "./chunk-IAMOQ5HB.js";
+} from "./chunk-FHYUNPDG.js";
 import {
   CommonModule,
   PLATFORM_BROWSER_ID
-} from "./chunk-RURE3QTB.js";
-========
-} from "./chunk-PE7BJHFK.js";
-import {
-  CommonModule,
-  PLATFORM_BROWSER_ID
-} from "./chunk-7IB6JGAQ.js";
->>>>>>>> db8975ce4dd328d0272c24ddcaa6b221fe02bb17:my-user/.angular/cache/21.1.4/HEALTHUP/vite/deps/chunk-VYGXCBZF.js
+} from "./chunk-EEI2QTOG.js";
 import {
   DomAdapter,
   XhrFactory,
   getDOM,
   parseCookieValue,
   setRootDomAdapter
-<<<<<<<< HEAD:my-user/.angular/cache/21.1.4/HEALTHUP/vite/deps/chunk-HNQ2RIEX.js
-} from "./chunk-DVJGE2TQ.js";
-========
-} from "./chunk-5TUG2RY6.js";
->>>>>>>> db8975ce4dd328d0272c24ddcaa6b221fe02bb17:my-user/.angular/cache/21.1.4/HEALTHUP/vite/deps/chunk-VYGXCBZF.js
+} from "./chunk-VO7CAMHU.js";
 import {
   APP_ID,
   ApplicationModule,
@@ -84,17 +72,10 @@ import {
   ɵɵdefineInjector,
   ɵɵdefineNgModule,
   ɵɵinject
-<<<<<<<< HEAD:my-user/.angular/cache/21.1.4/HEALTHUP/vite/deps/chunk-HNQ2RIEX.js
 } from "./chunk-6L4UTDQX.js";
 import {
   __spreadValues
 } from "./chunk-T2UPE7AW.js";
-========
-} from "./chunk-54BGGPQE.js";
-import {
-  __spreadValues
-} from "./chunk-K3WGHAM4.js";
->>>>>>>> db8975ce4dd328d0272c24ddcaa6b221fe02bb17:my-user/.angular/cache/21.1.4/HEALTHUP/vite/deps/chunk-VYGXCBZF.js
 
 // node_modules/@angular/platform-browser/fesm2022/_dom_renderer-chunk.mjs
 var EventManagerPlugin = class {
@@ -1765,8 +1746,4 @@ export {
   provideClientHydration,
   VERSION
 };
-<<<<<<<< HEAD:my-user/.angular/cache/21.1.4/HEALTHUP/vite/deps/chunk-HNQ2RIEX.js
-//# sourceMappingURL=chunk-HNQ2RIEX.js.map
-========
-//# sourceMappingURL=chunk-VYGXCBZF.js.map
->>>>>>>> db8975ce4dd328d0272c24ddcaa6b221fe02bb17:my-user/.angular/cache/21.1.4/HEALTHUP/vite/deps/chunk-VYGXCBZF.js
+//# sourceMappingURL=chunk-C2V7BNGM.js.map
