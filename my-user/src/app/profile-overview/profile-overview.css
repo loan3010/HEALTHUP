@@ -6,13 +6,27 @@
   margin: 0 auto;
   padding: 24px 28px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
+  font-family: 'Be Vietnam Pro', sans-serif;
 }
 
 .avatar-lg {
   width: 90px;
   height: 90px;
-  background: #ddd;
+  background: linear-gradient(135deg, #36873A 0%, #2A6B2E 100%); /* Brand gradient */
   border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 36px;
+  text-transform: uppercase;
+}
+
+.profile-card h5 {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-weight: 600;
+  color: #333;
 }
 
 .profile-card label {
@@ -20,6 +34,7 @@
   font-size: 13px;
   margin-bottom: 4px;
   color: #444;
+  font-family: 'Be Vietnam Pro', sans-serif;
 }
 
 .form-control {
@@ -28,22 +43,25 @@
   padding: 8px 12px;
   font-size: 13.5px;
   background: #fafafa;
+  font-family: 'Be Vietnam Pro', sans-serif;
 }
 
 .form-control:focus {
-  border-color: #3d6f2f;
+  border-color: #36873A; /* Brand primary */
   background: white;
-  box-shadow: 0 0 0 0.15rem rgba(61, 111, 47, 0.15);
+  box-shadow: 0 0 0 0.15rem rgba(54, 135, 58, 0.15);
 }
 
 .profile-card .btn-secondary {
-  background-color: #3d6f2f;
+  background-color: #36873A; /* Brand primary */
   border: none;
   border-radius: 20px;
   padding: 7px 24px;
   font-size: 13.5px;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  transition: background 0.2s;
 }
 
 .profile-card .btn-secondary:hover {
-  background-color: #2f5c24;
+  background-color: #2A6B2E; /* Brand primary hover */
 }
