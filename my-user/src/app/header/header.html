@@ -55,7 +55,7 @@
             </div>
             
             <div class="user-dropdown" *ngIf="showDropdown">
-              <a routerLink="/profile" (click)="closeDropdown()">
+              <!-- <a routerLink="/profile" (click)="closeDropdown()">
                 <i class="bi bi-person"></i> Tài khoản của tôi
               </a>
               <a routerLink="/orders" (click)="closeDropdown()">
@@ -67,9 +67,24 @@
               <a routerLink="/settings" (click)="closeDropdown()">
                 <i class="bi bi-gear"></i> Cài đặt
               </a>
+              <a routerLink="/settings" (click)="closeDropdown()">
+                <i class="bi bi-gear"></i> Sổ địa chỉ
+              </a>
               <div class="dropdown-divider"></div>
               <a (click)="logout()" class="logout-link">
                 <i class="bi bi-box-arrow-right"></i> Đăng xuất
+              </a> -->
+              <a routerLink="/profile/overview" (click)="closeDropdown()">
+                <i class="bi bi-person"></i> Tài khoản của tôi
+              </a>
+              <a routerLink="/orders" (click)="closeDropdown()">
+                <i class="bi bi-box-seam"></i> Đơn hàng
+              </a>
+              <a routerLink="/profile/wishlist" (click)="closeDropdown()">
+                <i class="bi bi-heart"></i> Yêu thích
+              </a>
+              <a routerLink="/profile/address" (click)="closeDropdown()">
+                <i class="bi bi-geo-alt"></i> Sổ địa chỉ
               </a>
             </div>
           </div>

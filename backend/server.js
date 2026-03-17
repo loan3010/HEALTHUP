@@ -36,7 +36,7 @@ app.use('/api/blogs',   require('./routes/blogs'));   // ✅ Thêm mới
 app.use('/api/auth', require('./routes/auth'));   //thêm cho register
 app.use('/api/orders', require('./routes/orders')); //thêm cho checkout
 app.use('/api/carts', require('./routes/carts'));
-
+app.use('/api/addresses', require('./routes/addresses'));
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({
