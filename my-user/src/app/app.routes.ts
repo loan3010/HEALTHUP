@@ -15,6 +15,7 @@ import { PoliciesComponent } from './policies/policies';
 import { Checkout } from './checkout/checkout';
 import { Cart } from './cart/cart';
 import { Wishlist } from './wishlist/wishlist';
+import { ChatbotComponent } from './chatbot/chatbot';
 
 
 export const routes: Routes = [
@@ -35,6 +36,7 @@ export const routes: Routes = [
   { path: 'policies',         component: PoliciesComponent },
   {path: 'checkout', component: Checkout},
   {path: 'cart', component: Cart},
+  {path: 'chatbot', component: ChatbotComponent},
 
   // {
   // path: 'profile',
