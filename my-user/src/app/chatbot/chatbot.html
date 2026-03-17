@@ -1,1 +1,151 @@
-<p>chatbot works!</p>
+<!-- CHATBOT WIDGET -->
+
+<!-- Floating Chat Button -->
+<button 
+  class="healthup-chat-button" 
+  [class.active]="isOpen"
+  (click)="toggleChat()" 
+  aria-label="Mở chat">
+  <svg class="chat-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2ZM20 16H5.2L4 17.2V4H20V16Z" fill="currentColor"/>
+    <circle cx="12" cy="10" r="1.5" fill="currentColor"/>
+    <circle cx="8" cy="10" r="1.5" fill="currentColor"/>
+    <circle cx="16" cy="10" r="1.5" fill="currentColor"/>
+  </svg>
+  <svg class="close-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12L19 6.41Z" fill="currentColor"/>
+  </svg>
+</button>
+
+<!-- Chat Widget Container -->
+<div class="healthup-chat-widget" [class.active]="isOpen">
+  
+  <!-- Header -->
+  <div class="chat-header">
+    <div class="header-content">
+      <div class="bot-avatar">
+        <img [src]="botAvatar" alt="Bot">
+      </div>
+      <div class="header-info">
+        <h3>{{ botName }}</h3>
+        <span class="status">
+          <span class="status-dot"></span>
+          Đang online
+        </span>
+      </div>
+    </div>
+    <button class="minimize-btn" (click)="toggleChat()" aria-label="Thu nhỏ">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M19 13H5V11H19V13Z" fill="currentColor"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Welcome Screen -->
+  <div class="chat-welcome" *ngIf="showWelcome">
+    <div class="welcome-content">
+      <div class="welcome-logo">
+        <img src="assets/healthup-logo.svg" alt="HealthUp">
+      </div>
+      <h2>Xin chào! 👋</h2>
+      <p>Tôi là trợ lý ảo của HealthUp. Tôi có thể giúp bạn:</p>
+      <ul class="feature-list">
+        <li>🥣 Tư vấn sản phẩm Granola, Trà thảo mộc, Trái cây sấy</li>
+        <li>📦 Thông tin về chính sách giao hàng, đổi trả</li>
+        <li>💚 Hướng dẫn sử dụng sản phẩm hiệu quả</li>
+        <li>❓ Trả lời các câu hỏi thường gặp</li>
+      </ul>
+      <button class="btn-start-chat" (click)="startChat()">
+        Bắt đầu trò chuyện
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 4L10.59 5.41L16.17 11H4V13H16.17L10.59 18.59L12 20L20 12L12 4Z" fill="currentColor"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Chat Messages Area -->
+  <div class="chat-messages" *ngIf="!showWelcome">
+    
+    <!-- Messages -->
+    <div *ngFor="let message of messages" 
+         class="message" 
+         [ngClass]="message.type">
+      
+      <div class="message-avatar" *ngIf="message.type === 'bot'">
+        <img [src]="botAvatar" alt="Bot">
+      </div>
+      
+      <div class="message-content">
+        <div class="message-bubble" [innerHTML]="sanitizeHtml(message.text)"></div>
+        <div class="message-time">{{ message.time }}</div>
+        
+        <!-- FAQ Suggestions -->
+        <div class="faq-suggestions" *ngIf="message.suggestions && message.suggestions.length > 0">
+          <button 
+            *ngFor="let faq of message.suggestions"
+            class="faq-suggestion"
+            (click)="handleFAQClick(faq)">
+            {{ faq.question }}
+          </button>
+        </div>
+      </div>
+      
+      <div class="message-avatar" *ngIf="message.type === 'user'">
+        <img [src]="userAvatar" alt="User">
+      </div>
+    </div>
+
+    <!-- Typing Indicator -->
+    <div class="message bot" *ngIf="isTyping">
+      <div class="message-avatar">
+        <!-- <img [src]="botAvatar" alt="Bot"> -->
+      </div>
+      <div class="typing-indicator">
+        <span class="typing-dot"></span>
+        <span class="typing-dot"></span>
+        <span class="typing-dot"></span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Quick Replies (Categories) -->
+  <div class="quick-replies" *ngIf="!showWelcome && categories.length > 0">
+    <div class="quick-replies-title">Chọn chủ đề:</div>
+    <div class="quick-replies-buttons">
+      <button 
+        *ngFor="let category of categories"
+        class="quick-reply-btn"
+        (click)="handleCategoryClick(category)">
+        {{ category.icon }} {{ category.name }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Input Area -->
+  <div class="chat-input-wrapper" *ngIf="!showWelcome">
+    <div class="chat-input-area">
+      <input 
+        type="text" 
+        [(ngModel)]="userInput"
+        (keypress)="onKeyPress($event)"
+        placeholder="Nhập câu hỏi của bạn..." 
+        autocomplete="off"
+      />
+      <button 
+        class="send-button" 
+        [disabled]="!userInput.trim()"
+        (click)="sendMessage()" 
+        aria-label="Gửi">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M2.01 21L23 12L2.01 3L2 10L17 12L2 14L2.01 21Z" fill="currentColor"/>
+        </svg>
+      </button>
+    </div>
+    <div class="powered-by">
+      Powered by <strong>HealthUp</strong> 🌿
+    </div>
+  </div>
+
+</div>
