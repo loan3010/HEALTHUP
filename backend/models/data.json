@@ -42,7 +42,7 @@
       "category_id": 2,
       "question": "Granola có giảm cân không?",
       "answer": "Granola là một lựa chọn tốt cho việc giảm cân khi sử dụng đúng cách. Granola chứa nhiều chất xơ, giúp bạn no lâu hơn và kiểm soát cảm giác thèm ăn. Tuy nhiên, bạn cần lưu ý:\n\n- Kiểm soát khẩu phần: 1 serving (khoảng 30-40g) là đủ\n- Kết hợp với sữa tươi không đường hoặc sữa chua Hy Lạp\n- Granola của HealthUp không có đường tinh luyện, sử dụng mật ong tự nhiên\n- Nên ăn vào bữa sáng hoặc bữa phụ\n\nKết hợp với chế độ ăn cân bằng và tập luyện đều đặn sẽ mang lại hiệu quả tốt nhất!",
-      "view_count": 4,
+      "view_count": 5,
       "created_at": "2026-03-17T17:24:08.412Z",
       "updated_at": "2026-03-17T17:24:08.412Z"
     },
@@ -51,7 +51,7 @@
       "category_id": 5,
       "question": "Ship hàng bao lâu?",
       "answer": "Thời gian giao hàng của HealthUp:\n\n🚚 Nội thành TP.HCM: 1-2 ngày làm việc\n🚚 Các tỉnh thành khác: 2-4 ngày làm việc\n\nChúng tôi hỗ trợ:\n- Giao hàng nhanh trong ngày (với đơn đặt trước 10h sáng tại TP.HCM)\n- Miễn phí ship cho đơn hàng từ 300.000đ\n- Đóng gói cẩn thận, đảm bảo sản phẩm nguyên vẹn\n\nBạn sẽ nhận được mã tracking để theo dõi đơn hàng qua SMS/Email nhé!",
-      "view_count": 2,
+      "view_count": 4,
       "created_at": "2026-03-17T17:24:08.412Z",
       "updated_at": "2026-03-17T17:24:08.412Z"
     },
@@ -69,7 +69,7 @@
       "category_id": 2,
       "question": "Granola có bổ dưỡng không?",
       "answer": "Granola của HealthUp rất bổ dưỡng với các thành phần:\n\n🌾 Yến mạch nguyên hạt: Giàu chất xơ, protein\n🥜 Hạt dinh dưỡng: Hạnh nhân, óc chó, hạt điều\n🍯 Mật ong tự nhiên: Thay thế đường tinh luyện\n🍇 Trái cây sấy: Vitamin và khoáng chất\n\nLợi ích sức khỏe:\n✅ Cung cấp năng lượng bền vững\n✅ Tốt cho tim mạch\n✅ Hỗ trợ tiêu hóa\n✅ Giàu chất chống oxi hóa\n\nPhù hợp cho: Người tập gym, ăn kiêng, bận rộn, và mọi người muốn ăn sáng healthy!",
-      "view_count": 3,
+      "view_count": 4,
       "created_at": "2026-03-17T17:24:08.412Z",
       "updated_at": "2026-03-17T17:24:08.412Z"
     },
@@ -118,6 +118,76 @@
       "user_message": "CÓ LOẠI NÀO",
       "bot_response": "Xin lỗi, tôi không tìm thấy câu trả lời phù hợp. 🙏\n\nBạn có thể:\n- Thử đặt câu hỏi theo cách khác\n- Chọn một chủ đề cụ thể bên dưới\n- Liên hệ trực tiếp với chúng tôi qua hotline: 1900 xxxx",
       "created_at": "2026-03-17T17:58:26.767Z"
+    },
+    {
+      "id": 6,
+      "session_id": "session_1773807928838_r09t3gbhk",
+      "user_message": "t muốn ăn granola",
+      "bot_response": "Xin lỗi, tôi không tìm thấy câu trả lời phù hợp. 🙏\n\nBạn có thể:\n- Thử đặt câu hỏi theo cách khác\n- Chọn một chủ đề cụ thể bên dưới\n- Liên hệ hotline: 1900 xxxx",
+      "created_at": "2026-03-18T04:25:45.086Z"
+    },
+    {
+      "id": 7,
+      "session_id": "session_1773807928838_r09t3gbhk",
+      "user_message": "Tôi muốn biết về Granola",
+      "bot_response": "Showed category FAQs",
+      "created_at": "2026-03-18T04:27:18.414Z"
+    },
+    {
+      "id": 8,
+      "session_id": "session_1773807928838_r09t3gbhk",
+      "user_message": "Granola có bổ dưỡng không?",
+      "bot_response": "Granola của HealthUp rất bổ dưỡng với các thành phần:\n\n🌾 Yến mạch nguyên hạt: Giàu chất xơ, protein\n🥜 Hạt dinh dưỡng: Hạnh nhân, óc chó, hạt điều\n🍯 Mật ong tự nhiên: Thay thế đường tinh luyện\n🍇 Trái cây sấy: Vitamin và khoáng chất\n\nLợi ích sức khỏe:\n✅ Cung cấp năng lượng bền vững\n✅ Tốt cho tim mạch\n✅ Hỗ trợ tiêu hóa\n✅ Giàu chất chống oxi hóa\n\nPhù hợp cho: Người tập gym, ăn kiêng, bận rộn, và mọi người muốn ăn sáng healthy!",
+      "created_at": "2026-03-18T04:27:35.253Z"
+    },
+    {
+      "id": 9,
+      "session_id": "session_1773808181671_miayx5tip",
+      "user_message": "Tôi muốn biết về Chính sách chung",
+      "bot_response": "Showed category FAQs",
+      "created_at": "2026-03-18T04:29:53.724Z"
+    },
+    {
+      "id": 10,
+      "session_id": "session_1773808181671_miayx5tip",
+      "user_message": "Ship hàng bao lâu?",
+      "bot_response": "Thời gian giao hàng của HealthUp:\n\n🚚 Nội thành TP.HCM: 1-2 ngày làm việc\n🚚 Các tỉnh thành khác: 2-4 ngày làm việc\n\nChúng tôi hỗ trợ:\n- Giao hàng nhanh trong ngày (với đơn đặt trước 10h sáng tại TP.HCM)\n- Miễn phí ship cho đơn hàng từ 300.000đ\n- Đóng gói cẩn thận, đảm bảo sản phẩm nguyên vẹn\n\nBạn sẽ nhận được mã tracking để theo dõi đơn hàng qua SMS/Email nhé!",
+      "created_at": "2026-03-18T04:30:13.099Z"
+    },
+    {
+      "id": 11,
+      "session_id": "session_1773808181671_miayx5tip",
+      "user_message": "t muốn mua granola",
+      "bot_response": "Xin lỗi, tôi không tìm thấy câu trả lời phù hợp. 🙏\n\nBạn có thể:\n- Thử đặt câu hỏi theo cách khác\n- Chọn chủ đề bên dưới\n- Liên hệ hotline: 1900 xxxx",
+      "created_at": "2026-03-18T04:30:45.759Z"
+    },
+    {
+      "id": 12,
+      "session_id": "session_1773808181671_miayx5tip",
+      "user_message": "Tôi bị tiểu đường có ăn granola được không?",
+      "bot_response": "Xin lỗi, tôi không tìm thấy câu trả lời phù hợp. 🙏\n\nBạn có thể:\n- Thử đặt câu hỏi theo cách khác\n- Chọn chủ đề bên dưới\n- Liên hệ hotline: 1900 xxxx",
+      "created_at": "2026-03-18T04:31:02.884Z"
+    },
+    {
+      "id": 13,
+      "session_id": "session_1773810823902_rb34v7vt3",
+      "user_message": "ê",
+      "bot_response": "Trà thảo mộc của HealthUp hoàn toàn KHÔNG gây khó ngủ vì:\n\n✅ Không chứa caffeine\n✅ Thành phần 100% thảo mộc tự nhiên\n✅ Có các dòng trà giúp thư giãn, dễ ngủ:\n   - Trà hoa cúc: Giúp thư giãn, giảm stress\n   - Trà hoa lavender: Hỗ trợ giấc ngủ ngon\n   - Trà bạc hà: Giúp tinh thần thoải mái\n\n💡 Gợi ý: Uống trà thảo mộc 30-60 phút trước khi ngủ sẽ giúp bạn có giấc ngủ sâu hơn. Tránh uống quá nhiều nước trước khi ngủ để không phải thức dậy đi vệ sinh nhé!",
+      "created_at": "2026-03-18T05:16:29.089Z"
+    },
+    {
+      "id": 14,
+      "session_id": "session_1773810823902_rb34v7vt3",
+      "user_message": "Ship hàng bao lâu?",
+      "bot_response": "Thời gian giao hàng của HealthUp:\n\n🚚 Nội thành TP.HCM: 1-2 ngày làm việc\n🚚 Các tỉnh thành khác: 2-4 ngày làm việc\n\nChúng tôi hỗ trợ:\n- Giao hàng nhanh trong ngày (với đơn đặt trước 10h sáng tại TP.HCM)\n- Miễn phí ship cho đơn hàng từ 300.000đ\n- Đóng gói cẩn thận, đảm bảo sản phẩm nguyên vẹn\n\nBạn sẽ nhận được mã tracking để theo dõi đơn hàng qua SMS/Email nhé!",
+      "created_at": "2026-03-18T05:16:37.472Z"
+    },
+    {
+      "id": 15,
+      "session_id": "session_1773810823902_rb34v7vt3",
+      "user_message": "Granola có giảm cân không?",
+      "bot_response": "Granola là một lựa chọn tốt cho việc giảm cân khi sử dụng đúng cách. Granola chứa nhiều chất xơ, giúp bạn no lâu hơn và kiểm soát cảm giác thèm ăn. Tuy nhiên, bạn cần lưu ý:\n\n- Kiểm soát khẩu phần: 1 serving (khoảng 30-40g) là đủ\n- Kết hợp với sữa tươi không đường hoặc sữa chua Hy Lạp\n- Granola của HealthUp không có đường tinh luyện, sử dụng mật ong tự nhiên\n- Nên ăn vào bữa sáng hoặc bữa phụ\n\nKết hợp với chế độ ăn cân bằng và tập luyện đều đặn sẽ mang lại hiệu quả tốt nhất!",
+      "created_at": "2026-03-18T05:16:40.266Z"
     }
   ],
   "analytics": [
@@ -150,12 +220,72 @@
       "event_type": "chat_message",
       "data": "{\"query\":\"CÓ LOẠI NÀO\"}",
       "created_at": "2026-03-17T17:58:26.769Z"
+    },
+    {
+      "id": 6,
+      "event_type": "chat_message",
+      "data": "{\"query\":\"t muốn ăn granola\"}",
+      "created_at": "2026-03-18T04:25:45.088Z"
+    },
+    {
+      "id": 7,
+      "event_type": "chat_message",
+      "data": "{\"query\":\"Tôi muốn biết về Granola\"}",
+      "created_at": "2026-03-18T04:27:18.415Z"
+    },
+    {
+      "id": 8,
+      "event_type": "chat_message",
+      "data": "{\"query\":\"Granola có bổ dưỡng không?\"}",
+      "created_at": "2026-03-18T04:27:35.254Z"
+    },
+    {
+      "id": 9,
+      "event_type": "chat_message",
+      "data": "{\"query\":\"Tôi muốn biết về Chính sách chung\"}",
+      "created_at": "2026-03-18T04:29:53.726Z"
+    },
+    {
+      "id": 10,
+      "event_type": "chat_message",
+      "data": "{\"query\":\"Ship hàng bao lâu?\"}",
+      "created_at": "2026-03-18T04:30:13.100Z"
+    },
+    {
+      "id": 11,
+      "event_type": "chat_message",
+      "data": "{\"query\":\"t muốn mua granola\"}",
+      "created_at": "2026-03-18T04:30:45.761Z"
+    },
+    {
+      "id": 12,
+      "event_type": "chat_message",
+      "data": "{\"query\":\"Tôi bị tiểu đường có ăn granola được không?\"}",
+      "created_at": "2026-03-18T04:31:02.885Z"
+    },
+    {
+      "id": 13,
+      "event_type": "chat_message",
+      "data": "{\"query\":\"ê\"}",
+      "created_at": "2026-03-18T05:16:29.090Z"
+    },
+    {
+      "id": 14,
+      "event_type": "chat_message",
+      "data": "{\"query\":\"Ship hàng bao lâu?\"}",
+      "created_at": "2026-03-18T05:16:37.474Z"
+    },
+    {
+      "id": 15,
+      "event_type": "chat_message",
+      "data": "{\"query\":\"Granola có giảm cân không?\"}",
+      "created_at": "2026-03-18T05:16:40.267Z"
     }
   ],
   "nextId": {
     "category": 6,
     "faq": 6,
-    "conversation": 6,
-    "analytics": 6
+    "conversation": 16,
+    "analytics": 16
   }
 }

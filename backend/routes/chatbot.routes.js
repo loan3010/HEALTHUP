@@ -18,6 +18,9 @@ router.post('/chat/search', chatbotController.searchFAQs);
 router.post('/chat/conversations', chatbotController.saveConversation);
 router.get('/chat/conversations/:session_id', chatbotController.getConversations);
 
+// Claude Proxy - gọi Claude API từ server để bảo mật API key
+router.post('/chat/claude', chatbotController.claudeProxy);
+
 // Analytics
 router.get('/analytics/stats', chatbotController.getStats);
 
