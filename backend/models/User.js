@@ -2,11 +2,12 @@ const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema(
   {
+    customerID: { type: String, unique: true }, 
     username: { type: String, required: true, unique: true, trim: true },
 
     phone: { type: String, required: true, unique: true, trim: true },
 
-    // ✅ Email KHÔNG bắt buộc
+    // Email KHÔNG bắt buộc
     // - unique + sparse để cho phép nhiều user không có email
     email: { type: String, unique: true, sparse: true, lowercase: true, trim: true },
 

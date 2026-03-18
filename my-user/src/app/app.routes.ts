@@ -1,53 +1,73 @@
 import { Routes } from '@angular/router';
-import { HomepageComponent }           from './homepage/homepage';
+
+import { HomepageComponent } from './homepage/homepage';
 import { ProductListingPageComponent } from './product-listing-page/product-listing-page';
-import { ProductDetailPageComponent }  from './product-detail-page/product-detail-page';
-import { OrderReviewComponent }        from './order-review/order-review';
+import { ProductDetailPageComponent } from './product-detail-page/product-detail-page';
+import { OrderReviewComponent } from './order-review/order-review';
+
 import { AboutTheBrand } from './about-the-brand/about-the-brand';
-import { UserProfile } from './user-profile/user-profile';
-import { AddressBook } from './address-book/address-book';
-import { ProfileOverview } from './profile-overview/profile-overview';
+import { BlogComponent } from './blog/blog';
+import { PoliciesComponent } from './policies/policies';
+
 import { Login } from './login/login';
 import { Forgotpw } from './forgotpw/forgotpw';
 import { Register } from './register/register';
-import { BlogComponent } from './blog/blog';
-import { PoliciesComponent } from './policies/policies';
+
 import { Checkout } from './checkout/checkout';
 import { Cart } from './cart/cart';
 
+import { UserProfile } from './user-profile/user-profile';
+import { ProfileOverview } from './profile-overview/profile-overview';
+import { AddressBook } from './address-book/address-book';
+
+import { OrderManagement } from './order-management/order-management';
+
+
 
 export const routes: Routes = [
-  { path: '',                        component: HomepageComponent },
-  { path: 'product-listing-page',    component: ProductListingPageComponent },
+
+  // ===== HOME =====
+  { path: '', component: HomepageComponent },
+
+  // ===== PRODUCT =====
+  { path: 'product-listing-page', component: ProductListingPageComponent },
   { path: 'product-detail-page/:id', component: ProductDetailPageComponent },
-  { path: 'order-review',            component: OrderReviewComponent },
-  {path: 'login', component: Login},
-  {path: 'forgotpw', component:Forgotpw},
-  {path: 'register', component: Register},
 
+  // ===== ORDER REVIEW =====
+  { path: 'order-review', component: OrderReviewComponent },
 
+  // ===== AUTH =====
+  { path: 'login', component: Login },
+  { path: 'forgotpw', component: Forgotpw },
+  { path: 'register', component: Register },
 
+  // ===== STATIC PAGES =====
+  { path: 'about-the-brand', component: AboutTheBrand },
+  { path: 'blog', component: BlogComponent },
+  { path: 'policies', component: PoliciesComponent },
 
-  // ✅ THÊM ROUTE MỚI
-  { path: 'about-the-brand',         component: AboutTheBrand },
-  { path: 'blog',         component: BlogComponent },
-  { path: 'policies',         component: PoliciesComponent },
-  {path: 'checkout', component: Checkout},
-  {path: 'cart', component: Cart},
+  // ===== SHOPPING =====
+  { path: 'checkout', component: Checkout },
+  { path: 'cart', component: Cart },
 
+  // ===== USER PROFILE DASHBOARD =====
   {
-  path: 'user-profile',
-  component: UserProfile,
-  children: [
-    { path: '', redirectTo: 'profile', pathMatch: 'full' },
-    { path: 'profile', component: ProfileOverview },
-    { path: 'address', component: AddressBook }
+    path: 'user-profile',
+    component: UserProfile,
+    children: [
 
-  ]
+      { path: '', redirectTo: 'profile', pathMatch: 'full' },
+
+      { path: 'profile', component: ProfileOverview },
+
+      { path: 'address', component: AddressBook },
+
+      { path: 'order-management', component: OrderManagement }
+
+    ]
   },
-  // { path: 'user-profile',         component: UserProfile },
-  // { path: 'address-book',  component: AddressBook},
 
-
+  // ===== NOT FOUND =====
   { path: '**', redirectTo: '' }
+
 ];
