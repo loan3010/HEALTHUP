@@ -16,7 +16,6 @@ type LoginRes = {
   styleUrls: ['./login.css']
 })
 export class Login implements OnInit {
-  // ✅ đúng với login.html đang dùng
   emailOrPhone: string = '';
   password: string = '';
   isLoading: boolean = false;
@@ -26,7 +25,6 @@ export class Login implements OnInit {
   constructor(private router: Router, private http: HttpClient) {}
 
   ngOnInit(): void {
-    // ✅ tự điền từ register
     const raw = sessionStorage.getItem('prefill_login');
     if (!raw) return;
 
@@ -36,7 +34,6 @@ export class Login implements OnInit {
       this.password = data?.password || '';
     } catch {}
 
-    // dùng 1 lần rồi xoá
     sessionStorage.removeItem('prefill_login');
   }
 
@@ -50,7 +47,6 @@ export class Login implements OnInit {
 
     this.http
       .post<LoginRes>(`${this.API}/auth/login`, {
-        // ✅ backend của bạn ưu tiên username
         username: this.emailOrPhone.trim(),
         password: this.password
       })
@@ -58,8 +54,8 @@ export class Login implements OnInit {
         next: (res) => {
           localStorage.setItem('token', res.token);
           localStorage.setItem('user', JSON.stringify(res.user));
+          localStorage.setItem('userId', res.user.id); // ✅ lưu userId riêng
 
-          // Reload trang để header cập nhật trạng thái đăng nhập
           if (res.user.role === 'admin') {
             this.router.navigate(['/admin']).then(() => window.location.reload());
           } else {

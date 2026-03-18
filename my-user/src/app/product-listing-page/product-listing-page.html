@@ -79,9 +79,10 @@
               <span class="badge-hot" *ngIf="p.badge === 'hot'">Hot</span>
               <span class="badge-sale" *ngIf="p.sale">{{ p.sale }}</span>
               <img [src]="p.image || 'assets/images/placeholder.png'" [alt]="p.name" />
+              <!-- ✅ truyền object p để lấy tên khi toast -->
               <button class="btn-wishlist"
                 [class.active]="isWishlisted(p._id)"
-                (click)="toggleWishlist($event, p._id)">
+                (click)="toggleWishlist($event, p)">
                 <i class="bi"
                   [class.bi-heart-fill]="isWishlisted(p._id)"
                   [class.bi-heart]="!isWishlisted(p._id)"></i>
@@ -102,7 +103,8 @@
                     <span class="ms-1">({{ p.reviewCount || p.reviews || 0 }})</span>
                   </div>
                 </div>
-                <button class="btn-add" (click)="addToCart($event, p._id)">
+                <!-- ✅ truyền object p -->
+                <button class="btn-add" (click)="addToCart($event, p)">
                   <i class="bi bi-plus"></i>
                 </button>
               </div>
@@ -139,7 +141,7 @@
                 {{ p.oldPrice | currency:'VND':'symbol':'1.0-0' }}
               </div>
             </div>
-            <button class="btn-add-list" (click)="addToCart($event, p._id)">+ Giỏ hàng</button>
+            <button class="btn-add-list" (click)="addToCart($event, p)">+ Giỏ hàng</button>
           </div>
         </div>
       </div>
