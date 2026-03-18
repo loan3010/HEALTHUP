@@ -15,14 +15,14 @@ import { Register } from './register/register';
 
 import { Checkout } from './checkout/checkout';
 import { Cart } from './cart/cart';
+import { Wishlist } from './wishlist/wishlist';
+import { ChatbotComponent } from './chatbot/chatbot';
 
 import { UserProfile } from './user-profile/user-profile';
 import { ProfileOverview } from './profile-overview/profile-overview';
 import { AddressBook } from './address-book/address-book';
 
 import { OrderManagement } from './order-management/order-management';
-
-
 
 export const routes: Routes = [
 
@@ -50,20 +50,19 @@ export const routes: Routes = [
   { path: 'checkout', component: Checkout },
   { path: 'cart', component: Cart },
 
-  // ===== USER PROFILE DASHBOARD =====
+  // ===== CHATBOT =====
+  { path: 'chatbot', component: ChatbotComponent },
+
+  // ===== USER PROFILE =====
   {
-    path: 'user-profile',
+    path: 'profile',
     component: UserProfile,
     children: [
-
-      { path: '', redirectTo: 'profile', pathMatch: 'full' },
-
-      { path: 'profile', component: ProfileOverview },
-
+      { path: '', redirectTo: 'overview', pathMatch: 'full' },
+      { path: 'overview', component: ProfileOverview },
       { path: 'address', component: AddressBook },
-
+      { path: 'wishlist', component: Wishlist },
       { path: 'order-management', component: OrderManagement }
-
     ]
   },
 

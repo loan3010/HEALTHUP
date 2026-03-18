@@ -1,0 +1,118 @@
+/* Wishlist dùng chung layout với user-profile, chỉ cần style cho content */
+
+h4 {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  color: #36873A; /* Brand primary */
+  font-weight: 700;
+}
+
+.text-muted {
+  font-family: 'Be Vietnam Pro', sans-serif;
+}
+
+/* ===== FILTER BAR ===== */
+.filter-bar {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.filter-bar .btn {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-size: 13px;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.filter-bar .btn-light {
+  background: #F0F7F0; /* Brand bg color */
+  border: 1px solid #e0e0e0;
+  color: #333;
+}
+
+.filter-bar .btn-light:hover,
+.filter-bar .btn-light.active {
+  background: #36873A; /* Brand primary */
+  color: white;
+  border-color: #36873A;
+}
+
+/* ===== PRODUCT CARD ===== */
+.product-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: all 0.2s;
+}
+
+.product-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.product-card h6 {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.product-card small {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  color: #888;
+}
+
+.product-img {
+  width: 80px;
+  height: 80px;
+  background: #f0f0f0;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.price {
+  color: #36873A; /* Brand primary */
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-size: 16px;
+  white-space: nowrap;
+}
+
+.product-card .btn-outline-dark {
+  border-color: #36873A; /* Brand primary */
+  color: #36873A;
+  border-radius: 8px;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  transition: all 0.2s;
+}
+
+.product-card .btn-outline-dark:hover {
+  background: #36873A;
+  color: white;
+  border-color: #36873A;
+}
+
+.product-card .bi-heart-fill {
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.product-card .bi-heart-fill:hover {
+  color: #C62828 !important; /* Brand danger */
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .product-card {
+    flex-direction: column;
+    align-items: flex-start !important;
+  }
+
+  .product-img {
+    width: 100%;
+    height: 120px;
+  }
+
+  .price {
+    font-size: 18px;
+    margin-top: 8px;
+  }
+}

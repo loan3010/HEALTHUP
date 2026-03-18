@@ -2,50 +2,144 @@
 
 <div class="address-container">
 
+  <!-- Address Cards -->
   <div
     class="address-card"
-    *ngFor="let item of addresses"
+    *ngFor="let item of addresses; let i = index"
     [class.default]="item.isDefault"
   >
-
-    <div>
-      <div class="name">
-        {{ item.name }}
-
+    <div class="address-info">
+      <div class="address-header">
+        <h6 class="name">{{ item.name }}</h6>
         <span *ngIf="item.isDefault" class="default-badge">
           Địa chỉ mặc định
         </span>
       </div>
 
-      <div class="address">
-        {{ item.address }}
-      </div>
+      <p class="address-text">{{ item.address }}</p>
+      <p class="phone-text">Số điện thoại: {{ item.phone }}</p>
     </div>
 
-    <div>
-      <div class="phone">
-        Số điện thoại: {{ item.phone }}
-      </div>
-
-      <div class="actions">
-        <button class="btn-edit">Chỉnh sửa</button>
-        <button class="btn-delete">🗑</button>
-
-        <button
-          *ngIf="!item.isDefault"
-          class="btn-default"
-        >
-          Đặt làm mặc định
-        </button>
-      </div>
+    <div class="address-actions">
+      <button class="btn-edit" (click)="openEditModal(i)">
+        <i class="bi bi-pencil-square me-1"></i> Chỉnh sửa
+      </button>
+      <button class="btn-delete" (click)="deleteAddress(i)">
+        <i class="bi bi-trash"></i>
+      </button>
+      <button
+        *ngIf="!item.isDefault"
+        class="btn-default"
+        (click)="setDefault(i)"
+      >
+        Đặt làm mặc định
+      </button>
     </div>
-
   </div>
 
+  <!-- Empty State -->
+  <div class="empty-state" *ngIf="addresses.length === 0">
+    <i class="bi bi-geo-alt"></i>
+    <p>Chưa có địa chỉ nào</p>
+    <p class="text-muted">Thêm địa chỉ để thanh toán nhanh hơn</p>
+  </div>
+
+  <!-- Add Button -->
   <div class="add-btn-wrapper">
-    <button class="btn-add">
-      + THÊM ĐỊA CHỈ MỚI
+    <button class="btn-add" (click)="openAddModal()">
+      <i class="bi bi-plus-circle me-2"></i> THÊM ĐỊA CHỈ MỚI
     </button>
+  </div>
+
+</div>
+
+<!-- Modal Backdrop -->
+<div class="modal-backdrop" *ngIf="showModal" (click)="closeModal()">
+  
+  <!-- Modal Content -->
+  <div class="address-modal" (click)="$event.stopPropagation()">
+    
+    <div class="modal-header">
+      <h5 class="modal-title">
+        {{ isEditMode ? 'Chỉnh sửa địa chỉ' : 'Thêm địa chỉ mới' }}
+      </h5>
+      <button class="close-btn" (click)="closeModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <form [formGroup]="addressForm" (ngSubmit)="submitForm()">
+        
+        <div class="form-group">
+          <label>Họ và tên <span class="required">*</span></label>
+          <input 
+            type="text" 
+            class="form-input"
+            formControlName="name"
+            placeholder="Nhập họ và tên"
+          />
+          <div class="error-text" *ngIf="showError('name')">
+            Vui lòng nhập họ và tên
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Số điện thoại <span class="required">*</span></label>
+          <input 
+            type="tel" 
+            class="form-input"
+            formControlName="phone"
+            placeholder="Nhập số điện thoại"
+            maxlength="11"
+          />
+          <div class="error-text" *ngIf="showError('phone')">
+            Số điện thoại không hợp lệ (9-11 chữ số)
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Địa chỉ <span class="required">*</span></label>
+          <textarea 
+            class="form-input"
+            formControlName="address"
+            placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố"
+            rows="3"
+          ></textarea>
+          <div class="error-text" *ngIf="showError('address')">
+            Vui lòng nhập địa chỉ
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input 
+              type="checkbox" 
+              formControlName="isDefault"
+            />
+            <span>Đặt làm địa chỉ mặc định</span>
+          </label>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" (click)="closeModal()">
+            Hủy
+          </button>
+          <button type="submit" class="btn-submit" [disabled]="isLoading">
+            {{ isLoading ? 'Đang lưu...' : (isEditMode ? 'Cập nhật' : 'Thêm địa chỉ') }}
+          </button>
+        </div>
+
+        <div class="success-message" *ngIf="successMessage">
+          {{ successMessage }}
+        </div>
+        <div class="error-message" *ngIf="errorMessage">
+          {{ errorMessage }}
+        </div>
+
+      </form>
+    </div>
+
   </div>
 
 </div>
