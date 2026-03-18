@@ -2,6 +2,8 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { HttpHeaders } from '@angular/common/http';
+
 
 export const API_BASE    = 'http://localhost:3000/api';
 export const STATIC_BASE = 'http://localhost:3000';
@@ -115,4 +117,63 @@ export class ApiService {
   getBlogById(id: string): Observable<any> {
     return this.http.get<any>(`${API_BASE}/blogs/${id}`);
   }
+
+
+  // thêm
+  addToCart(data: any) {
+
+  const headers = new HttpHeaders({
+    'x-user-id': '507f1f77bcf86cd799439011' // demo ObjectId
+  });
+
+  return this.http.post(`${API_BASE}/cart/add`, data, { headers });
+
+
 }
+
+
+// ====================== ORDER API ======================
+
+// lấy danh sách đơn hàng
+getOrders(): Observable<any[]> {
+
+  return this.http.get<any[]>(`${API_BASE}/orders`);
+
+}
+
+// lấy chi tiết đơn hàng
+getOrderById(id: string): Observable<any> {
+
+  return this.http.get<any>(`${API_BASE}/orders/${id}`);
+
+}
+
+// cập nhật trạng thái đơn hàng
+updateOrderStatus(id: string, status: string): Observable<any> {
+
+  return this.http.patch(
+    `${API_BASE}/orders/${id}/status`,
+    { status }
+  );
+
+}
+
+// huỷ đơn hàng
+cancelOrder(id: string): Observable<any> {
+
+  return this.http.patch(
+    `${API_BASE}/orders/${id}/status`,
+    { status: 'cancelled' }
+  );
+
+  
+}
+
+deleteOrder(id:string): Observable<any>{
+  return this.http.delete(`${API_BASE}/orders/${id}`);
+}
+}
+
+
+
+

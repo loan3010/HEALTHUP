@@ -4,8 +4,13 @@
   <div class="box">
     <h2 class="title">ĐĂNG NHẬP</h2>
 
-    <form (ngSubmit)="onLogin()">
-      <!-- USERNAME / EMAIL / PHONE -->
+    <form (ngSubmit)="onLogin()" autocomplete="off">
+
+      <!-- fake inputs chống autofill -->
+      <input type="text" style="display:none">
+      <input type="password" style="display:none">
+
+      <!-- USERNAME -->
       <div class="field">
         <div class="label">
           Tên tài khoản <span class="req">*</span>
@@ -18,11 +23,13 @@
             placeholder="Nhập email hoặc số điện thoại"
             name="emailOrPhone"
             [(ngModel)]="emailOrPhone"
+            autocomplete="off"
             required
           />
 
-          <!-- nút clear -->
-          <button type="button" class="clear" (click)="emailOrPhone=''">×</button>
+          <button type="button" class="clear" (click)="emailOrPhone=''">
+            ×
+          </button>
         </div>
       </div>
 
@@ -39,12 +46,14 @@
             placeholder="Mật khẩu tối thiểu 6 ký tự"
             name="password"
             [(ngModel)]="password"
+            autocomplete="new-password"
             minlength="6"
             required
           />
 
-          <!-- nút clear -->
-          <button type="button" class="clear" (click)="password=''">×</button>
+          <button type="button" class="clear" (click)="password=''">
+            ×
+          </button>
         </div>
       </div>
 
@@ -52,7 +61,6 @@
         <a routerLink="/forgotpw" class="link">Quên mật khẩu?</a>
       </div>
 
-      <!-- nút submit phải có type="submit" để ngSubmit chạy -->
       <button type="submit" class="submit" [disabled]="isLoading">
         {{ isLoading ? 'Đang đăng nhập...' : 'Đăng nhập' }}
       </button>
@@ -73,6 +81,7 @@
         <span>Bạn chưa có tài khoản?</span>
         <a routerLink="/register">Đăng ký ngay</a>
       </div>
+
     </form>
   </div>
 </div>
