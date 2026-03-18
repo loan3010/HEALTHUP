@@ -1,0 +1,115 @@
+<div class="modal-container shadow-lg">
+  <div class="modal-header">
+    <h2 class="modal-title">{{ isEditMode ? 'Chỉnh sửa sản phẩm' : 'Thêm sản phẩm mới' }}</h2>
+    <button class="btn-close-x" (click)="cancel.emit()">&times;</button>
+  </div>
+
+  <div class="modal-body">
+    <div class="form-grid">
+
+      <!-- Tên sản phẩm -->
+      <div class="form-group full-width">
+        <label>Tên sản phẩm <span class="required">*</span></label>
+        <input type="text" [(ngModel)]="formData.name" placeholder="Nhập tên sản phẩm...">
+      </div>
+
+      <!-- Danh mục -->
+      <div class="form-group">
+        <label>Danh mục <span class="required">*</span></label>
+        <input type="text" [(ngModel)]="formData.cat" placeholder="VD: Rau củ, Đồ ăn vặt...">
+      </div>
+
+      <!-- Trạng thái -->
+      <div class="form-group">
+        <label>Trạng thái <span class="required">*</span></label>
+        <select [(ngModel)]="formData.status">
+          <option value="active">Còn hàng</option>
+          <option value="outofstock">Hết hàng</option>
+          <option value="suspended">Tạm ngưng bán</option>
+        </select>
+      </div>
+
+      <!-- Giá bán -->
+      <div class="form-group">
+        <label>Giá bán <span class="required">*</span></label>
+        <input type="number" [(ngModel)]="formData.price" placeholder="0">
+      </div>
+
+      <!-- Giá cũ -->
+      <div class="form-group">
+        <label>Giá cũ</label>
+        <input type="number" [(ngModel)]="formData.oldPrice" placeholder="0">
+      </div>
+
+      <!-- Tồn kho -->
+      <div class="form-group">
+        <label>Tồn kho <span class="required">*</span></label>
+        <input type="number" [(ngModel)]="formData.stock" placeholder="0">
+      </div>
+
+      <!-- Khối lượng -->
+      <div class="form-group">
+        <label>Khối lượng</label>
+        <input type="text" [(ngModel)]="formData.weight" placeholder="VD: 200g, 1kg...">
+      </div>
+
+      <!-- Badge -->
+      <div class="form-group">
+        <label>Badge</label>
+        <select [(ngModel)]="formData.badge">
+          <option [ngValue]="null">Không có</option>
+          <option value="new">New</option>
+          <option value="hot">Hot</option>
+        </select>
+      </div>
+
+      <!-- Đơn vị đóng gói -->
+      <div class="form-group full-width">
+        <label>Đơn vị đóng gói</label>
+        <input type="text" 
+  [value]="getPackagingText()"
+  (change)="onPackagingChange($any($event.target).value)"
+  placeholder="VD: Hộp, Gói, Túi (phân cách bằng dấu phẩy)">
+      </div>
+      <!-- Hình ảnh -->
+<div class="form-group full-width">
+  <label>Hình ảnh sản phẩm</label>
+  <div class="image-upload-area">
+    <!-- Ảnh đã upload -->
+    <div class="image-preview-list">
+      <div class="image-preview-item" *ngFor="let img of imagePreview; let i = index">
+        <img [src]="img" alt="preview" />
+        <button type="button" class="remove-img-btn" (click)="removeImage(i)">×</button>
+      </div>
+      <!-- Nút thêm ảnh -->
+      <label class="image-upload-btn">
+        <input type="file" accept="image/*" (change)="onImageSelect($event)" hidden />
+        <i class="bi bi-plus-lg"></i>
+        <span>Thêm ảnh</span>
+      </label>
+    </div>
+  </div>
+</div>
+
+      <!-- Mô tả ngắn -->
+      <div class="form-group full-width">
+        <label>Mô tả ngắn</label>
+        <textarea rows="2" [(ngModel)]="formData.shortDesc" placeholder="Mô tả ngắn về sản phẩm..."></textarea>
+      </div>
+
+      <!-- Mô tả đầy đủ -->
+      <div class="form-group full-width">
+        <label>Mô tả đầy đủ</label>
+        <textarea rows="4" [(ngModel)]="formData.description" placeholder="Mô tả chi tiết sản phẩm..."></textarea>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="modal-footer">
+    <button class="btn-huy" (click)="cancel.emit()">HỦY</button>
+    <button class="btn-luu" (click)="onSave()" [disabled]="isSaving">
+      {{ isSaving ? 'Đang lưu...' : (isEditMode ? 'LƯU THAY ĐỔI' : 'THÊM MỚI') }}
+    </button>
+  </div>
+</div>

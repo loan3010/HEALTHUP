@@ -8,9 +8,20 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:4200', 'http://localhost:4201'],
+  origin: ['http://localhost:4200', 'http://localhost:4201', 'http://localhost:64682'],
   credentials: true
 }));
+// app.use(cors({
+//   origin: function(origin, callback) {
+//     if (!origin || origin.startsWith('http://localhost')) {
+//       callback(null, true);
+//     } else {
+//       callback(new Error('Not allowed by CORS'));
+//     }
+//   },
+//   credentials: true
+// }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

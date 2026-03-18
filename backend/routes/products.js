@@ -6,7 +6,19 @@ const Product = require('../models/Product');
 // QUAN TRỌNG: Các route cụ thể PHẢI đứng TRƯỚC /:id
 // Nếu không, Express sẽ match /featured và /category-counts như /:id
 // ─────────────────────────────────────────────────────────────────
+const multer = require('multer');
+const path = require('path');
 
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, path.join(__dirname, '../public/images/products'));
+  },
+  filename: (req, file, cb) => {
+    const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, unique + path.extname(file.originalname));
+  }
+});
+const upload = multer({ storage });
 // GET featured/bestsellers
 router.get('/featured', async (req, res) => {
   try {
@@ -89,7 +101,12 @@ router.get('/', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
+// POST upload image
+router.post('/upload-image', upload.single('image'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+  const imageUrl = '/images/products/' + req.file.filename;
+  res.json({ url: imageUrl });
+});
 // GET single product
 router.get('/:id', async (req, res) => {
   try {

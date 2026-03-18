@@ -1,0 +1,217 @@
+<div class="promotion-wrapper">
+  <!-- Breadcrumb -->
+  <nav class="promo-breadcrumb-box">
+    <span class="p-crumb">Quản trị viên</span>
+    <span class="p-sep">/</span>
+    <span class="p-active">Quản lý sản phẩm</span>
+  </nav>
+
+  <div class="promotion-main-content">
+    <!-- Header -->
+    <div class="hu-header">
+      <div>
+        <h1 class="page-title">DANH SÁCH SẢN PHẨM</h1>
+        <p class="total-count">Hiển thị <strong>{{ total }}</strong> sản phẩm</p>
+      </div>
+      <button class="hu-btn-primary" (click)="addProduct()">
+        <i class="bi bi-plus-lg"></i> Thêm sản phẩm
+      </button>
+    </div>
+
+    <!-- Card -->
+    <div class="hu-card">
+      <!-- Toolbar -->
+      <div class="hu-toolbar">
+        <!-- Search -->
+        <div class="hu-search-wrap">
+          <i class="bi bi-search"></i>
+          <input
+            type="text"
+            class="hu-search-input"
+            placeholder="Tìm kiếm sản phẩm..."
+            [(ngModel)]="searchText"
+            (input)="onSearch()"
+          />
+        </div>
+
+        <!-- Selected actions -->
+        <ng-container *ngIf="selectedCount > 0">
+          <span class="hu-selected-count">{{ selectedCount }} đã chọn</span>
+          <button class="hu-toolbar-btn" (click)="editSelected()" [disabled]="selectedCount !== 1">
+            <i class="bi bi-pencil"></i> Chỉnh
+          </button>
+          <button class="hu-toolbar-btn danger" (click)="deleteSelected()">
+            <i class="bi bi-trash"></i> Xoá
+          </button>
+        </ng-container>
+
+        <div class="hu-toolbar-right">
+          <!-- Filter -->
+           
+          <div class="hu-dropdown-wrap">
+            <button class="hu-toolbar-btn" (click)="showFilterPanel = !showFilterPanel; showSortPanel = false">
+              <i class="bi bi-funnel"></i> Lọc
+              <i class="bi bi-caret-down-fill" style="font-size:0.6rem"></i>
+            </button>
+            <div class="hu-dropdown-panel" *ngIf="showFilterPanel">
+              <div class="filter-row">
+                <label>Danh mục</label>
+                <select [(ngModel)]="filterCat">
+                  <option value="">Tất cả</option>
+                  <option *ngFor="let c of categories" [value]="c">{{ c }}</option>
+                </select>
+              </div>
+              <div class="filter-row">
+                <label>Giá từ (₫)</label>
+                <input type="number" [(ngModel)]="filterMinPrice" placeholder="0" />
+              </div>
+              <div class="filter-row">
+                <label>Giá đến (₫)</label>
+                <input type="number" [(ngModel)]="filterMaxPrice" placeholder="999999999" />
+              </div>
+              <div class="filter-row">
+                <label>Đánh giá tối thiểu</label>
+                <select [(ngModel)]="filterMinRating">
+                  <option [ngValue]="null">Tất cả</option>
+                  <option [ngValue]="4.5">⭐ 4.5+</option>
+                  <option [ngValue]="4">⭐ 4.0+</option>
+                  <option [ngValue]="3">⭐ 3.0+</option>
+                </select>
+              </div>
+              <div class="filter-actions">
+                <button class="hu-btn-primary small" (click)="applyFilterPanel()">Xem kết quả</button>
+                <button class="hu-toolbar-btn" (click)="resetFilter()">Đặt lại</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sort -->
+          <div class="hu-dropdown-wrap">
+            <button class="hu-toolbar-btn" (click)="showSortPanel = !showSortPanel; showFilterPanel = false">
+              <i class="bi bi-sort-down"></i> Sắp xếp
+              <i class="bi bi-caret-down-fill" style="font-size:0.6rem"></i>
+            </button>
+            <div class="hu-dropdown-panel" *ngIf="showSortPanel">
+              <button class="sort-option" (click)="setSort('price')">
+                Giá <i class="bi" [ngClass]="sortField==='price' ? (sortDir==='asc'?'bi-arrow-up':'bi-arrow-down') : 'bi-dash'"></i>
+              </button>
+              <button class="sort-option" (click)="setSort('stock')">
+                Tồn kho <i class="bi" [ngClass]="sortField==='stock' ? (sortDir==='asc'?'bi-arrow-up':'bi-arrow-down') : 'bi-dash'"></i>
+              </button>
+              <button class="sort-option" (click)="setSort('rating')">
+                Đánh giá <i class="bi" [ngClass]="sortField==='rating' ? (sortDir==='asc'?'bi-arrow-up':'bi-arrow-down') : 'bi-dash'"></i>
+              </button>
+              <button class="sort-option" (click)="setSort('createdAt')">
+                Ngày tạo <i class="bi" [ngClass]="sortField==='createdAt' ? (sortDir==='asc'?'bi-arrow-up':'bi-arrow-down') : 'bi-dash'"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <div class="hu-loading" *ngIf="isLoading">
+        <i class="bi bi-arrow-repeat"></i> Đang tải...
+      </div>
+
+      <!-- Table -->
+      <div class="hu-table-wrap" *ngIf="!isLoading">
+        <table class="hu-table">
+          <thead>
+            <tr>
+              <th class="col-check">
+                <input type="checkbox" [checked]="allChecked" (change)="toggleAll($any($event.target).checked)" />
+              </th>
+              <th>Tên sản phẩm</th>
+              <th>Phân loại</th>
+              <th>Đơn vị</th>
+              <th>Tồn kho</th>
+              <th>Giá bán</th>
+              <th>Đánh giá</th>
+              <th>Ngày tạo</th>
+              <th>Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let p of filteredProducts; let i = index"
+                [class.selected-row]="selectedIds.has(p._id!)">
+              <td class="col-check">
+                <input type="checkbox"
+                  [checked]="selectedIds.has(p._id!)"
+                  (change)="toggleOne(p._id!, $any($event.target).checked)" />
+              </td>
+              <td>
+                <div class="product-cell">
+                  <img
+                    *ngIf="p.images && p.images.length"
+                    [src]="'http://localhost:3000' + p.images[0]"
+                    class="product-thumb" alt=""
+                  />
+                  <div class="product-thumb placeholder" *ngIf="!p.images || !p.images.length">
+                    <i class="bi bi-image"></i>
+                  </div>
+                  <div>
+                    <div class="product-name">{{ p.name }}</div>
+                    <span class="badge-tag" *ngIf="p.badge" [ngClass]="p.badge">{{ p.badge }}</span>
+                  </div>
+                </div>
+              </td>
+              <td>{{ p.cat }}</td>
+              <td>
+                <span *ngIf="p.packagingTypes && p.packagingTypes.length">{{ p.packagingTypes.join(', ') }}</span>
+                <span *ngIf="!p.packagingTypes || !p.packagingTypes.length" class="hu-empty-cell">—</span>
+              </td>
+              <td>
+                <span class="stock-badge"
+                  [class.low-stock]="p.stock > 0 && p.stock < 20"
+                  [class.out-stock]="p.stock === 0">
+                  {{ p.stock }}
+                </span>
+              </td>
+              <td class="price-cell">{{ p.price | number:'1.0-0' }} ₫</td>
+              <td class="rating-cell">
+                ⭐ {{ p.rating | number:'1.1-1' }}
+                <small>({{ p.reviewCount }})</small>
+              </td>
+              <td class="date-cell">{{ p.createdAt | date:'dd/MM/yyyy' }}</td>
+              <td>
+                <div class="hu-actions">
+                  <button class="hu-btn-icon" (click)="editProduct(p)" title="Sửa">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  <button class="hu-btn-icon hu-btn-danger" (click)="deleteProduct(p)" title="Xóa">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="filteredProducts.length === 0">
+              <td colspan="9" class="hu-empty">Không tìm thấy sản phẩm nào.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="hu-pagination" *ngIf="totalPages > 1">
+        <button (click)="changePage(currentPage - 1)" [disabled]="currentPage === 1">
+          <i class="bi bi-chevron-left"></i>
+        </button>
+        <span>Trang {{ currentPage }} / {{ totalPages }}</span>
+        <button (click)="changePage(currentPage + 1)" [disabled]="currentPage === totalPages">
+          <i class="bi bi-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-overlay" *ngIf="isModalOpen">
+    <app-product-form
+      [product]="selectedProduct"
+      (save)="onFormSave()"
+      (cancel)="onFormCancel()">
+    </app-product-form>
+  </div>
+
+</div>
