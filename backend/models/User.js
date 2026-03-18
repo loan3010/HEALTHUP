@@ -2,20 +2,27 @@ const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema(
   {
-    username: { type: String, required: true, unique: true, trim: true },
-
-    phone: { type: String, required: true, unique: true, trim: true },
-
-    email: { type: String, unique: true, sparse: true, lowercase: true, trim: true },
-
+    username:     { type: String, required: true, unique: true, trim: true },
+    phone:        { type: String, required: true, unique: true, trim: true },
+    email:        { type: String, unique: true, sparse: true, lowercase: true, trim: true },
     passwordHash: { type: String, required: true },
+    role:         { type: String, enum: ['user', 'admin'], default: 'user' },
 
-    role: { type: String, enum: ['user', 'admin'], default: 'user' },
-
-    // ── THÊM MỚI: thông tin profile ──
-    dob:     { type: String, default: '' },        // ngày sinh dạng string "YYYY-MM-DD"
+    // Profile
+    dob:     { type: String, default: '' },
     gender:  { type: String, enum: ['male', 'female', 'other'], default: 'male' },
     address: { type: String, default: '' },
+
+    // Wishlist: mảng product ID
+    wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
+
+    // Addresses: lưu trong user giống wishlist
+    addresses: [{
+      name:      { type: String, required: true, trim: true },
+      phone:     { type: String, required: true, trim: true },
+      address:   { type: String, required: true, trim: true },
+      isDefault: { type: Boolean, default: false },
+    }],
   },
   { timestamps: true }
 );

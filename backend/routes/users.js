@@ -131,3 +131,194 @@ router.put('/:id/change-password', authenticateToken, async (req, res) => {
 });
 
 module.exports = router;
+
+
+// ─────────────────────────────────────────────────────
+// GET /api/users/:id/wishlist  →  Lấy danh sách yêu thích
+// ─────────────────────────────────────────────────────
+router.get('/:id/wishlist', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.userId !== req.params.id && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Không có quyền truy cập' });
+    }
+
+    const user = await User.findById(req.params.id)
+      .populate('wishlist', 'name price oldPrice images cat badge')
+      .lean();
+
+    if (!user) return res.status(404).json({ message: 'Không tìm thấy user' });
+
+    res.json({ wishlist: user.wishlist || [] });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────
+// POST /api/users/:id/wishlist  →  Thêm sản phẩm yêu thích
+// ─────────────────────────────────────────────────────
+router.post('/:id/wishlist', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.userId !== req.params.id) {
+      return res.status(403).json({ message: 'Không có quyền' });
+    }
+
+    const { productId } = req.body;
+    if (!productId) return res.status(400).json({ message: 'Thiếu productId' });
+
+    // $addToSet: không thêm trùng
+    await User.findByIdAndUpdate(
+      req.params.id,
+      { $addToSet: { wishlist: productId } }
+    );
+
+    res.json({ message: 'Đã thêm vào yêu thích' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────
+// DELETE /api/users/:id/wishlist/:productId  →  Xóa khỏi yêu thích
+// ─────────────────────────────────────────────────────
+router.delete('/:id/wishlist/:productId', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.userId !== req.params.id) {
+      return res.status(403).json({ message: 'Không có quyền' });
+    }
+
+    await User.findByIdAndUpdate(
+      req.params.id,
+      { $pull: { wishlist: req.params.productId } }
+    );
+
+    res.json({ message: 'Đã xóa khỏi yêu thích' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// ═══════════════════════════════════════════════════════
+// ADDRESS ROUTES — lưu trong User.addresses (giống wishlist)
+// ═══════════════════════════════════════════════════════
+
+// GET /api/users/:id/addresses
+router.get('/:id/addresses', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.userId !== req.params.id && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Không có quyền' });
+    }
+    const user = await User.findById(req.params.id).select('addresses').lean();
+    if (!user) return res.status(404).json({ message: 'Không tìm thấy user' });
+    res.json({ addresses: user.addresses || [] });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// POST /api/users/:id/addresses — thêm địa chỉ mới
+router.post('/:id/addresses', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.userId !== req.params.id) {
+      return res.status(403).json({ message: 'Không có quyền' });
+    }
+    const { name, phone, address, isDefault } = req.body;
+    if (!name || !phone || !address) {
+      return res.status(400).json({ message: 'Vui lòng điền đầy đủ thông tin' });
+    }
+
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'Không tìm thấy user' });
+
+    // Nếu set default → bỏ default các cái cũ
+    if (isDefault) {
+      user.addresses.forEach(a => a.isDefault = false);
+    }
+
+    // Nếu chưa có địa chỉ nào → tự động set default
+    const autoDefault = isDefault || user.addresses.length === 0;
+
+    user.addresses.push({ name, phone, address, isDefault: autoDefault });
+    await user.save();
+
+    const newAddr = user.addresses[user.addresses.length - 1];
+    res.status(201).json({ message: 'Đã thêm địa chỉ', address: newAddr });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// PUT /api/users/:id/addresses/:addrId — cập nhật địa chỉ
+router.put('/:id/addresses/:addrId', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.userId !== req.params.id) {
+      return res.status(403).json({ message: 'Không có quyền' });
+    }
+    const { name, phone, address, isDefault } = req.body;
+
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'Không tìm thấy user' });
+
+    const addr = user.addresses.id(req.params.addrId);
+    if (!addr) return res.status(404).json({ message: 'Không tìm thấy địa chỉ' });
+
+    if (isDefault) user.addresses.forEach(a => a.isDefault = false);
+
+    if (name)    addr.name    = name;
+    if (phone)   addr.phone   = phone;
+    if (address) addr.address = address;
+    addr.isDefault = isDefault || false;
+
+    await user.save();
+    res.json({ message: 'Đã cập nhật địa chỉ', address: addr });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// DELETE /api/users/:id/addresses/:addrId — xóa địa chỉ
+router.delete('/:id/addresses/:addrId', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.userId !== req.params.id) {
+      return res.status(403).json({ message: 'Không có quyền' });
+    }
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'Không tìm thấy user' });
+
+    user.addresses = user.addresses.filter(
+      a => a._id.toString() !== req.params.addrId
+    );
+
+    // Nếu xóa hết hoặc xóa mất default → set default cho cái đầu tiên
+    if (user.addresses.length > 0 && !user.addresses.some(a => a.isDefault)) {
+      user.addresses[0].isDefault = true;
+    }
+
+    await user.save();
+    res.json({ message: 'Đã xóa địa chỉ' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// PUT /api/users/:id/addresses/:addrId/set-default — đặt mặc định
+router.put('/:id/addresses/:addrId/set-default', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.userId !== req.params.id) {
+      return res.status(403).json({ message: 'Không có quyền' });
+    }
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'Không tìm thấy user' });
+
+    user.addresses.forEach(a => {
+      a.isDefault = a._id.toString() === req.params.addrId;
+    });
+
+    await user.save();
+    res.json({ message: 'Đã đặt làm địa chỉ mặc định' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+module.exports = router;
