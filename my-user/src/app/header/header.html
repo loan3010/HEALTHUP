@@ -28,7 +28,7 @@
           type="text"
           [ngModel]="searchQuery"
           (ngModelChange)="onSearchChange($event)"
-          (focus)="onSearchFocus()"
+          (focus)="onSearchFocus()" (blur)="onSearchBlur()"
           (keydown)="onSearchKeydown($event)"
           placeholder="Tìm sản phẩm..."
           autocomplete="off"
@@ -153,6 +153,13 @@
               </a>
               <a routerLink="/profile/address" (click)="closeDropdown()">
                 <i class="bi bi-geo-alt"></i> Sổ địa chỉ
+              </a>
+              <a routerLink="/profile/address" (click)="closeDropdown()">
+                <i class="bi-box-seam"></i> Quản lý đơn hàng
+              </a>
+              <div class="dropdown-divider"></div>
+              <a class="logout-link" (click)="logout()">
+                <i class="bi bi-box-arrow-right"></i> Đăng xuất
               </a>
             </div>
           </div>
