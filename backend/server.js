@@ -42,7 +42,7 @@ app.use('/api/blogs',     require('./routes/blogs'));
 app.use('/api/auth',      require('./routes/auth'));
 app.use('/api/orders',    require('./routes/orders'));
 app.use('/api/carts',     require('./routes/carts'));
-app.use('/api/addresses', require('./routes/addresses'));
+// app.use('/api/addresses', require('./routes/addresses'));
 app.use('/api/users',     require('./routes/users'));   // ✅ THÊM MỚI
 app.use('/api/chatbot',   require('./routes/chatbot.routes'));
 
