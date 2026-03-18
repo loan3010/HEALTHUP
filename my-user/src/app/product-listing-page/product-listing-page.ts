@@ -4,6 +4,7 @@ import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { SidebarComponent, SidebarFilters } from '../sidebar/sidebar';
 import { ApiService } from '../services/api.service';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 
 export interface FilterTag { key: string; label: string; }
 
@@ -23,6 +24,13 @@ export class ProductListingPageComponent implements OnInit {
   pageSize = 9;
 
   wishlist: string[] = [];
+  toastMessage = '';
+  toastVisible = false;
+  private toastTimer: any;
+
+  private API = 'http://localhost:3000/api';
+  private userId = '';
+  private token = '';
   selectedFilters: string[] = [];
   priceRange: [number, number] = [0, 1000000];
   activeFilterTags: FilterTag[] = [];
@@ -45,10 +53,12 @@ export class ProductListingPageComponent implements OnInit {
     private router: Router,
     private route: ActivatedRoute,
     private api: ApiService,
-    private cdr: ChangeDetectorRef   // ✅ inject ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private http: HttpClient
   ) {}
 
   ngOnInit(): void {
+    this.loadUserAuth();
     this.loadCategoryCounts();
 
     this.route.queryParams.subscribe(params => {
@@ -174,11 +184,68 @@ export class ProductListingPageComponent implements OnInit {
 
   isWishlisted(id: string): boolean { return this.wishlist.includes(id); }
 
+  loadUserAuth(): void {
+    const userStr = localStorage.getItem('user');
+    const token   = localStorage.getItem('token');
+    if (userStr && token) {
+      try {
+        const user  = JSON.parse(userStr);
+        this.userId = user.id;
+        this.token  = token;
+        this.loadWishlistIds();
+      } catch {}
+    }
+  }
+
+  loadWishlistIds(): void {
+    if (!this.userId || !this.token) return;
+    const headers = new HttpHeaders({ Authorization: `Bearer ${this.token}` });
+    this.http.get<any>(`${this.API}/users/${this.userId}/wishlist`, { headers })
+      .subscribe({
+        next: (res) => {
+          this.wishlist = (res.wishlist || []).map((p: any) => p._id);
+          this.cdr.detectChanges();
+        }
+      });
+  }
+
   toggleWishlist(event: Event, id: string): void {
     event.stopPropagation();
-    this.wishlist = this.wishlist.includes(id)
-      ? this.wishlist.filter(x => x !== id)
-      : [...this.wishlist, id];
+    if (!this.userId || !this.token) {
+      this.router.navigate(['/login']);
+      return;
+    }
+    const headers = new HttpHeaders({ Authorization: `Bearer ${this.token}` });
+
+    if (this.isWishlisted(id)) {
+      this.http.delete(`${this.API}/users/${this.userId}/wishlist/${id}`, { headers })
+        .subscribe({
+          next: () => {
+            this.wishlist = this.wishlist.filter(x => x !== id);
+            this.showToast('Đã xóa khỏi yêu thích');
+            this.cdr.detectChanges();
+          }
+        });
+    } else {
+      this.http.post(`${this.API}/users/${this.userId}/wishlist`, { productId: id }, { headers })
+        .subscribe({
+          next: () => {
+            this.wishlist = [...this.wishlist, id];
+            this.showToast('Đã thêm vào yêu thích ❤️');
+            this.cdr.detectChanges();
+          }
+        });
+    }
+  }
+
+  showToast(msg: string): void {
+    this.toastMessage = msg;
+    this.toastVisible = true;
+    clearTimeout(this.toastTimer);
+    this.toastTimer = setTimeout(() => {
+      this.toastVisible = false;
+      this.cdr.detectChanges();
+    }, 2500);
   }
 
   addToCart(event: Event, id: string): void {
