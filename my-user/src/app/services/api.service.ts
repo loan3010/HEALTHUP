@@ -1,9 +1,7 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { HttpHeaders } from '@angular/common/http';
-
 
 export const API_BASE    = 'http://localhost:3000/api';
 export const STATIC_BASE = 'http://localhost:3000';
@@ -21,9 +19,9 @@ export class ApiService {
 
     return {
       ...p,
-      _id:    id,
+      _id: id,
       images: fixedImages,
-      image:  fixedImages[0] || '',
+      image: fixedImages[0] || '',
     };
   }
 
@@ -33,25 +31,16 @@ export class ApiService {
     );
   }
 
-  getProducts(filters: {
-    cat?: string;
-    minPrice?: number;
-    maxPrice?: number;
-    badge?: string;
-    minRating?: number;
-    sort?: string;
-    page?: number;
-    limit?: number;
-  } = {}): Observable<{ products: any[]; total: number; totalPages: number }> {
+  getProducts(filters: any = {}): Observable<any> {
     let params = new HttpParams();
-    if (filters.cat)                     params = params.set('cat',       filters.cat);
-    if (filters.minPrice !== undefined)  params = params.set('minPrice',  filters.minPrice.toString());
-    if (filters.maxPrice !== undefined)  params = params.set('maxPrice',  filters.maxPrice.toString());
-    if (filters.badge)                   params = params.set('badge',     filters.badge);
+    if (filters.cat)                     params = params.set('cat', filters.cat);
+    if (filters.minPrice !== undefined)  params = params.set('minPrice', filters.minPrice.toString());
+    if (filters.maxPrice !== undefined)  params = params.set('maxPrice', filters.maxPrice.toString());
+    if (filters.badge)                   params = params.set('badge', filters.badge);
     if (filters.minRating !== undefined) params = params.set('minRating', filters.minRating.toString());
-    if (filters.sort)                    params = params.set('sort',      filters.sort);
-    if (filters.page)                    params = params.set('page',      filters.page.toString());
-    if (filters.limit)                   params = params.set('limit',     filters.limit.toString());
+    if (filters.sort)                    params = params.set('sort', filters.sort);
+    if (filters.page)                    params = params.set('page', filters.page.toString());
+    if (filters.limit)                   params = params.set('limit', filters.limit.toString());
 
     return this.http.get<any>(`${API_BASE}/products`, { params }).pipe(
       map(res => ({
@@ -77,28 +66,16 @@ export class ApiService {
     );
   }
 
-  getReviews(productId: string, filters: {
-    filter?: string;
-    sort?: string;
-    page?: number;
-    limit?: number;
-  } = {}): Observable<any> {
+  getReviews(productId: string, filters: any = {}): Observable<any> {
     let params = new HttpParams();
     if (filters.filter) params = params.set('filter', filters.filter);
-    if (filters.sort)   params = params.set('sort',   filters.sort);
-    if (filters.page)   params = params.set('page',   filters.page.toString());
-    if (filters.limit)  params = params.set('limit',  filters.limit.toString());
+    if (filters.sort)   params = params.set('sort', filters.sort);
+    if (filters.page)   params = params.set('page', filters.page.toString());
+    if (filters.limit)  params = params.set('limit', filters.limit.toString());
     return this.http.get<any>(`${API_BASE}/reviews/product/${productId}`, { params });
   }
 
-  submitReview(data: {
-    productId: string;
-    name: string;
-    rating: number;
-    variant?: string;
-    tags?: string[];
-    text: string;
-  }): Observable<any> {
+  submitReview(data: any): Observable<any> {
     return this.http.post<any>(`${API_BASE}/reviews`, data);
   }
 
@@ -106,11 +83,11 @@ export class ApiService {
     return this.http.patch<any>(`${API_BASE}/reviews/${reviewId}/helpful`, {});
   }
 
-  // ✅ Blog API
+  // ===== BLOG =====
   getBlogs(limit?: number, tag?: string): Observable<any[]> {
     let params = new HttpParams();
     if (limit) params = params.set('limit', limit.toString());
-    if (tag)   params = params.set('tag',   tag);
+    if (tag)   params = params.set('tag', tag);
     return this.http.get<any[]>(`${API_BASE}/blogs`, { params });
   }
 
@@ -118,62 +95,46 @@ export class ApiService {
     return this.http.get<any>(`${API_BASE}/blogs/${id}`);
   }
 
-
-  // thêm
+  // ===== CART =====
   addToCart(data: any) {
+    const headers = new HttpHeaders({
+      'x-user-id': '507f1f77bcf86cd799439011'
+    });
+    return this.http.post(`${API_BASE}/cart/add`, data, { headers });
+  }
 
-  const headers = new HttpHeaders({
-    'x-user-id': '507f1f77bcf86cd799439011' // demo ObjectId
-  });
+  // ===== ORDER =====
+  getOrders(): Observable<any[]> {
+    return this.http.get<any[]>(`${API_BASE}/orders`);
+  }
 
-  return this.http.post(`${API_BASE}/cart/add`, data, { headers });
+  getOrderById(id: string): Observable<any> {
+    return this.http.get<any>(`${API_BASE}/orders/${id}`);
+  }
 
+  updateOrderStatus(id: string, status: string): Observable<any> {
+    return this.http.patch(`${API_BASE}/orders/${id}/status`, { status });
+  }
 
+  cancelOrder(id: string): Observable<any> {
+    return this.http.patch(`${API_BASE}/orders/${id}/status`, { status: 'cancelled' });
+  }
+
+  deleteOrder(id: string): Observable<any> {
+    return this.http.delete(`${API_BASE}/orders/${id}`);
+  }
+
+  // ===== CONSULTING =====
+  getConsultingQuestions(productId: string, filters: any = {}): Observable<any> {
+    let params = new HttpParams();
+    params = params.set('productId', productId);
+    if (filters.filter && filters.filter !== 'all') params = params.set('status', filters.filter);
+    if (filters.page)  params = params.set('page', filters.page.toString());
+    if (filters.limit) params = params.set('limit', filters.limit.toString());
+    return this.http.get<any>(`${API_BASE}/consulting`, { params });
+  }
+
+  submitConsultingQuestion(data: any): Observable<any> {
+    return this.http.post<any>(`${API_BASE}/consulting`, data);
+  }
 }
-
-
-// ====================== ORDER API ======================
-
-// lấy danh sách đơn hàng
-getOrders(): Observable<any[]> {
-
-  return this.http.get<any[]>(`${API_BASE}/orders`);
-
-}
-
-// lấy chi tiết đơn hàng
-getOrderById(id: string): Observable<any> {
-
-  return this.http.get<any>(`${API_BASE}/orders/${id}`);
-
-}
-
-// cập nhật trạng thái đơn hàng
-updateOrderStatus(id: string, status: string): Observable<any> {
-
-  return this.http.patch(
-    `${API_BASE}/orders/${id}/status`,
-    { status }
-  );
-
-}
-
-// huỷ đơn hàng
-cancelOrder(id: string): Observable<any> {
-
-  return this.http.patch(
-    `${API_BASE}/orders/${id}/status`,
-    { status: 'cancelled' }
-  );
-
-  
-}
-
-deleteOrder(id:string): Observable<any>{
-  return this.http.delete(`${API_BASE}/orders/${id}`);
-}
-}
-
-
-
-

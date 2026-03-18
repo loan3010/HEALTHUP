@@ -4,7 +4,6 @@ const Product = require('../models/Product');
 
 // ─────────────────────────────────────────────────────────────────
 // QUAN TRỌNG: Các route cụ thể PHẢI đứng TRƯỚC /:id
-// Nếu không, Express sẽ match /featured và /category-counts như /:id
 // ─────────────────────────────────────────────────────────────────
 
 // GET featured/bestsellers
@@ -17,7 +16,7 @@ router.get('/featured', async (req, res) => {
   }
 });
 
-// GET category counts - đếm thực tế từ MongoDB
+// GET category counts
 router.get('/category-counts', async (req, res) => {
   try {
     const result = await Product.aggregate([
@@ -33,16 +32,37 @@ router.get('/category-counts', async (req, res) => {
   }
 });
 
-// GET all products with filters
+// ─────────────────────────────────────────────────────────────────
+// GET /api/products?search=keyword  →  Tìm kiếm autocomplete
+// Hỗ trợ fuzzy match bằng $regex, không phân biệt hoa thường
+// ─────────────────────────────────────────────────────────────────
 router.get('/', async (req, res) => {
   try {
     const {
       cat, minPrice, maxPrice, sort, badge, minRating,
-      page = 1, limit = 9
+      page = 1, limit = 9,
+      search   // <-- THÊM MỚI: từ khóa tìm kiếm
     } = req.query;
 
     let query = {};
 
+    // ── SEARCH: tìm theo tên sản phẩm hoặc danh mục ──
+    if (search && search.trim() !== '') {
+      // $regex với 'i' = không phân biệt hoa thường
+      // Cho phép gõ thiếu → vẫn tìm được (partial match)
+      const searchRegex = new RegExp(
+        search.trim()
+          .replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), // escape special chars
+        'i'
+      );
+      query.$or = [
+        { name: { $regex: searchRegex } },
+        { cat:  { $regex: searchRegex } },
+        { shortDesc: { $regex: searchRegex } },
+      ];
+    }
+
+    // ── CÁC FILTER KHÁC (giữ nguyên như cũ) ──
     if (cat) {
       query.cat = { $in: cat.split(',').map(c => c.trim()) };
     }
@@ -72,7 +92,6 @@ router.get('/', async (req, res) => {
     const limitNum = Number(limit);
     const total    = await Product.countDocuments(query);
 
-    // .lean() → plain JS object, _id tự serialize thành string trong JSON
     const products = await Product.find(query)
       .sort(sortObj)
       .skip((pageNum - 1) * limitNum)

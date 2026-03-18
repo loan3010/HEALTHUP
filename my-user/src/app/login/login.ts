@@ -31,22 +31,17 @@ export class Login {
 
   constructor(private router: Router, private http: HttpClient) {
 
-    // ⭐ tự điền sau khi register
     const raw = sessionStorage.getItem('prefill_login');
 
     if (raw) {
       try {
-
         const data = JSON.parse(raw);
-
         this.emailOrPhone = data?.username || '';
         this.password = data?.password || '';
-
       } catch {}
 
       sessionStorage.removeItem('prefill_login');
     }
-
   }
 
   onLogin() {
@@ -66,13 +61,15 @@ export class Login {
 
       next: (res) => {
 
+        // ✅ Lưu login trước
         localStorage.setItem('token', res.token);
         localStorage.setItem('user', JSON.stringify(res.user));
 
+        // ✅ Điều hướng + reload (gộp 2 bên)
         if (res.user.role === 'admin') {
-          this.router.navigate(['/admin']);
+          this.router.navigate(['/admin']).then(() => window.location.reload());
         } else {
-          this.router.navigate(['/home']);
+          this.router.navigate(['/']).then(() => window.location.reload());
         }
 
         this.isLoading = false;

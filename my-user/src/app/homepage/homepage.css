@@ -4,7 +4,7 @@
 
 /* HERO */
 .hero-section {
-  background: #2D5016;
+  background: #36873A;
   min-height: 520px;
   position: relative;
   overflow: hidden;
@@ -16,7 +16,7 @@
   width: 320px;
   height: 320px;
   border-radius: 50%;
-  background: rgba(127, 176, 105, 0.10);
+  background: rgba(162, 195, 127, 0.10);
   top: -80px;
   right: 40%;
   pointer-events: none;
@@ -24,8 +24,8 @@
 
 .hero-tag {
   display: inline-block;
-  background: rgba(127, 176, 105, 0.18);
-  color: #7FB069;
+  background: rgba(162, 195, 127, 0.18);
+  color: #A2C37F;
   border-radius: 999px;
   padding: 5px 18px;
   font-size: 13px;
@@ -41,7 +41,7 @@
 }
 
 .hero-title .highlight {
-  color: #F5C89A;
+  color: #FFEE97;
 }
 
 .hero-desc {
@@ -52,10 +52,10 @@
 }
 
 .btn-hero-primary {
-  background: #D4854A;
+  background: #D4A017;
   color: #fff;
   border: none;
-  border-radius: 999px;
+  border-radius: 16px;
   padding: 13px 34px;
   font-size: 15px;
   font-weight: 600;
@@ -63,17 +63,17 @@
 }
 
 .btn-hero-primary:hover {
-  background: #C4743A;
+  background: #B8860B;
   color: #fff;
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(212, 133, 74, 0.40);
+  box-shadow: 0 8px 24px rgba(212, 160, 23, 0.40);
 }
 
 .btn-hero-outline {
   background: transparent;
   color: rgba(255, 255, 255, 0.85);
   border: 1.5px solid rgba(255, 255, 255, 0.30);
-  border-radius: 999px;
+  border-radius: 16px;
   padding: 13px 28px;
   font-size: 15px;
   font-weight: 500;
@@ -87,7 +87,7 @@
 }
 
 .hero-right-panel {
-  background: linear-gradient(135deg, #EAF2E3 0%, #D4E8C2 100%);
+  background: linear-gradient(135deg, #F0F7F0 0%, #D8EDD8 100%);
   min-height: 520px;
   display: flex;
   align-items: center;
@@ -95,7 +95,7 @@
   position: relative;
 }
 
-/* ✅ Fix: badges xuống dưới ảnh, không che ảnh */
+/* badges xuống dưới ảnh, không che ảnh */
 .hero-product-wrapper {
   position: relative;
   display: inline-block;
@@ -114,14 +114,14 @@
   padding: 9px 16px;
   font-size: 12px;
   font-weight: 600;
-  color: #2D5016;
-  box-shadow: 0 2px 16px rgba(45, 80, 22, 0.10);
+  color: #36873A;
+  box-shadow: 0 2px 16px rgba(54, 135, 58, 0.10);
   white-space: nowrap;
 }
 
 /* TRUST STRIP */
 .trust-strip {
-  background: #2D5016;
+  background: #36873A;
 }
 
 .trust-item {
@@ -148,18 +148,18 @@
 .section-title {
   font-size: 30px;
   font-weight: 700;
-  color: #2D5016;
+  color: #36873A;
 }
 
 .section-subtitle {
   font-size: 15px;
-  color: #8A9E72;
+  color: #A2C37F;
 }
 
 .link-more {
   font-size: 14px;
   font-weight: 600;
-  color: #D4854A;
+  color: #D4A017;
   text-decoration: none;
   cursor: pointer;
   transition: opacity 0.2s;
@@ -167,7 +167,7 @@
 
 .link-more:hover {
   opacity: 0.75;
-  color: #D4854A;
+  color: #D4A017;
 }
 
 /* CATEGORY CARDS */
@@ -187,13 +187,13 @@
 
 .category-card:hover {
   transform: translateY(-4px);
-  border-color: #7FB069;
-  box-shadow: 0 4px 24px rgba(45, 80, 22, 0.10);
+  border-color: #A2C37F;
+  box-shadow: 0 4px 24px rgba(54, 135, 58, 0.10);
 }
 
 .category-card.active {
-  border-color: #2D5016;
-  box-shadow: 0 4px 20px rgba(45, 80, 22, 0.15);
+  border-color: #36873A;
+  box-shadow: 0 4px 20px rgba(54, 135, 58, 0.15);
 }
 
 .cat-icon {
@@ -218,20 +218,20 @@
 .cat-name {
   font-size: 13px;
   font-weight: 600;
-  color: #2D5016;
+  color: #36873A;
   text-align: center;
 }
 
 .cat-count {
   font-size: 11px;
-  color: #8A9E72;
+  color: #A2C37F;
 }
 
 /* PRODUCT CARDS */
 .product-card {
   background: #fff;
   border-radius: 14px;
-  border: 1px solid rgba(127, 176, 105, 0.12);
+  border: 1px solid rgba(162, 195, 127, 0.12);
   overflow: hidden;
   cursor: pointer;
   transition: all 0.28s;
@@ -239,12 +239,12 @@
 
 .product-card:hover {
   transform: translateY(-6px);
-  box-shadow: 0 12px 40px rgba(45, 80, 22, 0.13);
+  box-shadow: 0 12px 40px rgba(54, 135, 58, 0.13);
 }
 
 .product-img-wrap {
   height: 200px;
-  background: linear-gradient(135deg, #EAF2E3 0%, #F0F7E8 100%);
+  background: linear-gradient(135deg, #F0F7F0 0%, #F5FAF5 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -266,7 +266,7 @@
   position: absolute;
   top: 10px;
   left: 10px;
-  background: #7FB069;
+  background: #A2C37F;
   color: #fff;
   font-size: 10px;
   font-weight: 700;
@@ -279,7 +279,7 @@
   position: absolute;
   top: 10px;
   left: 10px;
-  background: #D4854A;
+  background: #D4A017;
   color: #fff;
   font-size: 10px;
   font-weight: 700;
@@ -292,7 +292,7 @@
   position: absolute;
   top: 10px;
   right: 10px;
-  background: #E8384F;
+  background: #C62828;
   color: #fff;
   font-size: 10px;
   font-weight: 700;
@@ -320,14 +320,14 @@
 
 .btn-wishlist:hover,
 .btn-wishlist.active {
-  background: #FFE8E8;
+  background: #FFEBEE;
   transform: scale(1.1);
 }
 
 .product-cat {
   font-size: 10px;
   font-weight: 700;
-  color: #7FB069;
+  color: #A2C37F;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -335,41 +335,41 @@
 .product-name {
   font-size: 14px;
   font-weight: 600;
-  color: #1C2B0E;
+  color: #1a1a1a;
   line-height: 1.4;
 }
 
 .product-weight {
   font-size: 12px;
-  color: #8A9E72;
+  color: #A2C37F;
 }
 
 .product-price {
   font-size: 17px;
   font-weight: 700;
-  color: #2D5016;
+  color: #36873A;
 }
 
 .product-price-old {
   font-size: 12px;
-  color: #8A9E72;
+  color: #A2C37F;
   text-decoration: line-through;
 }
 
 .product-rating {
   font-size: 12px;
-  color: #8A9E72;
+  color: #A2C37F;
 }
 
 .stars {
-  color: #D4854A;
+  color: #D4A017;
 }
 
 .btn-add {
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: #2D5016;
+  background: #36873A;
   border: none;
   color: #fff;
   font-size: 20px;
@@ -382,17 +382,17 @@
 }
 
 .btn-add:hover {
-  background: #4A7C2F;
+  background: #2A6B2E;
   transform: scale(1.1);
 }
 
 .product-footer-row {
-  border-top: 1px solid #EAF2E3;
+  border-top: 1px solid #F0F7F0;
 }
 
 /* PROMO BANNER */
 .promo-banner {
-  background: linear-gradient(135deg, #D4854A 0%, #C4743A 100%);
+  background: linear-gradient(135deg, #D4A017 0%, #B8860B 100%);
   border-radius: 16px;
   position: relative;
   overflow: hidden;
@@ -428,7 +428,7 @@
 
 .promo-title em {
   font-style: normal;
-  color: #F5C89A;
+  color: #FFEE97;
 }
 
 .promo-desc {
@@ -439,9 +439,9 @@
 
 .btn-promo {
   background: #fff;
-  color: #D4854A;
+  color: #D4A017;
   border: none;
-  border-radius: 999px;
+  border-radius: 16px;
   padding: 13px 34px;
   font-size: 14px;
   font-weight: 700;
@@ -451,7 +451,7 @@
 .btn-promo:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  color: #C4743A;
+  color: #B8860B;
 }
 
 /* BLOG */
@@ -459,17 +459,17 @@
   background: #fff;
   border-radius: 14px;
   overflow: hidden;
-  border: 1px solid rgba(127, 176, 105, 0.10);
+  border: 1px solid rgba(162, 195, 127, 0.10);
   transition: all 0.25s;
   cursor: pointer;
 }
 
 .blog-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 32px rgba(45, 80, 22, 0.10);
+  box-shadow: 0 8px 32px rgba(54, 135, 58, 0.10);
 }
 
-/* ✅ Fix: blog image căn giữa, đúng tỉ lệ */
+/* blog image căn giữa, đúng tỉ lệ */
 .blog-img-wrap {
   width: 100%;
   height: 200px;
@@ -477,7 +477,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #EAF2E3;
+  background: #F0F7F0;
 }
 
 .blog-cover-img {
@@ -489,7 +489,7 @@
 .blog-tag {
   font-size: 10px;
   font-weight: 700;
-  color: #7FB069;
+  color: #A2C37F;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -497,41 +497,41 @@
 .blog-title {
   font-size: 16px;
   font-weight: 700;
-  color: #2D5016;
+  color: #36873A;
   line-height: 1.4;
 }
 
 .blog-excerpt {
   font-size: 13px;
-  color: #8A9E72;
+  color: #A2C37F;
   line-height: 1.7;
 }
 
 .blog-author {
   font-size: 12px;
-  color: #8A9E72;
+  color: #A2C37F;
 }
 
 .blog-date {
   font-size: 12px;
-  color: #8A9E72;
+  color: #A2C37F;
 }
 
 .blog-read {
   font-size: 13px;
   font-weight: 600;
-  color: #D4854A;
+  color: #D4A017;
   cursor: pointer;
   text-decoration: none;
 }
 
 .blog-read:hover {
-  color: #C4743A;
+  color: #B8860B;
 }
 
 /* FOOTER */
 .footer-section {
-  background: #1C2B0E;
+  background: #1a2e1b;
 }
 
 .footer-brand {
@@ -541,7 +541,7 @@
 }
 
 .footer-brand .brand-dot {
-  color: #D4854A;
+  color: #D4A017;
 }
 
 .footer-desc {
@@ -567,7 +567,7 @@
 }
 
 .footer-link:hover {
-  color: #7FB069;
+  color: #A2C37F;
 }
 
 .footer-bottom-bar {

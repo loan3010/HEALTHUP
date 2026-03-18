@@ -1,0 +1,590 @@
+/* ============================================
+   HEALTHUP CHATBOT - Isolated CSS
+   Tất cả class đều có prefix "hu-" để tránh
+   conflict với CSS của website chính
+   ============================================ */
+
+/* Reset cứng cho widget - không bị ảnh hưởng bởi CSS ngoài */
+.hu-chat-widget,
+.hu-chat-widget * {
+  box-sizing: border-box !important;
+  font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+  line-height: normal !important;
+}
+
+/* ============================================
+   FLOATING BUTTON
+   ============================================ */
+
+.hu-chat-button {
+  position: fixed !important;
+  bottom: 24px !important;
+  right: 24px !important;
+  width: 60px !important;
+  height: 60px !important;
+  border-radius: 50% !important;
+  background: linear-gradient(135deg, #36873A 0%, #2A6B2E 100%) !important;
+  border: none !important;
+  cursor: pointer !important;
+  box-shadow: 0 8px 32px rgba(54, 135, 58, 0.4) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.3s ease !important;
+  z-index: 999998 !important;
+  color: white !important;
+  padding: 0 !important;
+}
+
+.hu-chat-button:hover {
+  transform: scale(1.1) !important;
+  box-shadow: 0 12px 40px rgba(54, 135, 58, 0.5) !important;
+}
+
+.hu-chat-button:active {
+  transform: scale(0.95) !important;
+}
+
+.hu-chat-icon { display: block !important; }
+.hu-close-icon { display: none !important; }
+.hu-chat-button.active .hu-chat-icon { display: none !important; }
+.hu-chat-button.active .hu-close-icon { display: block !important; }
+
+/* Badge xanh nhấp nháy */
+.hu-chat-button::after {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  right: 0 !important;
+  width: 14px !important;
+  height: 14px !important;
+  background: #C62828 !important;
+  border-radius: 50% !important;
+  border: 2px solid white !important;
+  animation: hu-pulse 2s infinite !important;
+}
+
+.hu-chat-button.active::after {
+  display: none !important;
+}
+
+@keyframes hu-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.7; }
+}
+
+/* ============================================
+   WIDGET CONTAINER
+   FIX: display: none mặc định, flex khi .active
+   ============================================ */
+
+.hu-chat-widget {
+  position: fixed !important;
+  bottom: 96px !important;
+  right: 24px !important;
+  width: 380px !important;
+  max-width: calc(100vw - 32px) !important;
+  height: 580px !important;
+  max-height: calc(100vh - 120px) !important;
+  background: #FFFFFF !important;
+  border-radius: 20px !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2) !important;
+  /* Ẩn mặc định */
+  display: none !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  z-index: 999999 !important;
+  transform: scale(0.92) translateY(8px) !important;
+  opacity: 0 !important;
+  transition: transform 0.25s ease, opacity 0.25s ease !important;
+}
+
+/* Hiện khi active */
+.hu-chat-widget.active {
+  display: flex !important;
+  transform: scale(1) translateY(0) !important;
+  opacity: 1 !important;
+}
+
+/* ============================================
+   HEADER
+   ============================================ */
+
+.hu-chat-header {
+  background: linear-gradient(135deg, #36873A 0%, #2A6B2E 100%) !important;
+  padding: 16px 20px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex-shrink: 0 !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+}
+
+.hu-header-left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+
+.hu-bot-avatar {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 50% !important;
+  overflow: hidden !important;
+  background: #FFEE97 !important;
+  flex-shrink: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 2px solid rgba(255,255,255,0.3) !important;
+}
+
+.hu-bot-avatar img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+.hu-header-info h3 {
+  color: white !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  margin: 0 0 3px 0 !important;
+  padding: 0 !important;
+}
+
+.hu-status {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  color: rgba(255,255,255,0.9) !important;
+  font-size: 12px !important;
+}
+
+.hu-status-dot {
+  width: 7px !important;
+  height: 7px !important;
+  background: #69F0AE !important;
+  border-radius: 50% !important;
+  display: inline-block !important;
+  animation: hu-blink 2s infinite !important;
+}
+
+@keyframes hu-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.hu-minimize-btn {
+  width: 30px !important;
+  height: 30px !important;
+  border-radius: 8px !important;
+  background: rgba(255,255,255,0.15) !important;
+  border: none !important;
+  color: white !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  transition: background 0.2s !important;
+}
+
+.hu-minimize-btn:hover {
+  background: rgba(255,255,255,0.28) !important;
+}
+
+/* ============================================
+   WELCOME SCREEN
+   ============================================ */
+
+.hu-welcome {
+  flex: 1 !important;
+  overflow-y: auto !important;
+  background: #FAF6F0 !important;
+}
+
+.hu-welcome-body {
+  padding: 32px 24px !important;
+  text-align: center !important;
+}
+
+.hu-welcome-icon {
+  font-size: 64px !important;
+  margin-bottom: 16px !important;
+  display: block !important;
+  animation: hu-float 3s ease-in-out infinite !important;
+}
+
+@keyframes hu-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.hu-welcome-body h2 {
+  font-size: 22px !important;
+  font-weight: 700 !important;
+  color: #36873A !important;
+  margin: 0 0 10px 0 !important;
+  padding: 0 !important;
+}
+
+.hu-welcome-body > p {
+  font-size: 14px !important;
+  color: #666 !important;
+  margin: 0 0 20px 0 !important;
+}
+
+.hu-feature-list {
+  list-style: none !important;
+  text-align: left !important;
+  margin: 0 0 24px 0 !important;
+  padding: 0 !important;
+}
+
+.hu-feature-list li {
+  padding: 10px 14px !important;
+  margin-bottom: 8px !important;
+  background: white !important;
+  border-radius: 10px !important;
+  font-size: 13px !important;
+  color: #333 !important;
+  box-shadow: 0 1px 4px rgba(54,135,58,0.1) !important;
+  display: block !important;
+}
+
+.hu-btn-start {
+  width: 100% !important;
+  padding: 14px 24px !important;
+  background: linear-gradient(135deg, #36873A 0%, #2A6B2E 100%) !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 12px !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 4px 16px rgba(54,135,58,0.3) !important;
+}
+
+.hu-btn-start:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 24px rgba(54,135,58,0.4) !important;
+}
+
+/* ============================================
+   MESSAGES AREA
+   ============================================ */
+
+.hu-chat-messages {
+  flex: 1 !important;
+  overflow-y: auto !important;
+  padding: 16px !important;
+  background: #FAF6F0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: #A2C37F transparent !important;
+}
+
+.hu-chat-messages::-webkit-scrollbar { width: 5px; }
+.hu-chat-messages::-webkit-scrollbar-thumb { background: #A2C37F; border-radius: 3px; }
+.hu-chat-messages::-webkit-scrollbar-track { background: transparent; }
+
+/* Message row */
+.hu-message {
+  display: flex !important;
+  margin-bottom: 12px !important;
+  align-items: flex-end !important;
+  animation: hu-slide-in 0.25s ease !important;
+}
+
+@keyframes hu-slide-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.hu-bot { justify-content: flex-start !important; }
+.hu-user { justify-content: flex-end !important; }
+
+/* Avatar */
+.hu-msg-avatar {
+  width: 30px !important;
+  height: 30px !important;
+  border-radius: 50% !important;
+  overflow: hidden !important;
+  flex-shrink: 0 !important;
+  margin-right: 8px !important;
+  background: #FFEE97 !important;
+}
+
+.hu-user-avatar {
+  margin-right: 0 !important;
+  margin-left: 8px !important;
+  background: #D4A017 !important;
+  order: 2 !important;
+}
+
+.hu-msg-avatar img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+}
+
+/* Content */
+.hu-msg-content {
+  max-width: 72% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* Bubble */
+.hu-msg-bubble {
+  padding: 10px 14px !important;
+  border-radius: 16px !important;
+  font-size: 13.5px !important;
+  line-height: 1.55 !important;
+  word-break: break-word !important;
+  white-space: normal !important;
+}
+
+.hu-bot .hu-msg-bubble {
+  background: #FFFFFF !important;
+  color: #333333 !important;
+  border-bottom-left-radius: 4px !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08) !important;
+}
+
+.hu-user .hu-msg-bubble {
+  background: linear-gradient(135deg, #36873A 0%, #2A6B2E 100%) !important;
+  color: white !important;
+  border-bottom-right-radius: 4px !important;
+  box-shadow: 0 2px 8px rgba(54,135,58,0.25) !important;
+}
+
+.hu-msg-time {
+  font-size: 10px !important;
+  color: #aaa !important;
+  margin-top: 4px !important;
+  padding: 0 2px !important;
+}
+
+.hu-user .hu-msg-time {
+  text-align: right !important;
+}
+
+/* Typing indicator */
+.hu-typing {
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  padding: 12px 16px !important;
+  background: white !important;
+  border-radius: 16px !important;
+  border-bottom-left-radius: 4px !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08) !important;
+}
+
+.hu-dot {
+  width: 7px !important;
+  height: 7px !important;
+  border-radius: 50% !important;
+  background: #A2C37F !important;
+  display: inline-block !important;
+  animation: hu-typing 1.4s infinite !important;
+}
+
+.hu-dot:nth-child(2) { animation-delay: 0.2s !important; }
+.hu-dot:nth-child(3) { animation-delay: 0.4s !important; }
+
+@keyframes hu-typing {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-8px); opacity: 1; }
+}
+
+/* FAQ buttons */
+.hu-faq-list {
+  margin-top: 8px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+}
+
+.hu-faq-item {
+  padding: 8px 12px !important;
+  background: white !important;
+  border: 1px solid #E0E0E0 !important;
+  border-radius: 10px !important;
+  font-size: 12.5px !important;
+  color: #36873A !important;
+  cursor: pointer !important;
+  text-align: left !important;
+  transition: all 0.2s ease !important;
+  width: 100% !important;
+  display: block !important;
+}
+
+.hu-faq-item:hover {
+  background: #F0F7F0 !important;
+  border-color: #36873A !important;
+  transform: translateX(3px) !important;
+}
+
+/* ============================================
+   QUICK REPLIES
+   ============================================ */
+
+.hu-quick-replies {
+  padding: 12px 16px !important;
+  background: white !important;
+  border-top: 1px solid #E0E0E0 !important;
+  flex-shrink: 0 !important;
+}
+
+.hu-qr-title {
+  font-size: 12px !important;
+  color: #888 !important;
+  margin: 0 0 8px 0 !important;
+  font-weight: 500 !important;
+}
+
+.hu-qr-buttons {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+}
+
+.hu-qr-btn {
+  padding: 6px 14px !important;
+  background: white !important;
+  border: 1px solid #E0E0E0 !important;
+  border-radius: 20px !important;
+  font-size: 12px !important;
+  color: #36873A !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  white-space: nowrap !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+.hu-qr-btn:hover {
+  background: #36873A !important;
+  color: white !important;
+  border-color: #36873A !important;
+}
+
+/* ============================================
+   INPUT
+   ============================================ */
+
+.hu-input-wrapper {
+  padding: 12px 16px 10px !important;
+  background: white !important;
+  border-top: 1px solid #E0E0E0 !important;
+  flex-shrink: 0 !important;
+}
+
+.hu-input-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin-bottom: 6px !important;
+}
+
+#hu-chat-input {
+  flex: 1 !important;
+  padding: 10px 16px !important;
+  border: 1.5px solid #E0E0E0 !important;
+  border-radius: 24px !important;
+  font-size: 13.5px !important;
+  outline: none !important;
+  background: #FAF6F0 !important;
+  color: #333 !important;
+  transition: border-color 0.2s !important;
+  min-width: 0 !important;
+}
+
+#hu-chat-input:focus {
+  border-color: #36873A !important;
+  background: white !important;
+  box-shadow: 0 0 0 3px #F0F7F0 !important;
+}
+
+#hu-chat-input::placeholder {
+  color: #aaa !important;
+}
+
+.hu-send-btn {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 50% !important;
+  background: linear-gradient(135deg, #36873A 0%, #2A6B2E 100%) !important;
+  border: none !important;
+  color: white !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  transition: all 0.2s ease !important;
+  padding: 0 !important;
+}
+
+.hu-send-btn:hover {
+  transform: scale(1.08) !important;
+  box-shadow: 0 4px 12px rgba(54,135,58,0.3) !important;
+}
+
+.hu-send-btn:active {
+  transform: scale(0.95) !important;
+}
+
+.hu-send-btn:disabled {
+  opacity: 0.4 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
+.hu-powered-by {
+  font-size: 10.5px !important;
+  color: #bbb !important;
+  text-align: center !important;
+  margin: 0 !important;
+}
+
+.hu-powered-by strong {
+  color: #36873A !important;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 480px) {
+  .hu-chat-widget {
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: 100vw !important;
+    max-height: 100vh !important;
+    bottom: 0 !important;
+    right: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  .hu-chat-button {
+    bottom: 16px !important;
+    right: 16px !important;
+  }
+
+  .hu-msg-content {
+    max-width: 82% !important;
+  }
+}
