@@ -18,11 +18,98 @@
     <!-- Right: search + actions + hamburger -->
     <div class="header-right">
 
-      <!-- Search -->
-      <div class="search-box">
-        <input type="text" placeholder="Tìm sản phẩm..." />
-        <i class="bi bi-search"></i>
+      <!-- ══════════════════════════════════════
+           SEARCH BOX + AUTOCOMPLETE DROPDOWN
+           ══════════════════════════════════════ -->
+      <div class="search-box" [class.search-active]="showSearchDropdown">
+
+        <input
+          #searchInput
+          type="text"
+          [ngModel]="searchQuery"
+          (ngModelChange)="onSearchChange($event)"
+          (focus)="onSearchFocus()"
+          (keydown)="onSearchKeydown($event)"
+          placeholder="Tìm sản phẩm..."
+          autocomplete="off"
+          spellcheck="false"
+          aria-label="Tìm kiếm sản phẩm"
+        />
+
+        <!-- Icon search / loading -->
+        <button class="search-submit-btn" (click)="submitSearch()" aria-label="Tìm kiếm">
+          <i class="bi bi-search" *ngIf="!isSearching"></i>
+          <span class="search-loading" *ngIf="isSearching"></span>
+        </button>
+
+        <!-- ── AUTOCOMPLETE DROPDOWN ── -->
+        <div class="search-dropdown" *ngIf="showSearchDropdown && searchQuery.trim()">
+
+          <!-- Đang tìm kiếm -->
+          <div class="search-dropdown-loading" *ngIf="isSearching">
+            <span class="search-spinner"></span>
+            Đang tìm kiếm...
+          </div>
+
+          <!-- Có kết quả -->
+          <ng-container *ngIf="!isSearching && searchResults.length > 0">
+            <div class="search-dropdown-header">
+              Gợi ý sản phẩm
+            </div>
+            <div
+              *ngFor="let product of searchResults; let i = index"
+              class="search-result-item"
+              [class.active]="i === activeIndex"
+              (click)="selectProduct(product)"
+              (mouseenter)="activeIndex = i">
+
+              <!-- Thumbnail -->
+              <div class="search-result-thumb">
+                <img
+                  [src]="product.images?.[0] || '/assets/images/placeholder.png'"
+                  [alt]="product.name"
+                  onerror="this.src='/assets/images/placeholder.png'"
+                />
+                <!-- Badge -->
+                <span class="search-badge search-badge-new" *ngIf="product.badge === 'new'">Mới</span>
+                <span class="search-badge search-badge-hot" *ngIf="product.badge === 'hot'">Hot</span>
+              </div>
+
+              <!-- Info -->
+              <div class="search-result-info">
+                <p class="search-result-name">{{ product.name }}</p>
+                <p class="search-result-cat">{{ product.cat }}</p>
+                <div class="search-result-price-row">
+                  <span class="search-result-price">{{ formatPrice(product.price) }}</span>
+                  <span class="search-result-old-price" *ngIf="product.oldPrice">
+                    {{ formatPrice(product.oldPrice) }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Arrow icon -->
+              <i class="bi bi-arrow-right-short search-result-arrow"></i>
+            </div>
+
+            <!-- Xem tất cả kết quả -->
+            <div class="search-dropdown-footer" (click)="submitSearch()">
+              <i class="bi bi-search"></i>
+              Xem tất cả kết quả cho "<strong>{{ searchQuery }}</strong>"
+            </div>
+          </ng-container>
+
+          <!-- Không có kết quả -->
+          <div class="search-no-result" *ngIf="!isSearching && searchResults.length === 0">
+            <i class="bi bi-emoji-frown"></i>
+            <p>Không tìm thấy sản phẩm nào</p>
+            <span>Thử tìm với từ khóa khác nhé!</span>
+          </div>
+
+        </div>
+        <!-- /AUTOCOMPLETE DROPDOWN -->
+
       </div>
+      <!-- /SEARCH BOX -->
 
       <!-- Actions -->
       <div class="header-actions">
@@ -46,34 +133,15 @@
         <ng-container *ngIf="isLoggedIn">
           <i class="bi bi-bell icon" title="Thông báo"></i>
           <i class="bi bi-cart icon" routerLink="/cart" title="Giỏ hàng"></i>
-          
+
           <div class="user-menu">
             <div class="user-greeting" (click)="toggleDropdown()">
               <div class="user-avatar">{{ getInitials() }}</div>
               <span class="user-name">Xin chào, {{ userName }}</span>
               <i class="bi bi-chevron-down dropdown-icon"></i>
             </div>
-            
+
             <div class="user-dropdown" *ngIf="showDropdown">
-              <!-- <a routerLink="/profile" (click)="closeDropdown()">
-                <i class="bi bi-person"></i> Tài khoản của tôi
-              </a>
-              <a routerLink="/orders" (click)="closeDropdown()">
-                <i class="bi bi-box-seam"></i> Đơn hàng
-              </a>
-              <a routerLink="/wishlist" (click)="closeDropdown()">
-                <i class="bi bi-heart"></i> Yêu thích
-              </a>
-              <a routerLink="/settings" (click)="closeDropdown()">
-                <i class="bi bi-gear"></i> Cài đặt
-              </a>
-              <a routerLink="/settings" (click)="closeDropdown()">
-                <i class="bi bi-gear"></i> Sổ địa chỉ
-              </a>
-              <div class="dropdown-divider"></div>
-              <a (click)="logout()" class="logout-link">
-                <i class="bi bi-box-arrow-right"></i> Đăng xuất
-              </a> -->
               <a routerLink="/profile/overview" (click)="closeDropdown()">
                 <i class="bi bi-person"></i> Tài khoản của tôi
               </a>
@@ -112,7 +180,7 @@
 </header>
 
 <!-- Track Order Modal -->
-<app-track-order-modal 
-  [isOpen]="showTrackOrderModal" 
+<app-track-order-modal
+  [isOpen]="showTrackOrderModal"
   (closeModal)="closeTrackOrderModal()">
 </app-track-order-modal>
