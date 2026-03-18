@@ -1,145 +1,182 @@
-<h3 class="mb-4">Sổ địa chỉ</h3>
+<!-- TOAST -->
+<div class="ab-toast" [class.show]="toastVisible">
+  <i class="bi bi-check-circle-fill"></i> {{ toastMessage }}
+</div>
 
-<div class="address-container">
+<!-- HEADER -->
+<div class="ab-header">
+  <div>
+    <h4>Sổ địa chỉ</h4>
+    <p>{{ addresses.length }} địa chỉ đã lưu</p>
+  </div>
+  <button class="ab-btn-add" (click)="openAddModal()">
+    <i class="bi bi-plus-lg"></i> Thêm địa chỉ
+  </button>
+</div>
 
-  <!-- Address Cards -->
-  <div
-    class="address-card"
-    *ngFor="let item of addresses; let i = index"
-    [class.default]="item.isDefault"
-  >
-    <div class="address-info">
-      <div class="address-header">
-        <h6 class="name">{{ item.name }}</h6>
-        <span *ngIf="item.isDefault" class="default-badge">
-          Địa chỉ mặc định
-        </span>
+<!-- LOADING -->
+<div class="ab-loading" *ngIf="isPageLoading">
+  <div class="ab-skeleton" *ngFor="let s of [1,2]"></div>
+</div>
+
+<!-- ADDRESS LIST -->
+<div class="ab-list" *ngIf="!isPageLoading">
+
+  <div class="ab-card" *ngFor="let item of addresses; let i = index"
+    [class.is-default]="item.isDefault">
+
+    <!-- Default ribbon -->
+    <div class="ab-ribbon" *ngIf="item.isDefault">
+      <i class="bi bi-star-fill"></i> Mặc định
+    </div>
+
+    <div class="ab-card-body">
+      <div class="ab-card-left">
+        <div class="ab-avatar">{{ getInitial(item.name) }}</div>
       </div>
-
-      <p class="address-text">{{ item.address }}</p>
-      <p class="phone-text">Số điện thoại: {{ item.phone }}</p>
+      <div class="ab-card-info">
+        <div class="ab-name-row">
+          <span class="ab-name">{{ item.name }}</span>
+          <span class="ab-phone">{{ item.phone }}</span>
+        </div>
+        <p class="ab-address">{{ item.address }}</p>
+      </div>
     </div>
 
-    <div class="address-actions">
-      <button class="btn-edit" (click)="openEditModal(i)">
-        <i class="bi bi-pencil-square me-1"></i> Chỉnh sửa
+    <div class="ab-card-footer">
+      <button class="ab-btn-edit" (click)="openEditModal(i)">
+        <i class="bi bi-pencil"></i> Chỉnh sửa
       </button>
-      <button class="btn-delete" (click)="deleteAddress(i)">
-        <i class="bi bi-trash"></i>
+      <button class="ab-btn-default" *ngIf="!item.isDefault" (click)="setDefault(i)">
+        <i class="bi bi-star"></i> Đặt mặc định
       </button>
-      <button
-        *ngIf="!item.isDefault"
-        class="btn-default"
-        (click)="setDefault(i)"
-      >
-        Đặt làm mặc định
+      <button class="ab-btn-delete" (click)="deleteAddress(i)">
+        <i class="bi bi-trash3"></i>
       </button>
     </div>
+
   </div>
 
-  <!-- Empty State -->
-  <div class="empty-state" *ngIf="addresses.length === 0">
-    <i class="bi bi-geo-alt"></i>
-    <p>Chưa có địa chỉ nào</p>
-    <p class="text-muted">Thêm địa chỉ để thanh toán nhanh hơn</p>
-  </div>
-
-  <!-- Add Button -->
-  <div class="add-btn-wrapper">
-    <button class="btn-add" (click)="openAddModal()">
-      <i class="bi bi-plus-circle me-2"></i> THÊM ĐỊA CHỈ MỚI
+  <!-- EMPTY -->
+  <div class="ab-empty" *ngIf="addresses.length === 0">
+    <div class="ab-empty-icon"><i class="bi bi-geo-alt"></i></div>
+    <h5>Chưa có địa chỉ nào</h5>
+    <p>Thêm địa chỉ để thanh toán nhanh hơn</p>
+    <button class="ab-btn-add-lg" (click)="openAddModal()">
+      <i class="bi bi-plus-lg"></i> Thêm địa chỉ đầu tiên
     </button>
   </div>
 
 </div>
 
-<!-- Modal Backdrop -->
-<div class="modal-backdrop" *ngIf="showModal" (click)="closeModal()">
-  
-  <!-- Modal Content -->
-  <div class="address-modal" (click)="$event.stopPropagation()">
-    
-    <div class="modal-header">
-      <h5 class="modal-title">
-        {{ isEditMode ? 'Chỉnh sửa địa chỉ' : 'Thêm địa chỉ mới' }}
-      </h5>
-      <button class="close-btn" (click)="closeModal()">
+<!-- MODAL -->
+<div class="ab-backdrop" *ngIf="showModal" (click)="closeModal()">
+  <div class="ab-modal" (click)="$event.stopPropagation()">
+
+    <div class="ab-modal-header">
+      <h5>{{ isEditMode ? 'Chỉnh sửa địa chỉ' : 'Thêm địa chỉ mới' }}</h5>
+      <button class="ab-close" (click)="closeModal()">
         <i class="bi bi-x-lg"></i>
       </button>
     </div>
 
-    <div class="modal-body">
+    <div class="ab-modal-body">
       <form [formGroup]="addressForm" (ngSubmit)="submitForm()">
-        
-        <div class="form-group">
-          <label>Họ và tên <span class="required">*</span></label>
-          <input 
-            type="text" 
-            class="form-input"
-            formControlName="name"
-            placeholder="Nhập họ và tên"
-          />
-          <div class="error-text" *ngIf="showError('name')">
-            Vui lòng nhập họ và tên
+
+        <div class="ab-row-2">
+          <div class="ab-field">
+            <label>Họ và tên <span class="req">*</span></label>
+            <input type="text" class="ab-input" formControlName="name"
+              placeholder="Nhập họ và tên" />
+            <span class="ab-error" *ngIf="showError('name')">Vui lòng nhập họ và tên</span>
+          </div>
+          <div class="ab-field">
+            <label>Số điện thoại <span class="req">*</span></label>
+            <input type="tel" class="ab-input" formControlName="phone"
+              placeholder="Nhập số điện thoại" maxlength="11" />
+            <span class="ab-error" *ngIf="showError('phone')">Số điện thoại không hợp lệ</span>
           </div>
         </div>
 
-        <div class="form-group">
-          <label>Số điện thoại <span class="required">*</span></label>
-          <input 
-            type="tel" 
-            class="form-input"
-            formControlName="phone"
-            placeholder="Nhập số điện thoại"
-            maxlength="11"
-          />
-          <div class="error-text" *ngIf="showError('phone')">
-            Số điện thoại không hợp lệ (9-11 chữ số)
+        <!-- Tỉnh / Thành phố -->
+        <div class="ab-field">
+          <label>Tỉnh / Thành phố <span class="req">*</span></label>
+          <div class="ab-select-wrap">
+            <select class="ab-input ab-select" formControlName="province"
+              (change)="onProvinceChange()">
+              <option value="">-- Chọn Tỉnh/Thành phố --</option>
+              <option *ngFor="let p of provinces" [value]="p.code">{{ p.name }}</option>
+            </select>
+            <span class="ab-select-spinner" *ngIf="loadingProvinces"></span>
           </div>
+          <span class="ab-error" *ngIf="showError('province')">Vui lòng chọn tỉnh/thành phố</span>
         </div>
 
-        <div class="form-group">
-          <label>Địa chỉ <span class="required">*</span></label>
-          <textarea 
-            class="form-input"
-            formControlName="address"
-            placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố"
-            rows="3"
-          ></textarea>
-          <div class="error-text" *ngIf="showError('address')">
-            Vui lòng nhập địa chỉ
+        <!-- Quận / Huyện -->
+        <div class="ab-field">
+          <label>Quận / Huyện <span class="req">*</span></label>
+          <div class="ab-select-wrap">
+            <select class="ab-input ab-select" formControlName="district"
+              (change)="onDistrictChange()" [disabled]="!districts.length">
+              <option value="">-- Chọn Quận/Huyện --</option>
+              <option *ngFor="let d of districts" [value]="d.code">{{ d.name }}</option>
+            </select>
+            <span class="ab-select-spinner" *ngIf="loadingDistricts"></span>
           </div>
+          <span class="ab-error" *ngIf="showError('district')">Vui lòng chọn quận/huyện</span>
         </div>
 
-        <div class="form-group">
-          <label class="checkbox-label">
-            <input 
-              type="checkbox" 
-              formControlName="isDefault"
-            />
-            <span>Đặt làm địa chỉ mặc định</span>
-          </label>
+        <!-- Phường / Xã -->
+        <div class="ab-field">
+          <label>Phường / Xã <span class="req">*</span></label>
+          <div class="ab-select-wrap">
+            <select class="ab-input ab-select" formControlName="ward"
+              (change)="onWardChange()" [disabled]="!wards.length">
+              <option value="">-- Chọn Phường/Xã --</option>
+              <option *ngFor="let w of wards" [value]="w.code">{{ w.name }}</option>
+            </select>
+            <span class="ab-select-spinner" *ngIf="loadingWards"></span>
+          </div>
+          <span class="ab-error" *ngIf="showError('ward')">Vui lòng chọn phường/xã</span>
         </div>
 
-        <div class="modal-footer">
-          <button type="button" class="btn-cancel" (click)="closeModal()">
-            Hủy
-          </button>
-          <button type="submit" class="btn-submit" [disabled]="isLoading">
+        <!-- Số nhà, tên đường -->
+        <div class="ab-field">
+          <label>Số nhà, tên đường <span class="req">*</span></label>
+          <input type="text" class="ab-input" formControlName="street"
+            placeholder="VD: 123 Nguyễn Huệ" />
+          <span class="ab-error" *ngIf="showError('street')">Vui lòng nhập số nhà, tên đường</span>
+        </div>
+
+        <!-- Preview địa chỉ đầy đủ -->
+        <div class="ab-address-preview" *ngIf="fullAddressPreview">
+          <i class="bi bi-geo-alt-fill"></i>
+          <span>{{ fullAddressPreview }}</span>
+        </div>
+
+        <label class="ab-checkbox">
+          <input type="checkbox" formControlName="isDefault" />
+          <span class="ab-checkmark"></span>
+          <span>Đặt làm địa chỉ mặc định</span>
+        </label>
+
+        <div class="ab-msg ab-msg-success" *ngIf="successMessage">
+          <i class="bi bi-check-circle"></i> {{ successMessage }}
+        </div>
+        <div class="ab-msg ab-msg-error" *ngIf="errorMessage">
+          <i class="bi bi-exclamation-circle"></i> {{ errorMessage }}
+        </div>
+
+        <div class="ab-modal-footer">
+          <button type="button" class="ab-btn-cancel" (click)="closeModal()">Hủy</button>
+          <button type="submit" class="ab-btn-submit" [disabled]="isLoading">
+            <span class="ab-spinner" *ngIf="isLoading"></span>
             {{ isLoading ? 'Đang lưu...' : (isEditMode ? 'Cập nhật' : 'Thêm địa chỉ') }}
           </button>
-        </div>
-
-        <div class="success-message" *ngIf="successMessage">
-          {{ successMessage }}
-        </div>
-        <div class="error-message" *ngIf="errorMessage">
-          {{ errorMessage }}
         </div>
 
       </form>
     </div>
 
   </div>
-
 </div>

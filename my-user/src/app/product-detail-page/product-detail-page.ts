@@ -3,6 +3,7 @@ import { CommonModule, CurrencyPipe } from '@angular/common';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../services/api.service';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 
 export interface PolicyItem { icon: string; title: string; desc: string; }
 
@@ -43,6 +44,10 @@ export class ProductDetailPageComponent implements OnInit {
   isWishlisted = false;
   isLoading = true;
 
+  private API = 'http://localhost:3000/api';
+  private userId = '';
+  private token = '';
+
   policyItems: PolicyItem[] = [
     { icon: 'bi-arrow-repeat', title: 'Đổi trả trong 7 ngày',  desc: 'Áp dụng khi sản phẩm lỗi, hư hỏng do vận chuyển hoặc không đúng đơn hàng.' },
     { icon: 'bi-truck',        title: 'Giao hàng toàn quốc',   desc: 'Từ 2-5 ngày làm việc. Nội thành TP.HCM & Hà Nội giao trong ngày hoặc hôm sau.' },
@@ -69,7 +74,8 @@ export class ProductDetailPageComponent implements OnInit {
     private router: Router,
     private route: ActivatedRoute,
     private api: ApiService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private http: HttpClient
   ) {}
 
   ngOnInit(): void {
@@ -85,6 +91,7 @@ export class ProductDetailPageComponent implements OnInit {
         this.cdr.detectChanges();
         this.loadProduct(id);
         this.loadRelated(id);
+        this.loadUserAuth();
         this.loadConsultingQuestions(id);
       }
     });
@@ -242,7 +249,62 @@ export class ProductDetailPageComponent implements OnInit {
 
   buyNow(): void { this.addToCart(); this.router.navigate(['/checkout']); }
 
-  toggleWishlist(): void { this.isWishlisted = !this.isWishlisted; }
+  loadUserAuth(): void {
+    const userStr = localStorage.getItem('user');
+    const token   = localStorage.getItem('token');
+    if (userStr && token) {
+      try {
+        const user   = JSON.parse(userStr);
+        this.userId  = user.id;
+        this.token   = token;
+        this.checkWishlist();
+      } catch {}
+    }
+  }
+
+  checkWishlist(): void {
+    if (!this.userId || !this.token) return;
+    const headers = new HttpHeaders({ Authorization: `Bearer ${this.token}` });
+    this.http.get<any>(`${this.API}/users/${this.userId}/wishlist`, { headers })
+      .subscribe({
+        next: (res) => {
+          const wishlist: any[] = res.wishlist || [];
+          this.isWishlisted = wishlist.some(p => p._id === this.product?._id);
+          this.cdr.detectChanges();
+        }
+      });
+  }
+
+  toggleWishlist(): void {
+    if (!this.userId || !this.token) {
+      this.router.navigate(['/login']);
+      return;
+    }
+
+    const headers = new HttpHeaders({ Authorization: `Bearer ${this.token}` });
+
+    if (this.isWishlisted) {
+      // Xóa khỏi wishlist
+      this.http.delete(`${this.API}/users/${this.userId}/wishlist/${this.product._id}`, { headers })
+        .subscribe({
+          next: () => {
+            this.isWishlisted = false;
+            this.cdr.detectChanges();
+          }
+        });
+    } else {
+      // Thêm vào wishlist
+      this.http.post(`${this.API}/users/${this.userId}/wishlist`,
+        { productId: this.product._id },
+        { headers }
+      ).subscribe({
+        next: () => {
+          this.isWishlisted = true;
+          this.cdr.detectChanges();
+        }
+      });
+    }
+  }
 
   share(): void {
     if (navigator.share) {
