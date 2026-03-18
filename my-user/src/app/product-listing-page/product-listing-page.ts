@@ -1,7 +1,8 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule, CurrencyPipe } from '@angular/common';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { Subscription } from 'rxjs';
 import { SidebarComponent, SidebarFilters } from '../sidebar/sidebar';
 import { ApiService } from '../services/api.service';
 
@@ -14,7 +15,7 @@ export interface FilterTag { key: string; label: string; }
   templateUrl: './product-listing-page.html',
   styleUrls: ['./product-listing-page.css']
 })
-export class ProductListingPageComponent implements OnInit {
+export class ProductListingPageComponent implements OnInit, OnDestroy {
 
   viewMode: 'grid' | 'list' = 'grid';
   sortBy = 'popular';
@@ -22,7 +23,10 @@ export class ProductListingPageComponent implements OnInit {
   currentPage = 1;
   pageSize = 9;
 
+  // ── Wishlist từ service stream ──────────────────────────────────────────────
   wishlist: string[] = [];
+  private wishlistSub!: Subscription;
+
   selectedFilters: string[] = [];
   priceRange: [number, number] = [0, 1000000];
   activeFilterTags: FilterTag[] = [];
@@ -44,8 +48,8 @@ export class ProductListingPageComponent implements OnInit {
   constructor(
     private router: Router,
     private route: ActivatedRoute,
-    private api: ApiService,
-    private cdr: ChangeDetectorRef   // ✅ inject ChangeDetectorRef
+    public api: ApiService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -60,8 +64,19 @@ export class ProductListingPageComponent implements OnInit {
         this.selectedFilters = [];
         this.currentFilters.categories = [];
       }
+      this.currentPage = 1;
       this.loadProducts();
     });
+
+    // Sync wishlist với service
+    this.wishlistSub = this.api.wishlist$.subscribe(list => {
+      this.wishlist = list;
+      this.cdr.detectChanges();
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.wishlistSub?.unsubscribe();
   }
 
   loadCategoryCounts(): void {
@@ -77,7 +92,7 @@ export class ProductListingPageComponent implements OnInit {
   loadProducts(): void {
     this.isLoading = true;
     this.displayedProducts = [];
-    this.cdr.detectChanges(); // ✅ force skeleton hiện ngay
+    this.cdr.detectChanges();
 
     const filters: any = {
       sort:  this.sortBy,
@@ -105,7 +120,7 @@ export class ProductListingPageComponent implements OnInit {
         this.totalPages        = res.totalPages || 1;
         this.buildPageNumbers();
         this.isLoading = false;
-        this.cdr.detectChanges(); // ✅ force skeleton tắt, product card hiện
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Lỗi tải sản phẩm:', err);
@@ -172,18 +187,27 @@ export class ProductListingPageComponent implements OnInit {
     return '★'.repeat(full) + '☆'.repeat(5 - full);
   }
 
-  isWishlisted(id: string): boolean { return this.wishlist.includes(id); }
-
-  toggleWishlist(event: Event, id: string): void {
-    event.stopPropagation();
-    this.wishlist = this.wishlist.includes(id)
-      ? this.wishlist.filter(x => x !== id)
-      : [...this.wishlist, id];
+  isWishlisted(id: string): boolean {
+    return this.wishlist.includes(id);
   }
 
-  addToCart(event: Event, id: string): void {
+  // ── Wishlist tập trung qua service ──────────────────────────────────────────
+  toggleWishlist(event: Event, product: any): void {
     event.stopPropagation();
-    console.log('Add to cart:', id);
+    this.api.toggleWishlist(product._id, product.name);
+  }
+
+  // ── addToCart gọi API thực sự, toast qua service ────────────────────────────
+  addToCart(event: Event, product: any): void {
+    event.stopPropagation();
+    if (!product?._id) return;
+
+    this.api.addToCart(product._id, 1, product.name).subscribe({
+      error: (err) => {
+        console.error('Lỗi thêm giỏ hàng:', err);
+        this.api.showToast('Không thể thêm vào giỏ hàng. Vui lòng thử lại.', 'error');
+      }
+    });
   }
 
   goToDetail(id: any): void {

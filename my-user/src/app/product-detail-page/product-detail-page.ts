@@ -1,7 +1,8 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule, CurrencyPipe } from '@angular/common';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { Subscription } from 'rxjs';
 import { ApiService } from '../services/api.service';
 
 export interface PolicyItem { icon: string; title: string; desc: string; }
@@ -30,7 +31,7 @@ export interface ConsultingStats {
   templateUrl: './product-detail-page.html',
   styleUrls: ['./product-detail-page.css']
 })
-export class ProductDetailPageComponent implements OnInit {
+export class ProductDetailPageComponent implements OnInit, OnDestroy {
 
   product: any = null;
   relatedProducts: any[] = [];
@@ -40,8 +41,14 @@ export class ProductDetailPageComponent implements OnInit {
   activeTab: 'desc' | 'nutrition' | 'policy' = 'desc';
   qty = 1;
   addedToCart = false;
-  isWishlisted = false;
+  addToCartError = '';
   isLoading = true;
+
+  // ── Wishlist từ service stream ──────────────────────────────────────────────
+  private wishlistSub!: Subscription;
+  get isWishlisted(): boolean {
+    return this.product?._id ? this.api.isWishlisted(this.product._id) : false;
+  }
 
   policyItems: PolicyItem[] = [
     { icon: 'bi-arrow-repeat', title: 'Đổi trả trong 7 ngày',  desc: 'Áp dụng khi sản phẩm lỗi, hư hỏng do vận chuyển hoặc không đúng đơn hàng.' },
@@ -51,7 +58,7 @@ export class ProductDetailPageComponent implements OnInit {
   ];
 
   // ---- TƯ VẤN / Q&A ----
-  isLoggedIn = true;   // TODO: thay bằng auth service thực
+  isLoggedIn = true;
   askText = '';
   isAskSubmitting = false;
   askSubmitSuccess = false;
@@ -68,11 +75,16 @@ export class ProductDetailPageComponent implements OnInit {
   constructor(
     private router: Router,
     private route: ActivatedRoute,
-    private api: ApiService,
+    public api: ApiService,
     private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
+    // Sync wishlist để template cập nhật khi toggle từ nơi khác
+    this.wishlistSub = this.api.wishlist$.subscribe(() => {
+      this.cdr.detectChanges();
+    });
+
     this.route.paramMap.subscribe(params => {
       const id = params.get('id');
       if (id) {
@@ -88,6 +100,10 @@ export class ProductDetailPageComponent implements OnInit {
         this.loadConsultingQuestions(id);
       }
     });
+  }
+
+  ngOnDestroy(): void {
+    this.wishlistSub?.unsubscribe();
   }
 
   loadProduct(id: string): void {
@@ -197,6 +213,7 @@ export class ProductDetailPageComponent implements OnInit {
         this.consultingPage      = 1;
         this.consultingQuestions = [];
         this.loadConsultingQuestions();
+        this.api.showToast('Câu hỏi của bạn đã được gửi! Chúng tôi sẽ phản hồi sớm nhất.', 'success');
         setTimeout(() => {
           this.askSubmitSuccess = false;
           this.cdr.detectChanges();
@@ -206,6 +223,7 @@ export class ProductDetailPageComponent implements OnInit {
       error: (err) => {
         console.error('Lỗi gửi câu hỏi:', err);
         this.isAskSubmitting = false;
+        this.api.showToast('Không thể gửi câu hỏi. Vui lòng thử lại.', 'error');
         this.cdr.detectChanges();
       }
     });
@@ -220,8 +238,6 @@ export class ProductDetailPageComponent implements OnInit {
 
   selectWeight(label: string): void {
     this.selectedWeight = label;
-
-    // Cập nhật giá theo khối lượng được chọn
     if (this.product?.weightPrices?.length) {
       const wp = this.product.weightPrices.find((w: any) => w.label === label);
       if (wp) {
@@ -234,27 +250,79 @@ export class ProductDetailPageComponent implements OnInit {
   decreaseQty(): void { if (this.qty > 1) this.qty--; }
   increaseQty(): void { if (this.product && this.qty < this.product.stock) this.qty++; }
 
+  // ✅ addToCart gọi API, toast qua service
   addToCart(): void {
-    if (this.addedToCart) return;
-    this.addedToCart = true;
-    setTimeout(() => (this.addedToCart = false), 2500);
+    if (this.addedToCart || !this.product?._id) return;
+    this.addToCartError = '';
+
+    this.api.addToCart(this.product._id, this.qty, this.product.name).subscribe({
+      next: () => {
+        this.addedToCart = true;
+        setTimeout(() => {
+          this.addedToCart = false;
+          this.cdr.detectChanges();
+        }, 2500);
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Lỗi thêm vào giỏ hàng:', err);
+        this.addToCartError = 'Không thể thêm vào giỏ hàng. Vui lòng thử lại.';
+        this.api.showToast(this.addToCartError, 'error');
+        this.cdr.detectChanges();
+      }
+    });
   }
 
-  buyNow(): void { this.addToCart(); this.router.navigate(['/checkout']); }
+  // ✅ Mua ngay: thêm vào giỏ rồi chuyển thẳng đến checkout
+  buyNow(): void {
+    if (!this.product?._id) return;
 
-  toggleWishlist(): void { this.isWishlisted = !this.isWishlisted; }
+    this.api.addToCart(this.product._id, this.qty, this.product.name).subscribe({
+      next: () => {
+        const checkoutItem = [{
+          productId: this.product._id,
+          name:      this.product.name,
+          price:     this.product.price,
+          quantity:  this.qty,
+          imageUrl:  this.product.images?.[0] || this.product.image || null,
+        }];
+        localStorage.setItem('checkout_v1', JSON.stringify(checkoutItem));
+        this.router.navigate(['/checkout']);
+      },
+      error: (err) => {
+        console.error('Lỗi mua ngay:', err);
+        this.addToCartError = 'Không thể xử lý. Vui lòng thử lại.';
+        this.api.showToast(this.addToCartError, 'error');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  // ✅ Wishlist tập trung qua service
+  toggleWishlist(): void {
+    if (this.product?._id) {
+      this.api.toggleWishlist(this.product._id, this.product.name);
+    }
+  }
 
   share(): void {
     if (navigator.share) {
       navigator.share({ title: this.product?.name, url: window.location.href });
     } else {
       navigator.clipboard.writeText(window.location.href);
+      this.api.showToast('Đã sao chép link sản phẩm!', 'info');
     }
   }
 
-  addRelated(event: Event, id: string): void {
+  addRelated(event: Event, product: any): void {
     event.stopPropagation();
-    console.log('Add related to cart:', id);
+    if (!product?._id) return;
+    this.api.addToCart(product._id, 1, product.name).subscribe({
+      error: (err) => {
+        console.error('Lỗi thêm SP liên quan:', err);
+        this.api.showToast('Không thể thêm vào giỏ hàng.', 'error');
+      }
+    });
   }
 
   goToProduct(id: string): void {

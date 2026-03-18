@@ -1,22 +1,72 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
+import { BehaviorSubject, Observable, tap } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 export const API_BASE    = 'http://localhost:3000/api';
 export const STATIC_BASE = 'http://localhost:3000';
 
+// ─── Cart item shape ────────────────────────────────────────────────────────
+export interface CartItem {
+  productId: string;
+  name: string;
+  price: number;
+  quantity: number;
+  imageUrl?: string;
+}
+
+// ─── Toast shape ────────────────────────────────────────────────────────────
+export interface Toast {
+  id: number;
+  message: string;
+  type: 'success' | 'error' | 'info';
+}
+
 @Injectable({ providedIn: 'root' })
 export class ApiService {
-  constructor(private http: HttpClient) {}
+
+  // ── Cart count stream (dùng cho header badge) ──────────────────────────────
+  private _cartCount = new BehaviorSubject<number>(0);
+  cartCount$ = this._cartCount.asObservable();
+
+  // ── Wishlist stream ────────────────────────────────────────────────────────
+  private _wishlist = new BehaviorSubject<string[]>(this.loadWishlistFromStorage());
+  wishlist$ = this._wishlist.asObservable();
+
+  // ── Toast stream ───────────────────────────────────────────────────────────
+  private _toasts = new BehaviorSubject<Toast[]>([]);
+  toasts$ = this._toasts.asObservable();
+  private _toastCounter = 0;
+
+  constructor(private http: HttpClient) {
+    // Sync cart count on startup
+    this.refreshCartCount();
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════
+  //  Private helpers
+  // ════════════════════════════════════════════════════════════════════════════
+
+  private getUserId(): string {
+    const direct = localStorage.getItem('userId');
+    if (direct) return direct;
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      return user?.id || '';
+    } catch {
+      return '';
+    }
+  }
+
+  private cartHeaders(): HttpHeaders {
+    return new HttpHeaders({ 'x-user-id': this.getUserId() });
+  }
 
   private fixImages(p: any): any {
     const fixUrl = (img: string) =>
       img && img.startsWith('http') ? img : `${STATIC_BASE}${img}`;
     const fixedImages = (p.images || []).map(fixUrl);
-
     const id = p._id ? (typeof p._id === 'object' ? p._id.toString() : String(p._id)) : '';
-
     return {
       ...p,
       _id:    id,
@@ -24,6 +74,82 @@ export class ApiService {
       image:  fixedImages[0] || '',
     };
   }
+
+  private loadWishlistFromStorage(): string[] {
+    try {
+      return JSON.parse(localStorage.getItem('healthup_wishlist') || '[]');
+    } catch {
+      return [];
+    }
+  }
+
+  private saveWishlistToStorage(list: string[]): void {
+    localStorage.setItem('healthup_wishlist', JSON.stringify(list));
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════
+  //  Toast helpers
+  // ════════════════════════════════════════════════════════════════════════════
+
+  showToast(message: string, type: Toast['type'] = 'success', duration = 3000): void {
+    const id = ++this._toastCounter;
+    const current = this._toasts.getValue();
+    this._toasts.next([...current, { id, message, type }]);
+    setTimeout(() => this.dismissToast(id), duration);
+  }
+
+  dismissToast(id: number): void {
+    this._toasts.next(this._toasts.getValue().filter(t => t.id !== id));
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════
+  //  Wishlist helpers (local, không cần API)
+  // ════════════════════════════════════════════════════════════════════════════
+
+  getWishlist(): string[] {
+    return this._wishlist.getValue();
+  }
+
+  isWishlisted(id: string): boolean {
+    return this._wishlist.getValue().includes(id);
+  }
+
+  toggleWishlist(id: string, productName?: string): void {
+    const current = this._wishlist.getValue();
+    const next = current.includes(id)
+      ? current.filter(x => x !== id)
+      : [...current, id];
+    this._wishlist.next(next);
+    this.saveWishlistToStorage(next);
+
+    const added = next.includes(id);
+    this.showToast(
+      added
+        ? `Đã thêm "${productName || 'sản phẩm'}" vào yêu thích`
+        : `Đã xóa khỏi danh sách yêu thích`,
+      added ? 'success' : 'info'
+    );
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════
+  //  Cart count helper
+  // ════════════════════════════════════════════════════════════════════════════
+
+  refreshCartCount(): void {
+    if (!this.getUserId()) return;
+    this.getCart().subscribe({
+      next: (res) => {
+        const items: any[] = res?.items || res?.cart?.items || [];
+        const count = items.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0);
+        this._cartCount.next(count);
+      },
+      error: () => { /* silent */ }
+    });
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════
+  //  Product APIs
+  // ════════════════════════════════════════════════════════════════════════════
 
   getFeaturedProducts(): Observable<any[]> {
     return this.http.get<any[]>(`${API_BASE}/products/featured`).pipe(
@@ -40,6 +166,7 @@ export class ApiService {
     sort?: string;
     page?: number;
     limit?: number;
+    search?: string;
   } = {}): Observable<{ products: any[]; total: number; totalPages: number }> {
     let params = new HttpParams();
     if (filters.cat)                     params = params.set('cat',       filters.cat);
@@ -50,6 +177,7 @@ export class ApiService {
     if (filters.sort)                    params = params.set('sort',      filters.sort);
     if (filters.page)                    params = params.set('page',      filters.page.toString());
     if (filters.limit)                   params = params.set('limit',     filters.limit.toString());
+    if (filters.search)                  params = params.set('search',    filters.search);
 
     return this.http.get<any>(`${API_BASE}/products`, { params }).pipe(
       map(res => ({
@@ -74,6 +202,10 @@ export class ApiService {
       map(products => products.map(p => this.fixImages(p)))
     );
   }
+
+  // ════════════════════════════════════════════════════════════════════════════
+  //  Review APIs
+  // ════════════════════════════════════════════════════════════════════════════
 
   getReviews(productId: string, filters: {
     filter?: string;
@@ -104,7 +236,10 @@ export class ApiService {
     return this.http.patch<any>(`${API_BASE}/reviews/${reviewId}/helpful`, {});
   }
 
-  // ✅ Blog API
+  // ════════════════════════════════════════════════════════════════════════════
+  //  Blog APIs
+  // ════════════════════════════════════════════════════════════════════════════
+
   getBlogs(limit?: number, tag?: string): Observable<any[]> {
     let params = new HttpParams();
     if (limit) params = params.set('limit', limit.toString());
@@ -116,7 +251,10 @@ export class ApiService {
     return this.http.get<any>(`${API_BASE}/blogs/${id}`);
   }
 
-  // ✅ Consulting / Q&A API
+  // ════════════════════════════════════════════════════════════════════════════
+  //  Consulting / Q&A APIs
+  // ════════════════════════════════════════════════════════════════════════════
+
   getConsultingQuestions(productId: string, filters: {
     filter?: string;
     page?: number;
@@ -135,5 +273,49 @@ export class ApiService {
     content: string;
   }): Observable<any> {
     return this.http.post<any>(`${API_BASE}/consulting`, data);
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════
+  //  Cart APIs  (cập nhật: tự refresh cartCount$ sau mỗi thao tác)
+  // ════════════════════════════════════════════════════════════════════════════
+
+  addToCart(productId: string, quantity: number, productName?: string): Observable<any> {
+    return this.http.post<any>(
+      `${API_BASE}/carts/add`,
+      { productId, quantity },
+      { headers: this.cartHeaders() }
+    ).pipe(
+      tap(() => {
+        this.refreshCartCount();
+        this.showToast(
+          productName
+            ? `Đã thêm "${productName}" vào giỏ hàng`
+            : 'Đã thêm sản phẩm vào giỏ hàng',
+          'success'
+        );
+      })
+    );
+  }
+
+  getCart(): Observable<any> {
+    return this.http.get<any>(
+      `${API_BASE}/carts`,
+      { headers: this.cartHeaders() }
+    );
+  }
+
+  updateCartItem(productId: string, quantity: number): Observable<any> {
+    return this.http.put<any>(
+      `${API_BASE}/carts/update`,
+      { productId, quantity },
+      { headers: this.cartHeaders() }
+    ).pipe(tap(() => this.refreshCartCount()));
+  }
+
+  removeCartItem(productId: string): Observable<any> {
+    return this.http.delete<any>(
+      `${API_BASE}/carts/remove/${productId}`,
+      { headers: this.cartHeaders() }
+    ).pipe(tap(() => this.refreshCartCount()));
   }
 }
