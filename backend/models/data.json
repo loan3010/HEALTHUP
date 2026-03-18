@@ -60,7 +60,7 @@
       "category_id": 3,
       "question": "Trà thảo mộc có dễ ngủ không?",
       "answer": "Trà thảo mộc của HealthUp hoàn toàn KHÔNG gây khó ngủ vì:\n\n✅ Không chứa caffeine\n✅ Thành phần 100% thảo mộc tự nhiên\n✅ Có các dòng trà giúp thư giãn, dễ ngủ:\n   - Trà hoa cúc: Giúp thư giãn, giảm stress\n   - Trà hoa lavender: Hỗ trợ giấc ngủ ngon\n   - Trà bạc hà: Giúp tinh thần thoải mái\n\n💡 Gợi ý: Uống trà thảo mộc 30-60 phút trước khi ngủ sẽ giúp bạn có giấc ngủ sâu hơn. Tránh uống quá nhiều nước trước khi ngủ để không phải thức dậy đi vệ sinh nhé!",
-      "view_count": 5,
+      "view_count": 6,
       "created_at": "2026-03-17T17:24:08.412Z",
       "updated_at": "2026-03-17T17:24:08.412Z"
     },
@@ -188,6 +188,27 @@
       "user_message": "Granola có giảm cân không?",
       "bot_response": "Granola là một lựa chọn tốt cho việc giảm cân khi sử dụng đúng cách. Granola chứa nhiều chất xơ, giúp bạn no lâu hơn và kiểm soát cảm giác thèm ăn. Tuy nhiên, bạn cần lưu ý:\n\n- Kiểm soát khẩu phần: 1 serving (khoảng 30-40g) là đủ\n- Kết hợp với sữa tươi không đường hoặc sữa chua Hy Lạp\n- Granola của HealthUp không có đường tinh luyện, sử dụng mật ong tự nhiên\n- Nên ăn vào bữa sáng hoặc bữa phụ\n\nKết hợp với chế độ ăn cân bằng và tập luyện đều đặn sẽ mang lại hiệu quả tốt nhất!",
       "created_at": "2026-03-18T05:16:40.266Z"
+    },
+    {
+      "id": 16,
+      "session_id": "session_1773816734914_3ryncuxxd",
+      "user_message": "ê m",
+      "bot_response": "Xin lỗi, tôi không tìm thấy câu trả lời phù hợp. 🙏\n\nBạn có thể:\n- Thử đặt câu hỏi theo cách khác\n- Chọn chủ đề bên dưới\n- Liên hệ hotline: 1900 xxxx",
+      "created_at": "2026-03-18T06:53:31.343Z"
+    },
+    {
+      "id": 17,
+      "session_id": "session_1773816734914_3ryncuxxd",
+      "user_message": "Tôi muốn biết về Trà thảo mộc",
+      "bot_response": "Showed category FAQs",
+      "created_at": "2026-03-18T06:53:34.701Z"
+    },
+    {
+      "id": 18,
+      "session_id": "session_1773816734914_3ryncuxxd",
+      "user_message": "Trà thảo mộc có dễ ngủ không?",
+      "bot_response": "Trà thảo mộc của HealthUp hoàn toàn KHÔNG gây khó ngủ vì:\n\n✅ Không chứa caffeine\n✅ Thành phần 100% thảo mộc tự nhiên\n✅ Có các dòng trà giúp thư giãn, dễ ngủ:\n   - Trà hoa cúc: Giúp thư giãn, giảm stress\n   - Trà hoa lavender: Hỗ trợ giấc ngủ ngon\n   - Trà bạc hà: Giúp tinh thần thoải mái\n\n💡 Gợi ý: Uống trà thảo mộc 30-60 phút trước khi ngủ sẽ giúp bạn có giấc ngủ sâu hơn. Tránh uống quá nhiều nước trước khi ngủ để không phải thức dậy đi vệ sinh nhé!",
+      "created_at": "2026-03-18T06:53:37.857Z"
     }
   ],
   "analytics": [
@@ -280,12 +301,30 @@
       "event_type": "chat_message",
       "data": "{\"query\":\"Granola có giảm cân không?\"}",
       "created_at": "2026-03-18T05:16:40.267Z"
+    },
+    {
+      "id": 16,
+      "event_type": "chat_message",
+      "data": "{\"query\":\"ê m\"}",
+      "created_at": "2026-03-18T06:53:31.344Z"
+    },
+    {
+      "id": 17,
+      "event_type": "chat_message",
+      "data": "{\"query\":\"Tôi muốn biết về Trà thảo mộc\"}",
+      "created_at": "2026-03-18T06:53:34.702Z"
+    },
+    {
+      "id": 18,
+      "event_type": "chat_message",
+      "data": "{\"query\":\"Trà thảo mộc có dễ ngủ không?\"}",
+      "created_at": "2026-03-18T06:53:37.858Z"
     }
   ],
   "nextId": {
     "category": 6,
     "faq": 6,
-    "conversation": 16,
-    "analytics": 16
+    "conversation": 19,
+    "analytics": 19
   }
 }
