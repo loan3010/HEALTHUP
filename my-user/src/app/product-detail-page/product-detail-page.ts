@@ -80,7 +80,6 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    // Sync wishlist để template cập nhật khi toggle từ nơi khác
     this.wishlistSub = this.api.wishlist$.subscribe(() => {
       this.cdr.detectChanges();
     });
@@ -134,8 +133,6 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ---- TƯ VẤN ----
-
   loadConsultingQuestions(productId?: string, append = false): void {
     const id = productId || this.product?._id;
     if (!id) return;
@@ -150,19 +147,16 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
     }).subscribe({
       next: (res) => {
         const questions: ConsultingQuestion[] = res.questions || [];
-
         if (!append) {
           this.consultingQuestions = questions;
         } else {
           this.consultingQuestions = [...this.consultingQuestions, ...questions];
         }
-
         this.consultingStats = {
           total:    res.stats?.total    || res.total    || 0,
           pending:  res.stats?.pending  || 0,
           answered: res.stats?.answered || 0,
         };
-
         this.applyConsultingFilter();
         this.hasMoreQuestions = questions.length === 5;
         this.isConsultingLoading = false;
@@ -229,8 +223,6 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ---- HELPERS ----
-
   getStars(rating: number): string {
     const full = Math.round(rating);
     return '★'.repeat(full) + '☆'.repeat(5 - full);
@@ -250,7 +242,6 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
   decreaseQty(): void { if (this.qty > 1) this.qty--; }
   increaseQty(): void { if (this.product && this.qty < this.product.stock) this.qty++; }
 
-  // ✅ addToCart gọi API, toast qua service
   addToCart(): void {
     if (this.addedToCart || !this.product?._id) return;
     this.addToCartError = '';
@@ -273,7 +264,6 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ✅ Mua ngay: thêm vào giỏ rồi chuyển thẳng đến checkout
   buyNow(): void {
     if (!this.product?._id) return;
 
@@ -298,7 +288,6 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ✅ Wishlist tập trung qua service
   toggleWishlist(): void {
     if (this.product?._id) {
       this.api.toggleWishlist(this.product._id, this.product.name);

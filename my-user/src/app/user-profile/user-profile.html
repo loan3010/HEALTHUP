@@ -1,73 +1,59 @@
-<div class="user-wrapper d-flex">
+<div class="user-wrapper">
 
   <!-- Sidebar -->
-  <div class="sidebar p-4 d-flex flex-column">
-    <div class="text-center mb-4">
+  <div class="sidebar">
+
+    <!-- Avatar block -->
+    <div class="sidebar-avatar-block">
       <div class="avatar">{{ getInitials() }}</div>
-      <h6 class="mt-3 text-white">{{ userName }}</h6>
+      <p class="sidebar-username">{{ userName }}</p>
       <span class="badge">Thành viên</span>
     </div>
 
-    <ul class="menu list-unstyled flex-grow-1">
-
-      <!-- Tài khoản cá nhân -->
-      <li routerLink="profile"
+    <!-- Menu -->
+    <ul class="menu list-unstyled">
+      <li routerLink="/profile/overview"
           routerLinkActive="active"
-          [routerLinkActiveOptions]="{ exact: true }"
-          style="cursor: pointer;">
-        <i class="bi bi-person me-2"></i>
-        Tài khoản cá nhân
+          [routerLinkActiveOptions]="{ exact: true }">
+        <i class="bi bi-person"></i> Tài khoản cá nhân
+      </li>
+      <li routerLink="/profile/wishlist" routerLinkActive="active">
+        <i class="bi bi-heart"></i> Sản phẩm yêu thích
+      </li>
+      <li routerLink="/profile/address" routerLinkActive="active">
+        <i class="bi bi-geo-alt"></i> Sổ địa chỉ
       </li>
 
-      <!-- Sổ địa chỉ -->
-      <li routerLink="address"
-          routerLinkActive="active"
-          style="cursor: pointer;">
-        <i class="bi bi-geo-alt me-2"></i>
-        Sổ địa chỉ
+      <div class="menu-divider"></div>
+
+      <li routerLink="/profile/orders" routerLinkActive="active">
+        <i class="bi bi-bag-check"></i> Quản lý đơn hàng
+      </li>
+      <li>
+        <i class="bi bi-arrow-repeat"></i> Quản lý đổi trả
+      </li>
+      <li>
+        <i class="bi bi-star"></i> Đánh giá đơn hàng
       </li>
 
-      <!-- Danh sách yêu thích -->
-      <li routerLink="wishlist"
-          routerLinkActive="active"
-          style="cursor: pointer;">
-        <i class="bi bi-heart me-2"></i>
-        Sản phẩm yêu thích
-      </li>
+      <div class="menu-divider"></div>
 
-      <!-- Quản lý đơn hàng -->
-      <li routerLink="orders"
-          routerLinkActive="active"
-          style="cursor: pointer;">
-        <i class="bi bi-box-seam me-2"></i>
-        Quản lý đơn hàng
+      <li>
+        <i class="bi bi-bell"></i> Thông báo
       </li>
-
-      <li style="cursor: pointer;">
-        <i class="bi bi-arrow-repeat me-2"></i>
-        Quản lý đổi trả
-      </li>
-
-      <li style="cursor: pointer;">
-        <i class="bi bi-star me-2"></i>
-        Đánh giá đơn hàng
-      </li>
-
-      <li style="cursor: pointer;">
-        <i class="bi bi-bell me-2"></i>
-        Thông báo
-      </li>
-
     </ul>
 
-    <button class="btn btn-outline-light w-100 mt-auto" (click)="logout()">
-      <i class="bi bi-box-arrow-right me-2"></i>
-      Đăng xuất
-    </button>
+    <!-- Logout -->
+    <div class="sidebar-logout">
+      <button class="btn-logout" (click)="logout()">
+        <i class="bi bi-box-arrow-right"></i> Đăng xuất
+      </button>
+    </div>
+
   </div>
 
   <!-- Content -->
-  <div class="content flex-grow-1 p-5">
+  <div class="content">
     <router-outlet></router-outlet>
   </div>
 

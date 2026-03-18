@@ -60,7 +60,7 @@
       "category_id": 3,
       "question": "Trà thảo mộc có dễ ngủ không?",
       "answer": "Trà thảo mộc của HealthUp hoàn toàn KHÔNG gây khó ngủ vì:\n\n✅ Không chứa caffeine\n✅ Thành phần 100% thảo mộc tự nhiên\n✅ Có các dòng trà giúp thư giãn, dễ ngủ:\n   - Trà hoa cúc: Giúp thư giãn, giảm stress\n   - Trà hoa lavender: Hỗ trợ giấc ngủ ngon\n   - Trà bạc hà: Giúp tinh thần thoải mái\n\n💡 Gợi ý: Uống trà thảo mộc 30-60 phút trước khi ngủ sẽ giúp bạn có giấc ngủ sâu hơn. Tránh uống quá nhiều nước trước khi ngủ để không phải thức dậy đi vệ sinh nhé!",
-      "view_count": 6,
+      "view_count": 7,
       "created_at": "2026-03-17T17:24:08.412Z",
       "updated_at": "2026-03-17T17:24:08.412Z"
     },
@@ -209,6 +209,20 @@
       "user_message": "Trà thảo mộc có dễ ngủ không?",
       "bot_response": "Trà thảo mộc của HealthUp hoàn toàn KHÔNG gây khó ngủ vì:\n\n✅ Không chứa caffeine\n✅ Thành phần 100% thảo mộc tự nhiên\n✅ Có các dòng trà giúp thư giãn, dễ ngủ:\n   - Trà hoa cúc: Giúp thư giãn, giảm stress\n   - Trà hoa lavender: Hỗ trợ giấc ngủ ngon\n   - Trà bạc hà: Giúp tinh thần thoải mái\n\n💡 Gợi ý: Uống trà thảo mộc 30-60 phút trước khi ngủ sẽ giúp bạn có giấc ngủ sâu hơn. Tránh uống quá nhiều nước trước khi ngủ để không phải thức dậy đi vệ sinh nhé!",
       "created_at": "2026-03-18T06:53:37.857Z"
+    },
+    {
+      "id": 19,
+      "session_id": "session_1773845170138_sdmwnfbug",
+      "user_message": "Tôi muốn biết về Trà thảo mộc",
+      "bot_response": "Showed category FAQs",
+      "created_at": "2026-03-18T14:48:05.996Z"
+    },
+    {
+      "id": 20,
+      "session_id": "session_1773845170138_sdmwnfbug",
+      "user_message": "Trà thảo mộc có dễ ngủ không?",
+      "bot_response": "Trà thảo mộc của HealthUp hoàn toàn KHÔNG gây khó ngủ vì:\n\n✅ Không chứa caffeine\n✅ Thành phần 100% thảo mộc tự nhiên\n✅ Có các dòng trà giúp thư giãn, dễ ngủ:\n   - Trà hoa cúc: Giúp thư giãn, giảm stress\n   - Trà hoa lavender: Hỗ trợ giấc ngủ ngon\n   - Trà bạc hà: Giúp tinh thần thoải mái\n\n💡 Gợi ý: Uống trà thảo mộc 30-60 phút trước khi ngủ sẽ giúp bạn có giấc ngủ sâu hơn. Tránh uống quá nhiều nước trước khi ngủ để không phải thức dậy đi vệ sinh nhé!",
+      "created_at": "2026-03-18T14:48:10.265Z"
     }
   ],
   "analytics": [
@@ -319,12 +333,24 @@
       "event_type": "chat_message",
       "data": "{\"query\":\"Trà thảo mộc có dễ ngủ không?\"}",
       "created_at": "2026-03-18T06:53:37.858Z"
+    },
+    {
+      "id": 19,
+      "event_type": "chat_message",
+      "data": "{\"query\":\"Tôi muốn biết về Trà thảo mộc\"}",
+      "created_at": "2026-03-18T14:48:05.998Z"
+    },
+    {
+      "id": 20,
+      "event_type": "chat_message",
+      "data": "{\"query\":\"Trà thảo mộc có dễ ngủ không?\"}",
+      "created_at": "2026-03-18T14:48:10.267Z"
     }
   ],
   "nextId": {
     "category": 6,
     "faq": 6,
-    "conversation": 19,
-    "analytics": 19
+    "conversation": 21,
+    "analytics": 21
   }
 }

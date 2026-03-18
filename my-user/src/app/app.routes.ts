@@ -16,6 +16,7 @@ import { Checkout } from './checkout/checkout';
 import { Cart } from './cart/cart';
 import { Wishlist } from './wishlist/wishlist';
 import { ChatbotComponent } from './chatbot/chatbot';
+import { BlogDetailComponent } from './blog-detail/blog-detail';
 
 
 export const routes: Routes = [
@@ -33,6 +34,7 @@ export const routes: Routes = [
   // ✅ THÊM ROUTE MỚI
   { path: 'about-the-brand',         component: AboutTheBrand },
   { path: 'blog',         component: BlogComponent },
+  { path: 'blog/:id', component: BlogDetailComponent },
   { path: 'policies',         component: PoliciesComponent },
   {path: 'checkout', component: Checkout},
   {path: 'cart', component: Cart},
