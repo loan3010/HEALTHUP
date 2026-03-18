@@ -6,13 +6,16 @@ const userSchema = new mongoose.Schema(
 
     phone: { type: String, required: true, unique: true, trim: true },
 
-    // ✅ Email KHÔNG bắt buộc
-    // - unique + sparse để cho phép nhiều user không có email
     email: { type: String, unique: true, sparse: true, lowercase: true, trim: true },
 
     passwordHash: { type: String, required: true },
 
     role: { type: String, enum: ['user', 'admin'], default: 'user' },
+
+    // ── THÊM MỚI: thông tin profile ──
+    dob:     { type: String, default: '' },        // ngày sinh dạng string "YYYY-MM-DD"
+    gender:  { type: String, enum: ['male', 'female', 'other'], default: 'male' },
+    address: { type: String, default: '' },
   },
   { timestamps: true }
 );

@@ -8,7 +8,13 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:4200', 'http://localhost:4201', 'http://localhost:64682'],
+  origin: function(origin, callback) {
+    if (!origin || origin.startsWith('http://localhost')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 // app.use(cors({
@@ -25,7 +31,7 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ✅ Serve static files (ảnh, ...)
+// Serve static files
 app.use(express.static(path.join(__dirname, 'public'), {
   setHeaders: (res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -41,12 +47,15 @@ mongoose.connect(MONGODB_URI)
   .catch(err => console.error('❌ MongoDB connection error:', err));
 
 // Routes
-app.use('/api/products', require('./routes/products'));
-app.use('/api/reviews', require('./routes/reviews'));
-app.use('/api/blogs',   require('./routes/blogs'));   // ✅ Thêm mới
-app.use('/api/auth', require('./routes/auth'));   //thêm cho register
-app.use('/api/orders', require('./routes/orders')); //thêm cho checkout
-app.use('/api/carts', require('./routes/carts'));
+app.use('/api/products',  require('./routes/products'));
+app.use('/api/reviews',   require('./routes/reviews'));
+app.use('/api/blogs',     require('./routes/blogs'));
+app.use('/api/auth',      require('./routes/auth'));
+app.use('/api/orders',    require('./routes/orders'));
+app.use('/api/carts',     require('./routes/carts'));
+app.use('/api/addresses', require('./routes/addresses'));
+app.use('/api/users',     require('./routes/users'));   // ✅ THÊM MỚI
+app.use('/api/chatbot',   require('./routes/chatbot.routes'));
 
 // Health check
 app.get('/api/health', (req, res) => {

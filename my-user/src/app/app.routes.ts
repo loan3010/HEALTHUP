@@ -14,6 +14,8 @@ import { BlogComponent } from './blog/blog';
 import { PoliciesComponent } from './policies/policies';
 import { Checkout } from './checkout/checkout';
 import { Cart } from './cart/cart';
+import { Wishlist } from './wishlist/wishlist';
+import { ChatbotComponent } from './chatbot/chatbot';
 
 
 export const routes: Routes = [
@@ -34,16 +36,42 @@ export const routes: Routes = [
   { path: 'policies',         component: PoliciesComponent },
   {path: 'checkout', component: Checkout},
   {path: 'cart', component: Cart},
+  {path: 'chatbot', component: ChatbotComponent},
 
+  // {
+  // path: 'profile',
+  // component: UserProfile,
+  // children: [
+  //   { path: '', redirectTo: 'profile', pathMatch: 'full' },
+  //   { path: 'profile', component: ProfileOverview },
+  //   { path: 'address', component: AddressBook },
+  //   { path: 'wishlist', component: Wishlist  }
+
+  // ]
+  // },
   {
-  path: 'user-profile',
-  component: UserProfile,
-  children: [
-    { path: '', redirectTo: 'profile', pathMatch: 'full' },
-    { path: 'profile', component: ProfileOverview },
-    { path: 'address', component: AddressBook }
-
-  ]
+    path: 'profile',
+    component: UserProfile,
+    children: [
+      {
+        path: '',
+        redirectTo: 'overview',
+        pathMatch: 'full'
+      },
+      {
+        path: 'overview',
+        component: ProfileOverview
+      },
+      {
+        path: 'address',
+        component: AddressBook
+      },
+      {
+        path: 'wishlist',
+        component: Wishlist
+      }
+      // Thêm các child routes khác nếu cần
+    ]
   },
   // { path: 'user-profile',         component: UserProfile },
   // { path: 'address-book',  component: AddressBook},

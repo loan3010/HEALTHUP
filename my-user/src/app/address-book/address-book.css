@@ -1,92 +1,406 @@
 .address-container {
-  max-width: 620px;
+  max-width: 800px;
   margin: 0 auto;
+  font-family: 'Be Vietnam Pro', sans-serif;
 }
 
-/* ===== CARD ===== */
+/* ===== ADDRESS CARD ===== */
 .address-card {
   background: white;
-  border-radius: 16px;
-  padding: 18px 22px;
+  border-radius: 12px;
+  padding: 20px 24px;
   margin-bottom: 16px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: all 0.2s;
+  border: 2px solid transparent;
+}
 
-  display: flex;
-  justify-content: space-between;
-  gap: 20px;
-  align-items: center;
+.address-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
 .address-card.default {
-  border: 2px solid #3d6f2f;
+  border-color: #36873A; /* Brand primary */
+  background: #F0F7F0; /* Brand bg color */
 }
 
-/* ===== TEXT ===== */
+.address-info {
+  flex: 1;
+  margin-bottom: 16px;
+}
+
+.address-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
 .name {
   font-weight: 600;
-  font-size: 14px;
-  margin-bottom: 6px;
-}
-
-.address {
-  font-size: 13.5px;
-  color: #555;
+  font-size: 16px;
+  color: #333;
+  margin: 0;
+  font-family: 'Be Vietnam Pro', sans-serif;
 }
 
 .default-badge {
-  background: #3d6f2f;
+  background: #36873A; /* Brand primary */
   color: white;
   font-size: 11px;
-  padding: 3px 8px;
+  padding: 4px 10px;
   border-radius: 12px;
-  margin-left: 8px;
+  font-weight: 600;
+  font-family: 'Be Vietnam Pro', sans-serif;
 }
 
-.phone {
-  font-size: 13px;
-  margin-bottom: 8px;
+.address-text {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.6;
+  margin: 0 0 8px 0;
+  font-family: 'Be Vietnam Pro', sans-serif;
+}
+
+.phone-text {
+  font-size: 14px;
+  color: #666;
+  margin: 0;
+  font-family: 'Be Vietnam Pro', sans-serif;
 }
 
 /* ===== ACTIONS ===== */
-.actions {
+.address-actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
-/* Chỉ áp dụng cho button trong address */
-.address-card button,
-.btn-add {
-  border-radius: 6px;
+.address-card button {
+  border-radius: 8px;
   border: none;
-  font-size: 12.5px;
-  padding: 5px 12px;
+  font-size: 13px;
+  padding: 8px 16px;
   cursor: pointer;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-weight: 500;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .btn-edit {
-  background: #444;
+  background: #36873A; /* Brand primary */
   color: white;
 }
 
+.btn-edit:hover {
+  background: #2A6B2E; /* Brand primary hover */
+}
+
 .btn-delete {
-  background: #eee;
+  background: #FFEBEE; /* Brand danger bg */
+  color: #C62828; /* Brand danger */
+  padding: 8px 12px;
+}
+
+.btn-delete:hover {
+  background: #C62828;
+  color: white;
 }
 
 .btn-default {
   background: white;
-  border: 1px solid #ccc;
+  border: 1.5px solid #36873A; /* Brand primary */
+  color: #36873A;
+}
+
+.btn-default:hover {
+  background: #36873A;
+  color: white;
+}
+
+/* ===== EMPTY STATE ===== */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #999;
+}
+
+.empty-state i {
+  font-size: 64px;
+  color: #ddd;
+  margin-bottom: 16px;
+}
+
+.empty-state p {
+  margin: 8px 0;
+  font-family: 'Be Vietnam Pro', sans-serif;
+}
+
+.empty-state p:first-of-type {
+  font-size: 16px;
+  font-weight: 600;
+  color: #666;
 }
 
 /* ===== ADD BUTTON ===== */
 .add-btn-wrapper {
   text-align: center;
+  margin-top: 24px;
 }
 
 .btn-add {
-  margin-top: 10px;
-  background: #444;
+  background: #36873A; /* Brand primary */
   color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 28px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+}
+
+.btn-add:hover {
+  background: #2A6B2E; /* Brand primary hover */
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(54, 135, 58, 0.3);
+}
+
+/* ===== MODAL ===== */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.address-modal {
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 560px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #333;
+  font-family: 'Be Vietnam Pro', sans-serif;
+}
+
+.close-btn {
+  background: transparent;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+  color: #666;
+}
+
+.close-btn:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.modal-body {
+  padding: 24px;
+}
+
+/* ===== FORM ===== */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #333;
+  font-family: 'Be Vietnam Pro', sans-serif;
+}
+
+.required {
+  color: #C62828; /* Brand danger */
+}
+
+.form-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  background: #fafafa;
+}
+
+.form-input:focus {
+  border-color: #36873A; /* Brand primary */
+  background: white;
+}
+
+textarea.form-input {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.error-text {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #C62828; /* Brand danger */
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-weight: 500;
+}
+
+/* ===== CHECKBOX ===== */
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #36873A; /* Brand primary */
+}
+
+/* ===== MODAL FOOTER ===== */
+.modal-footer {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.btn-cancel,
+.btn-submit {
+  flex: 1;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  transition: all 0.2s;
+  border: none;
+}
+
+.btn-cancel {
+  background: #f0f0f0;
+  color: #666;
+}
+
+.btn-cancel:hover {
+  background: #e0e0e0;
+  color: #333;
+}
+
+.btn-submit {
+  background: #36873A; /* Brand primary */
+  color: white;
+}
+
+.btn-submit:hover:not(:disabled) {
+  background: #2A6B2E; /* Brand primary hover */
+}
+
+.btn-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ===== MESSAGES ===== */
+.success-message,
+.error-message {
+  margin-top: 16px;
+  padding: 12px 16px;
   border-radius: 8px;
-  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: 'Be Vietnam Pro', sans-serif;
+}
+
+.success-message {
+  background: #F0F7F0; /* Brand bg color */
+  color: #2A6B2E; /* Brand success */
+}
+
+.error-message {
+  background: #FFEBEE; /* Brand danger bg */
+  color: #C62828; /* Brand danger */
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .address-card {
+    padding: 16px 18px;
+  }
+
+  .address-actions {
+    flex-direction: column;
+  }
+
+  .address-card button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .modal-footer {
+    flex-direction: column;
+  }
+
+  .btn-cancel,
+  .btn-submit {
+    width: 100%;
+  }
 }

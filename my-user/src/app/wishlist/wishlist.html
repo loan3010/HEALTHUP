@@ -1,95 +1,38 @@
-<div class="favorite-wrapper d-flex">
+<h4 class="fw-bold mb-2">Sản phẩm yêu thích</h4>
+<p class="text-muted mb-4">Quản lý các sản phẩm bạn đã yêu thích</p>
 
-  <!-- SIDEBAR -->
-  <div class="sidebar p-4">
-    <div class="text-center mb-4">
-      <div class="avatar-sm"></div>
-      <p class="text-white mt-2 mb-0">hello</p>
-      <small class="text-white-50">094451234</small>
-    </div>
+<!-- FILTER -->
+<div class="filter-bar p-3 mb-3">
+  <button class="btn btn-light btn-sm me-2" [class.active]="sortBy === 'newest'" (click)="sortBy = 'newest'">
+    Mới nhất
+  </button>
+  <button class="btn btn-light btn-sm me-2" [class.active]="sortBy === 'price-asc'" (click)="sortBy = 'price-asc'">
+    Giá thấp đến cao
+  </button>
+  <button class="btn btn-light btn-sm" [class.active]="sortBy === 'price-desc'" (click)="sortBy = 'price-desc'">
+    Giá cao đến thấp
+  </button>
+</div>
 
-    <ul class="menu list-unstyled">
-      <li><i class="bi bi-person me-2"></i> Tài khoản cá nhân</li>
-      <li><i class="bi bi-geo-alt me-2"></i> Sổ địa chỉ</li>
-      <li><i class="bi bi-box-seam me-2"></i> Quản lý đơn hàng</li>
-      <li><i class="bi bi-heart me-2"></i> Quản lý yêu thích</li>
-      <li class="active"><i class="bi bi-heart-fill me-2"></i> Sản phẩm yêu thích</li>
-      <li><i class="bi bi-bell me-2"></i> Thông báo</li>
-    </ul>
+<!-- PRODUCT LIST -->
+<div class="product-card d-flex align-items-center p-3 mb-3" *ngFor="let product of wishlistItems">
+  <i class="bi bi-heart-fill text-danger me-3 fs-5" (click)="removeFromWishlist(product.id)"></i>
 
-    <button class="btn btn-outline-light w-100 mt-auto">
-      Đăng xuất
-    </button>
+  <div class="product-img me-3" [style.background-image]="'url(' + (product.image || '') + ')'"></div>
+
+  <div class="flex-grow-1">
+    <h6 class="mb-1">{{ product.name }}</h6>
+    <small class="text-muted">{{ product.unit }}</small>
   </div>
 
+  <div class="price fw-bold me-4">{{ product.price | number }} ₫</div>
 
-  <!-- CONTENT -->
-  <div class="content flex-grow-1 p-4">
+  <button class="btn btn-outline-dark" (click)="addToCart(product)">
+    <i class="bi bi-cart"></i>
+  </button>
+</div>
 
-    <h4 class="fw-bold">Sản phẩm yêu thích</h4>
-    <p class="text-muted">Quản lý các sản phẩm bạn đã yêu thích</p>
-
-    <!-- FILTER -->
-    <div class="filter-bar p-3 mb-3">
-      <button class="btn btn-light btn-sm me-2">Mới nhất</button>
-      <button class="btn btn-light btn-sm me-2">Giá thấp đến cao</button>
-      <button class="btn btn-light btn-sm">Giá cao đến thấp</button>
-    </div>
-
-    <!-- PRODUCT LIST -->
-    <div class="product-card d-flex align-items-center p-3 mb-3">
-      <i class="bi bi-heart-fill text-danger me-3 fs-5"></i>
-
-      <div class="product-img me-3"></div>
-
-      <div class="flex-grow-1">
-        <h6 class="mb-1">Cà phê uống liền My Cafe Latte vị Mild 220ml - CX - F</h6>
-        <small class="text-muted">Hộp / 220ml</small>
-      </div>
-
-      <div class="price fw-bold me-4">5.000 ₫</div>
-
-      <button class="btn btn-outline-dark">
-        <i class="bi bi-cart"></i>
-      </button>
-    </div>
-
-
-    <div class="product-card d-flex align-items-center p-3 mb-3">
-      <i class="bi bi-heart-fill text-danger me-3 fs-5"></i>
-
-      <div class="product-img me-3"></div>
-
-      <div class="flex-grow-1">
-        <h6 class="mb-1">Bột Cơ Cao Ceraveille gói 300g</h6>
-        <small class="text-muted">300g / gói</small>
-      </div>
-
-      <div class="price fw-bold me-4">102.500 ₫</div>
-
-      <button class="btn btn-outline-dark">
-        <i class="bi bi-cart"></i>
-      </button>
-    </div>
-
-
-    <div class="product-card d-flex align-items-center p-3">
-      <i class="bi bi-heart-fill text-danger me-3 fs-5"></i>
-
-      <div class="product-img me-3"></div>
-
-      <div class="flex-grow-1">
-        <h6 class="mb-1">Cà phê sữa 3in1 Chinh Vina hộp 240g</h6>
-        <small class="text-muted">240g / hộp</small>
-      </div>
-
-      <div class="price fw-bold me-4">43.500 ₫</div>
-
-      <button class="btn btn-outline-dark">
-        <i class="bi bi-cart"></i>
-      </button>
-    </div>
-
-  </div>
-
+<div class="text-center py-5" *ngIf="wishlistItems.length === 0">
+  <i class="bi bi-heart" style="font-size: 48px; color: #ccc;"></i>
+  <p class="text-muted mt-3">Chưa có sản phẩm yêu thích nào</p>
 </div>

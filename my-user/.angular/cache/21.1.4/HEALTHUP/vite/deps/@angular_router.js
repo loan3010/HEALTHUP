@@ -1,7 +1,7 @@
 import {
   Title
-} from "./chunk-VYGXCBZF.js";
-import "./chunk-PE7BJHFK.js";
+} from "./chunk-JQ2KSIZE.js";
+import "./chunk-VBF7RAWB.js";
 import {
   HashLocationStrategy,
   Location,
@@ -11,11 +11,11 @@ import {
   PathLocationStrategy,
   PlatformNavigation,
   ViewportScroller
-} from "./chunk-7IB6JGAQ.js";
+} from "./chunk-MPWXIGEH.js";
 import {
   LOCATION_INITIALIZED,
   PlatformLocation
-} from "./chunk-5TUG2RY6.js";
+} from "./chunk-7KVFGCCI.js";
 import {
   APP_BOOTSTRAP_LISTENER,
   ApplicationRef,
@@ -54,13 +54,11 @@ import {
   booleanAttribute,
   computed,
   createEnvironmentInjector,
-  defer,
   formatRuntimeError,
   inject,
   input,
   isInjectable,
   isNgModule,
-  isObservable,
   isPromise,
   isStandalone,
   makeEnvironmentProviders,
@@ -92,7 +90,12 @@ import {
   ɵɵloadQuery,
   ɵɵqueryRefresh,
   ɵɵsanitizeUrlOrResourceUrl
-} from "./chunk-54BGGPQE.js";
+} from "./chunk-UT5SNAW5.js";
+import {
+  defer,
+  isObservable
+} from "./chunk-5GZPBGYT.js";
+import "./chunk-7Z4YW3FP.js";
 import {
   BehaviorSubject,
   EMPTY,
@@ -122,7 +125,7 @@ import {
   takeUntil,
   tap,
   throwError
-} from "./chunk-K3WGHAM4.js";
+} from "./chunk-GJVV2SYQ.js";
 
 // node_modules/@angular/router/fesm2022/_router-chunk.mjs
 var PRIMARY_OUTLET = "primary";

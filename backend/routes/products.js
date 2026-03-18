@@ -4,7 +4,6 @@ const Product = require('../models/Product');
 
 // ─────────────────────────────────────────────────────────────────
 // QUAN TRỌNG: Các route cụ thể PHẢI đứng TRƯỚC /:id
-// Nếu không, Express sẽ match /featured và /category-counts như /:id
 // ─────────────────────────────────────────────────────────────────
 const multer = require('multer');
 const path = require('path');
@@ -29,7 +28,7 @@ router.get('/featured', async (req, res) => {
   }
 });
 
-// GET category counts - đếm thực tế từ MongoDB
+// GET category counts
 router.get('/category-counts', async (req, res) => {
   try {
     const result = await Product.aggregate([
@@ -45,14 +44,62 @@ router.get('/category-counts', async (req, res) => {
   }
 });
 
-// GET all products with filters
+// ─────────────────────────────────────────────────────────────────
+// Helper: normalize tiếng Việt (bỏ dấu)
+// "Hạt điều" → "hat dieu", "Trà thảo mộc" → "tra thao moc"
+// ─────────────────────────────────────────────────────────────────
+function normalizeVN(str) {
+  return (str || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[đĐ]/g, d => d === 'đ' ? 'd' : 'D')
+    .toLowerCase();
+}
+
+// ─────────────────────────────────────────────────────────────────
+// GET /api/products?search=keyword  →  Tìm kiếm autocomplete
+// Hỗ trợ:
+//   - Gõ có dấu:   "Hạt" → match "Hạt điều" ✓
+//   - Gõ không dấu: "hat" → match "Hạt điều" ✓
+//   - Gõ thiếu:    "gran" → match "Granola" ✓
+// ─────────────────────────────────────────────────────────────────
 router.get('/', async (req, res) => {
   try {
     const {
       cat, minPrice, maxPrice, sort, badge, minRating,
-      page = 1, limit = 9
+      page = 1, limit = 9,
+      search
     } = req.query;
 
+    // ── SEARCH MODE: tìm kiếm fuzzy có hỗ trợ tiếng Việt không dấu ──
+    if (search && search.trim() !== '') {
+      const keyword    = normalizeVN(search.trim());
+      const limitNum   = Math.min(Number(limit) || 6, 20);
+
+      // Lấy toàn bộ sản phẩm rồi filter phía Node
+      // (MongoDB $regex không thể normalize tiếng Việt natively)
+      const allProducts = await Product.find({}).lean();
+
+      const matched = allProducts.filter(p => {
+        const name      = normalizeVN(p.name);
+        const category  = normalizeVN(p.cat);
+        const shortDesc = normalizeVN(p.shortDesc);
+        return (
+          name.includes(keyword) ||
+          category.includes(keyword) ||
+          shortDesc.includes(keyword)
+        );
+      });
+
+      return res.json({
+        products:   matched.slice(0, limitNum),
+        total:      matched.length,
+        page:       1,
+        totalPages: Math.ceil(matched.length / limitNum),
+      });
+    }
+
+    // ── BROWSE / FILTER MODE (giữ nguyên logic cũ) ──
     let query = {};
 
     if (cat) {
@@ -84,7 +131,6 @@ router.get('/', async (req, res) => {
     const limitNum = Number(limit);
     const total    = await Product.countDocuments(query);
 
-    // .lean() → plain JS object, _id tự serialize thành string trong JSON
     const products = await Product.find(query)
       .sort(sortObj)
       .skip((pageNum - 1) * limitNum)
