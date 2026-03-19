@@ -319,8 +319,10 @@ export class ApiService {
   //  Order APIs  (giữ từ HEAD)
   // ════════════════════════════════════════════════════════════════════════════
 
-  getOrders(): Observable<any[]> {
-    return this.http.get<any[]>(`${API_BASE}/orders`);
+  getOrders(userId?: string): Observable<any[]> {
+    // ✅ Truyền userId để lọc theo user, không truyền thì lấy tất cả (dùng cho admin)
+    const params = userId ? new HttpParams().set('userId', userId) : new HttpParams();
+    return this.http.get<any[]>(`${API_BASE}/orders`, { params });
   }
 
   getOrderById(id: string): Observable<any> {
