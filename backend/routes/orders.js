@@ -1,6 +1,6 @@
-const express   = require('express');
-const mongoose  = require('mongoose');
-const router    = express.Router();
+const express  = require('express');
+const mongoose = require('mongoose');
+const router   = express.Router();
 
 const Order   = require('../models/Order');
 const Product = require('../models/Product');
@@ -69,7 +69,7 @@ router.post('/', async (req, res) => {
     }
 
     // Build order items
-    let subTotal   = 0;
+    let subTotal = 0;
     const orderItems = normalizedIn.map(i => {
       const p     = map.get(i.productId);
       const price = Number(p.price || 0);
@@ -87,7 +87,7 @@ router.post('/', async (req, res) => {
     const disc  = calcDiscount(voucherCode, subTotal, ship);
     const total = Math.max(0, subTotal + ship - disc);
 
-    // ✅ Build order object — gắn userId nếu user đã đăng nhập
+    // Build order data — gắn userId nếu hợp lệ
     const orderData = {
       customer: {
         fullName: customer.fullName,
@@ -108,9 +108,10 @@ router.post('/', async (req, res) => {
       discount:       disc,
       total,
       status:         'pending',
+      userId:         null,
     };
 
-    // Gắn userId nếu hợp lệ
+    // Validate và gắn userId nếu đã đăng nhập
     if (userId && mongoose.Types.ObjectId.isValid(String(userId))) {
       orderData.userId = new mongoose.Types.ObjectId(String(userId));
     }
@@ -128,11 +129,18 @@ router.post('/', async (req, res) => {
   }
 });
 
-// ======================= GET ALL ORDERS =======================
+// ======================= GET ALL / GET BY USER =======================
 
 router.get('/', async (req, res) => {
   try {
-    const orders = await Order.find().sort({ createdAt: -1 });
+    const { userId } = req.query;
+
+    // Nếu có userId thì lọc theo user, không thì lấy tất cả (cho admin)
+    const filter = userId && mongoose.Types.ObjectId.isValid(userId)
+      ? { userId: new mongoose.Types.ObjectId(userId) }
+      : {};
+
+    const orders = await Order.find(filter).sort({ createdAt: -1 });
     res.json(orders);
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
@@ -174,7 +182,7 @@ router.get('/:id', async (req, res) => {
 router.patch('/:id/status', async (req, res) => {
   try {
     const { status } = req.body;
-    const allowed = ['pending','pending_payment','paid','cancelled'];
+    const allowed = ['pending', 'confirmed', 'shipping', 'delivered', 'cancelled'];
     if (!allowed.includes(status)) {
       return res.status(400).json({ message: 'Status không hợp lệ' });
     }
