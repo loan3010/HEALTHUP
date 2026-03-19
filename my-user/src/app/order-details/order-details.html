@@ -1,1 +1,129 @@
-<p>order-details works!</p>
+<div class="od-page">
+
+  <!-- ===== SIDEBAR ===== -->
+  <aside class="od-sidebar">
+    <h3 class="sidebar-title">Đơn hàng của tôi</h3>
+
+    <div class="sidebar-loading" *ngIf="orders.length === 0">
+      Đang tải...
+    </div>
+
+    <div
+      class="sidebar-item"
+      *ngFor="let o of orders"
+      [class.active]="o._id === currentId"
+      (click)="goToOrder(o._id)"
+    >
+      <div class="si-top">
+        <span class="si-id">#{{ o._id | slice:0:8 }}...</span>
+        <span class="si-status" [ngClass]="'status-' + o.status">
+          {{ getStatusLabel(o.status) }}
+        </span>
+      </div>
+      <div class="si-bottom">
+        <span>{{ formatDate(o.createdAt) }}</span>
+        <span class="si-total">{{ (o.total || 0) | number }} đ</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===== MAIN CONTENT ===== -->
+  <main class="od-main">
+
+    <!-- Loading -->
+    <div *ngIf="loading" class="od-loading">⏳ Đang tải đơn hàng...</div>
+
+    <!-- Không có dữ liệu -->
+    <div *ngIf="!loading && !order" class="od-empty">
+      Không tìm thấy đơn hàng
+    </div>
+
+    <!-- Nội dung đơn hàng -->
+    <div *ngIf="!loading && order" class="od-box">
+
+      <!-- Header -->
+      <div class="od-header">
+        <div>
+          <h2>Chi tiết đơn hàng</h2>
+          <p class="od-id">Mã đơn: <strong>{{ order._id }}</strong></p>
+        </div>
+        <span class="status-badge" [ngClass]="'status-' + order.status">
+          {{ getStatusLabel(order.status) }}
+        </span>
+      </div>
+
+      <!-- Info grid -->
+      <div class="od-info-grid">
+
+        <!-- Khách hàng -->
+        <div class="info-card">
+          <div class="info-card-title">
+            <i class="bi bi-person"></i> Thông tin khách hàng
+          </div>
+          <p><span>Họ tên</span><strong>{{ order.customer?.fullName || '—' }}</strong></p>
+          <p><span>SĐT</span><strong>{{ order.customer?.phone || '—' }}</strong></p>
+          <p><span>Email</span><strong>{{ order.customer?.email || '—' }}</strong></p>
+          <p><span>Địa chỉ</span><strong>{{ getFullAddress() || '—' }}</strong></p>
+          <p *ngIf="order.customer?.note">
+            <span>Ghi chú</span><strong>{{ order.customer.note }}</strong>
+          </p>
+        </div>
+
+        <!-- Đơn hàng -->
+        <div class="info-card">
+          <div class="info-card-title">
+            <i class="bi bi-receipt"></i> Thông tin đơn hàng
+          </div>
+          <p><span>Thời gian đặt</span><strong>{{ formatDate(order.createdAt) }}</strong></p>
+          <p><span>Thanh toán</span><strong>{{ getPaymentLabel(order.paymentMethod) }}</strong></p>
+          <p><span>Vận chuyển</span><strong>{{ getShippingLabel(order.shippingMethod) }}</strong></p>
+          <p *ngIf="order.voucherCode">
+            <span>Mã giảm giá</span><strong>{{ order.voucherCode }}</strong>
+          </p>
+        </div>
+
+      </div>
+
+      <!-- Sản phẩm -->
+      <div class="od-items">
+        <h3>Sản phẩm</h3>
+
+        <div class="od-item" *ngFor="let item of order.items">
+          <img
+            [src]="fixImage(item.imageUrl)"
+            alt="{{ item.name }}"
+            onerror="this.src='assets/placeholder.png'"
+          />
+          <div class="item-info">
+            <p class="name">{{ item.name }}</p>
+            <p>Số lượng: <strong>{{ item.quantity }}</strong></p>
+            <p>Đơn giá: <strong>{{ item.price | number }} đ</strong></p>
+          </div>
+          <div class="item-total">{{ item.price * item.quantity | number }} đ</div>
+        </div>
+      </div>
+
+      <!-- Tổng kết -->
+      <div class="od-summary">
+        <div class="summary-row">
+          <span>Tạm tính</span>
+          <span>{{ (order.subTotal || 0) | number }} đ</span>
+        </div>
+        <div class="summary-row">
+          <span>Phí vận chuyển</span>
+          <span>{{ (order.shippingFee || 0) | number }} đ</span>
+        </div>
+        <div class="summary-row" *ngIf="order.discount > 0">
+          <span>Giảm giá</span>
+          <span class="discount">- {{ order.discount | number }} đ</span>
+        </div>
+        <div class="summary-row total-row">
+          <span>Tổng tiền</span>
+          <strong>{{ getTotal() | number }} đ</strong>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+</div>

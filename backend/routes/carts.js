@@ -7,14 +7,17 @@ function getUserId(req) {
   return req.header('x-user-id');
 }
 
-// GET cart
+// GET cart — populate cả userId (để lấy username) và items.productId
 router.get('/', async (req, res) => {
   try {
     const userId = getUserId(req);
     if (!mongoose.Types.ObjectId.isValid(userId))
       return res.status(400).json({ message: 'userId invalid' });
 
-    const cart = await Cart.findOne({ userId }).populate('items.productId');
+    const cart = await Cart.findOne({ userId })
+      .populate('userId', 'username customerID email phone')  // ✅ lấy thêm thông tin user
+      .populate('items.productId');
+
     return res.json(cart || { userId, items: [] });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
