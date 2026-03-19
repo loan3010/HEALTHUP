@@ -455,3 +455,42 @@
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+/* ── WISHLIST TOAST ── */
+.wishlist-toast {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #1a1a1a;
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s ease;
+  z-index: 9999;
+  white-space: nowrap;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+}
+
+.wishlist-toast i {
+  color: #ff4d6d;
+  font-size: 15px;
+}
+
+.wishlist-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* btn-wishlist active màu đỏ hồng */
+.btn-wishlist.active i {
+  color: #e53935;
+}

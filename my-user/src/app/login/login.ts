@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
@@ -21,7 +21,7 @@ type LoginRes = {
   templateUrl: './login.html',
   styleUrls: ['./login.css']
 })
-export class Login {
+export class Login implements OnInit {
 
   emailOrPhone: string = '';
   password: string = '';
@@ -29,8 +29,9 @@ export class Login {
 
   private API = 'http://localhost:3000/api';
 
-  constructor(private router: Router, private http: HttpClient) {
+  constructor(private router: Router, private http: HttpClient) {}
 
+  ngOnInit(): void {
     const raw = sessionStorage.getItem('prefill_login');
 
     if (raw) {
@@ -61,11 +62,14 @@ export class Login {
 
       next: (res) => {
 
-        // ✅ Lưu login trước
+        // ✅ giữ code của bạn
         localStorage.setItem('token', res.token);
         localStorage.setItem('user', JSON.stringify(res.user));
 
-        // ✅ Điều hướng + reload (gộp 2 bên)
+        // ✅ thêm nhẹ từ GitHub (không phá logic)
+        localStorage.setItem('userId', res.user.id);
+
+        // ✅ giữ flow điều hướng của bạn
         if (res.user.role === 'admin') {
           this.router.navigate(['/admin']).then(() => window.location.reload());
         } else {

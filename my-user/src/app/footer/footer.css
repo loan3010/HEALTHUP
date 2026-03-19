@@ -1,238 +1,238 @@
-/* ===== BASE ===== */
+/* =====================================================
+   FOOTER – HealthUp | Dark theme #2A6B2E
+   Accent vàng: #D4A017 / #FFEE97
+   Font: Be Vietnam Pro
+   ===================================================== */
+
 .footer {
-  background-color: #1e5c2e;
-  color: white;
-  /* margin-top: 60px; */
-  font-family: 'Segoe UI', sans-serif;
+  background-color: #2A6B2E;
+  color: rgba(255,255,255,0.85);
+  font-family: 'Be Vietnam Pro', -apple-system, sans-serif;
 }
 
-/* ===== FOOTER TOP ===== */
-.footer-top {
-  display: flex;
-  justify-content: center;
-  gap: 0;
-  background-color: #174d26;
+/* ── MAIN CONTENT ── */
+.footer-main {
+  display: grid;
+  grid-template-columns: 1.7fr 2.3fr;
+  gap: 80px;
+  padding: 60px 80px 52px;
+  max-width: 1400px;
+  margin: 0 auto;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
 }
 
-.footer-top .feature {
+/* ── BRAND COL ── */
+.footer-logo {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 20px 60px;
-  border-right: 1px solid rgba(255, 255, 255, 0.12);
-  transition: background 0.2s;
+  gap: 10px;
+  margin-bottom: 14px;
 }
 
-.footer-top .feature:last-child {
-  border-right: none;
+.footer-logo img {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
 }
 
-.footer-top .feature:hover {
-  background-color: rgba(255, 255, 255, 0.05);
-}
-
-.footer-top .feature i {
-  font-size: 22px;
-  color: #5dba74;
-  background: rgba(93, 186, 116, 0.15);
-  padding: 10px;
-  border-radius: 50%;
-  line-height: 1;
-  flex-shrink: 0;
-}
-
-.footer-top .feature p {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  color: white;
-}
-
-/* ===== FOOTER CONTENT ===== */
-.footer-content {
-  display: grid;
-  grid-template-columns: 2.2fr 1fr 1fr 1fr 0.9fr;
-  gap: 40px;
-  padding: 52px 80px 44px;
-}
-
-/* ===== CỘT 1 – Brand ===== */
-.brand {
-  font-size: 28px;
+.footer-logo span {
+  font-size: 26px;
   font-weight: 800;
+  color: #FFEE97;
   letter-spacing: -0.5px;
-  margin-bottom: 10px;
-  color: #fff;
+  font-family: 'Be Vietnam Pro', sans-serif;
 }
 
-.slogan {
+.footer-desc {
   font-size: 13.5px;
-  color: rgba(255, 255, 255, 0.75);
-  line-height: 1.6;
-  margin-bottom: 20px;
-  max-width: 240px;
+  color: rgba(255,255,255,0.65);
+  line-height: 1.75;
+  margin-bottom: 22px;
+  max-width: 290px;
+  font-family: 'Be Vietnam Pro', sans-serif;
 }
 
-/* Divider dưới slogan */
-.footer .col:first-child .slogan::after {
-  content: '';
-  display: block;
-  width: 40px;
-  height: 2px;
-  background: #5dba74;
-  margin-top: 18px;
-  border-radius: 2px;
+/* ── PILLS CAM KẾT ── */
+.footer-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 28px;
 }
 
-/* Contact info cột 1 */
-.footer .col:first-child p {
-  font-size: 13.5px;
-  color: rgba(255, 255, 255, 0.75);
-  margin-bottom: 9px;
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 238, 151, 0.35);
+  background: rgba(255, 238, 151, 0.08);
+  font-size: 12px;
+  font-weight: 600;
+  color: #FFEE97;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  white-space: nowrap;
+  transition: all 0.2s;
   cursor: default;
 }
 
-.footer .col:first-child p:hover {
-  color: white;
-  text-decoration: none;
-  padding-left: 0;
+.pill:hover {
+  background: rgba(255, 238, 151, 0.18);
+  border-color: rgba(255, 238, 151, 0.6);
 }
 
-.footer .col:first-child p::before {
-  display: none;
+.pill i {
+  font-size: 12px;
 }
 
-/* ===== HEADING CỘT ===== */
-.footer .col h4 {
-  font-size: 12.5px;
-  font-weight: 700;
-  letter-spacing: 1.2px;
-  text-transform: uppercase;
-  color: white;
-  margin-bottom: 20px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+/* ── CONTACTS ── */
+.footer-contacts {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-/* ===== LINKS ===== */
-.footer .col p {
-  font-size: 13.5px;
-  color: rgba(255, 255, 255, 0.75);
-  margin-bottom: 11px;
-  cursor: pointer;
-  transition: color 0.2s, padding-left 0.2s;
-  position: relative;
-}
-
-.footer .col p::before {
-  content: '';
-  position: absolute;
-  left: -10px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: #5dba74;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.footer .col p:hover {
-  color: white;
-  text-decoration: none;
-  padding-left: 10px;
-}
-
-.footer .col p:hover::before {
-  opacity: 1;
-}
-
-/* ===== SOCIAL ICONS ===== */
-.social a {
+.footer-contacts a {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  transition: all 0.25s;
+  gap: 10px;
+  font-size: 13.5px;
+  color: rgba(255,255,255,0.7);
+  text-decoration: none;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  transition: color 0.2s;
+  cursor: pointer;
 }
 
-.social a img {
-  width: 20px;
-  height: 20px;
+.footer-contacts a:hover {
+  color: #FFEE97;
+}
+
+.footer-contacts a i {
+  font-size: 15px;
+  color: #A2C37F;
+  width: 18px;
+  flex-shrink: 0;
+}
+
+/* ── NAV COLS ── */
+.footer-nav {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  padding-top: 4px;
+}
+
+.footer-nav-col h5 {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #FFEE97;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  margin-bottom: 18px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+  font-family: 'Be Vietnam Pro', sans-serif;
+}
+
+.footer-nav-col a {
+  display: block;
+  font-size: 13.5px;
+  color: rgba(255,255,255,0.65);
+  text-decoration: none;
+  margin-bottom: 11px;
+  cursor: pointer;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  transition: color 0.2s, padding-left 0.2s;
+}
+
+.footer-nav-col a:hover {
+  color: #fff;
+  padding-left: 6px;
+}
+
+/* ── SOCIAL ICONS ── */
+.footer-socials {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.footer-socials a {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.07);
+  transition: all 0.25s;
+  padding: 0 !important;
+  margin: 0 !important;
+  cursor: pointer;
+}
+
+.footer-socials a img {
+  width: 22px;
+  height: 22px;
   object-fit: contain;
 }
 
-.social a:hover {
-  background: #5dba74;
-  border-color: #5dba74;
+.footer-socials a:hover {
+  background: #D4A017;
+  border-color: #D4A017;
   transform: translateY(-3px);
-  box-shadow: 0 6px 16px rgba(93, 186, 116, 0.35);
+  box-shadow: 0 6px 16px rgba(212,160,23,0.35);
+  padding-left: 0 !important;
 }
 
-/* ===== FOOTER BOTTOM ===== */
+/* ── BOTTOM BAR ── */
 .footer-bottom {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 80px;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.75);
+  padding: 15px 80px;
+  background: rgba(0,0,0,0.2);
+  font-size: 12.5px;
+  color: rgba(255,255,255,0.5);
+  font-family: 'Be Vietnam Pro', sans-serif;
 }
 
-.footer-bottom p {
-  margin: 0;
+.footer-bottom p { margin: 0; }
+
+.footer-bottom strong {
+  color: #FFEE97;
+  font-weight: 600;
 }
 
-/* ===== RESPONSIVE ===== */
+/* ── RESPONSIVE ── */
 @media (max-width: 1100px) {
-  .footer-content {
-    grid-template-columns: 1fr 1fr 1fr;
+  .footer-main {
+    grid-template-columns: 1fr;
     padding: 40px 40px;
-    gap: 32px;
+    gap: 40px;
   }
-
-  .footer-top .feature {
-    padding: 18px 30px;
-  }
+  .footer-nav { grid-template-columns: repeat(4, 1fr); }
 }
 
 @media (max-width: 768px) {
-  .footer-top {
-    flex-direction: column;
-  }
-
-  .footer-top .feature {
-    border-right: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-    padding: 16px 24px;
-  }
-
-  .footer-top .feature:last-child {
-    border-bottom: none;
-  }
-
-  .footer-content {
+  .footer-nav {
     grid-template-columns: 1fr 1fr;
-    padding: 32px 24px;
+    gap: 28px;
   }
-
+  .footer-main { padding: 32px 24px; }
   .footer-bottom {
     flex-direction: column;
     gap: 6px;
     text-align: center;
-    padding: 16px 24px;
+    padding: 14px 24px;
   }
 }
 
 @media (max-width: 480px) {
-  .footer-content {
-    grid-template-columns: 1fr;
-  }
+  .footer-nav { grid-template-columns: 1fr 1fr; }
+  .footer-pills { gap: 6px; }
 }

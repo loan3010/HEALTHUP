@@ -1,118 +1,316 @@
-/* Wishlist dùng chung layout với user-profile, chỉ cần style cho content */
+/* ── WISHLIST PAGE ── */
+* { font-family: 'Be Vietnam Pro', sans-serif; box-sizing: border-box; }
 
-h4 {
-  font-family: 'Be Vietnam Pro', sans-serif;
-  color: #36873A; /* Brand primary */
+/* Header */
+.wl-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.wl-header h4 {
+  font-size: 20px;
   font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 4px;
 }
 
-.text-muted {
-  font-family: 'Be Vietnam Pro', sans-serif;
-}
-
-/* ===== FILTER BAR ===== */
-.filter-bar {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
-
-.filter-bar .btn {
-  font-family: 'Be Vietnam Pro', sans-serif;
+.wl-header p {
   font-size: 13px;
-  border-radius: 8px;
-  transition: all 0.2s;
-}
-
-.filter-bar .btn-light {
-  background: #F0F7F0; /* Brand bg color */
-  border: 1px solid #e0e0e0;
-  color: #333;
-}
-
-.filter-bar .btn-light:hover,
-.filter-bar .btn-light.active {
-  background: #36873A; /* Brand primary */
-  color: white;
-  border-color: #36873A;
-}
-
-/* ===== PRODUCT CARD ===== */
-.product-card {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  transition: all 0.2s;
-}
-
-.product-card:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-}
-
-.product-card h6 {
-  font-family: 'Be Vietnam Pro', sans-serif;
-  font-size: 14px;
-  font-weight: 600;
-  color: #333;
-}
-
-.product-card small {
-  font-family: 'Be Vietnam Pro', sans-serif;
   color: #888;
+  margin: 0;
 }
 
-.product-img {
+/* Sort buttons */
+.wl-sort {
+  display: flex;
+  gap: 8px;
+}
+
+.wl-sort button {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1.5px solid #e0e0e0;
+  background: #fff;
+  font-size: 13px;
+  color: #555;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.wl-sort button:hover,
+.wl-sort button.active {
+  background: #36873A;
+  border-color: #36873A;
+  color: #fff;
+}
+
+/* Grid */
+.wl-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+/* Card */
+.wl-card {
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid #f0f0f0;
+  overflow: hidden;
+  transition: all 0.25s;
+  display: flex;
+  flex-direction: column;
+}
+
+.wl-card:hover {
+  box-shadow: 0 8px 28px rgba(54,135,58,0.12);
+  transform: translateY(-4px);
+}
+
+/* Image */
+.wl-card-img {
+  position: relative;
+  height: 180px;
+  background: #F0F7F0;
+  cursor: pointer;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wl-card-img img {
+  width: 70%;
+  height: 100%;
+  object-fit: contain;
+  transition: transform 0.3s;
+}
+
+.wl-card:hover .wl-card-img img {
+  transform: scale(1.06);
+}
+
+.wl-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.wl-badge-new { background: #36873A; color: #fff; }
+.wl-badge-hot { background: #C62828; color: #fff; }
+
+/* Body */
+.wl-card-body {
+  padding: 12px 14px 8px;
+  flex: 1;
+}
+
+.wl-cat {
+  font-size: 10px;
+  font-weight: 700;
+  color: #A2C37F;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 4px;
+}
+
+.wl-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 10px;
+  line-height: 1.4;
+  cursor: pointer;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.wl-name:hover { color: #36873A; }
+
+.wl-price-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wl-price {
+  font-size: 15px;
+  font-weight: 700;
+  color: #36873A;
+}
+
+.wl-old-price {
+  font-size: 12px;
+  color: #bbb;
+  text-decoration: line-through;
+}
+
+/* Actions */
+.wl-card-actions {
+  display: flex;
+  gap: 8px;
+  padding: 10px 14px 14px;
+}
+
+.wl-btn-cart {
+  flex: 1;
+  padding: 8px 0;
+  background: #36873A;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background 0.2s;
+}
+
+.wl-btn-cart:hover { background: #2A6B2E; }
+
+.wl-btn-remove {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1.5px solid #ffebee;
+  background: #ffebee;
+  color: #C62828;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  font-size: 15px;
+}
+
+.wl-btn-remove:hover {
+  background: #C62828;
+  border-color: #C62828;
+  color: #fff;
+}
+
+/* Loading skeleton */
+.wl-loading {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.wl-skeleton {
+  height: 280px;
+  border-radius: 14px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+/* Empty state */
+.wl-empty {
+  text-align: center;
+  padding: 60px 20px;
+  background: #fff;
+  border-radius: 16px;
+}
+
+.wl-empty-icon {
   width: 80px;
   height: 80px;
-  background: #f0f0f0;
-  border-radius: 8px;
-  flex-shrink: 0;
+  border-radius: 50%;
+  background: #FFF0F0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
 }
 
-.price {
-  color: #36873A; /* Brand primary */
-  font-family: 'Be Vietnam Pro', sans-serif;
-  font-size: 16px;
-  white-space: nowrap;
+.wl-empty-icon i {
+  font-size: 36px;
+  color: #ffb3b3;
 }
 
-.product-card .btn-outline-dark {
-  border-color: #36873A; /* Brand primary */
-  color: #36873A;
-  border-radius: 8px;
-  font-family: 'Be Vietnam Pro', sans-serif;
-  transition: all 0.2s;
+.wl-empty h5 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 8px;
 }
 
-.product-card .btn-outline-dark:hover {
+.wl-empty p {
+  font-size: 14px;
+  color: #888;
+  margin-bottom: 24px;
+}
+
+.wl-btn-explore {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 24px;
   background: #36873A;
-  color: white;
-  border-color: #36873A;
+  color: #fff;
+  border-radius: 999px;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background 0.2s;
 }
 
-.product-card .bi-heart-fill {
-  cursor: pointer;
-  transition: color 0.2s;
+.wl-btn-explore:hover {
+  background: #2A6B2E;
+  color: #fff;
 }
 
-.product-card .bi-heart-fill:hover {
-  color: #C62828 !important; /* Brand danger */
+/* Toast */
+.wl-toast {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #1a1a1a;
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s ease;
+  z-index: 9999;
+  white-space: nowrap;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
 }
 
-/* ===== RESPONSIVE ===== */
+.wl-toast i { color: #4caf50; }
+.wl-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* Responsive */
 @media (max-width: 768px) {
-  .product-card {
-    flex-direction: column;
-    align-items: flex-start !important;
-  }
+  .wl-grid, .wl-loading { grid-template-columns: repeat(2, 1fr); }
+  .wl-header { flex-direction: column; align-items: flex-start; }
+}
 
-  .product-img {
-    width: 100%;
-    height: 120px;
-  }
-
-  .price {
-    font-size: 18px;
-    margin-top: 8px;
-  }
+@media (max-width: 480px) {
+  .wl-grid, .wl-loading { grid-template-columns: 1fr; }
 }

@@ -29,16 +29,18 @@ export class SidebarComponent implements OnChanges {
   @Output() reset = new EventEmitter<void>();
 
   openSections: Record<string, boolean> = {
-    category: true, price: true,
+    category: true,
+    price: true,
+    rating: false,   // ✅ thêm rating section (collapsed mặc định)
   };
 
   readonly categoryKeys = [
     { key: 'Hạt dinh dưỡng', name: 'Hạt dinh dưỡng' },
-    { key: 'Granola',        name: 'Granola'         },
-    { key: 'Trái cây sấy',   name: 'Trái cây sấy'   },
-    { key: 'Đồ ăn vặt',      name: 'Đồ ăn vặt'      },
-    { key: 'Trà thảo mộc',   name: 'Trà thảo mộc'   },
-    { key: 'Combo',          name: 'Combo'           },
+    { key: 'Granola',        name: 'Granola'          },
+    { key: 'Trái cây sấy',  name: 'Trái cây sấy'    },
+    { key: 'Đồ ăn vặt',     name: 'Đồ ăn vặt'       },
+    { key: 'Trà thảo mộc',  name: 'Trà thảo mộc'    },
+    { key: 'Combo',          name: 'Combo'            },
   ];
 
   get categories(): CategoryFilter[] {
@@ -59,12 +61,21 @@ export class SidebarComponent implements OnChanges {
   priceMin = 0;
   priceMax = 1000000;
 
+  // ✅ Rating filter
+  selectedRating = 0;
+  readonly ratingOptions = [
+    { value: 5, label: 'Từ 5 sao' },
+    { value: 4, label: 'Từ 4 sao trở lên' },
+    { value: 3, label: 'Từ 3 sao trở lên' },
+  ];
+
   get sliderLeft():  number { return (this.priceMin  / 1000000) * 100; }
   get sliderRight(): number { return 100 - (this.priceMax / 1000000) * 100; }
 
   get activeFilterCount(): number {
     return this.selectedFilters.length
-      + (this.activePricePreset !== 'all' ? 1 : 0);
+      + (this.activePricePreset !== 'all' ? 1 : 0)
+      + (this.selectedRating > 0 ? 1 : 0);
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -102,12 +113,18 @@ export class SidebarComponent implements OnChanges {
     this.emitAll();
   }
 
+  // ✅ Rating filter handler
+  selectRating(value: number): void {
+    this.selectedRating = this.selectedRating === value ? 0 : value;
+    this.emitAll();
+  }
+
   private emitAll(): void {
     this.allFiltersChanged.emit({
       categories: this.selectedFilters,
       priceMin:   this.priceMin,
       priceMax:   this.priceMax,
-      rating:     0, // bỏ rating filter
+      rating:     this.selectedRating,
     });
   }
 
@@ -116,6 +133,7 @@ export class SidebarComponent implements OnChanges {
     this.activePricePreset = 'all';
     this.priceMin = 0;
     this.priceMax = 1000000;
+    this.selectedRating = 0;
     this.reset.emit();
   }
 }

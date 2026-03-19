@@ -1,7 +1,8 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule, CurrencyPipe } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { ApiService, STATIC_BASE } from '../services/api.service';
 
 export interface Category {
@@ -34,13 +35,16 @@ export interface TrustItem {
   templateUrl: './homepage.html',
   styleUrls: ['./homepage.css']
 })
-export class HomepageComponent implements OnInit {
+export class HomepageComponent implements OnInit, OnDestroy {
 
   activeCategory = 0;
-  wishlist: string[] = [];
   featuredProducts: any[] = [];
   isLoading = true;
   isBlogLoading = true;
+
+  // ── Wishlist từ service stream ──────────────────────────────────────────────
+  wishlist: string[] = [];
+  private wishlistSub!: Subscription;
 
   readonly STATIC_BASE = STATIC_BASE;
   readonly PLACEHOLDER_PRODUCT = `${STATIC_BASE}/images/products/placeholder.png`;
@@ -66,13 +70,23 @@ export class HomepageComponent implements OnInit {
 
   constructor(
     private router: Router,
-    private api: ApiService,
+    public api: ApiService,
     private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
     this.loadFeaturedProducts();
     this.loadBlogs();
+
+    // Sync wishlist với service
+    this.wishlistSub = this.api.wishlist$.subscribe(list => {
+      this.wishlist = list;
+      this.cdr.detectChanges();
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.wishlistSub?.unsubscribe();
   }
 
   loadFeaturedProducts(): void {
@@ -124,16 +138,23 @@ export class HomepageComponent implements OnInit {
     return this.wishlist.includes(id);
   }
 
-  toggleWishlist(event: Event, id: string): void {
+  // ── Wishlist tập trung qua service ──────────────────────────────────────────
+  toggleWishlist(event: Event, id: string, productName?: string): void {
     event.stopPropagation();
-    this.wishlist = this.wishlist.includes(id)
-      ? this.wishlist.filter(x => x !== id)
-      : [...this.wishlist, id];
+    this.api.toggleWishlist(id, productName);
   }
 
-  addToCart(event: Event, id: string): void {
+  // ── addToCart gọi API thực sự, hiện toast qua service ──────────────────────
+  addToCart(event: Event, product: any): void {
     event.stopPropagation();
-    console.log('Added to cart:', id);
+    if (!product?._id) return;
+
+    this.api.addToCart(product._id, 1, product.name).subscribe({
+      error: (err) => {
+        console.error('Lỗi thêm giỏ hàng:', err);
+        this.api.showToast('Không thể thêm vào giỏ hàng. Vui lòng thử lại.', 'error');
+      }
+    });
   }
 
   goToDetail(id: string): void {
