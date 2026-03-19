@@ -5,6 +5,17 @@ import { FormsModule } from '@angular/forms';
 import { Subscription, filter } from 'rxjs';
 import { ApiService, STATIC_BASE } from '../services/api.service';
 
+export interface ColorOption {
+  value: string;
+  label: string;
+  hex: string;
+}
+
+export interface CartItemVariants {
+  sizes?: string[];
+  colors?: ColorOption[];
+}
+
 export interface CartItem {
   productId: string;
   name: string;
@@ -12,6 +23,9 @@ export interface CartItem {
   imageUrl?: string;
   quantity: number;
   selected?: boolean;
+  variants?: CartItemVariants;
+  selectedSize?: string;
+  selectedColor?: string;
 }
 
 const CHECKOUT_KEY = 'checkout_v1';
@@ -33,6 +47,7 @@ export class Cart implements OnInit, OnDestroy {
   showConfirm = false;
   confirmMessage = '';
   itemToDelete: CartItem | null = null;
+  private clearSelectedMode = false;
 
   private routerSub!: Subscription;
 
@@ -45,7 +60,6 @@ export class Cart implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadCartFromApi();
 
-    // ✅ Mỗi lần navigate đến /cart đều reload — tránh dùng cache cũ
     this.routerSub = this.router.events.pipe(
       filter(e => e instanceof NavigationEnd && e.urlAfterRedirects === '/cart')
     ).subscribe(() => {
@@ -76,13 +90,21 @@ export class Cart implements OnInit, OnDestroy {
             ? (imageRaw.startsWith('http') ? imageRaw : `${STATIC_BASE}${imageRaw}`)
             : '';
 
+          // Build variants từ product data nếu backend trả về
+          const variants: CartItemVariants = {};
+          if (p?.sizes?.length)  variants.sizes  = p.sizes;
+          if (p?.colors?.length) variants.colors = p.colors;
+
           return {
-            productId: String(p?._id || item.productId || ''),
-            name:      p?.name  || item.name  || 'Sản phẩm',
-            price:     p?.price || item.price || 0,
+            productId:     String(p?._id || item.productId || ''),
+            name:          p?.name  || item.name  || 'Sản phẩm',
+            price:         p?.price || item.price || 0,
             imageUrl,
-            quantity:  item.quantity || 1,
-            selected:  false,
+            quantity:      item.quantity || 1,
+            selected:      false,
+            variants:      Object.keys(variants).length ? variants : undefined,
+            selectedSize:  item.selectedSize  || p?.sizes?.[0]  || undefined,
+            selectedColor: item.selectedColor || p?.colors?.[0]?.value || undefined,
           };
         });
 
@@ -122,6 +144,15 @@ export class Cart implements OnInit, OnDestroy {
     this.calcTotal();
   }
 
+  // ================= VARIANT =================
+  selectSize(item: CartItem, size: string): void {
+    item.selectedSize = size;
+  }
+
+  selectColor(item: CartItem, colorValue: string): void {
+    item.selectedColor = colorValue;
+  }
+
   // ================= NAVIGATION =================
   buyNow(): void {
     this.router.navigate(['/product-listing-page']);
@@ -133,39 +164,84 @@ export class Cart implements OnInit, OnDestroy {
     const selectedItems = this.items
       .filter(it => it.selected)
       .map(it => ({
-        productId: it.productId,
-        name:      it.name,
-        price:     it.price,
-        quantity:  it.quantity,
-        imageUrl:  it.imageUrl ?? null,
+        productId:     it.productId,
+        name:          it.name,
+        price:         it.price,
+        quantity:      it.quantity,
+        imageUrl:      it.imageUrl ?? null,
+        selectedSize:  it.selectedSize  ?? null,
+        selectedColor: it.selectedColor ?? null,
       }));
 
     localStorage.setItem(CHECKOUT_KEY, JSON.stringify(selectedItems));
     this.router.navigate(['/checkout']);
   }
 
+  // ================= XÓA TẤT CẢ ĐÃ CHỌN =================
+  confirmClearSelected(): void {
+    if (!this.selectedCount) return;
+    this.clearSelectedMode = true;
+    this.itemToDelete      = null;
+    this.confirmMessage    = `Bạn có chắc muốn xóa ${this.selectedCount} sản phẩm đã chọn khỏi giỏ hàng?`;
+    this.showConfirm       = true;
+  }
+
+  private execClearSelected(): void {
+    const targets = this.items.filter(it => it.selected);
+    if (!targets.length) return;
+
+    let pending = targets.length;
+    const done = () => {
+      pending--;
+      if (pending === 0) {
+        this.items = this.items.filter(it => !it.selected);
+        this.calcTotal();
+        this.cdr.detectChanges();
+      }
+    };
+
+    targets.forEach(it => {
+      this.api.removeCartItem(it.productId).subscribe({
+        next:  () => done(),
+        error: () => {
+          done();
+          this.api.showToast('Một số sản phẩm không thể xóa. Vui lòng thử lại.', 'error');
+        }
+      });
+    });
+  }
+
   // ================= CONFIRM MODAL =================
   confirmRemove(item: CartItem): void {
-    this.itemToDelete   = item;
-    this.confirmMessage = `Bạn có chắc muốn xóa "${item.name}" khỏi giỏ hàng?`;
-    this.showConfirm    = true;
+    this.clearSelectedMode = false;
+    this.itemToDelete      = item;
+    this.confirmMessage    = `Bạn có chắc muốn xóa "${item.name}" khỏi giỏ hàng?`;
+    this.showConfirm       = true;
   }
 
   confirmDecrease(item: CartItem): void {
     if (item.quantity <= 1) {
-      this.itemToDelete   = item;
-      this.confirmMessage = `Sản phẩm "${item.name}" đang có số lượng là 1.\nBạn có muốn xóa khỏi giỏ hàng không?`;
-      this.showConfirm    = true;
+      this.clearSelectedMode = false;
+      this.itemToDelete      = item;
+      this.confirmMessage    = `Sản phẩm "${item.name}" đang có số lượng là 1.\nBạn có muốn xóa khỏi giỏ hàng không?`;
+      this.showConfirm       = true;
     } else {
       this.dec(item);
     }
   }
 
   acceptConfirm(): void {
-    if (!this.itemToDelete) return;
+    // ✅ Capture trước khi closeModal() null chúng
+    const isClear = this.clearSelectedMode;
+    const target  = this.itemToDelete;
+    this.closeModal();
 
-    const target = this.itemToDelete; // ✅ giữ ref trước khi closeModal() null nó
-    this.closeModal();                // đóng modal ngay cho UX đẹp
+    if (isClear) {
+      this.execClearSelected();
+      return;
+    }
+
+    if (!target) return;
 
     this.api.removeCartItem(target.productId).subscribe({
       next: () => {
@@ -192,14 +268,12 @@ export class Cart implements OnInit, OnDestroy {
 
   dec(it: CartItem): void {
     const newQty = it.quantity - 1;
-    // ✅ Optimistic update: cập nhật UI ngay, không chờ API
-    it.quantity = newQty;
+    it.quantity  = newQty;
     this.calcTotal();
     this.cdr.detectChanges();
 
     this.api.updateCartItem(it.productId, newQty).subscribe({
       error: () => {
-        // Rollback nếu API lỗi
         it.quantity = newQty + 1;
         this.calcTotal();
         this.cdr.detectChanges();
@@ -210,14 +284,12 @@ export class Cart implements OnInit, OnDestroy {
 
   inc(it: CartItem): void {
     const newQty = it.quantity + 1;
-    // ✅ Optimistic update: cập nhật UI ngay, không chờ API
-    it.quantity = newQty;
+    it.quantity  = newQty;
     this.calcTotal();
     this.cdr.detectChanges();
 
     this.api.updateCartItem(it.productId, newQty).subscribe({
       error: () => {
-        // Rollback nếu API lỗi
         it.quantity = newQty - 1;
         this.calcTotal();
         this.cdr.detectChanges();
@@ -235,8 +307,7 @@ export class Cart implements OnInit, OnDestroy {
       return;
     }
 
-    const prev = it.quantity;
-    // ✅ Optimistic update
+    const prev  = it.quantity;
     it.quantity = next;
     this.calcTotal();
     this.cdr.detectChanges();

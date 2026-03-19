@@ -13,13 +13,8 @@ const OrderItemSchema = new mongoose.Schema(
 
 const OrderSchema = new mongoose.Schema(
   {
-    // ✅ Gắn user nếu đã đăng nhập (null nếu guest)
-    userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      default: null,
-      index: true
-    },
+    // ✅ FIX: thêm userId để lọc đơn theo user
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null, index: true },
 
     customer: {
       fullName: { type: String, required: true, trim: true },

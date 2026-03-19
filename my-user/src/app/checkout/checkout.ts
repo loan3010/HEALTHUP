@@ -458,7 +458,7 @@ export class Checkout implements OnInit {
   }
 
   // ── Success modal ──
-  goToOrderDetail(): void { this.showSuccess.set(false); this.router.navigate(['/order-success', this.successOrderId()]); }
+  goToOrderDetail(): void { this.showSuccess.set(false); this.router.navigate(['/profile/order-detail', this.successOrderId()]); }
   goToHome():        void { this.showSuccess.set(false); this.router.navigateByUrl('/'); }
 
   // ── Helpers ──
@@ -476,15 +476,30 @@ export class Checkout implements OnInit {
   }
 
   private clearAfterSuccess(): void {
+    // 1. Xóa localStorage
+    const boughtIds = this.items().map(i => i.productId);
     localStorage.removeItem(this.CHECKOUT_KEY);
     try {
-      const boughtIds = new Set(this.items().map(i => i.productId));
       const raw  = localStorage.getItem(this.CART_KEY);
       const cart = raw ? JSON.parse(raw) : [];
+      const bought = new Set(boughtIds);
       localStorage.setItem(this.CART_KEY, JSON.stringify(
-        Array.isArray(cart) ? cart.filter((x: any) => !boughtIds.has(x.productId)) : []
+        Array.isArray(cart) ? cart.filter((x: any) => !bought.has(x.productId)) : []
       ));
     } catch {}
+
+    // 2. ✅ Xóa từng sản phẩm đã mua trên server cart
+    const userId = this.userId;
+    if (userId) {
+      const headers = new HttpHeaders({ 'x-user-id': userId });
+      boughtIds.forEach(productId => {
+        this.http.delete(
+          `${this.API_BASE}/carts/remove/${productId}`,
+          { headers }
+        ).subscribe({ error: () => {} }); // silent fail
+      });
+    }
+
     this.items.set([]);
   }
 }
