@@ -25,6 +25,7 @@ import { AddressBook } from './address-book/address-book';
 
 import { OrderManagement } from './order-management/order-management';
 import { OrderDetail } from './order-details/order-details';
+import { Notifications } from './notifications/notifications';
 
 export const routes: Routes = [
 
@@ -32,6 +33,7 @@ export const routes: Routes = [
   { path: '', component: HomepageComponent },
 
   // ===== PRODUCT =====
+  { path: 'products', component: ProductListingPageComponent },
   { path: 'product-listing-page', component: ProductListingPageComponent },
   { path: 'product-detail-page/:id', component: ProductDetailPageComponent },
 
@@ -39,19 +41,19 @@ export const routes: Routes = [
   { path: 'order-review', component: OrderReviewComponent },
 
   // ===== AUTH =====
-  { path: 'login', component: Login },
+  { path: 'login',    component: Login },
   { path: 'forgotpw', component: Forgotpw },
   { path: 'register', component: Register },
 
   // ===== STATIC PAGES =====
   { path: 'about-the-brand', component: AboutTheBrand },
-  { path: 'blog', component: BlogComponent },
-  { path: 'blog/:id', component: BlogDetailComponent }, // ✅ thêm từ 0ed69bcb
+  { path: 'blog',     component: BlogComponent },
+  { path: 'blog/:id', component: BlogDetailComponent },
   { path: 'policies', component: PoliciesComponent },
 
   // ===== SHOPPING =====
   { path: 'checkout', component: Checkout },
-  { path: 'cart', component: Cart },
+  { path: 'cart',     component: Cart },
 
   // ===== CHATBOT =====
   { path: 'chatbot', component: ChatbotComponent },
@@ -61,12 +63,13 @@ export const routes: Routes = [
     path: 'profile',
     component: UserProfile,
     children: [
-      { path: '', redirectTo: 'overview', pathMatch: 'full' },
-      { path: 'overview', component: ProfileOverview },
-      { path: 'address', component: AddressBook },
-      { path: 'wishlist', component: Wishlist },
-      { path: 'order-management', component: OrderManagement },
-      { path: 'order-detail/:id', component: OrderDetail}
+      { path: '',                  redirectTo: 'overview', pathMatch: 'full' },
+      { path: 'overview',          component: ProfileOverview },
+      { path: 'address',           component: AddressBook },
+      { path: 'wishlist',          component: Wishlist },
+      { path: 'order-management',  component: OrderManagement },
+      { path: 'order-detail/:id',  component: OrderDetail },   // ✅ đúng route
+      { path: 'notifications',  component: Notifications },   // ✅ đúng route
     ]
   },
 

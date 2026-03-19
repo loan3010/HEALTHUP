@@ -1,3 +1,4 @@
+
 const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
@@ -33,23 +34,20 @@ router.get('/category-counts', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────
-// Helper: normalize tiếng Việt (bỏ dấu)
-// "Hạt điều" → "hat dieu", "Trà thảo mộc" → "tra thao moc"
+// Helper: normalize tiếng Việt → bỏ dấu, lowercase
 // ─────────────────────────────────────────────────────────────────
 function normalizeVN(str) {
   return (str || '')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[đĐ]/g, d => d === 'đ' ? 'd' : 'D')
-    .toLowerCase();
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+    .toLowerCase()
+    .trim();
 }
 
 // ─────────────────────────────────────────────────────────────────
-// GET /api/products?search=keyword  →  Tìm kiếm autocomplete
-// Hỗ trợ:
-//   - Gõ có dấu:   "Hạt" → match "Hạt điều" ✓
-//   - Gõ không dấu: "hat" → match "Hạt điều" ✓
-//   - Gõ thiếu:    "gran" → match "Granola" ✓
+// GET /api/products  –  browse + search
 // ─────────────────────────────────────────────────────────────────
 router.get('/', async (req, res) => {
   try {
@@ -59,24 +57,28 @@ router.get('/', async (req, res) => {
       search
     } = req.query;
 
-    // ── SEARCH MODE: tìm kiếm fuzzy có hỗ trợ tiếng Việt không dấu ──
+    // ── SEARCH MODE: chỉ tìm theo tên sản phẩm ──
     if (search && search.trim() !== '') {
-      const keyword    = normalizeVN(search.trim());
-      const limitNum   = Math.min(Number(limit) || 6, 20);
+      const kwNorm   = normalizeVN(search.trim());
+      const limitNum = Math.min(Number(limit) || 6, 20);
 
-      // Lấy toàn bộ sản phẩm rồi filter phía Node
-      // (MongoDB $regex không thể normalize tiếng Việt natively)
+      if (!kwNorm) {
+        return res.json({ products: [], total: 0, page: 1, totalPages: 0 });
+      }
+
       const allProducts = await Product.find({}).lean();
 
-      const matched = allProducts.filter(p => {
-        const name      = normalizeVN(p.name);
-        const category  = normalizeVN(p.cat);
-        const shortDesc = normalizeVN(p.shortDesc);
-        return (
-          name.includes(keyword) ||
-          category.includes(keyword) ||
-          shortDesc.includes(keyword)
-        );
+      const matched = allProducts.filter(p =>
+        normalizeVN(p.name).includes(kwNorm)   // ✅ chỉ match theo tên
+      );
+
+      // Sắp xếp: tên bắt đầu bằng keyword lên đầu
+      matched.sort((a, b) => {
+        const aN = normalizeVN(a.name);
+        const bN = normalizeVN(b.name);
+        const aScore = aN.startsWith(kwNorm) ? 0 : aN.includes(' ' + kwNorm) ? 1 : 2;
+        const bScore = bN.startsWith(kwNorm) ? 0 : bN.includes(' ' + kwNorm) ? 1 : 2;
+        return aScore - bScore;
       });
 
       return res.json({
@@ -87,7 +89,7 @@ router.get('/', async (req, res) => {
       });
     }
 
-    // ── BROWSE / FILTER MODE (giữ nguyên logic cũ) ──
+    // ── BROWSE / FILTER MODE ──
     let query = {};
 
     if (cat) {

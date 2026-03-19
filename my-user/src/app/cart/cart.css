@@ -45,13 +45,47 @@
   color: #4a6b4c;
 }
 
+.select-all-bar .left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.select-all-bar .right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .select-all-bar input[type="checkbox"] {
   width: 17px;
   height: 17px;
   accent-color: #36873A;
   cursor: pointer;
-  margin-right: 8px;
   vertical-align: middle;
+}
+
+/* Nút xóa tất cả */
+.btn-clear-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1.5px solid #EF5350;
+  background: #FFEBEE;
+  color: #C62828;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.btn-clear-all:hover {
+  background: #C62828;
+  color: #fff;
+  border-color: #C62828;
 }
 
 /* ================= ITEM ================= */
@@ -71,7 +105,6 @@
   cursor: default;
 }
 
-/* ── hover nổi đẹp ── */
 .item:hover {
   transform: translateY(-4px);
   box-shadow: 0 12px 28px rgba(54,135,58,0.13);
@@ -108,6 +141,13 @@
   transition: transform 0.22s ease;
 }
 
+.thumb-empty {
+  background: #F0F7F0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .item:hover .thumb {
   transform: scale(1.04);
 }
@@ -116,7 +156,7 @@
 .info {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
   min-width: 0;
 }
 
@@ -138,12 +178,88 @@
   font-size: 14px;
 }
 
-/* ================= QTY — căn đều hoàn toàn ================= */
+/* ================= PHÂN LOẠI ================= */
+.variant-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 2px 0;
+}
+
+.variant-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.variant-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #8aab8c;
+  min-width: 32px;
+  flex-shrink: 0;
+}
+
+.variant-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+/* Size chips */
+.variant-btn {
+  padding: 2px 9px;
+  border-radius: 6px;
+  border: 1.5px solid #d4e6d4;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  color: #4a6b4c;
+  cursor: pointer;
+  line-height: 1.7;
+  transition: all 0.15s ease;
+}
+
+.variant-btn:hover {
+  border-color: #A2C37F;
+  color: #36873A;
+  background: #F0F7F0;
+}
+
+.variant-btn.active {
+  border-color: #36873A;
+  background: #36873A;
+  color: #fff;
+}
+
+/* Color dots */
+.color-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #d4e6d4;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.15s ease;
+}
+
+.color-dot:hover {
+  transform: scale(1.15);
+  border-color: #4a6b4c;
+}
+
+.color-dot.active {
+  border-color: #36873A;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px #36873A;
+}
+
+/* ================= QTY ================= */
 .qty {
   display: grid;
-  grid-template-columns: 40px 1fr 40px; /* 3 cột đều */
+  grid-template-columns: 40px 1fr 40px;
   align-items: stretch;
-
   height: 42px;
   width: 132px;
   border: 1.5px solid #d4e6d4;
@@ -153,19 +269,14 @@
   transition: border-color 0.2s;
 }
 
-
-
-/* nút +/- */
 .qty button {
   display: flex;
   align-items: center;
   justify-content: center;
-
   height: 100%;
   width: 100%;
   border: none;
   background: transparent;
-
   font-size: 18px;
   font-weight: 700;
   color: #36873A;
@@ -174,24 +285,15 @@
   padding: 0;
   margin: 0;
   font-family: 'Be Vietnam Pro', sans-serif;
-
   transition: background 0.15s, color 0.15s;
 }
 
-.qty button:hover {
-  background: #F0F7F0;
-  color: #2A6B2E;
-}
+.qty button:hover { background: #F0F7F0; color: #2A6B2E; }
+.qty button:active { background: #e2ebe2; }
 
-.qty button:active {
-  background: #e2ebe2;
-}
-
-/* input ở giữa */
 .qty input {
   display: flex;
   align-items: center;
-
   width: 100%;
   height: 100%;
   border: none;
@@ -199,7 +301,6 @@
   border-right: 1px solid #e2ebe2;
   outline: none;
   background: transparent;
-
   text-align: center;
   font-size: 15px;
   font-weight: 700;
@@ -344,7 +445,7 @@
   border: 1px solid #e2ebe2;
 }
 
-.empty-icon { font-size: 48px; margin-bottom: 14px; opacity: 0.55; }
+.empty-icon  { font-size: 48px; margin-bottom: 14px; opacity: 0.55; }
 .empty-title { font-size: 19px; font-weight: 700; color: #1a2e1b; margin-bottom: 8px; }
 .empty-desc  { font-size: 14px; color: #4a6b4c; margin-bottom: 22px; }
 
@@ -416,10 +517,7 @@
   font-size: 14px;
 }
 
-/* =====================================================================
-   RESPONSIVE
-   ===================================================================== */
-
+/* ================= RESPONSIVE ================= */
 .line-total { white-space: nowrap; }
 
 @media (max-width: 1200px) {
