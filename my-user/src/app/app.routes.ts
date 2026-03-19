@@ -24,6 +24,7 @@ import { ProfileOverview } from './profile-overview/profile-overview';
 import { AddressBook } from './address-book/address-book';
 
 import { OrderManagement } from './order-management/order-management';
+import { OrderDetail } from './order-details/order-details';
 
 export const routes: Routes = [
 
@@ -64,7 +65,8 @@ export const routes: Routes = [
       { path: 'overview', component: ProfileOverview },
       { path: 'address', component: AddressBook },
       { path: 'wishlist', component: Wishlist },
-      { path: 'order-management', component: OrderManagement }
+      { path: 'order-management', component: OrderManagement },
+      { path: 'order-detail/:id', component: OrderDetail}
     ]
   },
 

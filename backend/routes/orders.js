@@ -53,22 +53,16 @@ router.post('/', async (req, res) => {
       quantity: Math.max(1, Number(i.quantity || 1))
     }));
 
-
     const invalidIds = normalizedIn
       .filter(i => !mongoose.Types.ObjectId.isValid(i.productId))
       .map(i => i.productId);
 
     if (invalidIds.length) {
-      return res.status(400).json({
-        message: 'productId không hợp lệ',
-        invalidIds
-      });
+      return res.status(400).json({ message: 'productId không hợp lệ', invalidIds });
     }
 
     const ids = normalizedIn.map(i => new mongoose.Types.ObjectId(i.productId));
-
     const products = await Product.find({ _id: { $in: ids } }).lean();
-
     const map = new Map(products.map(p => [String(p._id), p]));
 
     const missing = normalizedIn
@@ -76,173 +70,119 @@ router.post('/', async (req, res) => {
       .map(i => i.productId);
 
     if (missing.length) {
-      return res.status(400).json({
-        message: 'Có sản phẩm không tồn tại',
-        missing
-      });
+      return res.status(400).json({ message: 'Có sản phẩm không tồn tại', missing });
     }
-
-
-    // ================= BUILD ORDER ITEMS =================
 
     let subTotal = 0;
 
     const orderItems = normalizedIn.map(i => {
-
       const p = map.get(i.productId);
-
       const price = Number(p.price || 0);
       const qty = i.quantity;
-
       subTotal += price * qty;
-
-      // LẤY ẢNH TỪ PRODUCT
-      let image = null;
-
-      if (p.images && p.images.length > 0) {
-        image = p.images[0];
-      }
-
       return {
         productId: p._id,
         name: p.name || 'Product',
         price,
         quantity: qty,
-        imageUrl: image
+        imageUrl: p.images?.[0] || null
       };
-
     });
-
 
     const ship = calcShipping(subTotal, shippingMethod);
     const disc = calcDiscount(voucherCode, subTotal, ship);
     const total = Math.max(0, subTotal + ship - disc);
 
-    const status = 'pending';
-
-
     const order = await Order.create({
+      // ✅ lưu userId để sau này lọc theo user
+      userId: req.body.userId || null,
 
       customer: {
         fullName: customer.fullName,
-        phone: customer.phone,
-        email: customer.email || '',
-        address: customer.address,
+        phone:    customer.phone,
+        email:    customer.email || '',
+        address:  customer.address,
         province: customer.province,
         district: customer.district,
-        ward: customer.ward,
-        note: customer.note || ''
+        ward:     customer.ward,
+        note:     customer.note || ''
       },
 
       items: orderItems,
 
       shippingMethod: shippingMethod || 'standard',
-      paymentMethod: paymentMethod || 'cod',
-      voucherCode: voucherCode || null,
+      paymentMethod:  paymentMethod  || 'cod',
+      voucherCode:    voucherCode    || null,
 
       subTotal,
       shippingFee: ship,
-      discount: disc,
+      discount:    disc,
       total,
-
-      status
-
+      status: 'pending'
     });
 
-
-    return res.status(201).json({
-      orderId: order._id
-    });
-
+    return res.status(201).json({ orderId: order._id });
 
   } catch (err) {
-
     console.error(err);
-
     if (err?.name === 'CastError') {
       return res.status(400).json({ message: 'ID không hợp lệ' });
     }
-
-    return res.status(500).json({
-      message: err?.message || 'Server error'
-    });
-
+    return res.status(500).json({ message: err?.message || 'Server error' });
   }
-
 });
 
 
-// ======================= GET ALL ORDERS =======================
+// ======================= GET ALL / GET BY USER =======================
 
 router.get('/', async (req, res) => {
-
   try {
+    const { userId } = req.query;
 
-    const orders = await Order.find()
-      .sort({ createdAt: -1 });
+    // ✅ Nếu có userId thì lọc theo user, không thì lấy tất cả (cho admin)
+    const filter = userId && mongoose.Types.ObjectId.isValid(userId)
+      ? { userId: new mongoose.Types.ObjectId(userId) }
+      : {};
 
+    const orders = await Order.find(filter).sort({ createdAt: -1 });
     res.json(orders);
 
   } catch (err) {
-
-    res.status(500).json({
-      message: 'Server error'
-    });
-
+    res.status(500).json({ message: 'Server error' });
   }
-
 });
 
 
 // ======================= GET ORDER BY ID =======================
 
 router.get('/:id', async (req, res) => {
-
   try {
-
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ message: 'ID không hợp lệ' });
     }
 
-    const order = await Order.findById(req.params.id)
-      .populate('items.productId');
+    const order = await Order.findById(req.params.id).populate('items.productId');
 
-    if (!order) {
-      return res.status(404).json({ message: 'Order not found' });
-    }
+    if (!order) return res.status(404).json({ message: 'Order not found' });
 
     return res.json(order);
 
   } catch (err) {
-
-    return res.status(500).json({
-      message: 'Server error'
-    });
-
+    return res.status(500).json({ message: 'Server error' });
   }
-
 });
 
 
 // ======================= UPDATE STATUS =======================
 
 router.patch('/:id/status', async (req, res) => {
-
   try {
-
     const { status } = req.body;
 
-    const allowedStatus = [
-      'pending',
-      'pending_payment',
-      'paid',
-      'cancelled'
-    ];
+    const allowedStatus = ['pending', 'pending_payment', 'paid', 'cancelled'];
 
     if (!allowedStatus.includes(status)) {
-      return res.status(400).json({
-        message: 'Status không hợp lệ'
-      });
+      return res.status(400).json({ message: 'Status không hợp lệ' });
     }
 
     const order = await Order.findByIdAndUpdate(
@@ -251,31 +191,20 @@ router.patch('/:id/status', async (req, res) => {
       { new: true }
     );
 
-    if (!order) {
-      return res.status(404).json({
-        message: 'Order not found'
-      });
-    }
+    if (!order) return res.status(404).json({ message: 'Order not found' });
 
     res.json(order);
 
   } catch (err) {
-
-    res.status(500).json({
-      message: 'Server error'
-    });
-
+    res.status(500).json({ message: 'Server error' });
   }
-
 });
 
 
 // ======================= DELETE ORDER =======================
 
 router.delete('/:id', async (req, res) => {
-
   try {
-
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -284,23 +213,13 @@ router.delete('/:id', async (req, res) => {
 
     const order = await Order.findByIdAndDelete(id);
 
-    if (!order) {
-      return res.status(404).json({ message: 'Order not found' });
-    }
+    if (!order) return res.status(404).json({ message: 'Order not found' });
 
-    res.json({
-      message: 'Đã hủy đơn hàng',
-      orderId: id
-    });
+    res.json({ message: 'Đã hủy đơn hàng', orderId: id });
 
   } catch (err) {
-
-    res.status(500).json({
-      message: 'Server error'
-    });
-
+    res.status(500).json({ message: 'Server error' });
   }
-
 });
 
 module.exports = router;
