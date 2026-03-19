@@ -5,7 +5,11 @@ import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { ApiService } from '../services/api.service';
 
-export interface PolicyItem { icon: string; title: string; desc: string; }
+export interface PolicyItem {
+  icon: string;
+  title: string;
+  desc: string;
+}
 
 export interface ConsultingQuestion {
   _id?: string;
@@ -35,26 +39,29 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
 
   product: any = null;
   relatedProducts: any[] = [];
+
   activeImage = '';
-  selectedWeight  = '';
-  selectedType    = '';
+  selectedWeight = '';
+  selectedType = '';
+
   activeTab: 'desc' | 'nutrition' | 'policy' = 'desc';
+
   qty = 1;
+
   addedToCart = false;
   addToCartError = '';
   isLoading = true;
 
-  // ── Wishlist từ service stream ──────────────────────────────────────────────
   private wishlistSub!: Subscription;
   get isWishlisted(): boolean {
     return this.product?._id ? this.api.isWishlisted(this.product._id) : false;
   }
 
   policyItems: PolicyItem[] = [
-    { icon: 'bi-arrow-repeat', title: 'Đổi trả trong 7 ngày',  desc: 'Áp dụng khi sản phẩm lỗi, hư hỏng do vận chuyển hoặc không đúng đơn hàng.' },
-    { icon: 'bi-truck',        title: 'Giao hàng toàn quốc',   desc: 'Từ 2-5 ngày làm việc. Nội thành TP.HCM & Hà Nội giao trong ngày hoặc hôm sau.' },
-    { icon: 'bi-credit-card',  title: 'Thanh toán an toàn',    desc: 'Hỗ trợ COD, VNPay, Momo. Không thu phí giao dịch.' },
-    { icon: 'bi-patch-check',  title: 'Chất lượng kiểm định',  desc: 'Sản phẩm đạt chứng nhận VSATTP, nguồn gốc rõ ràng, truy xuất được.' },
+    { icon: 'bi-arrow-repeat', title: 'Đổi trả trong 7 ngày',  desc: 'Áp dụng khi sản phẩm lỗi hoặc không đúng đơn hàng.' },
+    { icon: 'bi-truck',        title: 'Giao hàng toàn quốc',   desc: 'Từ 2-5 ngày làm việc.' },
+    { icon: 'bi-credit-card',  title: 'Thanh toán an toàn',    desc: 'Hỗ trợ COD, VNPay, Momo.' },
+    { icon: 'bi-patch-check',  title: 'Chất lượng kiểm định',  desc: 'Sản phẩm đạt chứng nhận VSATTP.' }
   ];
 
   // ---- TƯ VẤN / Q&A ----
@@ -107,7 +114,7 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
 
   loadProduct(id: string): void {
     this.api.getProductById(id).subscribe({
-      next: (data) => {
+      next: (data: any) => {
         this.product        = data;
         this.activeImage    = data.images?.[0] || '';
         this.selectedWeight = data.weights?.[0]?.label || '';
@@ -115,21 +122,22 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
         this.isLoading      = false;
         this.cdr.detectChanges();
       },
-      error: (err) => {
+      error: (err: any) => {
         console.error('Lỗi tải sản phẩm:', err);
         this.isLoading = false;
-        this.cdr.detectChanges();
       }
     });
   }
 
   loadRelated(id: string): void {
     this.api.getRelatedProducts(id).subscribe({
-      next: (data) => {
+      next: (data: any[]) => {
         this.relatedProducts = data;
         this.cdr.detectChanges();
       },
-      error: (err) => { console.error('Lỗi tải SP liên quan:', err); }
+      error: (err: any) => {
+        console.error('Lỗi tải SP liên quan:', err);
+      }
     });
   }
 
@@ -153,12 +161,12 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
           this.consultingQuestions = [...this.consultingQuestions, ...questions];
         }
         this.consultingStats = {
-          total:    res.stats?.total    || res.total    || 0,
+          total:    res.stats?.total    || res.total || 0,
           pending:  res.stats?.pending  || 0,
           answered: res.stats?.answered || 0,
         };
         this.applyConsultingFilter();
-        this.hasMoreQuestions = questions.length === 5;
+        this.hasMoreQuestions    = questions.length === 5;
         this.isConsultingLoading = false;
         this.cdr.detectChanges();
       },
@@ -239,8 +247,13 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
     }
   }
 
-  decreaseQty(): void { if (this.qty > 1) this.qty--; }
-  increaseQty(): void { if (this.product && this.qty < this.product.stock) this.qty++; }
+  decreaseQty(): void {
+    if (this.qty > 1) this.qty--;
+  }
+
+  increaseQty(): void {
+    if (this.product && this.qty < this.product.stock) this.qty++;
+  }
 
   addToCart(): void {
     if (this.addedToCart || !this.product?._id) return;
@@ -255,7 +268,7 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
         }, 2500);
         this.cdr.detectChanges();
       },
-      error: (err) => {
+      error: (err: any) => {
         console.error('Lỗi thêm vào giỏ hàng:', err);
         this.addToCartError = 'Không thể thêm vào giỏ hàng. Vui lòng thử lại.';
         this.api.showToast(this.addToCartError, 'error');
@@ -267,25 +280,24 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
   buyNow(): void {
     if (!this.product?._id) return;
 
-    this.api.addToCart(this.product._id, this.qty, this.product.name).subscribe({
-      next: () => {
-        const checkoutItem = [{
-          productId: this.product._id,
-          name:      this.product.name,
-          price:     this.product.price,
-          quantity:  this.qty,
-          imageUrl:  this.product.images?.[0] || this.product.image || null,
-        }];
-        localStorage.setItem('checkout_v1', JSON.stringify(checkoutItem));
-        this.router.navigate(['/checkout']);
-      },
-      error: (err) => {
-        console.error('Lỗi mua ngay:', err);
-        this.addToCartError = 'Không thể xử lý. Vui lòng thử lại.';
-        this.api.showToast(this.addToCartError, 'error');
-        this.cdr.detectChanges();
-      }
-    });
+    const checkoutItem = [{
+      productId: this.product._id,
+      name:      this.product.name,
+      price:     this.product.price,
+      quantity:  this.qty,
+      imageUrl:  this.product.images?.[0] || this.product.image || null,
+      weight:    this.selectedWeight,
+      type:      this.selectedType,
+    }];
+
+    try {
+      localStorage.setItem('checkout_v1', JSON.stringify(checkoutItem));
+    } catch (e) {
+      console.error('Lỗi lưu checkout:', e);
+      return;
+    }
+
+    this.router.navigate(['/checkout']);
   }
 
   toggleWishlist(): void {

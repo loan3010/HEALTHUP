@@ -16,7 +16,10 @@
       <p class="title-sub">Đăng nhập để tiếp tục hành trình sức khoẻ</p>
     </div>
 
-    <form (ngSubmit)="onLogin()">
+    <!-- autocomplete="off" + fake inputs chống autofill (từ nhánh kia) -->
+    <form (ngSubmit)="onLogin()" autocomplete="off">
+      <input type="text" style="display:none">
+      <input type="password" style="display:none">
 
       <!-- USERNAME / EMAIL / PHONE -->
       <div class="field">
@@ -33,6 +36,7 @@
             placeholder="Email hoặc số điện thoại"
             name="emailOrPhone"
             [(ngModel)]="emailOrPhone"
+            autocomplete="off"
             required
           />
           <button type="button" class="clear" (click)="emailOrPhone=''">×</button>
@@ -54,6 +58,7 @@
             placeholder="Tối thiểu 6 ký tự"
             name="password"
             [(ngModel)]="password"
+            autocomplete="new-password"
             minlength="6"
             required
           />

@@ -1,15 +1,16 @@
-// =======================đăng nhập đăng ký============================
+// ======================= AUTH ROUTER =========================
 const router = require('express').Router();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
 
-// =============================
-// ===== REGISTER ==============
-// =============================
+// ======================================================
+// ================= REGISTER ===========================
+// ======================================================
 router.post('/register', async (req, res) => {
   try {
+
     const { username, phone, email, password, role } = req.body;
 
     if (!username || !phone || !password) {
@@ -22,19 +23,19 @@ router.post('/register', async (req, res) => {
     const phoneVal = String(phone).trim();
     const emailVal = (email || '').trim().toLowerCase();
 
-    // Check trùng username
+    // check username
     const existsUsername = await User.findOne({ username: usernameVal });
     if (existsUsername) {
       return res.status(409).json({ message: 'Tên tài khoản đã tồn tại' });
     }
 
-    // Check trùng phone
+    // check phone
     const existsPhone = await User.findOne({ phone: phoneVal });
     if (existsPhone) {
       return res.status(409).json({ message: 'Số điện thoại đã tồn tại' });
     }
 
-    // Check email nếu có nhập
+    // check email
     if (emailVal) {
       const existsEmail = await User.findOne({ email: emailVal });
       if (existsEmail) {
@@ -42,9 +43,19 @@ router.post('/register', async (req, res) => {
       }
     }
 
+    // hash password
     const passwordHash = await bcrypt.hash(password, 10);
 
+    // ============================
+    // CREATE CUSTOMER ID
+    // ============================
+
+    const count = await User.countDocuments();
+    const customerID = "CUS" + String(count + 1).padStart(4, "0");
+
+    // create user
     const user = await User.create({
+      customerID,
       username: usernameVal,
       phone: phoneVal,
       email: emailVal || undefined,
@@ -52,6 +63,7 @@ router.post('/register', async (req, res) => {
       role: role === 'admin' ? 'admin' : 'user'
     });
 
+    // create token
     const token = jwt.sign(
       { userId: String(user._id), role: user.role },
       process.env.JWT_SECRET,
@@ -63,6 +75,7 @@ router.post('/register', async (req, res) => {
       token,
       user: {
         id: String(user._id),
+        customerID: user.customerID,
         username: user.username,
         phone: user.phone,
         email: user.email || '',
@@ -71,9 +84,11 @@ router.post('/register', async (req, res) => {
     });
 
   } catch (err) {
+
     console.error('REGISTER ERROR:', err);
 
-    if (err?.code === 11000) {
+    if (err.code === 11000) {
+
       const field =
         Object.keys(err.keyPattern || err.keyValue || {})[0] || 'field';
 
@@ -88,16 +103,20 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    return res.status(500).json({ message: err.message });
+    return res.status(500).json({
+      message: err.message
+    });
   }
 });
 
 
-// =============================
-// ===== LOGIN =================
-// =============================
+// ======================================================
+// ================= LOGIN ==============================
+// ======================================================
 router.post('/login', async (req, res) => {
+
   try {
+
     const { username, password, identifier, emailOrPhone } = req.body;
 
     const loginId = String(
@@ -110,15 +129,20 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Ưu tiên tìm theo username
     let user = await User.findOne({ username: loginId });
 
-    // Fallback
     if (!user) {
+
       if (loginId.includes('@')) {
-        user = await User.findOne({ email: loginId.toLowerCase() });
-      } else if (/^[0-9]{9,11}$/.test(loginId)) {
-        user = await User.findOne({ phone: loginId });
+        user = await User.findOne({
+          email: loginId.toLowerCase()
+        });
+      }
+
+      else if (/^[0-9]{9,11}$/.test(loginId)) {
+        user = await User.findOne({
+          phone: loginId
+        });
       }
     }
 
@@ -128,7 +152,11 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    const ok = await bcrypt.compare(password, user.passwordHash);
+    const ok = await bcrypt.compare(
+      password,
+      user.passwordHash
+    );
+
     if (!ok) {
       return res.status(401).json({
         message: 'Sai tài khoản hoặc mật khẩu'
@@ -145,6 +173,7 @@ router.post('/login', async (req, res) => {
       token,
       user: {
         id: String(user._id),
+        customerID: user.customerID,
         username: user.username,
         phone: user.phone,
         email: user.email || '',
@@ -153,17 +182,23 @@ router.post('/login', async (req, res) => {
     });
 
   } catch (err) {
+
     console.error('LOGIN ERROR:', err);
-    return res.status(500).json({ message: err.message });
+
+    return res.status(500).json({
+      message: err.message
+    });
   }
 });
 
 
-// =====================================
-// ===== FORGOT PASSWORD (NO OTP CHECK)
-// =====================================
+// ======================================================
+// =============== FORGOT PASSWORD ======================
+// ======================================================
 router.post('/forgotpw/verify', async (req, res) => {
+
   try {
+
     const { phone } = req.body;
 
     const phoneVal = String(phone || '').trim();
@@ -174,7 +209,6 @@ router.post('/forgotpw/verify', async (req, res) => {
       });
     }
 
-    // ❌ KHÔNG CHECK OTP
     const user = await User.findOne({ phone: phoneVal });
 
     if (!user) {
@@ -194,6 +228,7 @@ router.post('/forgotpw/verify', async (req, res) => {
       token,
       user: {
         id: String(user._id),
+        customerID: user.customerID,
         username: user.username,
         phone: user.phone,
         email: user.email || '',
@@ -202,10 +237,13 @@ router.post('/forgotpw/verify', async (req, res) => {
     });
 
   } catch (err) {
+
     console.error('FORGOT VERIFY ERROR:', err);
-    return res.status(500).json({ message: err.message });
+
+    return res.status(500).json({
+      message: err.message
+    });
   }
 });
-
 
 module.exports = router;
