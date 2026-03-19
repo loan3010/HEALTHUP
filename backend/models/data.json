@@ -78,7 +78,7 @@
       "category_id": 4,
       "question": "Trái cây sấy có tốt hơn trái cây tươi không?",
       "answer": "Trái cây sấy và trái cây tươi đều có giá trị dinh dưỡng riêng:\n\n🍎 TRÁI CÂY TƯƠI:\n+ Nhiều nước\n+ Vitamin C cao hơn\n+ Ít calo hơn\n- Dễ hỏng, khó bảo quản\n\n🍊 TRÁI CÂY SẤY:\n+ Bảo quản lâu (6-12 tháng)\n+ Dễ mang theo\n+ Chất xơ cô đặc\n+ Khoáng chất cao hơn\n- Calo tập trung hơn\n\n💡 Lời khuyên:\n- Kết hợp cả hai loại\n- Chọn trái cây sấy không đường của HealthUp\n- Khẩu phần: 30-40g/ngày\n- Uống nhiều nước khi ăn trái cây sấy",
-      "view_count": 1,
+      "view_count": 2,
       "created_at": "2026-03-17T17:24:08.412Z",
       "updated_at": "2026-03-17T17:24:08.412Z"
     }
@@ -223,6 +223,27 @@
       "user_message": "Trà thảo mộc có dễ ngủ không?",
       "bot_response": "Trà thảo mộc của HealthUp hoàn toàn KHÔNG gây khó ngủ vì:\n\n✅ Không chứa caffeine\n✅ Thành phần 100% thảo mộc tự nhiên\n✅ Có các dòng trà giúp thư giãn, dễ ngủ:\n   - Trà hoa cúc: Giúp thư giãn, giảm stress\n   - Trà hoa lavender: Hỗ trợ giấc ngủ ngon\n   - Trà bạc hà: Giúp tinh thần thoải mái\n\n💡 Gợi ý: Uống trà thảo mộc 30-60 phút trước khi ngủ sẽ giúp bạn có giấc ngủ sâu hơn. Tránh uống quá nhiều nước trước khi ngủ để không phải thức dậy đi vệ sinh nhé!",
       "created_at": "2026-03-18T14:48:10.265Z"
+    },
+    {
+      "id": 21,
+      "session_id": "session_1773893149462_htkyq716c",
+      "user_message": "Tôi muốn biết về Trà thảo mộc",
+      "bot_response": "Showed category FAQs",
+      "created_at": "2026-03-19T04:55:29.993Z"
+    },
+    {
+      "id": 22,
+      "session_id": "session_1773893149462_htkyq716c",
+      "user_message": "Tôi muốn biết về Trái cây sấy",
+      "bot_response": "Showed category FAQs",
+      "created_at": "2026-03-19T04:55:35.721Z"
+    },
+    {
+      "id": 23,
+      "session_id": "session_1773893149462_htkyq716c",
+      "user_message": "Trái cây sấy có tốt hơn trái cây tươi không?",
+      "bot_response": "Trái cây sấy và trái cây tươi đều có giá trị dinh dưỡng riêng:\n\n🍎 TRÁI CÂY TƯƠI:\n+ Nhiều nước\n+ Vitamin C cao hơn\n+ Ít calo hơn\n- Dễ hỏng, khó bảo quản\n\n🍊 TRÁI CÂY SẤY:\n+ Bảo quản lâu (6-12 tháng)\n+ Dễ mang theo\n+ Chất xơ cô đặc\n+ Khoáng chất cao hơn\n- Calo tập trung hơn\n\n💡 Lời khuyên:\n- Kết hợp cả hai loại\n- Chọn trái cây sấy không đường của HealthUp\n- Khẩu phần: 30-40g/ngày\n- Uống nhiều nước khi ăn trái cây sấy",
+      "created_at": "2026-03-19T04:57:31.524Z"
     }
   ],
   "analytics": [
@@ -345,12 +366,30 @@
       "event_type": "chat_message",
       "data": "{\"query\":\"Trà thảo mộc có dễ ngủ không?\"}",
       "created_at": "2026-03-18T14:48:10.267Z"
+    },
+    {
+      "id": 21,
+      "event_type": "chat_message",
+      "data": "{\"query\":\"Tôi muốn biết về Trà thảo mộc\"}",
+      "created_at": "2026-03-19T04:55:29.995Z"
+    },
+    {
+      "id": 22,
+      "event_type": "chat_message",
+      "data": "{\"query\":\"Tôi muốn biết về Trái cây sấy\"}",
+      "created_at": "2026-03-19T04:55:35.723Z"
+    },
+    {
+      "id": 23,
+      "event_type": "chat_message",
+      "data": "{\"query\":\"Trái cây sấy có tốt hơn trái cây tươi không?\"}",
+      "created_at": "2026-03-19T04:57:31.525Z"
     }
   ],
   "nextId": {
     "category": 6,
     "faq": 6,
-    "conversation": 21,
-    "analytics": 21
+    "conversation": 24,
+    "analytics": 24
   }
 }
