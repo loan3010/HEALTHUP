@@ -105,7 +105,7 @@ export class OrderManagement implements OnInit {
   getStatusLabel(status: string): string {
     const map: Record<string, string> = {
       pending: 'Chờ xác nhận', confirmed: 'Chờ giao hàng',
-      shipping: 'Đang giao',  // ✅ thêm dòng này
+      shipping: 'Đang giao',
       delivered: 'Đã giao', cancelled: 'Đã hủy',
       pending_payment: 'Chờ thanh toán', paid: 'Đã thanh toán',
     };

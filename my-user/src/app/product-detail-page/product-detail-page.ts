@@ -223,35 +223,52 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
   }
 
   submitQuestion(): void {
-    if (this.askText.trim().length < 10 || !this.product?._id) return;
-    this.isAskSubmitting = true;
+  if (this.askText.trim().length < 10 || !this.product?._id) return;
 
-    this.api.submitConsultingQuestion({
-      productId: this.product._id,
-      content:   this.askText.trim(),
-    }).subscribe({
-      next: () => {
-        this.askText          = '';
-        this.isAskSubmitting  = false;
-        this.askSubmitSuccess = true;
-        this.consultingPage      = 1;
-        this.consultingQuestions = [];
-        this.loadConsultingQuestions();
-        this.api.showToast('Câu hỏi của bạn đã được gửi! Chúng tôi sẽ phản hồi sớm nhất.', 'success');
-        setTimeout(() => {
-          this.askSubmitSuccess = false;
-          this.cdr.detectChanges();
-        }, 5000);
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        console.error('Lỗi gửi câu hỏi:', err);
-        this.isAskSubmitting = false;
-        this.api.showToast('Không thể gửi câu hỏi. Vui lòng thử lại.', 'error');
-        this.cdr.detectChanges();
-      }
-    });
+  const userId = this.api.getUserId();
+
+  // ❗ Chặn nếu chưa đăng nhập
+  if (!userId) {
+    this.api.showToast('Vui lòng đăng nhập để gửi câu hỏi', 'info');
+    return;
   }
+
+  this.isAskSubmitting = true;
+
+  this.api.submitConsultingQuestion({
+    productId: this.product._id,
+    content:   this.askText.trim(),
+    user:      userId
+  }).subscribe({
+    next: () => {
+      this.askText          = '';
+      this.isAskSubmitting  = false;
+      this.askSubmitSuccess = true;
+
+      this.consultingPage      = 1;
+      this.consultingQuestions = [];
+      this.loadConsultingQuestions();
+
+      this.api.showToast(
+        'Câu hỏi của bạn đã được gửi! Chúng tôi sẽ phản hồi sớm nhất.',
+        'success'
+      );
+
+      setTimeout(() => {
+        this.askSubmitSuccess = false;
+        this.cdr.detectChanges();
+      }, 5000);
+
+      this.cdr.detectChanges();
+    },
+    error: (err) => {
+      console.error('Lỗi gửi câu hỏi:', err);
+      this.isAskSubmitting = false;
+      this.api.showToast('Không thể gửi câu hỏi. Vui lòng thử lại.', 'error');
+      this.cdr.detectChanges();
+    }
+  });
+}
 
   getStars(rating: number): string {
     const full = Math.round(rating);

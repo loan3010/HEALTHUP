@@ -1,0 +1,169 @@
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap');
+
+.noti-page {
+  max-width: 720px;
+  margin: 40px auto;
+  padding: 0 20px;
+  font-family: 'Be Vietnam Pro', sans-serif;
+}
+
+/* ── Header ── */
+.noti-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.noti-header h2 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #36873A;
+  margin: 0;
+}
+
+.btn-read-all {
+  background: none;
+  border: 1.5px solid #36873A;
+  color: #36873A;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.btn-read-all:hover {
+  background: #36873A;
+  color: #fff;
+}
+
+/* ── Loading / Empty ── */
+.noti-loading {
+  text-align: center;
+  padding: 60px;
+  color: #4a6b4c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #e2ebe2;
+  border-top-color: #36873A;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.noti-empty {
+  text-align: center;
+  padding: 80px 20px;
+  color: #4a6b4c;
+  background: #fff;
+  border-radius: 18px;
+  border: 1px solid #e2ebe2;
+}
+
+.noti-empty i {
+  font-size: 48px;
+  opacity: 0.4;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.noti-empty p {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* ── List ── */
+.noti-list {
+  background: #fff;
+  border-radius: 18px;
+  border: 1px solid #e2ebe2;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(54,135,58,0.06);
+}
+
+/* ── Item ── */
+.noti-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background 0.15s;
+  position: relative;
+}
+
+.noti-item:last-child { border-bottom: none; }
+
+.noti-item:hover { background: #FAF6F0; }
+
+.noti-item.unread { background: #F0F7F0; }
+.noti-item.unread:hover { background: #e8f5e9; }
+
+/* ── Icon ── */
+.noti-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.icon-order  { background: #F0F7F0; color: #36873A; }
+.icon-promo  { background: #FFFBEA; color: #B8860B; }
+.icon-system { background: #EAF4FB; color: #4A8FBB; }
+
+/* ── Content ── */
+.noti-content { flex: 1; min-width: 0; }
+
+.noti-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a2e1b;
+  margin: 0 0 4px 0;
+}
+
+.noti-message {
+  font-size: 13px;
+  color: #4a6b4c;
+  margin: 0 0 6px 0;
+  line-height: 1.5;
+}
+
+.noti-time {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+/* ── Unread dot ── */
+.noti-dot {
+  width: 8px;
+  height: 8px;
+  background: #36873A;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+
+@media (max-width: 480px) {
+  .noti-page { padding: 0 12px; margin: 20px auto; }
+  .noti-item { padding: 14px 14px; }
+}

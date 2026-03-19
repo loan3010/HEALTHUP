@@ -1,1 +1,47 @@
-<p>notifications works!</p>
+<div class="noti-page">
+
+  <div class="noti-header">
+    <h2>Thông báo</h2>
+    <button
+      class="btn-read-all"
+      *ngIf="unreadCount > 0"
+      (click)="markAllRead()"
+    >
+      <i class="bi bi-check2-all"></i> Đánh dấu tất cả đã đọc
+    </button>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="isLoading" class="noti-loading">
+    <span class="spinner"></span> Đang tải...
+  </div>
+
+  <!-- Empty -->
+  <div *ngIf="!isLoading && notifications.length === 0" class="noti-empty">
+    <i class="bi bi-bell-slash"></i>
+    <p>Chưa có thông báo nào</p>
+  </div>
+
+  <!-- List -->
+  <div *ngIf="!isLoading && notifications.length > 0" class="noti-list">
+    <div
+      class="noti-item"
+      *ngFor="let n of notifications"
+      [class.unread]="!n.isRead"
+      (click)="markRead(n)"
+    >
+      <div class="noti-icon" [ngClass]="'icon-' + n.type">
+        <i class="bi" [ngClass]="getIcon(n.type)"></i>
+      </div>
+
+      <div class="noti-content">
+        <p class="noti-title">{{ n.title }}</p>
+        <p class="noti-message">{{ n.message }}</p>
+        <span class="noti-time">{{ formatDate(n.createdAt) }}</span>
+      </div>
+
+      <div class="noti-dot" *ngIf="!n.isRead"></div>
+    </div>
+  </div>
+
+</div>
