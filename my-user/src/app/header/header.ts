@@ -50,58 +50,69 @@ export class Header implements OnInit, OnDestroy {
     this.searchSub?.unsubscribe();
   }
 
-  // ── SEARCH INIT ──
   initSearch(): void {
     this.searchSub = this.searchSubject.pipe(
-      debounceTime(350),
+      debounceTime(300),
       distinctUntilChanged(),
       switchMap(keyword => {
-        if (!keyword || !keyword.trim()) {
+        if (!keyword.trim()) {
           this.isSearching = false;
           this.searchResults = [];
           this.showSearchDropdown = false;
           return of([] as SearchProduct[]);
         }
         this.isSearching = true;
-        this.showSearchDropdown = true;
+        this.showSearchDropdown = true; // Mở ngay khi bắt đầu search
         return this.searchService.search(keyword);
       })
     ).subscribe({
       next: (results: SearchProduct[]) => {
-        this.searchResults      = results;
-        this.isSearching        = false;
-        this.showSearchDropdown = this.searchQuery.trim().length > 0;
-        this.activeIndex        = -1;
+        this.searchResults = results;
+        this.isSearching = false;
+        // Luôn hiện dropdown nếu còn chữ — không check gì thêm
+        if (this.searchQuery.trim()) {
+          this.showSearchDropdown = true;
+        }
+        this.activeIndex = -1;
       },
-      error: (err) => {
-        console.error('[Search Error]', err);
-        this.isSearching   = false;
+      error: () => {
+        this.isSearching = false;
         this.searchResults = [];
+        if (this.searchQuery.trim()) {
+          this.showSearchDropdown = true;
+        }
       }
     });
   }
 
-  // ── SEARCH EVENTS ──
-  // FIX: Dùng ngModelChange thay vì (input) — hoạt động ổn định hơn trên mọi thiết bị
   onSearchChange(value: string): void {
     this.searchQuery = value;
-
-    if (!value || !value.trim()) {
-      this.searchResults      = [];
+    if (!value.trim()) {
+      this.searchResults = [];
       this.showSearchDropdown = false;
-      this.isSearching        = false;
+      this.isSearching = false;
       return;
     }
-
-    this.isSearching        = true;
+    // Mở dropdown + show loading NGAY KHI gõ, không đợi debounce
     this.showSearchDropdown = true;
+    this.isSearching = true;
     this.searchSubject.next(value.trim());
   }
 
   onSearchFocus(): void {
-    if (this.searchQuery.trim() && this.searchResults.length > 0) {
+    // Mở lại nếu đang có chữ
+    if (this.searchQuery.trim()) {
       this.showSearchDropdown = true;
+      if (this.searchResults.length === 0 && !this.isSearching) {
+        this.isSearching = true;
+        this.searchSubject.next(this.searchQuery.trim());
+      }
     }
+  }
+
+  onSearchBlur(): void {
+    // setTimeout để click vào item dropdown kịp fire trước khi đóng
+    setTimeout(() => this.closeSearchDropdown(), 200);
   }
 
   onSearchKeydown(event: KeyboardEvent): void {
@@ -124,6 +135,7 @@ export class Header implements OnInit, OnDestroy {
         break;
       case 'Escape':
         this.closeSearchDropdown();
+        this.searchInputRef?.nativeElement?.blur();
         break;
     }
   }
@@ -145,7 +157,7 @@ export class Header implements OnInit, OnDestroy {
 
   closeSearchDropdown(): void {
     this.showSearchDropdown = false;
-    this.activeIndex        = -1;
+    this.activeIndex = -1;
   }
 
   formatPrice(price: number): string {
@@ -154,7 +166,6 @@ export class Header implements OnInit, OnDestroy {
     }).format(price);
   }
 
-  // ── AUTH ──
   checkLoginStatus(): void {
     const token   = localStorage.getItem('token');
     const userStr = localStorage.getItem('user');
@@ -188,18 +199,18 @@ export class Header implements OnInit, OnDestroy {
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
     const target = event.target as HTMLElement;
-    if (!target.closest('.user-menu'))  this.showDropdown = false;
-    if (!target.closest('.search-box')) this.closeSearchDropdown();
+    if (!target.closest('.user-menu')) this.showDropdown = false;
+    // Search dropdown đóng bằng blur — không xử lý ở đây để tránh conflict
   }
 
-  openTrackOrder()        { this.showTrackOrderModal = true; }
-  closeTrackOrderModal()  { this.showTrackOrderModal = false; }
+  openTrackOrder()       { this.showTrackOrderModal = true; }
+  closeTrackOrderModal() { this.showTrackOrderModal = false; }
 
   logout() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    this.isLoggedIn  = false;
-    this.userName    = '';
+    this.isLoggedIn   = false;
+    this.userName     = '';
     this.showDropdown = false;
     this.router.navigate(['/']);
   }

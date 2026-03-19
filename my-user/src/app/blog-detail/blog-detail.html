@@ -1,0 +1,116 @@
+<!-- LOADING -->
+<div class="bd-loading" *ngIf="isLoading">
+  <div class="bd-spinner"></div>
+</div>
+
+<!-- NOT FOUND -->
+<div class="bd-notfound" *ngIf="!isLoading && notFound">
+  <i class="bi bi-journal-x"></i>
+  <h3>Bài viết không tồn tại</h3>
+  <button class="bd-btn-back" (click)="goBack()">← Quay lại Blog</button>
+</div>
+
+<!-- CONTENT -->
+<div class="bd-page" *ngIf="!isLoading && blog">
+
+  <!-- BREADCRUMB -->
+  <div class="bd-breadcrumb">
+    <span routerLink="/" class="bd-crumb-link">Trang chủ</span>
+    <i class="bi bi-chevron-right"></i>
+    <span routerLink="/blog" class="bd-crumb-link">Blog</span>
+    <i class="bi bi-chevron-right"></i>
+    <span class="bd-crumb-current">{{ blog.title }}</span>
+  </div>
+
+  <div class="bd-layout">
+
+    <!-- MAIN ARTICLE -->
+    <article class="bd-article">
+
+      <!-- Tag + Title -->
+      <div class="bd-tag">{{ blog.tag }}</div>
+      <h1 class="bd-title">{{ blog.title }}</h1>
+
+      <!-- Meta -->
+      <div class="bd-meta">
+        <div class="bd-author">
+          <div class="bd-author-avatar">{{ blog.author?.charAt(0) }}</div>
+          <div>
+            <p class="bd-author-name">{{ blog.author }}</p>
+            <p class="bd-author-label">Tác giả</p>
+          </div>
+        </div>
+        <div class="bd-meta-right">
+          <span><i class="bi bi-calendar3"></i> {{ formatDate(blog.date || blog.createdAt) }}</span>
+        </div>
+      </div>
+
+      <!-- Cover Image -->
+      <div class="bd-cover">
+        <img [src]="getImageUrl(blog.coverImage)" [alt]="blog.title"
+          onerror="this.src='assets/images/placeholder.jpg'" />
+      </div>
+
+      <!-- Excerpt -->
+      <p class="bd-excerpt">{{ blog.excerpt }}</p>
+
+      <!-- Content -->
+      <div class="bd-content" [innerHTML]="blog.content"></div>
+
+      <!-- Share -->
+      <div class="bd-share">
+        <span class="bd-share-label">Chia sẻ bài viết:</span>
+        <button class="bd-share-btn bd-share-fb" (click)="share('facebook')" title="Facebook">
+          <i class="bi bi-facebook"></i>
+        </button>
+        <button class="bd-share-btn bd-share-tw" (click)="share('twitter')" title="Twitter">
+          <i class="bi bi-twitter-x"></i>
+        </button>
+        <button class="bd-share-btn bd-share-copy" (click)="share('copy')" title="Copy link">
+          <i class="bi bi-link-45deg"></i>
+        </button>
+      </div>
+
+      <!-- Back -->
+      <div class="bd-back-row">
+        <button class="bd-btn-back" (click)="goBack()">
+          <i class="bi bi-arrow-left"></i> Quay lại danh sách
+        </button>
+      </div>
+
+    </article>
+
+    <!-- SIDEBAR -->
+    <aside class="bd-sidebar">
+
+      <!-- Related -->
+      <div class="bd-related" *ngIf="relatedBlogs.length > 0">
+        <h3 class="bd-sidebar-title">Bài viết liên quan</h3>
+        <div class="bd-related-list">
+          <div class="bd-related-item"
+            *ngFor="let r of relatedBlogs"
+            [routerLink]="['/blog', r._id]">
+            <div class="bd-related-img">
+              <img [src]="getImageUrl(r.coverImage)" [alt]="r.title"
+                onerror="this.src='assets/images/placeholder.jpg'" />
+            </div>
+            <div class="bd-related-info">
+              <span class="bd-related-tag">{{ r.tag }}</span>
+              <p class="bd-related-title">{{ r.title }}</p>
+              <span class="bd-related-date">{{ formatDate(r.date || r.createdAt) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Back to blog -->
+      <div class="bd-sidebar-back">
+        <a routerLink="/blog" class="bd-sidebar-back-btn">
+          <i class="bi bi-grid-3x3-gap"></i> Xem tất cả bài viết
+        </a>
+      </div>
+
+    </aside>
+
+  </div>
+</div>

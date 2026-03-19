@@ -33,36 +33,63 @@ router.get('/category-counts', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────
+// Helper: normalize tiếng Việt (bỏ dấu)
+// "Hạt điều" → "hat dieu", "Trà thảo mộc" → "tra thao moc"
+// ─────────────────────────────────────────────────────────────────
+function normalizeVN(str) {
+  return (str || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[đĐ]/g, d => d === 'đ' ? 'd' : 'D')
+    .toLowerCase();
+}
+
+// ─────────────────────────────────────────────────────────────────
 // GET /api/products?search=keyword  →  Tìm kiếm autocomplete
-// Hỗ trợ fuzzy match bằng $regex, không phân biệt hoa thường
+// Hỗ trợ:
+//   - Gõ có dấu:   "Hạt" → match "Hạt điều" ✓
+//   - Gõ không dấu: "hat" → match "Hạt điều" ✓
+//   - Gõ thiếu:    "gran" → match "Granola" ✓
 // ─────────────────────────────────────────────────────────────────
 router.get('/', async (req, res) => {
   try {
     const {
       cat, minPrice, maxPrice, sort, badge, minRating,
       page = 1, limit = 9,
-      search   // <-- THÊM MỚI: từ khóa tìm kiếm
+      search
     } = req.query;
 
-    let query = {};
-
-    // ── SEARCH: tìm theo tên sản phẩm hoặc danh mục ──
+    // ── SEARCH MODE: tìm kiếm fuzzy có hỗ trợ tiếng Việt không dấu ──
     if (search && search.trim() !== '') {
-      // $regex với 'i' = không phân biệt hoa thường
-      // Cho phép gõ thiếu → vẫn tìm được (partial match)
-      const searchRegex = new RegExp(
-        search.trim()
-          .replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), // escape special chars
-        'i'
-      );
-      query.$or = [
-        { name: { $regex: searchRegex } },
-        { cat:  { $regex: searchRegex } },
-        { shortDesc: { $regex: searchRegex } },
-      ];
+      const keyword    = normalizeVN(search.trim());
+      const limitNum   = Math.min(Number(limit) || 6, 20);
+
+      // Lấy toàn bộ sản phẩm rồi filter phía Node
+      // (MongoDB $regex không thể normalize tiếng Việt natively)
+      const allProducts = await Product.find({}).lean();
+
+      const matched = allProducts.filter(p => {
+        const name      = normalizeVN(p.name);
+        const category  = normalizeVN(p.cat);
+        const shortDesc = normalizeVN(p.shortDesc);
+        return (
+          name.includes(keyword) ||
+          category.includes(keyword) ||
+          shortDesc.includes(keyword)
+        );
+      });
+
+      return res.json({
+        products:   matched.slice(0, limitNum),
+        total:      matched.length,
+        page:       1,
+        totalPages: Math.ceil(matched.length / limitNum),
+      });
     }
 
-    // ── CÁC FILTER KHÁC (giữ nguyên như cũ) ──
+    // ── BROWSE / FILTER MODE (giữ nguyên logic cũ) ──
+    let query = {};
+
     if (cat) {
       query.cat = { $in: cat.split(',').map(c => c.trim()) };
     }

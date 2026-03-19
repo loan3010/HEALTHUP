@@ -7,6 +7,7 @@ import { OrderReviewComponent } from './order-review/order-review';
 
 import { AboutTheBrand } from './about-the-brand/about-the-brand';
 import { BlogComponent } from './blog/blog';
+import { BlogDetailComponent } from './blog-detail/blog-detail';
 import { PoliciesComponent } from './policies/policies';
 
 import { Login } from './login/login';
@@ -44,6 +45,7 @@ export const routes: Routes = [
   // ===== STATIC PAGES =====
   { path: 'about-the-brand', component: AboutTheBrand },
   { path: 'blog', component: BlogComponent },
+  { path: 'blog/:id', component: BlogDetailComponent }, // ✅ thêm từ 0ed69bcb
   { path: 'policies', component: PoliciesComponent },
 
   // ===== SHOPPING =====
