@@ -1,7 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { ApiService } from '../services/api.service';
 
 @Component({
@@ -13,11 +13,10 @@ import { ApiService } from '../services/api.service';
 })
 export class OrderManagement implements OnInit {
 
-  orders: any[] = [];
+  orders: any[]         = [];
   filteredOrders: any[] = [];
-
-  searchQuery = '';
-  activeTab = 'all';
+  searchQuery           = '';
+  activeTab             = 'all';
 
   tabs = [
     { id: 'all',       label: 'Tất cả',        count: 0 },
@@ -27,17 +26,50 @@ export class OrderManagement implements OnInit {
     { id: 'cancelled', label: 'Đã hủy',         count: 0 },
   ];
 
-  constructor(private api: ApiService) {}
+  constructor(
+    private api: ApiService,
+    private router: Router,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
     this.loadOrders();
   }
 
+  // ✅ FIX: lấy userId từ localStorage — ưu tiên 'userId', fallback về user._id hoặc user.id
+  private getUserId(): string {
+    const direct = localStorage.getItem('userId');
+    if (direct) return direct;
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      return user?._id || user?.id || '';
+    } catch { return ''; }
+  }
+
   loadOrders(): void {
-    this.api.getOrders().subscribe((res: any) => {
-      this.orders         = res;
-      this.filteredOrders = res;
+    const userId = this.getUserId();
+
+    // ✅ FIX: không gọi API nếu chưa đăng nhập
+    if (!userId) {
+      this.orders         = [];
+      this.filteredOrders = [];
       this.updateTabCounts();
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.api.getOrders(userId).subscribe({
+      next: (res: any) => {
+        this.orders         = Array.isArray(res) ? res : [];
+        this.filteredOrders = [...this.orders];
+        this.updateTabCounts();
+        this.cdr.detectChanges();   // ✅ hiện ngay không cần click
+      },
+      error: () => {
+        this.orders         = [];
+        this.filteredOrders = [];
+        this.cdr.detectChanges();
+      }
     });
   }
 
@@ -55,82 +87,65 @@ export class OrderManagement implements OnInit {
   }
 
   filterOrders(): void {
-    let data = this.orders;
+    let data = [...this.orders];
 
     if (this.activeTab !== 'all') {
       data = data.filter(o => o.status === this.activeTab);
     }
 
-    if (this.searchQuery) {
+    if (this.searchQuery.trim()) {
       const q = this.searchQuery.toLowerCase();
       data = data.filter(o =>
-        o.customer?.fullName?.toLowerCase().includes(q)
+        o._id?.toLowerCase().includes(q) ||
+        o.customer?.fullName?.toLowerCase().includes(q) ||
+        o.items?.some((i: any) => i.name?.toLowerCase().includes(q))
       );
     }
 
     this.filteredOrders = data;
+    this.cdr.detectChanges();
+  }
+
+  // ✅ Click vào đơn → sang trang detail
+  goToDetail(orderId: string): void {
+    this.router.navigate(['/profile/order-detail', orderId]);
   }
 
   formatCurrency(price: number): string {
     return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND'
+      style: 'currency', currency: 'VND'
     }).format(price);
   }
 
   getStatusLabel(status: string): string {
     const map: Record<string, string> = {
       pending:         'Chờ xác nhận',
-      pending_payment: 'Chờ giao hàng',
-      paid:            'Đã giao',
+      confirmed:       'Chờ giao hàng',
+      delivered:       'Đã giao',
       cancelled:       'Đã hủy',
+      pending_payment: 'Chờ thanh toán',
+      paid:            'Đã thanh toán',
     };
     return map[status] || status;
   }
 
   reorder(order: any): void {
     if (!order?.items?.length) return;
-
-    let completed = 0;
-    let failed    = 0;
-    const total   = order.items.length;
-
+    let done = 0, fail = 0;
+    const total = order.items.length;
     order.items.forEach((item: any) => {
-      // ✅ Dùng đúng signature: (productId, quantity, productName?)
       this.api.addToCart(item.productId, item.quantity, item.name).subscribe({
-        next: () => {
-          completed++;
-          if (completed + failed === total) {
-            this.api.showToast(
-              failed === 0
-                ? 'Đã thêm lại tất cả sản phẩm vào giỏ hàng!'
-                : `Thêm được ${completed}/${total} sản phẩm.`,
-              failed === 0 ? 'success' : 'info'
-            );
-          }
-        },
-        error: () => {
-          failed++;
-          if (completed + failed === total) {
-            this.api.showToast(`Thêm được ${completed}/${total} sản phẩm.`, 'info');
-          }
-        }
+        next: () => { done++; if (done + fail === total) this.api.showToast(fail === 0 ? 'Đã thêm lại tất cả sản phẩm vào giỏ hàng!' : `Thêm được ${done}/${total} sản phẩm.`, fail === 0 ? 'success' : 'info'); },
+        error: () => { fail++; if (done + fail === total) this.api.showToast(`Thêm được ${done}/${total} sản phẩm.`, 'info'); }
       });
     });
   }
 
   cancelOrder(orderId: string): void {
     if (!confirm('Bạn có chắc muốn hủy đơn này?')) return;
-
     this.api.cancelOrder(orderId).subscribe({
-      next: () => {
-        this.loadOrders();
-        this.api.showToast('Đơn hàng đã được hủy.', 'info');
-      },
-      error: (err) => {
-        console.error('Lỗi hủy đơn:', err);
-        this.api.showToast('Không thể hủy đơn hàng. Vui lòng thử lại.', 'error');
-      }
+      next: () => { this.loadOrders(); this.api.showToast('Đơn hàng đã được hủy.', 'info'); },
+      error: () => { this.api.showToast('Không thể hủy đơn hàng. Vui lòng thử lại.', 'error'); }
     });
   }
 }

@@ -9,6 +9,7 @@ import { Subject, Subscription, of } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { TrackOrderModal } from '../track-order-modal/track-order-modal';
 import { SearchService, SearchProduct } from '../services/search.service';
+import { ApiService } from '../services/api.service';
 
 @Component({
   selector: 'app-header',
@@ -25,6 +26,10 @@ export class Header implements OnInit, OnDestroy {
   menuOpen = false;
   showTrackOrderModal = false;
 
+  // ── CART COUNT ──
+  cartCount = 0;
+  private cartCountSub!: Subscription;
+
   // ── SEARCH STATE ──
   searchQuery = '';
   searchResults: SearchProduct[] = [];
@@ -40,16 +45,24 @@ export class Header implements OnInit, OnDestroy {
   constructor(
     private router: Router,
     private searchService: SearchService,
-    private cdr: ChangeDetectorRef   // ✅ thêm vào giống wishlist
+    private cdr: ChangeDetectorRef,
+    private api: ApiService
   ) {}
 
   ngOnInit(): void {
     this.checkLoginStatus();
     this.initSearch();
+
+    // ✅ Subscribe cart count — tự động cập nhật badge khi thêm/xóa sản phẩm
+    this.cartCountSub = this.api.cartCount$.subscribe(count => {
+      this.cartCount = count;
+      this.cdr.detectChanges();
+    });
   }
 
   ngOnDestroy(): void {
     this.searchSub?.unsubscribe();
+    this.cartCountSub?.unsubscribe();
   }
 
   initSearch(): void {
