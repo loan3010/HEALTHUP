@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
+// ✅ Lấy từ 0ed69bcb: thêm BehaviorSubject và tap (cần thiết cho cart/wishlist streams)
 import { BehaviorSubject, Observable, tap } from 'rxjs';
 import { map } from 'rxjs/operators';
 
@@ -69,9 +70,9 @@ export class ApiService {
     const id = p._id ? (typeof p._id === 'object' ? p._id.toString() : String(p._id)) : '';
     return {
       ...p,
-      _id:    id,
+      _id: id,
       images: fixedImages,
-      image:  fixedImages[0] || '',
+      image: fixedImages[0] || '',
     };
   }
 
@@ -157,6 +158,7 @@ export class ApiService {
     );
   }
 
+  // ✅ Lấy từ 0ed69bcb: type annotation đầy đủ + thêm search param
   getProducts(filters: {
     cat?: string;
     minPrice?: number;
@@ -169,15 +171,15 @@ export class ApiService {
     search?: string;
   } = {}): Observable<{ products: any[]; total: number; totalPages: number }> {
     let params = new HttpParams();
-    if (filters.cat)                     params = params.set('cat',       filters.cat);
-    if (filters.minPrice !== undefined)  params = params.set('minPrice',  filters.minPrice.toString());
-    if (filters.maxPrice !== undefined)  params = params.set('maxPrice',  filters.maxPrice.toString());
-    if (filters.badge)                   params = params.set('badge',     filters.badge);
+    if (filters.cat)                     params = params.set('cat', filters.cat);
+    if (filters.minPrice !== undefined)  params = params.set('minPrice', filters.minPrice.toString());
+    if (filters.maxPrice !== undefined)  params = params.set('maxPrice', filters.maxPrice.toString());
+    if (filters.badge)                   params = params.set('badge', filters.badge);
     if (filters.minRating !== undefined) params = params.set('minRating', filters.minRating.toString());
-    if (filters.sort)                    params = params.set('sort',      filters.sort);
-    if (filters.page)                    params = params.set('page',      filters.page.toString());
-    if (filters.limit)                   params = params.set('limit',     filters.limit.toString());
-    if (filters.search)                  params = params.set('search',    filters.search);
+    if (filters.sort)                    params = params.set('sort',   filters.sort);
+    if (filters.page)                    params = params.set('page',   filters.page.toString());
+    if (filters.limit)                   params = params.set('limit',  filters.limit.toString());
+    if (filters.search)                  params = params.set('search', filters.search);
 
     return this.http.get<any>(`${API_BASE}/products`, { params }).pipe(
       map(res => ({
@@ -207,6 +209,7 @@ export class ApiService {
   //  Review APIs
   // ════════════════════════════════════════════════════════════════════════════
 
+  // ✅ Lấy từ 0ed69bcb: type annotation đầy đủ cho filters
   getReviews(productId: string, filters: {
     filter?: string;
     sort?: string;
@@ -215,20 +218,13 @@ export class ApiService {
   } = {}): Observable<any> {
     let params = new HttpParams();
     if (filters.filter) params = params.set('filter', filters.filter);
-    if (filters.sort)   params = params.set('sort',   filters.sort);
-    if (filters.page)   params = params.set('page',   filters.page.toString());
-    if (filters.limit)  params = params.set('limit',  filters.limit.toString());
+    if (filters.sort)   params = params.set('sort', filters.sort);
+    if (filters.page)   params = params.set('page', filters.page.toString());
+    if (filters.limit)  params = params.set('limit', filters.limit.toString());
     return this.http.get<any>(`${API_BASE}/reviews/product/${productId}`, { params });
   }
 
-  submitReview(data: {
-    productId: string;
-    name: string;
-    rating: number;
-    variant?: string;
-    tags?: string[];
-    text: string;
-  }): Observable<any> {
+  submitReview(data: any): Observable<any> {
     return this.http.post<any>(`${API_BASE}/reviews`, data);
   }
 
@@ -243,7 +239,7 @@ export class ApiService {
   getBlogs(limit?: number, tag?: string): Observable<any[]> {
     let params = new HttpParams();
     if (limit) params = params.set('limit', limit.toString());
-    if (tag)   params = params.set('tag',   tag);
+    if (tag)   params = params.set('tag', tag);
     return this.http.get<any[]>(`${API_BASE}/blogs`, { params });
   }
 
@@ -255,6 +251,7 @@ export class ApiService {
   //  Consulting / Q&A APIs
   // ════════════════════════════════════════════════════════════════════════════
 
+  // ✅ Lấy từ 0ed69bcb: type annotation đầy đủ cho filters
   getConsultingQuestions(productId: string, filters: {
     filter?: string;
     page?: number;
@@ -263,22 +260,21 @@ export class ApiService {
     let params = new HttpParams();
     params = params.set('productId', productId);
     if (filters.filter && filters.filter !== 'all') params = params.set('status', filters.filter);
-    if (filters.page)  params = params.set('page',  filters.page.toString());
+    if (filters.page)  params = params.set('page', filters.page.toString());
     if (filters.limit) params = params.set('limit', filters.limit.toString());
     return this.http.get<any>(`${API_BASE}/consulting`, { params });
   }
 
-  submitConsultingQuestion(data: {
-    productId: string;
-    content: string;
-  }): Observable<any> {
+  submitConsultingQuestion(data: any): Observable<any> {
     return this.http.post<any>(`${API_BASE}/consulting`, data);
   }
 
   // ════════════════════════════════════════════════════════════════════════════
-  //  Cart APIs  (cập nhật: tự refresh cartCount$ sau mỗi thao tác)
+  //  Cart APIs  (tự refresh cartCount$ sau mỗi thao tác)
   // ════════════════════════════════════════════════════════════════════════════
 
+  // ✅ Lấy từ 0ed69bcb: dùng cartHeaders() + tap để refresh count + show toast
+  // ❌ Bỏ HEAD: hardcode userId '507f1f77bcf86cd799439011' và endpoint /cart/add không nhất quán
   addToCart(productId: string, quantity: number, productName?: string): Observable<any> {
     return this.http.post<any>(
       `${API_BASE}/carts/add`,
@@ -317,5 +313,29 @@ export class ApiService {
       `${API_BASE}/carts/remove/${productId}`,
       { headers: this.cartHeaders() }
     ).pipe(tap(() => this.refreshCartCount()));
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════
+  //  Order APIs  (giữ từ HEAD)
+  // ════════════════════════════════════════════════════════════════════════════
+
+  getOrders(): Observable<any[]> {
+    return this.http.get<any[]>(`${API_BASE}/orders`);
+  }
+
+  getOrderById(id: string): Observable<any> {
+    return this.http.get<any>(`${API_BASE}/orders/${id}`);
+  }
+
+  updateOrderStatus(id: string, status: string): Observable<any> {
+    return this.http.patch(`${API_BASE}/orders/${id}/status`, { status });
+  }
+
+  cancelOrder(id: string): Observable<any> {
+    return this.http.patch(`${API_BASE}/orders/${id}/status`, { status: 'cancelled' });
+  }
+
+  deleteOrder(id: string): Observable<any> {
+    return this.http.delete(`${API_BASE}/orders/${id}`);
   }
 }

@@ -5,7 +5,13 @@ import { FormsModule } from '@angular/forms';
 
 type LoginRes = {
   token: string;
-  user: { id: string; username?: string; email?: string; phone?: string; role: 'user' | 'admin' };
+  user: {
+    id: string;
+    username?: string;
+    email?: string;
+    phone?: string;
+    role: 'user' | 'admin';
+  };
 };
 
 @Component({
@@ -16,6 +22,7 @@ type LoginRes = {
   styleUrls: ['./login.css']
 })
 export class Login implements OnInit {
+
   emailOrPhone: string = '';
   password: string = '';
   isLoading: boolean = false;
@@ -26,18 +33,20 @@ export class Login implements OnInit {
 
   ngOnInit(): void {
     const raw = sessionStorage.getItem('prefill_login');
-    if (!raw) return;
 
-    try {
-      const data = JSON.parse(raw);
-      this.emailOrPhone = data?.username || '';
-      this.password = data?.password || '';
-    } catch {}
+    if (raw) {
+      try {
+        const data = JSON.parse(raw);
+        this.emailOrPhone = data?.username || '';
+        this.password = data?.password || '';
+      } catch {}
 
-    sessionStorage.removeItem('prefill_login');
+      sessionStorage.removeItem('prefill_login');
+    }
   }
 
   onLogin() {
+
     if (!this.emailOrPhone || !this.password) {
       alert('Vui lòng nhập tên tài khoản và mật khẩu!');
       return;
@@ -45,29 +54,37 @@ export class Login implements OnInit {
 
     this.isLoading = true;
 
-    this.http
-      .post<LoginRes>(`${this.API}/auth/login`, {
-        username: this.emailOrPhone.trim(),
-        password: this.password
-      })
-      .subscribe({
-        next: (res) => {
-          localStorage.setItem('token', res.token);
-          localStorage.setItem('user', JSON.stringify(res.user));
-          localStorage.setItem('userId', res.user.id); // ✅ lưu userId riêng
+    this.http.post<LoginRes>(`${this.API}/auth/login`, {
+      username: this.emailOrPhone.trim(),
+      password: this.password
+    })
+    .subscribe({
 
-          if (res.user.role === 'admin') {
-            this.router.navigate(['/admin']).then(() => window.location.reload());
-          } else {
-            this.router.navigate(['/home']).then(() => window.location.reload());
-          }
+      next: (res) => {
 
-          this.isLoading = false;
-        },
-        error: (err: HttpErrorResponse) => {
-          alert(err?.error?.message || 'Sai tên tài khoản hoặc mật khẩu!');
-          this.isLoading = false;
+        // ✅ giữ code của bạn
+        localStorage.setItem('token', res.token);
+        localStorage.setItem('user', JSON.stringify(res.user));
+
+        // ✅ thêm nhẹ từ GitHub (không phá logic)
+        localStorage.setItem('userId', res.user.id);
+
+        // ✅ giữ flow điều hướng của bạn
+        if (res.user.role === 'admin') {
+          this.router.navigate(['/admin']).then(() => window.location.reload());
+        } else {
+          this.router.navigate(['/']).then(() => window.location.reload());
         }
-      });
+
+        this.isLoading = false;
+      },
+
+      error: (err: HttpErrorResponse) => {
+        alert(err?.error?.message || 'Sai tên tài khoản hoặc mật khẩu!');
+        this.isLoading = false;
+      }
+
+    });
+
   }
 }

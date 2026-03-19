@@ -125,16 +125,29 @@
           </span>
         </div>
 
-        <!-- CTA -->
-        <div class="d-flex gap-3">
-          <button class="btn-cart flex-grow-1" [class.added]="addedToCart" (click)="addToCart()">
-            <i class="bi bi-cart3"></i>
-            {{ addedToCart ? 'Đã thêm vào giỏ!' : 'Thêm vào giỏ hàng' }}
-          </button>
-          <button class="btn-buy flex-grow-1" (click)="buyNow()">
-            <i class="bi bi-lightning-charge-fill me-1"></i>Mua ngay
-          </button>
-        </div>
+        <!-- CTA  dẫ chỉnh-->
+        <div class="d-flex gap-3 mt-4">
+
+  <button
+    class="btn-cart flex-grow-1"
+    [class.added]="addedToCart"
+    (click)="addToCart()">
+
+    <i class="bi bi-cart3"></i>
+    {{ addedToCart ? 'Đã thêm vào giỏ!' : 'Thêm vào giỏ hàng' }}
+
+  </button>
+
+  <button
+    class="btn-buy flex-grow-1"
+    (click)="buyNow()">
+
+    <i class="bi bi-lightning-charge-fill me-1"></i>
+    Mua ngay
+
+  </button>
+
+</div>
 
         <!-- Yêu thích & Chia sẻ -->
         <div class="d-flex gap-2">

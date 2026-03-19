@@ -1,1 +1,230 @@
-<p>order-management works!</p>
+<div class="orders-page">
+
+<!-- HEADER -->
+
+<div class="orders-header">
+
+<h2 class="orders-title">Theo dõi đơn hàng</h2>
+
+<input
+type="text"
+[(ngModel)]="searchQuery"
+(ngModelChange)="filterOrders()"
+placeholder="Tìm kiếm đơn hàng của bạn"
+class="search-input"
+/>
+
+</div>
+
+
+
+<!-- TABS -->
+
+<div class="order-tabs">
+
+<button
+*ngFor="let tab of tabs"
+(click)="onTabClick(tab.id)"
+[class.active]="activeTab===tab.id"
+>
+
+{{tab.label}}
+
+<span class="tab-badge">{{tab.count}}</span>
+
+</button>
+
+</div>
+
+
+
+<!-- ORDERS -->
+
+<div *ngFor="let order of filteredOrders" class="order-card">
+
+
+<!-- STATUS -->
+
+<div class="order-status">
+
+{{getStatusLabel(order.status)}}
+
+</div>
+
+
+<!-- PRODUCTS -->
+
+<div *ngFor="let item of order.items" class="order-product">
+<!-- chinhr nef -->
+<img
+[src]="item.imageUrl ? 'http://localhost:3000' + item.imageUrl : '/assets/no-image.png'"
+class="product-img"
+/>
+<div class="product-info">
+
+<div class="product-name">
+
+{{item.name}}
+
+</div>
+
+<div class="product-price">
+
+{{formatCurrency(item.price)}}
+
+</div>
+
+</div>
+
+
+<div class="product-right">
+
+<div>Số lượng: {{item.quantity}}</div>
+
+<div class="product-total">
+
+{{formatCurrency(item.price * item.quantity)}}
+
+</div>
+
+</div>
+
+</div>
+
+
+
+<!-- FOOTER -->
+
+<div class="order-footer">
+
+<div class="collapse">
+
+Thu gọn
+
+</div>
+
+
+<div class="order-total">
+
+Tổng số tiền:
+
+<strong>{{formatCurrency(order.total)}}</strong>
+
+</div>
+
+
+<div class="order-actions" *ngIf="order.status === 'delivered' || order.status === 'paid'">
+
+  <!-- Trả hàng -->
+  <button
+    class="btn-outline"
+    [routerLink]="['/return-management', order._id]"
+  >
+    Trả hàng
+  </button>
+
+  <!-- Đánh giá -->
+  <button
+    class="btn-primary"
+    [routerLink]="['/review-order', order._id]"
+  >
+    Đánh giá
+  </button>
+
+  <!-- Mua lại -->
+  <button
+    class="btn-outline"
+    (click)="reorder(order)"
+  >
+    Mua lại
+  </button>
+
+</div>
+
+
+<div class="order-actions">
+
+
+<!-- CHỜ XÁC NHẬN -->
+
+<button
+*ngIf="order.status==='pending'"
+class="btn-outline"
+>
+
+Liên hệ người bán
+
+</button>
+
+<button
+*ngIf="order.status==='pending'"
+class="btn-danger"
+(click)="cancelOrder(order._id)"
+>
+Hủy đơn hàng
+</button>
+
+
+<!-- CHỜ GIAO -->
+
+<button
+*ngIf="order.status==='pending_payment'"
+class="btn-primary"
+>
+
+Thanh toán
+
+</button>
+
+
+
+<!-- ĐÃ GIAO -->
+
+<button
+*ngIf="order.status==='paid'"
+class="btn-outline"
+>
+
+Trả hàng
+
+</button>
+
+<button
+*ngIf="order.status==='paid'"
+class="btn-primary"
+>
+
+Đánh giá
+
+</button>
+
+<button
+*ngIf="order.status==='paid'"
+class="btn-outline"
+>
+
+Mua lại
+
+</button>
+
+
+
+<!-- ĐÃ HỦY -->
+
+<button
+*ngIf="order.status==='cancelled'"
+class="btn-outline"
+>
+
+Mua lại
+
+</button>
+
+
+</div>
+
+</div>
+
+</div>
+
+</div>
