@@ -97,6 +97,7 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
         this.product = null;
         this.relatedProducts = [];
         this.isLoading = true;
+        this.qty = 1;
         this.askSubmitSuccess = false;
         this.consultingQuestions = [];
         this.consultingPage = 1;
@@ -262,6 +263,7 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
     this.api.addToCart(this.product._id, this.qty, this.product.name).subscribe({
       next: () => {
         this.addedToCart = true;
+        this.api.showToast(`Đã thêm ${this.qty} sản phẩm vào giỏ hàng!`, 'success');
         setTimeout(() => {
           this.addedToCart = false;
           this.cdr.detectChanges();
@@ -319,6 +321,9 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
     event.stopPropagation();
     if (!product?._id) return;
     this.api.addToCart(product._id, 1, product.name).subscribe({
+      next: () => {
+        this.api.showToast(`Đã thêm "${product.name}" vào giỏ hàng!`, 'success');
+      },
       error: (err) => {
         console.error('Lỗi thêm SP liên quan:', err);
         this.api.showToast('Không thể thêm vào giỏ hàng.', 'error');
