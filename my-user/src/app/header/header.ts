@@ -1,5 +1,6 @@
 import {
-  Component, OnInit, OnDestroy, HostListener, ViewChild, ElementRef
+  Component, OnInit, OnDestroy, HostListener, ViewChild, ElementRef,
+  ChangeDetectorRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
@@ -38,7 +39,8 @@ export class Header implements OnInit, OnDestroy {
 
   constructor(
     private router: Router,
-    private searchService: SearchService
+    private searchService: SearchService,
+    private cdr: ChangeDetectorRef   // ✅ thêm vào giống wishlist
   ) {}
 
   ngOnInit(): void {
@@ -52,28 +54,30 @@ export class Header implements OnInit, OnDestroy {
 
   initSearch(): void {
     this.searchSub = this.searchSubject.pipe(
-      debounceTime(300),
+      debounceTime(250),              // giảm từ 300 → 250ms cho nhanh hơn
       distinctUntilChanged(),
       switchMap(keyword => {
         if (!keyword.trim()) {
           this.isSearching = false;
           this.searchResults = [];
           this.showSearchDropdown = false;
+          this.cdr.detectChanges();   // ✅
           return of([] as SearchProduct[]);
         }
         this.isSearching = true;
-        this.showSearchDropdown = true; // Mở ngay khi bắt đầu search
+        this.showSearchDropdown = true;
+        this.cdr.detectChanges();     // ✅ hiện loading spinner ngay
         return this.searchService.search(keyword);
       })
     ).subscribe({
       next: (results: SearchProduct[]) => {
         this.searchResults = results;
         this.isSearching = false;
-        // Luôn hiện dropdown nếu còn chữ — không check gì thêm
         if (this.searchQuery.trim()) {
           this.showSearchDropdown = true;
         }
         this.activeIndex = -1;
+        this.cdr.detectChanges();     // ✅ hiện kết quả ngay, không cần click
       },
       error: () => {
         this.isSearching = false;
@@ -81,6 +85,7 @@ export class Header implements OnInit, OnDestroy {
         if (this.searchQuery.trim()) {
           this.showSearchDropdown = true;
         }
+        this.cdr.detectChanges();     // ✅ hiện trạng thái lỗi ngay
       }
     });
   }
@@ -91,28 +96,31 @@ export class Header implements OnInit, OnDestroy {
       this.searchResults = [];
       this.showSearchDropdown = false;
       this.isSearching = false;
+      this.cdr.detectChanges();       // ✅
       return;
     }
-    // Mở dropdown + show loading NGAY KHI gõ, không đợi debounce
     this.showSearchDropdown = true;
     this.isSearching = true;
+    this.cdr.detectChanges();         // ✅ hiện dropdown + spinner ngay khi gõ
     this.searchSubject.next(value.trim());
   }
 
   onSearchFocus(): void {
-    // Mở lại nếu đang có chữ
     if (this.searchQuery.trim()) {
       this.showSearchDropdown = true;
       if (this.searchResults.length === 0 && !this.isSearching) {
         this.isSearching = true;
+        this.cdr.detectChanges();     // ✅
         this.searchSubject.next(this.searchQuery.trim());
       }
     }
   }
 
   onSearchBlur(): void {
-    // setTimeout để click vào item dropdown kịp fire trước khi đóng
-    setTimeout(() => this.closeSearchDropdown(), 200);
+    setTimeout(() => {
+      this.closeSearchDropdown();
+      this.cdr.detectChanges();       // ✅
+    }, 200);
   }
 
   onSearchKeydown(event: KeyboardEvent): void {
@@ -120,10 +128,12 @@ export class Header implements OnInit, OnDestroy {
       case 'ArrowDown':
         event.preventDefault();
         this.activeIndex = Math.min(this.activeIndex + 1, this.searchResults.length - 1);
+        this.cdr.detectChanges();
         break;
       case 'ArrowUp':
         event.preventDefault();
         this.activeIndex = Math.max(this.activeIndex - 1, -1);
+        this.cdr.detectChanges();
         break;
       case 'Enter':
         event.preventDefault();
@@ -135,6 +145,7 @@ export class Header implements OnInit, OnDestroy {
         break;
       case 'Escape':
         this.closeSearchDropdown();
+        this.cdr.detectChanges();
         this.searchInputRef?.nativeElement?.blur();
         break;
     }
@@ -143,6 +154,7 @@ export class Header implements OnInit, OnDestroy {
   selectProduct(product: SearchProduct): void {
     this.closeSearchDropdown();
     this.searchQuery = '';
+    this.cdr.detectChanges();
     this.router.navigate(['/product-detail-page', product._id]);
   }
 
@@ -153,6 +165,7 @@ export class Header implements OnInit, OnDestroy {
       queryParams: { search: this.searchQuery.trim() }
     });
     this.searchQuery = '';
+    this.cdr.detectChanges();
   }
 
   closeSearchDropdown(): void {
@@ -182,6 +195,7 @@ export class Header implements OnInit, OnDestroy {
       this.isLoggedIn = false;
       this.userName   = '';
     }
+    this.cdr.detectChanges();
   }
 
   getInitials(): string {
@@ -191,20 +205,22 @@ export class Header implements OnInit, OnDestroy {
     return this.userName.substring(0, 2).toUpperCase();
   }
 
-  toggleMenu()     { this.menuOpen     = !this.menuOpen; }
-  closeMenu()      { this.menuOpen     = false; }
-  toggleDropdown() { this.showDropdown = !this.showDropdown; }
-  closeDropdown()  { this.showDropdown = false; }
+  toggleMenu()     { this.menuOpen     = !this.menuOpen;     this.cdr.detectChanges(); }
+  closeMenu()      { this.menuOpen     = false;               this.cdr.detectChanges(); }
+  toggleDropdown() { this.showDropdown = !this.showDropdown; this.cdr.detectChanges(); }
+  closeDropdown()  { this.showDropdown = false;               this.cdr.detectChanges(); }
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
     const target = event.target as HTMLElement;
-    if (!target.closest('.user-menu')) this.showDropdown = false;
-    // Search dropdown đóng bằng blur — không xử lý ở đây để tránh conflict
+    if (!target.closest('.user-menu')) {
+      this.showDropdown = false;
+      this.cdr.detectChanges();
+    }
   }
 
-  openTrackOrder()       { this.showTrackOrderModal = true; }
-  closeTrackOrderModal() { this.showTrackOrderModal = false; }
+  openTrackOrder()       { this.showTrackOrderModal = true;  this.cdr.detectChanges(); }
+  closeTrackOrderModal() { this.showTrackOrderModal = false; this.cdr.detectChanges(); }
 
   logout() {
     localStorage.removeItem('token');
@@ -212,6 +228,7 @@ export class Header implements OnInit, OnDestroy {
     this.isLoggedIn   = false;
     this.userName     = '';
     this.showDropdown = false;
+    this.cdr.detectChanges();
     this.router.navigate(['/']);
   }
 }
