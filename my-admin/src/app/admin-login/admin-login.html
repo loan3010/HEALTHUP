@@ -1,0 +1,82 @@
+<div class="auth-page">
+  <div class="auth-bg"></div>
+
+  <div class="box">
+    <h2 class="title">HỆ THỐNG QUẢN TRỊ</h2>
+    <p class="desc">Vui lòng đăng nhập để quản lý hệ thống <b>HealthUp</b></p>
+
+    <form (ngSubmit)="onLogin()" autocomplete="off">
+      
+      <div class="field">
+        <div class="label">Email quản trị <span class="req">*</span></div>
+        <div class="control">
+          <input
+            type="email"
+            class="inp"
+            placeholder="Nhập email hệ thống"
+            name="email"
+            [(ngModel)]="email"
+            required
+          />
+          <button *ngIf="email" type="button" class="clear-btn" (click)="email=''">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="label">Mật khẩu hệ thống <span class="req">*</span></div>
+        <div class="control">
+          <input
+            [type]="showPassword ? 'text' : 'password'"
+            class="inp"
+            placeholder="Nhập mật khẩu"
+            name="password"
+            [(ngModel)]="password"
+            required
+          />
+          <div class="btn-group">
+            <button type="button" class="action-btn" (click)="showPassword = !showPassword">
+              <i [class]="showPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+            </button>
+            <button *ngIf="password" type="button" class="action-btn" (click)="password=''">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="row-link">
+        <a routerLink="/forgot-password" class="link-text">Quên mật khẩu quản trị?</a>
+      </div>
+
+      <button type="submit" class="submit-btn" [disabled]="isLoading">
+        {{ isLoading ? 'ĐANG XÁC THỰC...' : 'ĐĂNG NHẬP HỆ THỐNG' }}
+      </button>
+
+      <div class="bottom-note">
+        <i class="bi bi-shield-lock-fill"></i>
+        <span>Vui lòng không chia sẻ tài khoản quản trị cho người khác.</span>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" *ngIf="modal.show">
+  <div class="modal-content" [class]="modal.type">
+    <div class="modal-header">
+      <div class="modal-icon-circle">
+        <i *ngIf="modal.type === 'success'" class="bi bi-check-lg"></i>
+        <i *ngIf="modal.type === 'error'" class="bi bi-exclamation-lg"></i>
+      </div>
+      <h3 class="modal-title">{{ modal.title }}</h3>
+    </div>
+    <div class="modal-body">
+      {{ modal.message }}
+    </div>
+    <div class="modal-footer">
+      <button class="modal-close-btn" (click)="closeModal()">ĐÃ HIỂU</button>
+    </div>
+  </div>
+</div>
