@@ -34,9 +34,18 @@ export class OrderManagement implements OnInit {
   }
 
   loadOrders(): void {
+    let userPhone = '';
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      userPhone = user?.phone || '';
+    } catch {}
+
     this.api.getOrders().subscribe((res: any) => {
-      this.orders         = res;
-      this.filteredOrders = res;
+      const all = res || [];
+      this.orders = userPhone
+        ? all.filter((o: any) => o.customer?.phone === userPhone)
+        : all;
+      this.filteredOrders = this.orders;
       this.updateTabCounts();
     });
   }
@@ -96,7 +105,6 @@ export class OrderManagement implements OnInit {
     const total   = order.items.length;
 
     order.items.forEach((item: any) => {
-      // ✅ Dùng đúng signature: (productId, quantity, productName?)
       this.api.addToCart(item.productId, item.quantity, item.name).subscribe({
         next: () => {
           completed++;
