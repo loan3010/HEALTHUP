@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -29,73 +29,38 @@ export class BlogComponent implements OnInit {
 
   private apiUrl = 'http://localhost:3000/api/blogs';
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private cdr: ChangeDetectorRef   // ✅ thêm vào
+  ) {}
 
-  // ngOnInit(): void {
-  //   console.log("BlogComponent init");
-
-  //   this.loading = true;
-
-  //   this.http.get<Blog[]>(this.apiUrl).subscribe({
-  //     next: (data) => {
-  //       console.log("API DATA:", data);
-
-  //       // 🔥 đảm bảo data luôn là mảng
-  //       const blogs = Array.isArray(data) ? data : [];
-
-  //       this.allBlogs = blogs;
-  //       this.featuredBlog = blogs.length > 0 ? blogs[0] : null;
-
-  //       const tagSet = new Set<string>(
-  //         blogs
-  //           .map((b) => b.tag)
-  //           .filter((tag): tag is string => !!tag)
-  //       );
-
-  //       this.tags = ['Tất cả', ...Array.from(tagSet)];
-
-  //       this.applyFilter();
-
-  //       this.loading = false; // ✅ chắc chắn tắt loading
-  //     },
-  //     error: (err) => {
-  //       console.error('Lỗi tải blog:', err);
-  //       this.loading = false; // ✅ không bao giờ kẹt spinner
-  //     }
-  //   });
-  // }
   ngOnInit(): void {
-  console.log('INIT BLOG COMPONENT');
-  this.loading = true;
+    this.loading = true;
 
-  this.http.get<Blog[]>(this.apiUrl).subscribe({
-    next: (data) => {
-      console.log('API RETURNED', data);
+    this.http.get<Blog[]>(this.apiUrl).subscribe({
+      next: (data) => {
+        const blogs = Array.isArray(data) ? data : [];
 
-      const blogs = Array.isArray(data) ? data : [];
+        this.allBlogs    = blogs;
+        this.featuredBlog = blogs[0] ?? null;
 
-      this.allBlogs = blogs;
-      this.featuredBlog = blogs[0] ?? null;
+        const tagSet = new Set(
+          blogs.map(b => b.tag).filter((t): t is string => !!t)
+        );
+        this.tags = ['Tất cả', ...Array.from(tagSet)];
 
-      const tagSet = new Set(
-        blogs
-          .map(b => b.tag)
-          .filter((t): t is string => !!t)
-      );
+        this.applyFilter();
 
-      this.tags = ['Tất cả', ...Array.from(tagSet)];
-
-      this.applyFilter();
-    },
-    error: (err) => {
-      console.error('Lỗi tải blog:', err);
-    },
-    complete: () => {
-      console.log('REQUEST COMPLETE');
-      this.loading = false;   // 🔥 đảm bảo luôn tắt
-    }
-  });
-}
+        this.loading = false;
+        this.cdr.detectChanges();   // ✅ ép Angular cập nhật ngay
+      },
+      error: (err) => {
+        console.error('Lỗi tải blog:', err);
+        this.loading = false;
+        this.cdr.detectChanges();   // ✅ tắt spinner kể cả khi lỗi
+      }
+    });
+  }
 
   selectTag(tag: string): void {
     this.selectedTag = tag;
@@ -123,7 +88,7 @@ export class BlogComponent implements OnInit {
       );
     }
 
-    this.filteredBlogs = result;
+    this.filteredBlogs  = result;
     this.displayedBlogs = result.slice(0, this.currentCount);
   }
 
