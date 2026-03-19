@@ -4,6 +4,7 @@ const router = express.Router();
 
 const Order = require('../models/Order');
 const Product = require('../models/Product');
+const Cart = require('../models/Cart');
 
 
 // ======================= HELPER =======================
@@ -120,6 +121,18 @@ router.post('/', async (req, res) => {
       total,
       status: 'pending'
     });
+
+    // ✅ Xóa các sản phẩm đã mua khỏi cart trên DB
+    if (order.userId) {
+      const boughtIds = orderItems.map(i => String(i.productId));
+      try {
+        const cart = await Cart.findOne({ userId: order.userId });
+        if (cart) {
+          cart.items = cart.items.filter(i => !boughtIds.includes(String(i.productId)));
+          await cart.save();
+        }
+      } catch (e) { /* không chặn response nếu lỗi xóa cart */ }
+    }
 
     return res.status(201).json({ orderId: order._id });
 

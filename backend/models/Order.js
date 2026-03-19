@@ -13,6 +13,9 @@ const OrderItemSchema = new mongoose.Schema(
 
 const OrderSchema = new mongoose.Schema(
   {
+    // ✅ FIX: thêm userId để lọc đơn theo user
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null, index: true },
+
     customer: {
       fullName: { type: String, required: true, trim: true },
       phone: { type: String, required: true, trim: true },

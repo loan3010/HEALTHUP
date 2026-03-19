@@ -12,84 +12,96 @@ import { ApiService, STATIC_BASE } from '../services/api.service';
 })
 export class OrderDetail implements OnInit {
 
-  order: any = null;
-  orders: any[] = [];        // danh sách đơn hàng cho sidebar
-  loading = true;
-  currentId = '';
+  order: any   = null;
+  orders: any[] = [];
+  loading      = true;
+  currentId    = '';
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private api: ApiService,
-    private cd: ChangeDetectorRef
+    private cdr: ChangeDetectorRef
   ) {}
 
-  ngOnInit() {
+  ngOnInit(): void {
+    // Load danh sách sidebar ngay
+    this.loadOrders();
+
+    // Load chi tiết đơn khi route thay đổi
     this.route.paramMap.subscribe(params => {
-      this.currentId = params.get('id') || '';
-      if (this.currentId) {
-        this.loading = true;
-        this.loadOrder(this.currentId);
+      const id = params.get('id') || '';
+      if (id && id !== this.currentId) {
+        this.currentId = id;
+        this.loading   = true;
+        this.order     = null;
+        this.cdr.detectChanges();
+        this.loadOrder(id);
       }
     });
-    this.loadOrders();
   }
 
-  loadOrder(id: string) {
+  // ✅ Đọc userId đúng cách — giống api.service.ts
+  private getUserId(): string {
+    const direct = localStorage.getItem('userId');
+    if (direct) return direct;
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      return user?.id || user?._id || '';
+    } catch { return ''; }
+  }
+
+  loadOrder(id: string): void {
     this.api.getOrderById(id).subscribe({
       next: (res: any) => {
-        this.order = res;
+        this.order   = res;
         this.loading = false;
-        this.cd.detectChanges();
+        this.cdr.detectChanges();   // ✅ hiện ngay
       },
-      error: (err) => {
-        console.error('Lỗi load order:', err);
+      error: () => {
         this.loading = false;
-        this.cd.detectChanges();
+        this.cdr.detectChanges();
       }
     });
   }
 
-  loadOrders() {
-    // ✅ Chỉ lấy đơn hàng của user đang đăng nhập
-    const userId = localStorage.getItem('userId') || '';
+  loadOrders(): void {
+    const userId = this.getUserId();
     this.api.getOrders(userId).subscribe({
       next: (res: any) => {
-        this.orders = res || [];
-        this.cd.detectChanges();
+        this.orders = Array.isArray(res) ? res : [];
+        this.cdr.detectChanges();   // ✅ hiện sidebar ngay
       },
-      error: () => {}
+      error: () => { this.orders = []; }
     });
   }
 
-  goToOrder(id: string) {
-    this.router.navigate(['/order-detail', id]);
+  goToOrder(id: string): void {
+    this.router.navigate(['/profile/order-detail', id]);
   }
 
-  // ── Helpers ──────────────────────────────────────────────────────────
+  // ── Helpers ──
 
   getTotal(): number {
-    return this.order?.total || this.order?.items?.reduce(
-      (s: number, i: any) => s + i.price * i.quantity, 0
-    ) || 0;
+    return this.order?.total
+      || this.order?.items?.reduce((s: number, i: any) => s + i.price * i.quantity, 0)
+      || 0;
   }
 
   getFullAddress(): string {
     const c = this.order?.customer;
     if (!c) return '';
-    return [c.address, c.ward, c.district, c.province]
-      .filter(Boolean).join(', ');
+    return [c.address, c.ward, c.district, c.province].filter(Boolean).join(', ');
   }
 
   fixImage(url: string): string {
-    if (!url) return '';
+    if (!url) return 'assets/placeholder.png';
     return url.startsWith('http') ? url : `${STATIC_BASE}${url}`;
   }
 
   formatDate(dateStr: string): string {
     if (!dateStr) return '';
-    const d = new Date(dateStr);
-    return d.toLocaleString('vi-VN', {
+    return new Date(dateStr).toLocaleString('vi-VN', {
       day: '2-digit', month: '2-digit', year: 'numeric',
       hour: '2-digit', minute: '2-digit'
     });
@@ -109,10 +121,8 @@ export class OrderDetail implements OnInit {
 
   getPaymentLabel(method: string): string {
     const map: Record<string, string> = {
-      cod:    'Thanh toán khi nhận hàng (COD)',
-      vnpay:  'VNPay',
-      momo:   'MoMo',
-      bank:   'Chuyển khoản',
+      cod:   'Thanh toán khi nhận hàng (COD)',
+      vnpay: 'VNPay', momo: 'MoMo', bank: 'Chuyển khoản',
     };
     return map[method] || method;
   }

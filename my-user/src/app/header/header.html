@@ -132,7 +132,12 @@
         <!-- Đã đăng nhập -->
         <ng-container *ngIf="isLoggedIn">
           <i class="bi bi-bell icon" title="Thông báo"></i>
-          <i class="bi bi-cart icon" routerLink="/cart" title="Giỏ hàng"></i>
+
+          <!-- ✅ Cart icon với badge đếm số lượng -->
+          <div class="cart-icon-wrap" routerLink="/cart" title="Giỏ hàng">
+            <i class="bi bi-cart icon"></i>
+            <span class="cart-badge" *ngIf="cartCount > 0">{{ cartCount > 99 ? '99+' : cartCount }}</span>
+          </div>
 
           <div class="user-menu">
             <div class="user-greeting" (click)="toggleDropdown()">
@@ -145,17 +150,17 @@
               <a routerLink="/profile/overview" (click)="closeDropdown()">
                 <i class="bi bi-person"></i> Tài khoản của tôi
               </a>
-              <a routerLink="/orders" (click)="closeDropdown()">
+              <!-- <a routerLink="/orders" (click)="closeDropdown()">
                 <i class="bi bi-box-seam"></i> Đơn hàng
-              </a>
+              </a> -->
               <a routerLink="/profile/wishlist" (click)="closeDropdown()">
                 <i class="bi bi-heart"></i> Yêu thích
               </a>
               <a routerLink="/profile/address" (click)="closeDropdown()">
                 <i class="bi bi-geo-alt"></i> Sổ địa chỉ
               </a>
-              <a routerLink="/profile/address" (click)="closeDropdown()">
-                <i class="bi-box-seam"></i> Quản lý đơn hàng
+              <a routerLink="/profile/order-management" (click)="closeDropdown()">
+                <i class="bi-box-seam"></i> Theo dõi đơn hàng
               </a>
               <div class="dropdown-divider"></div>
               <a class="logout-link" (click)="logout()">

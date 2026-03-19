@@ -9,7 +9,7 @@
     <div class="empty-title">Đang tải giỏ hàng...</div>
   </div>
 
-  <!-- EMPTY: chỉ hiện khi đã load xong VÀ thực sự trống -->
+  <!-- EMPTY -->
   <div *ngIf="!isLoading && items.length === 0" class="empty">
     <div class="empty-icon">🛒</div>
     <div class="empty-title">Giỏ hàng đang trống</div>
@@ -17,7 +17,7 @@
     <button class="btn primary" (click)="buyNow()">Mua sắm ngay</button>
   </div>
 
-  <!-- CONTENT: chỉ hiện khi đã load xong VÀ có hàng -->
+  <!-- CONTENT -->
   <div *ngIf="!isLoading && items.length > 0" class="content">
 
     <div class="cart-box">
@@ -32,9 +32,12 @@
         </div>
 
         <div class="right">
-          Đã chọn:
-          <b>{{ selectedCount }}</b>
-          sản phẩm
+          <span>Đã chọn: <b>{{ selectedCount }}</b> sản phẩm</span>
+          <button class="btn-clear-all"
+                  *ngIf="selectedCount > 0"
+                  (click)="confirmClearSelected()">
+            Xóa tất cả
+          </button>
         </div>
       </div>
 
@@ -47,41 +50,58 @@
                [(ngModel)]="it.selected"
                (change)="updateTotal()" />
 
-        <img *ngIf="it.imageUrl"
-             class="thumb"
-             [src]="it.imageUrl" />
+        <img *ngIf="it.imageUrl" class="thumb" [src]="it.imageUrl" />
+        <div *ngIf="!it.imageUrl" class="thumb thumb-empty"></div>
 
         <div class="info">
           <div class="name">{{ it.name }}</div>
+
+          <!-- PHÂN LOẠI — chỉ render khi có variants -->
+          <div class="variant-row"
+               *ngIf="it.variants?.sizes?.length || it.variants?.colors?.length">
+
+            <div class="variant-group" *ngIf="it.variants?.sizes?.length">
+              <span class="variant-label">Size:</span>
+              <div class="variant-options">
+                <button class="variant-btn"
+                        *ngFor="let s of it.variants!.sizes"
+                        [class.active]="it.selectedSize === s"
+                        (click)="selectSize(it, s)">{{ s }}</button>
+              </div>
+            </div>
+
+            <div class="variant-group" *ngIf="it.variants?.colors?.length">
+              <span class="variant-label">Màu:</span>
+              <div class="variant-options">
+                <button class="color-dot"
+                        *ngFor="let c of it.variants!.colors"
+                        [class.active]="it.selectedColor === c.value"
+                        [style.background]="c.hex"
+                        [title]="c.label"
+                        (click)="selectColor(it, c.value)"></button>
+              </div>
+            </div>
+
+          </div>
+
           <div class="price">{{ it.price | number }} đ</div>
         </div>
 
         <!-- QTY -->
         <div class="qty">
-          <button class="btn icon"
-                  (click)="confirmDecrease(it)">
-            −
-          </button>
-
+          <button class="btn icon" (click)="confirmDecrease(it)">−</button>
           <input type="number"
                  min="1"
                  [value]="it.quantity"
                  (input)="onQtyInput(it, $any($event.target).value)" />
-
-          <button class="btn icon"
-                  (click)="inc(it)">
-            +
-          </button>
+          <button class="btn icon" (click)="inc(it)">+</button>
         </div>
 
         <div class="line-total">
           {{ (it.price * it.quantity) | number }} đ
         </div>
 
-        <button class="btn remove"
-                (click)="confirmRemove(it)">
-          ×
-        </button>
+        <button class="btn remove" (click)="confirmRemove(it)">×</button>
       </div>
 
     </div>
@@ -99,8 +119,7 @@
         Thanh toán
       </button>
 
-      <button class="btn ghost"
-              (click)="buyNow()">
+      <button class="btn ghost" (click)="buyNow()">
         Tiếp tục mua
       </button>
     </div>
@@ -112,15 +131,9 @@
     <div class="confirm-modal">
       <h3>Xác nhận</h3>
       <p>{{ confirmMessage }}</p>
-
       <div class="modal-actions">
-        <button class="btn ghost" (click)="cancelConfirm()">
-          Hủy
-        </button>
-
-        <button class="btn danger" (click)="acceptConfirm()">
-          Đồng ý
-        </button>
+        <button class="btn ghost" (click)="cancelConfirm()">Hủy</button>
+        <button class="btn danger" (click)="acceptConfirm()">Đồng ý</button>
       </div>
     </div>
   </div>

@@ -1,258 +1,385 @@
 <!-- checkout.html -->
-<div class="checkout">
 
-  <!-- LEFT -->
-  <div class="left">
-    <h3 class="section-title">Thông tin nhận hàng</h3>
+<!-- ══════════ SUCCESS MODAL ══════════ -->
+<div class="co-modal-backdrop" *ngIf="showSuccess()" (click)="goToHome()">
+  <div class="co-modal" (click)="$event.stopPropagation()">
+    <div class="co-modal-icon">
+      <svg viewBox="0 0 52 52" fill="none">
+        <circle cx="26" cy="26" r="25" stroke="#36873A" stroke-width="2"/>
+        <path d="M14 27l8 8 16-16" stroke="#36873A" stroke-width="2.5"
+              stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <h2 class="co-modal-title">Đặt hàng thành công!</h2>
+    <p class="co-modal-sub">Cảm ơn bạn đã tin tưởng HealthUp 🌿<br>Đơn hàng đang được xử lý.</p>
+    <div class="co-modal-id" *ngIf="successOrderId()">
+      Mã đơn: <strong>#{{ successOrderId() }}</strong>
+    </div>
+    <div class="co-modal-actions">
+      <button class="co-btn co-btn-outline" (click)="goToHome()">Về trang chủ</button>
+      <button class="co-btn co-btn-primary" (click)="goToOrderDetail()">Xem đơn hàng</button>
+    </div>
+  </div>
+</div>
 
-    <div class="alert error" *ngIf="errorMsg()">
-      {{ errorMsg() }}
+<!-- ══════════ ADDRESS MODAL (address-book nhúng vào) ══════════ -->
+<div class="ab-backdrop" *ngIf="showAddrModal" (click)="closeAddrModal()">
+  <div class="ab-modal" (click)="$event.stopPropagation()">
+
+    <div class="ab-modal-header">
+      <h5>{{ isAddrEditMode ? 'Chỉnh sửa địa chỉ' : 'Thêm địa chỉ mới' }}</h5>
+      <button class="ab-close" (click)="closeAddrModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
     </div>
 
-    <form [formGroup]="form" class="card">
-      <!-- Email -->
-      <div class="field">
-        <input class="inp"
-               placeholder="Email (tuỳ chọn)"
-               formControlName="email" />
-      </div>
+    <div class="ab-modal-body">
+      <form [formGroup]="addrForm" (ngSubmit)="submitAddrForm()">
 
-      <!-- Fullname -->
-      <div class="field">
-        <input class="inp"
-               placeholder="Họ và tên *"
-               formControlName="fullName" />
-        <div class="err" *ngIf="hasError('fullName','required')">
-          Bắt buộc
-        </div>
-      </div>
-
-      <!-- Phone -->
-      <div class="field">
-        <input class="inp"
-               placeholder="Số điện thoại *"
-               formControlName="phone" />
-        <div class="err" *ngIf="hasError('phone','required')">Bắt buộc</div>
-        <div class="err" *ngIf="hasError('phone','pattern')">Không hợp lệ</div>
-      </div>
-
-      <!-- Address -->
-      <div class="field">
-        <input class="inp"
-               placeholder="Địa chỉ *"
-               formControlName="address" />
-        <div class="err" *ngIf="hasError('address','required')">
-          Bắt buộc
-        </div>
-      </div>
-
-      <!-- Province / District / Ward -->
-      <div class="grid3">
-        <select class="inp"
-                formControlName="province"
-                (change)="onProvinceChange($any($event.target).value)">
-          <option value="">Tỉnh/Thành*</option>
-          <option *ngFor="let p of provinces" [value]="p.code">
-            {{ p.name }}
-          </option>
-        </select>
-
-        <select class="inp"
-                formControlName="district"
-                (change)="onDistrictChange($any($event.target).value)"
-                [disabled]="districts.length === 0">
-          <option value="">Quận/Huyện*</option>
-          <option *ngFor="let d of districts" [value]="d.code">
-            {{ d.name }}
-          </option>
-        </select>
-
-        <select class="inp"
-                formControlName="ward"
-                [disabled]="wards.length === 0">
-          <option value="">Phường/Xã*</option>
-          <option *ngFor="let w of wards" [value]="w.code">
-            {{ w.name }}
-          </option>
-        </select>
-      </div>
-
-      <div class="err" *ngIf="hasError('province','required')">
-        Chọn Tỉnh/Thành
-      </div>
-      <div class="err" *ngIf="hasError('district','required')">
-        Chọn Quận/Huyện
-      </div>
-      <div class="err" *ngIf="hasError('ward','required')">
-        Chọn Phường/Xã
-      </div>
-
-      <br>
-
-      <textarea class="inp"
-                rows="3"
-                placeholder="Ghi chú"
-                formControlName="note">
-      </textarea>
-    </form>
-
-    <!-- SHIPPING -->
-    <!-- <h3 class="section-title">Vận chuyển</h3> -->
-
-    <div class="card options">
-      <label class="opt" [class.active]="shippingMethod() === 'standard'">
-        <input type="radio"
-               [checked]="shippingMethod() === 'standard'"
-               (change)="setShipping('standard')" />
-
-        <div class="opt-body">
-          <div class="opt-title">Giao tiêu chuẩn</div>
-          <div class="opt-sub">2–4 ngày • Phí rẻ hơn</div>
+        <div class="ab-row-2">
+          <div class="ab-field">
+            <label>Họ và tên <span class="req">*</span></label>
+            <input type="text" class="ab-input" formControlName="name" placeholder="Nhập họ và tên" />
+            <span class="ab-error" *ngIf="showAddrFieldError('name')">Vui lòng nhập họ và tên</span>
+          </div>
+          <div class="ab-field">
+            <label>Số điện thoại <span class="req">*</span></label>
+            <input type="tel" class="ab-input" formControlName="phone" placeholder="Nhập số điện thoại" maxlength="11" />
+            <span class="ab-error" *ngIf="showAddrFieldError('phone')">Số điện thoại không hợp lệ</span>
+          </div>
         </div>
 
-        <div class="opt-right">
-          {{ vnd(shippingFee()) }}
-        </div>
-      </label>
-
-      <label class="opt" [class.active]="shippingMethod() === 'express'">
-        <input type="radio"
-               [checked]="shippingMethod() === 'express'"
-               (change)="setShipping('express')" />
-
-        <div class="opt-body">
-          <div class="opt-title">Giao nhanh</div>
-          <div class="opt-sub">1–2 ngày • Ưu tiên xử lý</div>
+        <!-- Tỉnh/Thành -->
+        <div class="ab-field">
+          <label>Tỉnh / Thành phố <span class="req">*</span></label>
+          <div class="ab-select-wrap">
+            <select class="ab-input ab-select" formControlName="province" (change)="onProvinceChange()">
+              <option value="">-- Chọn Tỉnh/Thành phố --</option>
+              <option *ngFor="let p of provinces" [value]="p.code">{{ p.name }}</option>
+            </select>
+            <span class="ab-select-spinner" *ngIf="loadingProvinces"></span>
+          </div>
+          <span class="ab-error" *ngIf="showAddrFieldError('province')">Vui lòng chọn tỉnh/thành phố</span>
         </div>
 
-        <div class="opt-right">
-          {{ vnd(30000) }}
+        <!-- Quận/Huyện -->
+        <div class="ab-field">
+          <label>Quận / Huyện <span class="req">*</span></label>
+          <div class="ab-select-wrap">
+            <select class="ab-input ab-select" formControlName="district"
+                    (change)="onDistrictChange()" [disabled]="!districts.length">
+              <option value="">-- Chọn Quận/Huyện --</option>
+              <option *ngFor="let d of districts" [value]="d.code">{{ d.name }}</option>
+            </select>
+            <span class="ab-select-spinner" *ngIf="loadingDistricts"></span>
+          </div>
+          <span class="ab-error" *ngIf="showAddrFieldError('district')">Vui lòng chọn quận/huyện</span>
         </div>
-      </label>
+
+        <!-- Phường/Xã -->
+        <div class="ab-field">
+          <label>Phường / Xã <span class="req">*</span></label>
+          <div class="ab-select-wrap">
+            <select class="ab-input ab-select" formControlName="ward"
+                    (change)="onWardChange()" [disabled]="!wards.length">
+              <option value="">-- Chọn Phường/Xã --</option>
+              <option *ngFor="let w of wards" [value]="w.code">{{ w.name }}</option>
+            </select>
+            <span class="ab-select-spinner" *ngIf="loadingWards"></span>
+          </div>
+          <span class="ab-error" *ngIf="showAddrFieldError('ward')">Vui lòng chọn phường/xã</span>
+        </div>
+
+        <!-- Số nhà, tên đường -->
+        <div class="ab-field">
+          <label>Số nhà, tên đường <span class="req">*</span></label>
+          <input type="text" class="ab-input" formControlName="street" placeholder="VD: 123 Nguyễn Huệ" />
+          <span class="ab-error" *ngIf="showAddrFieldError('street')">Vui lòng nhập số nhà, tên đường</span>
+        </div>
+
+        <!-- Preview địa chỉ đầy đủ -->
+        <div class="ab-address-preview" *ngIf="fullAddressPreview">
+          <i class="bi bi-geo-alt-fill"></i>
+          <span>{{ fullAddressPreview }}</span>
+        </div>
+
+        <label class="ab-checkbox">
+          <input type="checkbox" formControlName="isDefault" />
+          <span>Đặt làm địa chỉ mặc định</span>
+        </label>
+
+        <div class="ab-msg ab-msg-error" *ngIf="addrModalError">
+          <i class="bi bi-exclamation-circle"></i> {{ addrModalError }}
+        </div>
+
+        <div class="ab-modal-footer">
+          <button type="button" class="ab-btn-cancel" (click)="closeAddrModal()">Hủy</button>
+          <button type="submit" class="ab-btn-submit" [disabled]="isAddrSaving">
+            <span class="ab-spinner" *ngIf="isAddrSaving"></span>
+            {{ isAddrSaving ? 'Đang lưu...' : (isAddrEditMode ? 'Cập nhật' : 'Thêm địa chỉ') }}
+          </button>
+        </div>
+
+      </form>
     </div>
+  </div>
+</div>
 
-    <!-- PAYMENT -->
-    <!-- <h3 class="section-title">Thanh toán</h3> -->
+<!-- ══════════ MAIN ══════════ -->
+<div class="co-page">
 
-    <div class="card options">
-      <label class="opt" [class.active]="paymentMethod() === 'cod'">
-        <input type="radio"
-               [checked]="paymentMethod() === 'cod'"
-               (change)="setPayment('cod')" />
-        <div class="opt-body">
-          <div class="opt-title">COD</div>
-          <div class="opt-sub">Thanh toán khi nhận hàng</div>
-        </div>
-        <div class="tag">Phổ biến</div>
-      </label>
-
-      <label class="opt" [class.active]="paymentMethod() === 'momo'">
-        <input type="radio"
-               [checked]="paymentMethod() === 'momo'"
-               (change)="setPayment('momo')" />
-        <div class="opt-body">
-          <div class="opt-title">MoMo</div>
-          <div class="opt-sub">Quét QR • Thanh toán nhanh</div>
-        </div>
-        <div class="tag">QR</div>
-      </label>
-
-      <label class="opt" [class.active]="paymentMethod() === 'vnpay'">
-        <input type="radio"
-               [checked]="paymentMethod() === 'vnpay'"
-               (change)="setPayment('vnpay')" />
-        <div class="opt-body">
-          <div class="opt-title">VNPay</div>
-          <div class="opt-sub">Thanh toán nhanh</div>
-        </div>
-        <div class="tag">QR</div>
-      </label>
+  <!-- HEADER -->
+  <div class="co-header">
+    <button class="co-back-btn" (click)="goToCart()">
+      <i class="bi bi-arrow-left"></i>
+    </button>
+    <h1 class="co-title">Thanh toán</h1>
+    <div class="co-steps">
+      <span class="co-step done">Giỏ hàng</span>
+      <i class="bi bi-chevron-right co-step-sep"></i>
+      <span class="co-step active">Thanh toán</span>
+      <i class="bi bi-chevron-right co-step-sep"></i>
+      <span class="co-step">Xác nhận</span>
     </div>
   </div>
 
-  <!-- RIGHT -->
-  <div class="right">
-    <div class="summary card">
-      <div class="summary-title">Đơn hàng</div>
+  <div class="co-body">
 
-      <div class="sum-item" *ngFor="let it of items()">
-        <div class="sum-thumb"
-             [style.backgroundImage]="'url(' + (it.imageUrl || '') + ')'">
-          <span class="sum-qty">{{ it.quantity }}</span>
+    <!-- ══ LEFT ══ -->
+    <div class="co-left">
+
+      <!-- Error -->
+      <div class="co-alert co-alert-error" *ngIf="errorMsg()">
+        <i class="bi bi-exclamation-circle-fill"></i> {{ errorMsg() }}
+      </div>
+
+      <!-- ── SECTION 1: Địa chỉ ── -->
+      <div class="co-section">
+        <div class="co-section-head">
+          <span class="co-section-num">1</span>
+          <h3 class="co-section-title">Địa chỉ nhận hàng</h3>
+          <!-- Nút thêm mới -->
+          <button class="co-addr-add-btn" (click)="openAddAddrModal()" *ngIf="userId">
+            <i class="bi bi-plus-lg"></i> Thêm địa chỉ
+          </button>
         </div>
 
-        <div class="sum-meta">
-          <div class="sum-name">{{ it.name }}</div>
-          <div class="sum-sub">{{ vnd(it.price) }} / sp</div>
+        <!-- Loading -->
+        <div class="co-addr-loading" *ngIf="isLoadingAddr()">
+          <span class="co-spinner"></span> Đang tải sổ địa chỉ...
         </div>
 
-        <div class="sum-price">
-          {{ vnd(it.price * it.quantity) }}
+        <!-- Chưa đăng nhập -->
+        <div class="co-guest-notice" *ngIf="!userId">
+          <i class="bi bi-info-circle"></i>
+          Bạn chưa đăng nhập. <a routerLink="/login">Đăng nhập</a> để dùng sổ địa chỉ.
+        </div>
+
+        <!-- Danh sách địa chỉ -->
+        <div class="ab-list" *ngIf="!isLoadingAddr() && savedAddresses().length > 0">
+          <div class="ab-card"
+               *ngFor="let a of savedAddresses(); let i = index"
+               [class.is-default]="a.isDefault"
+               [class.is-selected]="selectedAddrId() === getId(a)"
+               (click)="selectAddress(getId(a))">
+
+            <!-- Selected check -->
+            <div class="ab-select-check" *ngIf="selectedAddrId() === getId(a)">
+              <i class="bi bi-check-lg"></i>
+            </div>
+
+            <!-- Default ribbon -->
+            <div class="ab-ribbon" *ngIf="a.isDefault">
+              <i class="bi bi-star-fill"></i> Mặc định
+            </div>
+
+            <div class="ab-card-body">
+              <div class="ab-card-left">
+                <div class="ab-avatar">{{ getInitial(a.name) }}</div>
+              </div>
+              <div class="ab-card-info">
+                <div class="ab-name-row">
+                  <span class="ab-name">{{ a.name }}</span>
+                  <span class="ab-phone">{{ a.phone }}</span>
+                </div>
+                <p class="ab-address">{{ a.address }}</p>
+              </div>
+            </div>
+
+            <div class="ab-card-footer" (click)="$event.stopPropagation()">
+              <button class="ab-btn-edit" (click)="openEditAddrModal(i)">
+                <i class="bi bi-pencil"></i> Chỉnh sửa
+              </button>
+              <button class="ab-btn-default" *ngIf="!a.isDefault" (click)="setDefaultAddr(i)">
+                <i class="bi bi-star"></i> Đặt mặc định
+              </button>
+              <button class="ab-btn-delete" (click)="deleteAddr(i)">
+                <i class="bi bi-trash3"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Empty -->
+        <div class="ab-empty" *ngIf="!isLoadingAddr() && savedAddresses().length === 0 && userId">
+          <div class="ab-empty-icon"><i class="bi bi-geo-alt"></i></div>
+          <h5>Chưa có địa chỉ nào</h5>
+          <p>Thêm địa chỉ để thanh toán nhanh hơn</p>
+          <button class="ab-btn-add-lg" (click)="openAddAddrModal()">
+            <i class="bi bi-plus-lg"></i> Thêm địa chỉ đầu tiên
+          </button>
+        </div>
+
+        <!-- Ghi chú -->
+        <div class="co-note-wrap" [formGroup]="checkoutForm">
+          <label class="co-label">Ghi chú</label>
+          <textarea class="co-inp co-textarea" rows="2"
+                    placeholder="Ghi chú cho người giao hàng..."
+                    formControlName="note"></textarea>
         </div>
       </div>
 
-      <!-- VOUCHER -->
-      <div class="voucher">
-        <input class="inp"
-               placeholder="Mã giảm giá"
-               [value]="voucherCode()"
-               (input)="onVoucherInput($any($event.target).value)" />
-
-        <button class="btn outline"
-                type="button"
-                (click)="applyVoucher()">
-          Áp dụng
-        </button>
-
-        <button class="btn ghost"
-                type="button"
-                *ngIf="voucherCode()"
-                (click)="removeVoucher()">
-          ×
-        </button>
+      <!-- ── SECTION 2: Vận chuyển ── -->
+      <div class="co-section">
+        <div class="co-section-head">
+          <span class="co-section-num">2</span>
+          <h3 class="co-section-title">Phương thức vận chuyển</h3>
+        </div>
+        <div class="co-options">
+          <label class="co-opt" [class.selected]="shippingMethod() === 'standard'">
+            <input type="radio" [checked]="shippingMethod() === 'standard'" (change)="setShipping('standard')" />
+            <i class="bi bi-truck"></i>
+            <div class="co-opt-body">
+              <div class="co-opt-title">Giao tiêu chuẩn</div>
+              <div class="co-opt-sub">2–4 ngày làm việc</div>
+            </div>
+            <div class="co-opt-price">{{ vnd(shippingFee()) }}</div>
+          </label>
+          <label class="co-opt" [class.selected]="shippingMethod() === 'express'">
+            <input type="radio" [checked]="shippingMethod() === 'express'" (change)="setShipping('express')" />
+            <i class="bi bi-lightning"></i>
+            <div class="co-opt-body">
+              <div class="co-opt-title">Giao nhanh <span class="co-badge">Ưu tiên</span></div>
+              <div class="co-opt-sub">1–2 ngày làm việc</div>
+            </div>
+            <div class="co-opt-price">{{ vnd(30000) }}</div>
+          </label>
+        </div>
       </div>
 
-      <div class="hint" *ngIf="voucherMsg()">
-        {{ voucherMsg() }}
+      <!-- ── SECTION 3: Thanh toán ── -->
+      <div class="co-section">
+        <div class="co-section-head">
+          <span class="co-section-num">3</span>
+          <h3 class="co-section-title">Phương thức thanh toán</h3>
+        </div>
+        <div class="co-options">
+          <label class="co-opt" [class.selected]="paymentMethod() === 'cod'">
+            <input type="radio" [checked]="paymentMethod() === 'cod'" (change)="setPayment('cod')" />
+            <i class="bi bi-cash"></i>
+            <div class="co-opt-body">
+              <div class="co-opt-title">COD <span class="co-badge co-badge-pop">Phổ biến</span></div>
+              <div class="co-opt-sub">Thanh toán khi nhận hàng</div>
+            </div>
+          </label>
+          <label class="co-opt" [class.selected]="paymentMethod() === 'momo'">
+            <input type="radio" [checked]="paymentMethod() === 'momo'" (change)="setPayment('momo')" />
+            <i class="bi bi-heart-fill"></i>
+            <div class="co-opt-body">
+              <div class="co-opt-title">MoMo</div>
+              <div class="co-opt-sub">Quét QR – thanh toán nhanh</div>
+            </div>
+            <span class="co-tag">QR</span>
+          </label>
+          <label class="co-opt" [class.selected]="paymentMethod() === 'vnpay'">
+            <input type="radio" [checked]="paymentMethod() === 'vnpay'" (change)="setPayment('vnpay')" />
+            <i class="bi bi-bank"></i>
+            <div class="co-opt-body">
+              <div class="co-opt-title">VNPay</div>
+              <div class="co-opt-sub">Thanh toán qua ngân hàng</div>
+            </div>
+            <span class="co-tag">QR</span>
+          </label>
+        </div>
       </div>
 
-      <div class="line">
-        <span>Tạm tính</span>
-        <b>{{ vnd(subTotal()) }}</b>
+    </div><!-- /co-left -->
+
+    <!-- ══ RIGHT: Summary ══ -->
+    <div class="co-right">
+      <div class="co-summary">
+
+        <div class="co-summary-head">
+          <h3 class="co-summary-title">Đơn hàng</h3>
+          <span class="co-summary-count">{{ items().length }} sản phẩm</span>
+        </div>
+
+        <div class="co-items">
+          <div class="co-item" *ngFor="let it of items()">
+            <div class="co-item-thumb"
+                 [style.backgroundImage]="'url(' + (it.imageUrl || '') + ')'">
+              <span class="co-item-qty">{{ it.quantity }}</span>
+            </div>
+            <div class="co-item-meta">
+              <div class="co-item-name">{{ it.name }}</div>
+              <div class="co-item-unit">{{ vnd(it.price) }} / sp</div>
+            </div>
+            <div class="co-item-price">{{ vnd(it.price * it.quantity) }}</div>
+          </div>
+        </div>
+
+        <!-- Voucher -->
+        <div class="co-voucher">
+          <div class="co-voucher-row">
+            <i class="bi bi-ticket-perforated co-voucher-icon"></i>
+            <input class="co-voucher-inp" placeholder="Nhập mã giảm giá"
+                   [value]="voucherCode()"
+                   (input)="onVoucherInput($any($event.target).value)" />
+            <button class="co-voucher-btn" type="button" (click)="applyVoucher()">Áp dụng</button>
+            <button class="co-voucher-clear" type="button" *ngIf="voucherCode()" (click)="removeVoucher()">×</button>
+          </div>
+          <div class="co-voucher-msg" *ngIf="voucherMsg()"
+               [class.success]="voucherMsg().startsWith('✓')">
+            {{ voucherMsg() }}
+          </div>
+        </div>
+
+        <!-- Totals -->
+        <div class="co-totals">
+          <div class="co-total-row"><span>Tạm tính</span><span>{{ vnd(subTotal()) }}</span></div>
+          <div class="co-total-row"><span>Phí vận chuyển</span><span>{{ vnd(shippingFee()) }}</span></div>
+          <div class="co-total-row co-discount" *ngIf="discount() > 0">
+            <span>Giảm giá</span><span>–{{ vnd(discount()) }}</span>
+          </div>
+          <div class="co-total-final">
+            <span>Tổng thanh toán</span>
+            <strong>{{ vnd(total()) }}</strong>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="co-actions">
+          <button class="co-btn co-btn-outline" type="button" (click)="goToCart()">
+            <i class="bi bi-arrow-left"></i> Giỏ hàng
+          </button>
+          <button class="co-btn co-btn-primary" type="button"
+                  [disabled]="isPlacing()" (click)="placeOrder()">
+            <span *ngIf="!isPlacing()"><i class="bi bi-check2-circle"></i> Đặt hàng</span>
+            <span *ngIf="isPlacing()" class="co-btn-loading">
+              <span class="co-spinner co-spinner-white"></span> Đang xử lý...
+            </span>
+          </button>
+        </div>
+
+        <!-- Trust -->
+        <div class="co-trust">
+          <span><i class="bi bi-shield-check"></i> Bảo mật</span>
+          <span><i class="bi bi-arrow-counterclockwise"></i> Đổi trả 7 ngày</span>
+          <span><i class="bi bi-truck"></i> Giao tận nơi</span>
+        </div>
+
       </div>
-
-      <div class="line">
-        <span>Ship</span>
-        <b>{{ vnd(shippingFee()) }}</b>
-      </div>
-
-      <div class="line" *ngIf="discount() > 0">
-        <span>Giảm</span>
-        <b>-{{ vnd(discount()) }}</b>
-      </div>
-
-      <div class="total">
-        <span>Tổng</span>
-        <b>{{ vnd(total()) }}</b>
-      </div>
-
-      <!-- ✅ 2 NÚT NẰM CẠNH NHAU -->
-      <div class="actions-row">
-        <button class="btn outline full back"
-                type="button"
-                (click)="goToCart()">
-          QUAY VỀ GIỎ HÀNG
-        </button>
-
-        <button class="btn primary full"
-                type="button"
-                [disabled]="isPlacing()"
-                (click)="placeOrder()">
-          {{ isPlacing() ? 'ĐANG XỬ LÝ...' : 'HOÀN TẤT ĐƠN' }}
-        </button>
-      </div>
-
     </div>
-  </div>
 
+  </div><!-- /co-body -->
 </div>
