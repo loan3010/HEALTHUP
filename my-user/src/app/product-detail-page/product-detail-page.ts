@@ -65,7 +65,6 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
     { icon: 'bi-patch-check',  title: 'Chất lượng kiểm định',  desc: 'Sản phẩm đạt chứng nhận VSATTP.' }
   ];
 
-  // ---- TƯ VẤN / Q&A ----
   isLoggedIn = true;
   askText = '';
   isAskSubmitting = false;
@@ -117,18 +116,22 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
   loadProduct(id: string): void {
     this.api.getProductById(id).subscribe({
       next: (data: any) => {
-        this.product        = data;
-        this.activeImage    = data.images?.[0] || '';
+        this.product     = data;
+        this.activeImage = data.images?.[0] || '';
         this.selectedWeight = data.weights?.[0]?.label || '';
         this.selectedType   = this.visiblePackagingTypes(data)?.[0] || '';
-        this.selectedVariantId = data.variants?.[0]?._id || '';
-        this.isLoading      = false;
+
+        // Chọn variant đầu tiên CÒN HÀNG
+        const firstInStock = (data.variants || []).find((v: any) => Number(v.stock || 0) > 0);
+        this.selectedVariantId = firstInStock?._id || data.variants?.[0]?._id || '';
+
+        this.isLoading = false;
+        this.qty = 1;
         this.cdr.detectChanges();
       },
       error: (err: any) => {
         console.error('Lỗi tải sản phẩm:', err);
         this.isLoading = false;
-        // 404 = sản phẩm không tồn tại hoặc đang ẩn → về trang danh sách
         if (err.status === 404) {
           this.router.navigate(['/product-listing-page']);
         }
@@ -255,17 +258,28 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
     }
   }
 
+  // FIX: method selectVariant — reset qty về 1 khi đổi phân loại
+  selectVariant(variantId: string): void {
+    if (this.selectedVariantId === variantId) return;
+    this.selectedVariantId = variantId;
+    this.qty = 1;
+    this.cdr.detectChanges();
+  }
+
   decreaseQty(): void {
     if (this.qty > 1) this.qty--;
   }
 
   increaseQty(): void {
-    if (this.product && this.qty < this.currentStock()) this.qty++;
+    const stock = this.currentStock();
+    if (stock > 0 && this.qty < stock) this.qty++;
   }
 
   currentVariant(): any | null {
     if (!this.product?.variants?.length) return null;
-    return this.product.variants.find((v: any) => String(v._id) === String(this.selectedVariantId)) || null;
+    return this.product.variants.find(
+      (v: any) => String(v._id) === String(this.selectedVariantId)
+    ) || null;
   }
 
   currentPrice(): number {
@@ -280,25 +294,37 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
 
   currentStock(): number {
     const v = this.currentVariant();
-    return Number(v?.stock ?? this.product?.stock ?? 0);
+    if (this.product?.variants?.length) {
+      return Number(v?.stock ?? 0);
+    }
+    return Number(this.product?.stock ?? 0);
+  }
+
+  // FIX: Kiểm tra variant/sản phẩm hiện tại có hết hàng không
+  isCurrentVariantOutOfStock(): boolean {
+    if (!this.product) return true;
+    if (this.product.isOutOfStock) return true;
+    return this.currentStock() <= 0;
   }
 
   visiblePackagingTypes(productLike?: any): string[] {
     const p = productLike || this.product;
     const pack = Array.isArray(p?.packagingTypes) ? p.packagingTypes : [];
-    const variantLabels = Array.isArray(p?.variants) ? p.variants.map((v: any) => String(v.label || '').trim()) : [];
+    const variantLabels = Array.isArray(p?.variants)
+      ? p.variants.map((v: any) => String(v.label || '').trim())
+      : [];
     if (!pack.length) return [];
     if (!variantLabels.length) return pack;
-
     const variantsSet = new Set(variantLabels.map((x: string) => x.toLowerCase()));
-    const filtered = pack.filter((x: string) => !variantsSet.has(String(x || '').trim().toLowerCase()));
-    return filtered;
+    return pack.filter((x: string) => !variantsSet.has(String(x || '').trim().toLowerCase()));
   }
 
   isProductCompletelyOutOfStock(): boolean {
     if (!this.product) return true;
     if (Array.isArray(this.product.variants) && this.product.variants.length > 0) {
-      const total = this.product.variants.reduce((sum: number, v: any) => sum + Number(v?.stock || 0), 0);
+      const total = this.product.variants.reduce(
+        (sum: number, v: any) => sum + Number(v?.stock || 0), 0
+      );
       return total <= 0;
     }
     return Number(this.product.stock || 0) <= 0;
@@ -306,6 +332,11 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
 
   addToCart(): void {
     if (this.addedToCart || !this.product?._id) return;
+    // FIX: Kiểm tra stock variant hiện tại trước khi thêm
+    if (this.isCurrentVariantOutOfStock()) {
+      this.api.showToast('Sản phẩm này đã hết hàng, vui lòng chọn phân loại khác.', 'error');
+      return;
+    }
     this.addToCartError = '';
 
     const v = this.currentVariant();
@@ -327,7 +358,7 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
       },
       error: (err: any) => {
         console.error('Lỗi thêm vào giỏ hàng:', err);
-        this.addToCartError = 'Không thể thêm vào giỏ hàng. Vui lòng thử lại.';
+        this.addToCartError = err?.error?.message || 'Không thể thêm vào giỏ hàng. Vui lòng thử lại.';
         this.api.showToast(this.addToCartError, 'error');
         this.cdr.detectChanges();
       }
@@ -336,18 +367,22 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
 
   buyNow(): void {
     if (!this.product?._id) return;
+    if (this.isCurrentVariantOutOfStock()) {
+      this.api.showToast('Sản phẩm này đã hết hàng, vui lòng chọn phân loại khác.', 'error');
+      return;
+    }
 
     const v = this.currentVariant();
     const checkoutItem = [{
-      productId: this.product._id,
-      variantId: v?._id || null,
+      productId:    this.product._id,
+      variantId:    v?._id || null,
       variantLabel: v?.label || '',
-      name:      this.product.name,
-      price:     this.currentPrice(),
-      quantity:  this.qty,
-      imageUrl:  this.product.images?.[0] || this.product.image || null,
-      weight:    this.selectedWeight,
-      type:      this.selectedType,
+      name:         this.product.name,
+      price:        this.currentPrice(),
+      quantity:     this.qty,
+      imageUrl:     this.product.images?.[0] || this.product.image || null,
+      weight:       this.selectedWeight,
+      type:         this.selectedType,
     }];
 
     try {
@@ -356,7 +391,6 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
       console.error('Lỗi lưu checkout:', e);
       return;
     }
-
     this.router.navigate(['/checkout']);
   }
 
@@ -378,6 +412,10 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
   addRelated(event: Event, product: any): void {
     event.stopPropagation();
     if (!product?._id) return;
+    if ((product.stock === 0 || product.isOutOfStock) && !product.variants?.length) {
+      this.api.showToast('Sản phẩm này đã hết hàng.', 'error');
+      return;
+    }
     this.api.addToCart(product._id, 1, product.name).subscribe({
       next: () => {
         this.api.showToast(`Đã thêm "${product.name}" vào giỏ hàng!`, 'success');

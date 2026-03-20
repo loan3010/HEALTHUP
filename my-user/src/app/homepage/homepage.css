@@ -519,3 +519,35 @@
 .blog-meta   { font-size: 12px; color: #A2C37F; }
 .blog-read   { font-size: 13px; font-weight: 600; color: #D4A017; transition: color 0.2s; }
 .blog-read:hover { color: #B8860B; }
+/* ===== THÊM VÀO CUỐI homepage.css ===== */
+
+/* Overlay "Tạm hết hàng" trên card sản phẩm */
+.oos-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.38);
+  border-radius: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.oos-label {
+  background: rgba(255, 255, 255, 0.92);
+  color: #C62828;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 14px;
+  border-radius: 20px;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+/* Button + bị disabled khi hết hàng */
+.btn-add:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}

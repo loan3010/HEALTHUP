@@ -20,15 +20,17 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // ─────────────────────────────────────────────────────────────────
-// GET featured/bestsellers — user chỉ thấy sản phẩm không ẩn
+// GET featured — random 4 sản phẩm đang hiện, không ẩn
 // ─────────────────────────────────────────────────────────────────
 router.get('/featured', async (req, res) => {
   try {
-    const products = await Product
-      .find({ isHidden: { $ne: true } })
-      .sort({ sold: -1 })
-      .limit(4)
-      .lean();
+    const limit = Math.max(1, Number(req.query.limit) || 4);
+
+    const products = await Product.aggregate([
+      { $match: { isHidden: { $ne: true } } },
+      { $sample: { size: limit } }           // random
+    ]);
+
     res.json(products);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -236,7 +238,6 @@ router.patch('/:id/toggle-outofstock', async (req, res) => {
 });
 
 // GET single product
-// isAdmin=true → admin thấy cả SP ẩn; user thường bị chặn nếu SP đang ẩn
 router.get('/:id', async (req, res) => {
   try {
     const product = await Product.findById(req.params.id).lean();
@@ -272,8 +273,6 @@ router.get('/:id/related', async (req, res) => {
 // POST create product
 router.post('/', async (req, res) => {
   try {
-    // Tự sinh SKU nếu client chưa truyền.
-    // Định dạng: SKU0001, SKU0002... (4 số), dựa trên max sku hiện có.
     if (!req.body.sku || String(req.body.sku).trim() === '') {
       const skuDocs = await Product.find(
         { sku: { $regex: '^SKU\\d{4}$' } },

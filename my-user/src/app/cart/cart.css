@@ -586,3 +586,38 @@
   .item  { grid-template-columns: 20px 68px 1fr 30px; }
   .thumb { width: 68px; height: 68px; }
 }
+/* ===== THÊM VÀO CUỐI cart.css ===== */
+
+/* Tên sản phẩm có thể click để xem chi tiết */
+.product-name-link {
+  cursor: pointer;
+  transition: color 0.18s ease;
+}
+.product-name-link:hover {
+  color: #36873A;
+  text-decoration: underline;
+}
+
+/* Ảnh sản phẩm có thể click */
+.clickable-thumb {
+  cursor: pointer;
+  transition: transform 0.22s ease, opacity 0.18s ease;
+}
+.clickable-thumb:hover {
+  transform: scale(1.04);
+  opacity: 0.88;
+}
+
+/* Variant hết hàng */
+.variant-btn.out-of-stock {
+  opacity: 0.5;
+  text-decoration: line-through;
+  cursor: not-allowed;
+}
+
+/* Label phân loại đơn giản */
+.simple-variant-label {
+  font-size: 12px;
+  color: #8aab8c;
+  margin: 2px 0;
+}

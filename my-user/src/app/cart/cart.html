@@ -30,7 +30,6 @@
                  (change)="toggleSelectAll($event)" />
           <span>Chọn tất cả</span>
         </div>
-
         <div class="right">
           <span>Đã chọn: <b>{{ selectedCount }}</b> sản phẩm</span>
           <button class="btn-clear-all"
@@ -50,38 +49,49 @@
                [(ngModel)]="it.selected"
                (change)="updateTotal()" />
 
-        <img *ngIf="it.imageUrl" class="thumb" [src]="it.imageUrl" />
-        <div *ngIf="!it.imageUrl" class="thumb thumb-empty"></div>
+        <!-- Ảnh — click để xem sản phẩm -->
+        <img *ngIf="it.imageUrl"
+             class="thumb clickable-thumb"
+             [src]="it.imageUrl"
+             [title]="'Xem: ' + it.name"
+             (click)="viewProduct(it)" />
+        <div *ngIf="!it.imageUrl"
+             class="thumb thumb-empty clickable-thumb"
+             (click)="viewProduct(it)"></div>
 
         <div class="info">
-          <div class="name">{{ it.name }}</div>
 
-          <!-- PHÂN LOẠI — chỉ render khi có variants -->
+          <!-- Tên sản phẩm — click để xem -->
+          <div class="name product-name-link" (click)="viewProduct(it)">
+            {{ it.name }}
+          </div>
+
+          <!-- PHÂN LOẠI: variants hoặc weights -->
           <div class="variant-row"
-               *ngIf="it.variants?.sizes?.length || it.variants?.colors?.length">
-
-            <div class="variant-group" *ngIf="it.variants?.sizes?.length">
-              <span class="variant-label">Size:</span>
+               *ngIf="it.allVariants && it.allVariants.length > 0">
+            <div class="variant-group">
+              <!-- Label: "Phân loại" cho variant, "Trọng lượng" cho weight -->
+              <span class="variant-label">
+                {{ it.optionType === 'weight' ? 'Trọng lượng:' : 'Phân loại:' }}
+              </span>
               <div class="variant-options">
                 <button class="variant-btn"
-                        *ngFor="let s of it.variants!.sizes"
-                        [class.active]="it.selectedSize === s"
-                        (click)="selectSize(it, s)">{{ s }}</button>
+                        *ngFor="let opt of it.allVariants"
+                        [class.active]="currentOptionId(it) === opt._id"
+                        [class.out-of-stock]="opt.stock <= 0"
+                        [title]="opt.stock <= 0 ? 'Hết hàng' : opt.label"
+                        (click)="changeOption(it, opt._id)">
+                  {{ opt.label }}
+                  <span *ngIf="opt.stock <= 0" style="font-size:10px;opacity:0.7;"> (Hết)</span>
+                </button>
               </div>
             </div>
+          </div>
 
-            <div class="variant-group" *ngIf="it.variants?.colors?.length">
-              <span class="variant-label">Màu:</span>
-              <div class="variant-options">
-                <button class="color-dot"
-                        *ngFor="let c of it.variants!.colors"
-                        [class.active]="it.selectedColor === c.value"
-                        [style.background]="c.hex"
-                        [title]="c.label"
-                        (click)="selectColor(it, c.value)"></button>
-              </div>
-            </div>
-
+          <!-- Không có lựa chọn nhưng có variantLabel → hiển thị tĩnh -->
+          <div *ngIf="(!it.allVariants || it.allVariants.length === 0) && it.variantLabel"
+               class="simple-variant-label">
+            Phân loại: {{ it.variantLabel }}
           </div>
 
           <div class="price">{{ it.price | number }} đ</div>
@@ -112,13 +122,11 @@
         <span>Tổng tiền</span>
         <b>{{ total | number }} đ</b>
       </div>
-
       <button class="btn primary"
               [disabled]="!selectedCount"
               (click)="checkout()">
         Thanh toán
       </button>
-
       <button class="btn ghost" (click)="buyNow()">
         Tiếp tục mua
       </button>
