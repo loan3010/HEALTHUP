@@ -58,10 +58,25 @@ router.post('/register', async (req, res) => {
     const passwordHash = await bcrypt.hash(password, 10);
 
     // ============================
-    // CREATE CUSTOMER ID
+    // CREATE CUSTOMER ID (KH####)
     // ============================
-    const count = await User.countDocuments();
-    const customerID = "CUS" + String(count + 1).padStart(4, "0");
+    // Mục tiêu: nếu bạn đã backfill customerID hiện tại về dạng KH0001, KH0002...
+    // thì user đăng ký mới cũng phải tiếp tục dãy theo đúng prefix KH để tránh lẫn prefix.
+    // Cách làm: lấy max phần số của các customerID dạng /^KH\d+$/ rồi cấp tiếp.
+    const khUsers = await User.find(
+      { customerID: { $regex: '^KH\\d+$' } },
+      { customerID: 1 }
+    ).lean();
+
+    let maxNum = 0;
+    for (const u of khUsers) {
+      const id = String(u.customerID || ''); // ví dụ: KH0016
+      const num = parseInt(id.replace(/^KH/, ''), 10);
+      if (Number.isFinite(num) && num > maxNum) maxNum = num;
+    }
+
+    const nextNum = maxNum + 1;
+    const customerID = 'KH' + String(nextNum).padStart(4, '0');
 
     // create user
     const user = await User.create({

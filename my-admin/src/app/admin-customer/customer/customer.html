@@ -1,0 +1,303 @@
+<div class="customer-list-container">
+
+  <!-- BREADCRUMB -->
+  <nav class="promo-breadcrumb-box">
+    <span class="p-crumb">Quản trị viên</span>
+    <span class="p-sep">/</span>
+    <span class="p-crumb">Quản lý khách hàng</span>
+    <span class="p-sep">/</span>
+    <span class="p-active">Danh sách khách hàng</span>
+  </nav>
+
+  <!-- HEADER -->
+  <div class="header-row">
+    <h1 class="page-title">DANH SÁCH KHÁCH HÀNG</h1>
+  </div>
+
+  <!-- TOOLBAR -->
+  <div class="toolbar">
+    <div class="search-box">
+      <i class="bi bi-search"></i>
+      <input type="text" [(ngModel)]="searchText" (ngModelChange)="onSearch()" placeholder="Tìm theo tên, SĐT, mã KH...">
+    </div>
+
+    <div class="action-group">
+      <span class="count">{{ selectedCount }} đã chọn</span>
+
+      <button class="btn-tool" [disabled]="selectedCount !== 1" (click)="onEditClick()">
+        <i class="bi bi-pencil"></i> Chỉnh
+      </button>
+
+      <button class="btn-tool text-danger" [disabled]="selectedCount === 0" (click)="onDeleteClick()">
+        <i class="bi bi-trash"></i> Xoá
+      </button>
+
+      <!-- Sắp xếp: dropdown gọi API với sortBy / sortDir -->
+      <div class="sort-wrap">
+        <button
+          type="button"
+          class="btn-tool btn-group-tool sort-trigger"
+          (click)="toggleSortMenu()"
+          [class.sort-trigger-open]="sortMenuOpen"
+          [attr.aria-expanded]="sortMenuOpen">
+          <i class="bi bi-arrow-down-up"></i>
+          <span>Sắp xếp</span>
+          <span class="sort-pill">{{ sortLabelShort }}</span>
+          <i class="bi sort-chevron" [ngClass]="sortMenuOpen ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+        </button>
+
+        <div class="sort-menu" *ngIf="sortMenuOpen" role="menu" (click)="$event.stopPropagation()">
+          <div class="sort-menu-section">Thời gian</div>
+          <button type="button" class="sort-item" [class.active]="isSortActive('createdAt','desc')" role="menuitem" (click)="applySort('createdAt','desc')">
+            Ngày tham gia · mới nhất
+            <i *ngIf="isSortActive('createdAt','desc')" class="bi bi-check2 sort-check"></i>
+          </button>
+          <button type="button" class="sort-item" [class.active]="isSortActive('createdAt','asc')" role="menuitem" (click)="applySort('createdAt','asc')">
+            Ngày tham gia · cũ nhất
+            <i *ngIf="isSortActive('createdAt','asc')" class="bi bi-check2 sort-check"></i>
+          </button>
+
+          <div class="sort-menu-section">Tên &amp; mã</div>
+          <button type="button" class="sort-item" [class.active]="isSortActive('username','asc')" role="menuitem" (click)="applySort('username','asc')">
+            Tên khách · A → Z
+            <i *ngIf="isSortActive('username','asc')" class="bi bi-check2 sort-check"></i>
+          </button>
+          <button type="button" class="sort-item" [class.active]="isSortActive('username','desc')" role="menuitem" (click)="applySort('username','desc')">
+            Tên khách · Z → A
+            <i *ngIf="isSortActive('username','desc')" class="bi bi-check2 sort-check"></i>
+          </button>
+          <button type="button" class="sort-item" [class.active]="isSortActive('customerID','asc')" role="menuitem" (click)="applySort('customerID','asc')">
+            Mã khách hàng tăng dần
+            <i *ngIf="isSortActive('customerID','asc')" class="bi bi-check2 sort-check"></i>
+          </button>
+
+          <div class="sort-menu-section">Mua hàng</div>
+          <button type="button" class="sort-item" [class.active]="isSortActive('totalOrders','desc')" role="menuitem" (click)="applySort('totalOrders','desc')">
+            Tổng đơn · cao → thấp
+            <i *ngIf="isSortActive('totalOrders','desc')" class="bi bi-check2 sort-check"></i>
+          </button>
+          <button type="button" class="sort-item" [class.active]="isSortActive('totalOrders','asc')" role="menuitem" (click)="applySort('totalOrders','asc')">
+            Tổng đơn · thấp → cao
+            <i *ngIf="isSortActive('totalOrders','asc')" class="bi bi-check2 sort-check"></i>
+          </button>
+          <button type="button" class="sort-item" [class.active]="isSortActive('totalSpent','desc')" role="menuitem" (click)="applySort('totalSpent','desc')">
+            Tổng chi tiêu · cao → thấp
+            <i *ngIf="isSortActive('totalSpent','desc')" class="bi bi-check2 sort-check"></i>
+          </button>
+          <button type="button" class="sort-item" [class.active]="isSortActive('totalSpent','asc')" role="menuitem" (click)="applySort('totalSpent','asc')">
+            Tổng chi tiêu · thấp → cao
+            <i *ngIf="isSortActive('totalSpent','asc')" class="bi bi-check2 sort-check"></i>
+          </button>
+
+          <div class="sort-menu-section">Hạng thành viên</div>
+          <button type="button" class="sort-item" [class.active]="isSortActive('membershipTier','desc')" role="menuitem" (click)="applySort('membershipTier','desc')">
+            Hạng · Kim Cương trước
+            <i *ngIf="isSortActive('membershipTier','desc')" class="bi bi-check2 sort-check"></i>
+          </button>
+          <button type="button" class="sort-item" [class.active]="isSortActive('membershipTier','asc')" role="menuitem" (click)="applySort('membershipTier','asc')">
+            Hạng · Đồng trước
+            <i *ngIf="isSortActive('membershipTier','asc')" class="bi bi-check2 sort-check"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOADING / ERROR -->
+  <div *ngIf="isLoading" class="state-box">
+    <i class="bi bi-arrow-repeat spin"></i> Đang tải...
+  </div>
+
+  <div *ngIf="errorMsg && !isLoading" class="state-box error">
+    <i class="bi bi-exclamation-circle"></i> {{ errorMsg }}
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-card shadow-sm" *ngIf="!isLoading && !errorMsg">
+    <table class="cust-table">
+      <thead>
+        <tr>
+          <th width="50"><input type="checkbox" (change)="toggleAll($event)"></th>
+          <th class="text-start">MÃ KHÁCH HÀNG</th>
+          <th class="text-start">TÊN KHÁCH HÀNG</th>
+          <th>HẠNG THÀNH VIÊN</th>
+          <th>TỔNG ĐƠN HÀNG</th>
+          <th>TỔNG HÓA ĐƠN</th>
+          <th>TRẠNG THÁI</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr
+          *ngFor="let c of customers"
+          (click)="onRowClick(c)"
+          [class.selected]="c.selected"
+          [class.inactive-row]="!c.isActive">
+
+          <td (click)="$event.stopPropagation()">
+            <input type="checkbox" [(ngModel)]="c.selected" (ngModelChange)="updateSelectedCount()">
+          </td>
+
+          <td><span class="cust-id-text">{{ c.customerID || '—' }}</span></td>
+
+          <td>
+            <div class="cust-info-cell">
+              <div class="cust-avatar" [style.background]="c.avatarBg" [style.color]="c.avatarFg">
+                {{ c.initials }}
+              </div>
+              <div>
+                <div class="cust-name" [class.text-muted]="!c.isActive">{{ c.username }}</div>
+                <div class="cust-phone">{{ c.phone }}</div>
+              </div>
+            </div>
+          </td>
+
+          <td class="text-center">
+            <span class="tier-badge" [ngClass]="getTierClass(c.membershipTier)">
+              {{ c.membershipTier }}
+            </span>
+          </td>
+
+          <td class="text-center">{{ c.totalOrders }} đơn</td>
+
+          <td class="text-center">
+            <span *ngIf="c.totalSpent > 0" class="cust-amount">{{ c.totalSpent | number }}đ</span>
+            <span *ngIf="c.totalSpent === 0" class="cust-amount-zero">0đ</span>
+          </td>
+
+          <td class="text-center" (click)="$event.stopPropagation()">
+            <button
+              class="btn-toggle-active"
+              [class.active]="c.isActive"
+              [class.inactive]="!c.isActive"
+              (click)="onToggleActive(c, $event)"
+              [title]="c.isActive ? 'Nhấn để vô hiệu hóa' : 'Nhấn để kích hoạt'">
+              {{ c.isActive ? 'Hoạt động' : 'Đã khóa' }}
+            </button>
+          </td>
+
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- PAGINATION -->
+    <div class="cust-pagination">
+      <span class="page-info">
+        Hiển thị {{ pageStart }}–{{ pageEnd }} / {{ totalItems }} khách hàng
+      </span>
+      <div class="page-btns">
+        <button class="pg-btn" (click)="prevPage()" [disabled]="currentPage === 1">‹</button>
+        <button class="pg-btn active">{{ currentPage }}</button>
+        <button class="pg-btn" (click)="nextPage()" [disabled]="currentPage === totalPages">›</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── MODAL DETAIL ── -->
+<div class="modal-overlay" *ngIf="isModalOpen" (click)="closeModal()">
+  <div class="cust-detail-card" (click)="$event.stopPropagation()">
+
+        <div class="cust-detail-header">
+      <div>
+        <div class="cust-detail-name">{{ selectedCustomer?.username }}</div>
+        <div class="cust-detail-id">{{ selectedCustomer?.customerID || '—' }}</div>
+      </div>
+      <button class="btn-close-detail" (click)="closeModal()"><i class="bi bi-x-lg"></i></button>
+    </div>
+
+    <div class="cust-detail-body">
+      <div class="cust-detail-hero">
+        <div class="cust-detail-avatar"
+          [style.background]="selectedCustomer?.avatarBg"
+          [style.color]="selectedCustomer?.avatarFg">
+          {{ selectedCustomer?.initials }}
+        </div>
+        <div>
+          <div class="cust-detail-hero-name">{{ selectedCustomer?.username }}</div>
+          <div class="cust-detail-hero-id">{{ selectedCustomer?.customerID || '—' }}</div>
+          <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+            <span class="tier-badge" [ngClass]="getTierClass(selectedCustomer?.membershipTier || '')">
+              {{ selectedCustomer?.membershipTier }}
+            </span>
+            <button
+              class="btn-toggle-active"
+              [class.active]="selectedCustomer?.isActive"
+              [class.inactive]="!selectedCustomer?.isActive"
+              (click)="onToggleActive(selectedCustomer!, $event)">
+              {{ selectedCustomer?.isActive ? 'Hoạt động' : 'Đã khóa' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="cust-detail-section-label">Thông tin liên hệ</div>
+      <div class="cust-detail-grid">
+        <div class="cust-detail-item">
+          <div class="cust-detail-item-label">Số điện thoại</div>
+          <div class="cust-detail-item-value">{{ selectedCustomer?.phone }}</div>
+        </div>
+        <div class="cust-detail-item">
+          <div class="cust-detail-item-label">Email</div>
+          <div class="cust-detail-item-value">{{ selectedCustomer?.email || '—' }}</div>
+        </div>
+        <div class="cust-detail-item">
+          <div class="cust-detail-item-label">Ngày tham gia</div>
+          <div class="cust-detail-item-value">{{ selectedCustomer?.createdAt | date:'dd/MM/yyyy' }}</div>
+        </div>
+        <div class="cust-detail-item">
+          <div class="cust-detail-item-label">Hạng thành viên</div>
+          <div class="cust-detail-item-value">{{ selectedCustomer?.membershipTier }}</div>
+        </div>
+        <div class="cust-detail-item cust-detail-item-full">
+          <div class="cust-detail-item-label">Địa chỉ</div>
+          <div class="cust-detail-item-value">{{ selectedCustomer?.address || 'Chưa cập nhật' }}</div>
+        </div>
+      </div>
+
+      <div class="cust-detail-section-label">Thống kê mua hàng</div>
+      <div class="cust-detail-metrics">
+        <div class="cust-metric-box">
+          <div class="cust-metric-value">{{ selectedCustomer?.totalOrders }}</div>
+          <div class="cust-metric-label">Tổng đơn hàng</div>
+        </div>
+        <div class="cust-metric-box">
+          <div class="cust-metric-value cust-metric-money">
+            {{ selectedCustomer?.totalSpent ? ((selectedCustomer?.totalSpent || 0) / 1000000 | number:'1.1-1') + 'M' : '0đ' }}
+          </div>
+          <div class="cust-metric-label">Tổng hóa đơn</div>
+        </div>
+        <div class="cust-metric-box">
+          <div class="cust-metric-value cust-metric-avg">{{ getAvgOrder() }}</div>
+          <div class="cust-metric-label">Trung bình/đơn</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cust-detail-footer">
+      <button class="btn-add-main"><i class="bi bi-pencil"></i> Chỉnh sửa</button>
+      <button class="btn-tool text-danger" (click)="onDeleteFromDetail()">
+        <i class="bi bi-trash"></i> Xoá tài khoản
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── MODAL CONFIRM XÓA ── -->
+<div class="modal-overlay" *ngIf="isDeleteModalOpen" (click)="cancelDelete()">
+  <div class="confirm-card" (click)="$event.stopPropagation()">
+    <div class="confirm-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+    <div class="confirm-title">Xác nhận xóa tài khoản</div>
+    <div class="confirm-msg">
+      Bạn có chắc muốn xóa tài khoản <strong>{{ deleteTarget?.username }}</strong>?<br>
+      <span class="confirm-warning">Hành động này không thể hoàn tác. Nếu chỉ muốn hạn chế truy cập, hãy dùng <b>Vô hiệu hóa</b> thay thế.</span>
+    </div>
+    <div class="confirm-actions">
+      <button class="btn-tool" (click)="cancelDelete()">Huỷ</button>
+      <button class="btn-confirm-delete" (click)="confirmDelete()">
+        <i class="bi bi-trash"></i> Xóa vĩnh viễn
+      </button>
+    </div>
+  </div>
+</div>

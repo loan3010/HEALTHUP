@@ -9,6 +9,8 @@ type PaymentMethod  = 'cod' | 'momo' | 'vnpay';
 
 type CheckoutItem = {
   productId: string;
+  variantId?: string | null;
+  variantLabel?: string;
   name: string;
   price: number;
   quantity: number;
@@ -42,7 +44,7 @@ export class Checkout implements OnInit {
   private readonly CHECKOUT_KEY = 'checkout_v1';
 
   // ── Auth ──
-  userId = '';             // public — dùng trong template
+  userId = '';
   private token = '';
 
   // ── Items ──
@@ -66,15 +68,15 @@ export class Checkout implements OnInit {
   // SỔ ĐỊA CHỈ STATE
   // ══════════════════════════════════════
   savedAddresses = signal<SavedAddress[]>([]);
-  selectedAddrId = signal<string>('');   // '' = chưa chọn
+  selectedAddrId = signal<string>('');
   isLoadingAddr  = signal(false);
 
-  // Modal thêm/sửa địa chỉ (từ address-book)
-  showAddrModal   = false;
-  isAddrEditMode  = false;
-  editingAddrIdx  = -1;
-  isAddrSaving    = false;
-  addrModalError  = '';
+  // Modal thêm/sửa địa chỉ
+  showAddrModal    = false;
+  isAddrEditMode   = false;
+  editingAddrIdx   = -1;
+  isAddrSaving     = false;
+  addrModalError   = '';
   addrModalSuccess = '';
 
   // Province/district/ward cho modal địa chỉ
@@ -105,7 +107,6 @@ export class Checkout implements OnInit {
   });
   total = computed(() => Math.max(0, this.subTotal() + this.shippingFee() - this.discount()));
 
-  // Địa chỉ đang được chọn
   get selectedAddr(): SavedAddress | undefined {
     return this.savedAddresses().find(a => this.getId(a) === this.selectedAddrId());
   }
@@ -195,7 +196,6 @@ export class Checkout implements OnInit {
         next: () => {
           const updated = this.savedAddresses().filter((_, i) => i !== idx);
           this.savedAddresses.set(updated);
-          // Nếu đang chọn cái vừa xóa → chọn cái đầu tiên còn lại
           if (this.selectedAddrId() === id) {
             this.selectedAddrId.set(updated.length > 0 ? this.getId(updated[0]) : '');
           }
@@ -205,7 +205,7 @@ export class Checkout implements OnInit {
   }
 
   // ══════════════════════════════════════
-  // MODAL THÊM / SỬA ĐỊA CHỈ (address-book)
+  // MODAL THÊM / SỬA ĐỊA CHỈ
   // ══════════════════════════════════════
   private buildAddrForm(): void {
     this.addrForm = this.fb.group({
@@ -221,12 +221,12 @@ export class Checkout implements OnInit {
   }
 
   openAddAddrModal(): void {
-    this.isAddrEditMode   = false;
-    this.editingAddrIdx   = -1;
-    this.addrModalError   = '';
-    this.addrModalSuccess = '';
-    this.districts        = [];
-    this.wards            = [];
+    this.isAddrEditMode     = false;
+    this.editingAddrIdx     = -1;
+    this.addrModalError     = '';
+    this.addrModalSuccess   = '';
+    this.districts          = [];
+    this.wards              = [];
     this.fullAddressPreview = '';
     this.addrForm.reset({ isDefault: false });
     this.showAddrModal = true;
@@ -256,7 +256,7 @@ export class Checkout implements OnInit {
   }
 
   closeAddrModal(): void {
-    this.showAddrModal = false;
+    this.showAddrModal      = false;
     this.addrForm.reset();
     this.fullAddressPreview = '';
     this.addrModalError     = '';
@@ -429,7 +429,7 @@ export class Checkout implements OnInit {
 
     const payload: any = {
       customer,
-      items:          this.items().map(i => ({ productId: i.productId, quantity: i.quantity })),
+      items:          this.items().map(i => ({ productId: i.productId, variantId: i.variantId || null, variantLabel: i.variantLabel || '', quantity: i.quantity })),
       shippingMethod: this.shippingMethod(),
       paymentMethod:  this.paymentMethod(),
       voucherCode:    this.voucherCode() || null,
@@ -476,7 +476,6 @@ export class Checkout implements OnInit {
   }
 
   private clearAfterSuccess(): void {
-    // 1. Xóa localStorage
     const boughtIds = this.items().map(i => i.productId);
     localStorage.removeItem(this.CHECKOUT_KEY);
     try {
@@ -488,7 +487,6 @@ export class Checkout implements OnInit {
       ));
     } catch {}
 
-    // 2. ✅ Xóa từng sản phẩm đã mua trên server cart
     const userId = this.userId;
     if (userId) {
       const headers = new HttpHeaders({ 'x-user-id': userId });
@@ -496,7 +494,7 @@ export class Checkout implements OnInit {
         this.http.delete(
           `${this.API_BASE}/carts/remove/${productId}`,
           { headers }
-        ).subscribe({ error: () => {} }); // silent fail
+        ).subscribe({ error: () => {} });
       });
     }
 

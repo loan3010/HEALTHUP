@@ -17,6 +17,7 @@ app.use(cors({
   },
   credentials: true
 }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -36,17 +37,18 @@ mongoose.connect(MONGODB_URI)
   .catch(err => console.error('❌ MongoDB connection error:', err));
 
 // Routes
-app.use('/api/products',  require('./routes/products'));
-app.use('/api/reviews',   require('./routes/reviews'));
-app.use('/api/blogs',     require('./routes/blogs'));
-app.use('/api/auth',      require('./routes/auth'));
-app.use('/api/orders',    require('./routes/orders'));
-app.use('/api/carts',     require('./routes/carts'));
-// app.use('/api/addresses', require('./routes/addresses'));
-app.use('/api/users',     require('./routes/users'));   // ✅ THÊM MỚI
-app.use('/api/chatbot',   require('./routes/chatbot.routes'));
-app.use('/api/promotions', require('./routes/promotion.routes'));
-app.use('/api/categories', require('./routes/categories'));
+app.use('/api/products',        require('./routes/products'));
+app.use('/api/reviews',         require('./routes/reviews'));
+app.use('/api/blogs',           require('./routes/blogs'));
+app.use('/api/auth',            require('./routes/auth'));
+app.use('/api/orders',          require('./routes/orders'));
+app.use('/api/carts',           require('./routes/carts'));
+app.use('/api/users',           require('./routes/users'));
+app.use('/api/chatbot',         require('./routes/chatbot.routes'));
+app.use('/api/promotions',      require('./routes/promotion.routes'));
+app.use('/api/categories',      require('./routes/categories'));
+app.use('/api/admin/customers', require('./routes/customer'));
+app.use('/api/admin/dashboard', require('./routes/admin-dashboard'));
 
 // Health check
 app.get('/api/health', (req, res) => {
