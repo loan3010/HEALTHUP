@@ -3,10 +3,19 @@ const mongoose = require('mongoose');
 const OrderItemSchema = new mongoose.Schema(
   {
     productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
+<<<<<<< HEAD
     name:      { type: String, required: true },
     price:     { type: Number, required: true },
     quantity:  { type: Number, required: true, min: 1 },
     imageUrl:  { type: String, default: null },
+=======
+    variantId: { type: mongoose.Schema.Types.ObjectId, default: null },
+    variantLabel: { type: String, default: '' },
+    name: { type: String, required: true },     // snapshot tên lúc mua
+    price: { type: Number, required: true },    // snapshot giá lúc mua
+    quantity: { type: Number, required: true, min: 1 },
+    imageUrl: { type: String, default: null },  // snapshot ảnh
+>>>>>>> origin/feature/product-listing
   },
   { _id: false }
 );

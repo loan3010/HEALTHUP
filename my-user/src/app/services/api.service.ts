@@ -10,6 +10,8 @@ export const STATIC_BASE = 'http://localhost:3000';
 // ─── Cart item shape ────────────────────────────────────────────────────────
 export interface CartItem {
   productId: string;
+  variantId?: string | null;
+  variantLabel?: string;
   name: string;
   price: number;
   quantity: number;
@@ -193,8 +195,9 @@ export class ApiService {
     return this.http.get<Record<string, number>>(`${API_BASE}/products/category-counts`);
   }
 
-  getProductById(id: string): Observable<any> {
-    return this.http.get<any>(`${API_BASE}/products/${id}`).pipe(
+  getProductById(id: string, isAdmin = false): Observable<any> {
+    const params = isAdmin ? new HttpParams().set('isAdmin', 'true') : new HttpParams();
+    return this.http.get<any>(`${API_BASE}/products/${id}`, { params }).pipe(
       map(p => this.fixImages(p))
     );
   }
@@ -275,10 +278,16 @@ export class ApiService {
 
   // ✅ Lấy từ 0ed69bcb: dùng cartHeaders() + tap để refresh count + show toast
   // ❌ Bỏ HEAD: hardcode userId '507f1f77bcf86cd799439011' và endpoint /cart/add không nhất quán
-  addToCart(productId: string, quantity: number, productName?: string): Observable<any> {
+  addToCart(
+    productId: string,
+    quantity: number,
+    productName?: string,
+    variantId?: string | null,
+    variantLabel?: string
+  ): Observable<any> {
     return this.http.post<any>(
       `${API_BASE}/carts/add`,
-      { productId, quantity },
+      { productId, quantity, variantId: variantId || null, variantLabel: variantLabel || '' },
       { headers: this.cartHeaders() }
     ).pipe(
       tap(() => {
@@ -300,17 +309,18 @@ export class ApiService {
     );
   }
 
-  updateCartItem(productId: string, quantity: number): Observable<any> {
+  updateCartItem(productId: string, quantity: number, variantId?: string | null): Observable<any> {
     return this.http.put<any>(
       `${API_BASE}/carts/update`,
-      { productId, quantity },
+      { productId, quantity, variantId: variantId || null },
       { headers: this.cartHeaders() }
     ).pipe(tap(() => this.refreshCartCount()));
   }
 
-  removeCartItem(productId: string): Observable<any> {
+  removeCartItem(productId: string, variantId?: string | null): Observable<any> {
+    const query = variantId ? `?variantId=${encodeURIComponent(variantId)}` : '';
     return this.http.delete<any>(
-      `${API_BASE}/carts/remove/${productId}`,
+      `${API_BASE}/carts/remove/${productId}${query}`,
       { headers: this.cartHeaders() }
     ).pipe(tap(() => this.refreshCartCount()));
   }

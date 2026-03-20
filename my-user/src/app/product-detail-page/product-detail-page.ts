@@ -43,6 +43,7 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
   activeImage = '';
   selectedWeight = '';
   selectedType = '';
+  selectedVariantId = '';
 
   activeTab: 'desc' | 'nutrition' | 'policy' = 'desc';
 
@@ -119,13 +120,19 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
         this.product        = data;
         this.activeImage    = data.images?.[0] || '';
         this.selectedWeight = data.weights?.[0]?.label || '';
-        this.selectedType   = data.packagingTypes?.[0] || '';
+        this.selectedType   = this.visiblePackagingTypes(data)?.[0] || '';
+        this.selectedVariantId = data.variants?.[0]?._id || '';
         this.isLoading      = false;
         this.cdr.detectChanges();
       },
       error: (err: any) => {
         console.error('Lỗi tải sản phẩm:', err);
         this.isLoading = false;
+        // 404 = sản phẩm không tồn tại hoặc đang ẩn → về trang danh sách
+        if (err.status === 404) {
+          this.router.navigate(['/product-listing-page']);
+        }
+        this.cdr.detectChanges();
       }
     });
   }
@@ -253,14 +260,62 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
   }
 
   increaseQty(): void {
-    if (this.product && this.qty < this.product.stock) this.qty++;
+    if (this.product && this.qty < this.currentStock()) this.qty++;
+  }
+
+  currentVariant(): any | null {
+    if (!this.product?.variants?.length) return null;
+    return this.product.variants.find((v: any) => String(v._id) === String(this.selectedVariantId)) || null;
+  }
+
+  currentPrice(): number {
+    const v = this.currentVariant();
+    return Number(v?.price ?? this.product?.price ?? 0);
+  }
+
+  currentOldPrice(): number {
+    const v = this.currentVariant();
+    return Number(v?.oldPrice ?? this.product?.oldPrice ?? 0);
+  }
+
+  currentStock(): number {
+    const v = this.currentVariant();
+    return Number(v?.stock ?? this.product?.stock ?? 0);
+  }
+
+  visiblePackagingTypes(productLike?: any): string[] {
+    const p = productLike || this.product;
+    const pack = Array.isArray(p?.packagingTypes) ? p.packagingTypes : [];
+    const variantLabels = Array.isArray(p?.variants) ? p.variants.map((v: any) => String(v.label || '').trim()) : [];
+    if (!pack.length) return [];
+    if (!variantLabels.length) return pack;
+
+    const variantsSet = new Set(variantLabels.map((x: string) => x.toLowerCase()));
+    const filtered = pack.filter((x: string) => !variantsSet.has(String(x || '').trim().toLowerCase()));
+    return filtered;
+  }
+
+  isProductCompletelyOutOfStock(): boolean {
+    if (!this.product) return true;
+    if (Array.isArray(this.product.variants) && this.product.variants.length > 0) {
+      const total = this.product.variants.reduce((sum: number, v: any) => sum + Number(v?.stock || 0), 0);
+      return total <= 0;
+    }
+    return Number(this.product.stock || 0) <= 0;
   }
 
   addToCart(): void {
     if (this.addedToCart || !this.product?._id) return;
     this.addToCartError = '';
 
-    this.api.addToCart(this.product._id, this.qty, this.product.name).subscribe({
+    const v = this.currentVariant();
+    this.api.addToCart(
+      this.product._id,
+      this.qty,
+      this.product.name,
+      v?._id || null,
+      v?.label || ''
+    ).subscribe({
       next: () => {
         this.addedToCart = true;
         this.api.showToast(`Đã thêm ${this.qty} sản phẩm vào giỏ hàng!`, 'success');
@@ -282,10 +337,13 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
   buyNow(): void {
     if (!this.product?._id) return;
 
+    const v = this.currentVariant();
     const checkoutItem = [{
       productId: this.product._id,
+      variantId: v?._id || null,
+      variantLabel: v?.label || '',
       name:      this.product.name,
-      price:     this.product.price,
+      price:     this.currentPrice(),
       quantity:  this.qty,
       imageUrl:  this.product.images?.[0] || this.product.image || null,
       weight:    this.selectedWeight,

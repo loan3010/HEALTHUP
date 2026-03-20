@@ -9,6 +9,10 @@ const userSchema = new mongoose.Schema(
     passwordHash: { type: String, required: true },
     role:         { type: String, enum: ['user', 'admin'], default: 'user' },
 
+    // Trạng thái hoạt động của tài khoản (dùng cho admin-customer)
+    // Mặc định user mới tạo sẽ đang hoạt động
+    isActive:     { type: Boolean, default: true },
+
     // Profile
     dob:     { type: String, default: '' },
     gender:  { type: String, enum: ['male', 'female', 'other'], default: 'male' },

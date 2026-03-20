@@ -5,7 +5,6 @@ const jwt = require('jsonwebtoken');
 // Middleware xác thực token
 exports.authenticateToken = (req, res, next) => {
   try {
-    // Lấy token từ header
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
@@ -15,7 +14,6 @@ exports.authenticateToken = (req, res, next) => {
       });
     }
 
-    // Verify token
     jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
       if (err) {
         return res.status(403).json({ 
@@ -23,7 +21,6 @@ exports.authenticateToken = (req, res, next) => {
         });
       }
 
-      // Lưu thông tin user vào req
       req.user = decoded;
       next();
     });
@@ -31,4 +28,15 @@ exports.authenticateToken = (req, res, next) => {
     console.error('Auth middleware error:', error);
     res.status(500).json({ message: 'Lỗi xác thực' });
   }
+};
+
+// Middleware kiểm tra role admin
+// Dùng SAU authenticateToken: router.use(authenticateToken, requireAdmin)
+exports.requireAdmin = (req, res, next) => {
+  if (req.user?.role !== 'admin') {
+    return res.status(403).json({ 
+      message: 'Bạn không có quyền truy cập tính năng này' 
+    });
+  }
+  next();
 };

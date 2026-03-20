@@ -18,6 +18,8 @@ export interface CartItemVariants {
 
 export interface CartItem {
   productId: string;
+  variantId?: string | null;
+  variantLabel?: string;
   name: string;
   price: number;
   imageUrl?: string;
@@ -97,6 +99,8 @@ export class Cart implements OnInit, OnDestroy {
 
           return {
             productId:     String(p?._id || item.productId || ''),
+            variantId:     item.variantId || null,
+            variantLabel:  item.variantLabel || '',
             name:          p?.name  || item.name  || 'Sản phẩm',
             price:         p?.price || item.price || 0,
             imageUrl,
@@ -165,6 +169,8 @@ export class Cart implements OnInit, OnDestroy {
       .filter(it => it.selected)
       .map(it => ({
         productId:     it.productId,
+        variantId:     it.variantId || null,
+        variantLabel:  it.variantLabel || '',
         name:          it.name,
         price:         it.price,
         quantity:      it.quantity,
@@ -234,6 +240,7 @@ export class Cart implements OnInit, OnDestroy {
     // ✅ Capture trước khi closeModal() null chúng
     const isClear = this.clearSelectedMode;
     const target  = this.itemToDelete;
+
     this.closeModal();
 
     if (isClear) {
@@ -245,8 +252,8 @@ export class Cart implements OnInit, OnDestroy {
 
     this.api.removeCartItem(target.productId).subscribe({
       next: () => {
-        this.items = this.items.filter(x => x.productId !== target.productId);
-        delete this.overQtyMsg[target.productId];
+        this.items = this.items.filter(x => this.itemKey(x) !== this.itemKey(target));
+        delete this.overQtyMsg[this.itemKey(target)];
         this.calcTotal();
         this.cdr.detectChanges();
       },
@@ -269,6 +276,7 @@ export class Cart implements OnInit, OnDestroy {
   dec(it: CartItem): void {
     const newQty = it.quantity - 1;
     it.quantity  = newQty;
+    delete this.overQtyMsg[this.itemKey(it)];
     this.calcTotal();
     this.cdr.detectChanges();
 
@@ -323,6 +331,10 @@ export class Cart implements OnInit, OnDestroy {
   }
 
   trackById(_: number, item: CartItem) {
-    return item.productId;
+    return this.itemKey(item);
+  }
+
+  private itemKey(item: CartItem): string {
+    return `${item.productId}__${item.variantId || ''}`;
   }
 }

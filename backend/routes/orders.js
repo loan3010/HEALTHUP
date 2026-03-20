@@ -4,7 +4,7 @@ const router   = express.Router();
 
 const Order   = require('../models/Order');
 const Product = require('../models/Product');
-const Cart = require('../models/Cart');
+const Cart    = require('../models/Cart');
 
 // ======================= HELPER =======================
 
@@ -45,8 +45,10 @@ router.post('/', async (req, res) => {
 
     // Validate items
     const normalizedIn = items.map(i => ({
-      productId: String(i.productId || '').trim(),
-      quantity:  Math.max(1, Number(i.quantity || 1))
+      productId:    String(i.productId || '').trim(),
+      variantId:    String(i.variantId || '').trim(),
+      variantLabel: String(i.variantLabel || '').trim(),
+      quantity:     Math.max(1, Number(i.quantity || 1)),
     }));
 
     const invalidIds = normalizedIn
@@ -55,6 +57,14 @@ router.post('/', async (req, res) => {
 
     if (invalidIds.length) {
       return res.status(400).json({ message: 'productId không hợp lệ', invalidIds });
+    }
+
+    const invalidVariantIds = normalizedIn
+      .filter(i => i.variantId && !mongoose.Types.ObjectId.isValid(i.variantId))
+      .map(i => i.variantId);
+
+    if (invalidVariantIds.length) {
+      return res.status(400).json({ message: 'variantId không hợp lệ', invalidVariantIds });
     }
 
     const ids      = normalizedIn.map(i => new mongoose.Types.ObjectId(i.productId));
@@ -70,19 +80,43 @@ router.post('/', async (req, res) => {
     }
 
     // Build order items
-    let subTotal = 0;
-    const orderItems = normalizedIn.map(i => {
-      const p     = map.get(i.productId);
-      const price = Number(p.price || 0);
-      subTotal   += price * i.quantity;
-      return {
-        productId: p._id,
-        name:      p.name || 'Product',
+    let subTotal   = 0;
+    const orderItems = [];
+
+    for (const i of normalizedIn) {
+      const p = map.get(i.productId);
+      let variant = null;
+
+      if (i.variantId && mongoose.Types.ObjectId.isValid(i.variantId)) {
+        variant = (p.variants || []).find(v => String(v._id) === String(i.variantId));
+        if (!variant) {
+          return res.status(400).json({ message: `Biến thể không tồn tại cho sản phẩm ${p.name}` });
+        }
+      }
+
+      const qty       = i.quantity;
+      const available = Number(variant?.stock ?? p.stock ?? 0);
+      if (qty > available) {
+        return res.status(400).json({
+          message: `Sản phẩm "${p.name}" chỉ còn ${available} trong kho`
+        });
+      }
+
+      const price  = Number(variant?.price ?? p.price ?? 0);
+      subTotal    += price * qty;
+
+      const image = p.images?.[0] ?? null;
+
+      orderItems.push({
+        productId:    p._id,
+        variantId:    variant?._id || null,
+        variantLabel: variant?.label || i.variantLabel || '',
+        name:         p.name || 'Product',
         price,
-        quantity:  i.quantity,
-        imageUrl:  p.images?.[0] ?? null,
-      };
-    });
+        quantity:     qty,
+        imageUrl:     image,
+      });
+    }
 
     const ship  = calcShipping(subTotal, shippingMethod);
     const disc  = calcDiscount(voucherCode, subTotal, ship);
@@ -112,7 +146,6 @@ router.post('/', async (req, res) => {
       userId:         null,
     };
 
-    // Validate và gắn userId nếu đã đăng nhập
     if (userId && mongoose.Types.ObjectId.isValid(String(userId))) {
       orderData.userId = new mongoose.Types.ObjectId(String(userId));
     }
@@ -129,6 +162,27 @@ router.post('/', async (req, res) => {
           await cart.save();
         }
       } catch (e) { /* không chặn response nếu lỗi xóa cart */ }
+    }
+
+    // Trừ kho sau khi tạo đơn thành công
+    for (const item of orderItems) {
+      const p = await Product.findById(item.productId);
+      if (!p) continue;
+
+      if (item.variantId) {
+        const idx = (p.variants || []).findIndex(v => String(v._id) === String(item.variantId));
+        if (idx >= 0) {
+          p.variants[idx].stock = Math.max(0, Number(p.variants[idx].stock || 0) - Number(item.quantity || 0));
+        }
+      } else {
+        p.stock = Math.max(0, Number(p.stock || 0) - Number(item.quantity || 0));
+      }
+
+      // Đồng bộ tồn tổng từ biến thể nếu sản phẩm đang dùng variants
+      if (Array.isArray(p.variants) && p.variants.length > 0) {
+        p.stock = p.variants.reduce((sum, v) => sum + Number(v.stock || 0), 0);
+      }
+      await p.save();
     }
 
     return res.status(201).json({ orderId: order._id });
@@ -148,7 +202,6 @@ router.get('/', async (req, res) => {
   try {
     const { userId } = req.query;
 
-    // Nếu có userId thì lọc theo user, không thì lấy tất cả (cho admin)
     const filter = userId && mongoose.Types.ObjectId.isValid(userId)
       ? { userId: new mongoose.Types.ObjectId(userId) }
       : {};
