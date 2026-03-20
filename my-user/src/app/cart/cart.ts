@@ -76,18 +76,25 @@ export class Cart implements OnInit, OnDestroy {
   // ================= LOAD TỪ API =================
   loadCartFromApi(): void {
     this.isLoading = true;
-    this.cdr.detectChanges();
+    // FIX #2: Bỏ detectChanges() ở đây để tránh NG0100
+    // Angular tự detect khi isLoading thay đổi trong zone
 
     this.api.getCart().subscribe({
       next: (res) => {
-        const rawItems = res?.items || res?.cart?.items || [];
+        // FIX #3: Hỗ trợ thêm shape res.data.items và res trực tiếp là array
+        const rawItems: any[] =
+          res?.items ||
+          res?.cart?.items ||
+          res?.data?.items ||
+          (Array.isArray(res) ? res : []);
 
         this.items = rawItems.map((item: any) => {
+          // Nếu backend populate productId thành object thì dùng, không thì fallback về item
           const p = (item.productId && typeof item.productId === 'object')
             ? item.productId
             : null;
 
-          const imageRaw = p?.images?.[0] || p?.image || item.imageUrl || '';
+          const imageRaw = p?.images?.[0] || p?.image || item.imageUrl || item.image || '';
           const imageUrl = imageRaw
             ? (imageRaw.startsWith('http') ? imageRaw : `${STATIC_BASE}${imageRaw}`)
             : '';
@@ -99,10 +106,11 @@ export class Cart implements OnInit, OnDestroy {
 
           return {
             productId:     String(p?._id || item.productId || ''),
-            variantId:     item.variantId || null,
+            variantId:     item.variantId  || null,
             variantLabel:  item.variantLabel || '',
-            name:          p?.name  || item.name  || 'Sản phẩm',
-            price:         p?.price || item.price || 0,
+            // FIX #3: Fallback đúng thứ tự — populate object trước, rồi item trực tiếp
+            name:          p?.name   ?? item.name   ?? 'Sản phẩm',
+            price:         p?.price  ?? item.price  ?? 0,
             imageUrl,
             quantity:      item.quantity || 1,
             selected:      false,
@@ -114,12 +122,13 @@ export class Cart implements OnInit, OnDestroy {
 
         this.isLoading = false;
         this.calcTotal();
-        this.cdr.detectChanges();
+        // FIX #2: Dùng setTimeout để defer detectChanges sang cycle tiếp theo, tránh NG0100
+        setTimeout(() => this.cdr.detectChanges());
       },
       error: (err) => {
         console.error('Lỗi tải giỏ hàng:', err);
         this.isLoading = false;
-        this.cdr.detectChanges();
+        setTimeout(() => this.cdr.detectChanges());
       }
     });
   }
@@ -169,12 +178,12 @@ export class Cart implements OnInit, OnDestroy {
       .filter(it => it.selected)
       .map(it => ({
         productId:     it.productId,
-        variantId:     it.variantId || null,
-        variantLabel:  it.variantLabel || '',
+        variantId:     it.variantId     || null,
+        variantLabel:  it.variantLabel  || '',
         name:          it.name,
         price:         it.price,
         quantity:      it.quantity,
-        imageUrl:      it.imageUrl ?? null,
+        imageUrl:      it.imageUrl      ?? null,
         selectedSize:  it.selectedSize  ?? null,
         selectedColor: it.selectedColor ?? null,
       }));
@@ -237,7 +246,7 @@ export class Cart implements OnInit, OnDestroy {
   }
 
   acceptConfirm(): void {
-    // ✅ Capture trước khi closeModal() null chúng
+    // Capture trước khi closeModal() null chúng
     const isClear = this.clearSelectedMode;
     const target  = this.itemToDelete;
 
@@ -330,7 +339,10 @@ export class Cart implements OnInit, OnDestroy {
     });
   }
 
-  trackById(_: number, item: CartItem) {
+  // FIX #1: Dùng arrow function để giữ đúng context `this`
+  // Trước: trackById(_: number, item: CartItem) { return this.itemKey(item); }
+  // → Khi Angular gọi trackBy, `this` bị mất → itemKey is not a function
+  trackById = (_: number, item: CartItem): string => {
     return this.itemKey(item);
   }
 

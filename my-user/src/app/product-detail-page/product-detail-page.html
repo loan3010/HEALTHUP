@@ -75,21 +75,12 @@
 
         <!-- Giá -->
         <div class="d-flex align-items-baseline gap-3 flex-wrap">
-<<<<<<< HEAD
-          <span class="detail-price">{{ product.price * qty | currency:'VND':'symbol':'1.0-0' }}</span>
-          <span class="detail-price-old" *ngIf="product.oldPrice">
-            {{ product.oldPrice * qty | currency:'VND':'symbol':'1.0-0' }}
-          </span>
-          <span class="save-badge" *ngIf="product.oldPrice">
-            Tiết kiệm {{ (product.oldPrice - product.price) * qty | currency:'VND':'symbol':'1.0-0' }}
-=======
           <span class="detail-price">{{ currentPrice() | currency:'VND':'symbol':'1.0-0' }}</span>
           <span class="detail-price-old" *ngIf="currentOldPrice()">
             {{ currentOldPrice() | currency:'VND':'symbol':'1.0-0' }}
           </span>
           <span class="save-badge" *ngIf="currentOldPrice()">
             Tiết kiệm {{ (currentOldPrice() - currentPrice()) | currency:'VND':'symbol':'1.0-0' }}
->>>>>>> origin/feature/product-listing
           </span>
         </div>
 
@@ -310,11 +301,7 @@
                   <span class="ms-1">({{ p.reviewCount || p.reviews || 0 }})</span>
                 </div>
               </div>
-<<<<<<< HEAD
-              <button class="btn-add" (click)="addRelated($event, p)">
-=======
-              <button class="btn-add" [disabled]="p.stock === 0 || p.isOutOfStock" (click)="addRelated($event, p._id)">
->>>>>>> origin/feature/product-listing
+              <button class="btn-add" [disabled]="p.stock === 0 || p.isOutOfStock" (click)="addRelated($event, p)">
                 <i class="bi bi-plus"></i>
               </button>
             </div>
