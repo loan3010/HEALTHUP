@@ -1,21 +1,21 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core'; // Thêm Output và EventEmitter
+import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-admin-sidebar',
   standalone: true,
-  imports: [CommonModule], 
+  imports: [CommonModule],
   templateUrl: './admin-sidebar.html',
   styleUrls: ['./admin-sidebar.css']
 })
 export class AdminSidebar {
-  @Input() isOpen: boolean = true; 
-  @Output() tabChange = new EventEmitter<string>(); // Phát tín hiệu khi đổi tab
+  @Input() isOpen: boolean = true;
+  @Output() tabChange = new EventEmitter<string>();
 
-  activeTab: string = 'tong-quan'; 
+  activeTab: string = 'khuyen-mai';
 
   setActiveTab(tabName: string) {
     this.activeTab = tabName;
-    this.tabChange.emit(tabName); // Gửi tên tab ra ngoài cho Layout
+    this.tabChange.emit(tabName);
   }
 }

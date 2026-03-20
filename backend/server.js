@@ -45,6 +45,8 @@ app.use('/api/carts',     require('./routes/carts'));
 // app.use('/api/addresses', require('./routes/addresses'));
 app.use('/api/users',     require('./routes/users'));   // ✅ THÊM MỚI
 app.use('/api/chatbot',   require('./routes/chatbot.routes'));
+app.use('/api/promotions', require('./routes/promotion.routes'));
+app.use('/api/categories', require('./routes/categories'));
 
 // Health check
 app.get('/api/health', (req, res) => {

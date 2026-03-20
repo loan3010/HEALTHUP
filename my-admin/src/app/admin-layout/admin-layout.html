@@ -13,9 +13,9 @@
       <div [ngSwitch]="currentTab">
         
         <div *ngSwitchCase="'tong-quan'">
-          <div style="padding: 20px; background: white; border-radius: 8px;">
+          <div style="padding: 20px; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
             <h2>Chào mừng bạn đến với Dashboard</h2>
-            <p>Chọn một mục bên trái để bắt đầu quản lý.</p>
+            <p>Chọn một mục bên trái để bắt đầu quản lý hệ thống HealthUp.</p>
           </div>
         </div>
 
@@ -36,7 +36,7 @@
         </div>
 
         <div *ngSwitchDefault>
-          <div class="text-center mt-5">
+          <div style="text-align: center; margin-top: 50px;">
             <i class="bi bi-cone-striped" style="font-size: 3rem; color: #ccc;"></i>
             <p>Tính năng quản lý <strong>{{currentTab}}</strong> đang được phát triển.</p>
           </div>
