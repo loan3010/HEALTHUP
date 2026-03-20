@@ -68,12 +68,12 @@
 
         <!-- Giá -->
         <div class="d-flex align-items-baseline gap-3 flex-wrap">
-          <span class="detail-price">{{ product.price | currency:'VND':'symbol':'1.0-0' }}</span>
+          <span class="detail-price">{{ product.price * qty | currency:'VND':'symbol':'1.0-0' }}</span>
           <span class="detail-price-old" *ngIf="product.oldPrice">
-            {{ product.oldPrice | currency:'VND':'symbol':'1.0-0' }}
+            {{ product.oldPrice * qty | currency:'VND':'symbol':'1.0-0' }}
           </span>
           <span class="save-badge" *ngIf="product.oldPrice">
-            Tiết kiệm {{ (product.oldPrice - product.price) | currency:'VND':'symbol':'1.0-0' }}
+            Tiết kiệm {{ (product.oldPrice - product.price) * qty | currency:'VND':'symbol':'1.0-0' }}
           </span>
         </div>
 
@@ -125,7 +125,7 @@
           </span>
         </div>
 
-        <!-- CTA  dẫ chỉnh-->
+        <!-- CTA -->
         <div class="d-flex gap-3 mt-4">
 
   <button
@@ -271,7 +271,7 @@
                   <span class="ms-1">({{ p.reviewCount || p.reviews || 0 }})</span>
                 </div>
               </div>
-              <button class="btn-add" (click)="addRelated($event, p._id)">
+              <button class="btn-add" (click)="addRelated($event, p)">
                 <i class="bi bi-plus"></i>
               </button>
             </div>
