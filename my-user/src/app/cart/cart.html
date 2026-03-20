@@ -56,6 +56,7 @@
 
         <div class="info">
           <div class="name">{{ it.name }}</div>
+          <div class="variant" *ngIf="it.variantLabel">Phân loại: {{ it.variantLabel }}</div>
           <div class="price">{{ it.price | number }} đ</div>
         </div>
 

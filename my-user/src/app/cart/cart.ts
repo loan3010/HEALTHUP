@@ -2,9 +2,12 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { ApiService, STATIC_BASE } from '../services/api.service';
 
 export interface CartItem {
   productId: string;
+  variantId?: string | null;
+  variantLabel?: string;
   name: string;
   price: number;
   imageUrl?: string;
@@ -12,7 +15,6 @@ export interface CartItem {
   selected?: boolean;
 }
 
-const CART_KEY = 'cart_v1';
 const CHECKOUT_KEY = 'checkout_v1';
 
 @Component({
@@ -25,6 +27,7 @@ const CHECKOUT_KEY = 'checkout_v1';
 export class Cart implements OnInit {
   items: CartItem[] = [];
   total = 0;
+  isLoading = true;
 
   overQtyMsg: Record<string, string> = {};
 
@@ -33,34 +36,45 @@ export class Cart implements OnInit {
   confirmMessage = '';
   itemToDelete: CartItem | null = null;
 
-  private stockMap: Record<string, number> = {
-    'p001': 5,
-    'p002': 20,
-    'p003': 1,
-  };
-
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private api: ApiService
+  ) {}
 
   ngOnInit(): void {
-    this.items = this.readStorage();
-    // nếu muốn giữ trạng thái tick khi reload thì bỏ dòng này
-    this.items.forEach(it => it.selected = it.selected ?? false);
-    this.calcTotal();
+    this.loadCartFromApi();
   }
 
-  // ================= STORAGE =================
-  private writeStorage(): void {
-    localStorage.setItem(CART_KEY, JSON.stringify(this.items));
-    this.calcTotal();
-  }
-
-  private readStorage(): CartItem[] {
-    try {
-      const raw = localStorage.getItem(CART_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
+  // ================= LOAD TỪ API =================
+  private loadCartFromApi(): void {
+    this.isLoading = true;
+    this.api.getCart().subscribe({
+      next: (cart) => {
+        this.items = (cart.items || []).map((item: any) => {
+          const p = item.productId; // đã populate
+          const imageRaw = p?.images?.[0] || p?.image || '';
+          const imageUrl = imageRaw.startsWith('http')
+            ? imageRaw
+            : `${STATIC_BASE}${imageRaw}`;
+          return {
+            productId: String(p?._id || item.productId),
+            variantId: item.variantId || null,
+            variantLabel: item.variantLabel || '',
+            name:      p?.name || 'Sản phẩm',
+            price:     p?.price || 0,
+            imageUrl,
+            quantity:  item.quantity,
+            selected:  false,
+          };
+        });
+        this.isLoading = false;
+        this.calcTotal();
+      },
+      error: (err) => {
+        console.error('Lỗi tải giỏ hàng:', err);
+        this.isLoading = false;
+      }
+    });
   }
 
   // ================= TOTAL =================
@@ -72,7 +86,6 @@ export class Cart implements OnInit {
 
   updateTotal(): void {
     this.calcTotal();
-    this.writeStorage(); // ✅ lưu lại selected khi tick/untick
   }
 
   // ================= SELECT =================
@@ -87,15 +100,14 @@ export class Cart implements OnInit {
   toggleSelectAll(event: Event): void {
     const checked = (event.target as HTMLInputElement).checked;
     this.items.forEach(it => it.selected = checked);
-    this.writeStorage(); // ✅ lưu selected
+    this.calcTotal();
   }
 
   // ================= NAVIGATION =================
   buyNow(): void {
-    this.router.navigate(['/products']);
+    this.router.navigate(['/product-listing-page']);
   }
 
-  // ✅ CHỈNH Ở ĐÂY
   checkout(): void {
     if (!this.selectedCount) return;
 
@@ -103,15 +115,15 @@ export class Cart implements OnInit {
       .filter(it => it.selected)
       .map(it => ({
         productId: it.productId,
-        name: it.name,
-        price: it.price,
-        quantity: it.quantity,
-        imageUrl: it.imageUrl ?? null,
+        variantId: it.variantId || null,
+        variantLabel: it.variantLabel || '',
+        name:      it.name,
+        price:     it.price,
+        quantity:  it.quantity,
+        imageUrl:  it.imageUrl ?? null,
       }));
 
-    // lưu riêng danh sách mua để checkout đọc
     localStorage.setItem(CHECKOUT_KEY, JSON.stringify(selectedItems));
-
     this.router.navigate(['/checkout']);
   }
 
@@ -135,9 +147,9 @@ export class Cart implements OnInit {
 
   acceptConfirm(): void {
     if (this.itemToDelete) {
-      this.items = this.items.filter(x => x.productId !== this.itemToDelete!.productId);
-      delete this.overQtyMsg[this.itemToDelete.productId];
-      this.writeStorage();
+      this.items = this.items.filter(x => this.itemKey(x) !== this.itemKey(this.itemToDelete!));
+      delete this.overQtyMsg[this.itemKey(this.itemToDelete)];
+      this.calcTotal();
     }
     this.closeModal();
   }
@@ -157,13 +169,14 @@ export class Cart implements OnInit {
   }
 
   dec(it: CartItem): void {
-    delete this.overQtyMsg[it.productId];
+    delete this.overQtyMsg[this.itemKey(it)];
     it.quantity--;
-    this.writeStorage();
+    this.calcTotal();
   }
 
   inc(it: CartItem): void {
-    this.trySetQty(it, it.quantity + 1);
+    it.quantity++;
+    this.calcTotal();
   }
 
   onQtyInput(it: CartItem, value: string): void {
@@ -175,22 +188,15 @@ export class Cart implements OnInit {
       return;
     }
 
-    this.trySetQty(it, next);
-  }
-
-  private trySetQty(it: CartItem, nextQty: number): void {
-    const stock = this.stockMap[it.productId] ?? 0;
-
-    if (nextQty <= stock) {
-      delete this.overQtyMsg[it.productId];
-      it.quantity = nextQty;
-      this.writeStorage();
-    } else {
-      this.overQtyMsg[it.productId] = `Vượt quá số lượng (tồn kho: ${stock})`;
-    }
+    it.quantity = next;
+    this.calcTotal();
   }
 
   trackById(_: number, item: CartItem) {
-    return item.productId;
+    return this.itemKey(item);
+  }
+
+  private itemKey(item: CartItem): string {
+    return `${item.productId}__${item.variantId || ''}`;
   }
 }

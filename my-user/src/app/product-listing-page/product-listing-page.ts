@@ -1,10 +1,10 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule, CurrencyPipe } from '@angular/common';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { Subscription } from 'rxjs';
 import { SidebarComponent, SidebarFilters } from '../sidebar/sidebar';
 import { ApiService } from '../services/api.service';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
 
 export interface FilterTag { key: string; label: string; }
 
@@ -15,7 +15,7 @@ export interface FilterTag { key: string; label: string; }
   templateUrl: './product-listing-page.html',
   styleUrls: ['./product-listing-page.css']
 })
-export class ProductListingPageComponent implements OnInit {
+export class ProductListingPageComponent implements OnInit, OnDestroy {
 
   viewMode: 'grid' | 'list' = 'grid';
   sortBy = 'popular';
@@ -23,14 +23,10 @@ export class ProductListingPageComponent implements OnInit {
   currentPage = 1;
   pageSize = 9;
 
+  // ── Wishlist từ service stream ──────────────────────────────────────────────
   wishlist: string[] = [];
-  toastMessage = '';
-  toastVisible = false;
-  private toastTimer: any;
+  private wishlistSub!: Subscription;
 
-  private API = 'http://localhost:3000/api';
-  private userId = '';
-  private token = '';
   selectedFilters: string[] = [];
   priceRange: [number, number] = [0, 1000000];
   activeFilterTags: FilterTag[] = [];
@@ -52,13 +48,11 @@ export class ProductListingPageComponent implements OnInit {
   constructor(
     private router: Router,
     private route: ActivatedRoute,
-    private api: ApiService,
-    private cdr: ChangeDetectorRef,
-    private http: HttpClient
+    public api: ApiService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
-    this.loadUserAuth();
     this.loadCategoryCounts();
 
     this.route.queryParams.subscribe(params => {
@@ -70,8 +64,19 @@ export class ProductListingPageComponent implements OnInit {
         this.selectedFilters = [];
         this.currentFilters.categories = [];
       }
+      this.currentPage = 1;
       this.loadProducts();
     });
+
+    // Sync wishlist với service
+    this.wishlistSub = this.api.wishlist$.subscribe(list => {
+      this.wishlist = list;
+      this.cdr.detectChanges();
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.wishlistSub?.unsubscribe();
   }
 
   loadCategoryCounts(): void {
@@ -87,7 +92,7 @@ export class ProductListingPageComponent implements OnInit {
   loadProducts(): void {
     this.isLoading = true;
     this.displayedProducts = [];
-    this.cdr.detectChanges(); // ✅ force skeleton hiện ngay
+    this.cdr.detectChanges();
 
     const filters: any = {
       sort:  this.sortBy,
@@ -115,7 +120,7 @@ export class ProductListingPageComponent implements OnInit {
         this.totalPages        = res.totalPages || 1;
         this.buildPageNumbers();
         this.isLoading = false;
-        this.cdr.detectChanges(); // ✅ force skeleton tắt, product card hiện
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Lỗi tải sản phẩm:', err);
@@ -182,75 +187,27 @@ export class ProductListingPageComponent implements OnInit {
     return '★'.repeat(full) + '☆'.repeat(5 - full);
   }
 
-  isWishlisted(id: string): boolean { return this.wishlist.includes(id); }
-
-  loadUserAuth(): void {
-    const userStr = localStorage.getItem('user');
-    const token   = localStorage.getItem('token');
-    if (userStr && token) {
-      try {
-        const user  = JSON.parse(userStr);
-        this.userId = user.id;
-        this.token  = token;
-        this.loadWishlistIds();
-      } catch {}
-    }
+  isWishlisted(id: string): boolean {
+    return this.wishlist.includes(id);
   }
 
-  loadWishlistIds(): void {
-    if (!this.userId || !this.token) return;
-    const headers = new HttpHeaders({ Authorization: `Bearer ${this.token}` });
-    this.http.get<any>(`${this.API}/users/${this.userId}/wishlist`, { headers })
-      .subscribe({
-        next: (res) => {
-          this.wishlist = (res.wishlist || []).map((p: any) => p._id);
-          this.cdr.detectChanges();
-        }
-      });
-  }
-
-  toggleWishlist(event: Event, id: string): void {
+  // ── Wishlist tập trung qua service ──────────────────────────────────────────
+  toggleWishlist(event: Event, product: any): void {
     event.stopPropagation();
-    if (!this.userId || !this.token) {
-      this.router.navigate(['/login']);
-      return;
-    }
-    const headers = new HttpHeaders({ Authorization: `Bearer ${this.token}` });
-
-    if (this.isWishlisted(id)) {
-      this.http.delete(`${this.API}/users/${this.userId}/wishlist/${id}`, { headers })
-        .subscribe({
-          next: () => {
-            this.wishlist = this.wishlist.filter(x => x !== id);
-            this.showToast('Đã xóa khỏi yêu thích');
-            this.cdr.detectChanges();
-          }
-        });
-    } else {
-      this.http.post(`${this.API}/users/${this.userId}/wishlist`, { productId: id }, { headers })
-        .subscribe({
-          next: () => {
-            this.wishlist = [...this.wishlist, id];
-            this.showToast('Đã thêm vào yêu thích ❤️');
-            this.cdr.detectChanges();
-          }
-        });
-    }
+    this.api.toggleWishlist(product._id, product.name);
   }
 
-  showToast(msg: string): void {
-    this.toastMessage = msg;
-    this.toastVisible = true;
-    clearTimeout(this.toastTimer);
-    this.toastTimer = setTimeout(() => {
-      this.toastVisible = false;
-      this.cdr.detectChanges();
-    }, 2500);
-  }
-
-  addToCart(event: Event, id: string): void {
+  // ── addToCart gọi API thực sự, toast qua service ────────────────────────────
+  addToCart(event: Event, product: any): void {
     event.stopPropagation();
-    console.log('Add to cart:', id);
+    if (!product?._id) return;
+
+    this.api.addToCart(product._id, 1, product.name).subscribe({
+      error: (err) => {
+        console.error('Lỗi thêm giỏ hàng:', err);
+        this.api.showToast('Không thể thêm vào giỏ hàng. Vui lòng thử lại.', 'error');
+      }
+    });
   }
 
   goToDetail(id: any): void {

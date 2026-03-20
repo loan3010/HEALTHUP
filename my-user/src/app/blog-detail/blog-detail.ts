@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { Blog } from '../blog/blog.model';
@@ -18,12 +18,11 @@ export class BlogDetailComponent implements OnInit {
   isLoading = true;
   notFound = false;
 
-  private apiUrl = 'http://localhost:3000/api/blogs';
-
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private blogService: BlogService
+    private blogService: BlogService,
+    private cdr: ChangeDetectorRef   // ✅ thêm vào
   ) {}
 
   ngOnInit(): void {
@@ -38,17 +37,35 @@ export class BlogDetailComponent implements OnInit {
     });
   }
 
+  // Nếu content là plain text (không có tag HTML) thì tự wrap thành <p>
+  formatContent(content: string): string {
+    if (!content) return '';
+    const isHtml = /<[a-z][\s\S]*>/i.test(content);
+    if (isHtml) return content;
+    // Split theo dòng trống hoặc dấu xuống dòng, wrap từng đoạn thành <p>
+    return content
+      .split(/\n{2,}/)
+      .map(para => para.trim())
+      .filter(para => para.length > 0)
+      .map(para => `<p>${para.replace(/\n/g, '<br>')}</p>`)
+      .join('');
+  }
+
   loadBlog(id: string): void {
     this.blogService.getBlogById(id).subscribe({
       next: (data) => {
-        this.blog     = data;
+        // Format content nếu là plain text
+        data.content = this.formatContent(data.content);
+        this.blog      = data;
         this.isLoading = false;
+        this.cdr.detectChanges();   // ✅ hiện content ngay
         this.loadRelated(data.tag, id);
         window.scrollTo({ top: 0, behavior: 'smooth' });
       },
       error: () => {
         this.isLoading = false;
         this.notFound  = true;
+        this.cdr.detectChanges();   // ✅ hiện not found ngay
       }
     });
   }
@@ -57,6 +74,7 @@ export class BlogDetailComponent implements OnInit {
     this.blogService.getBlogs(tag, 4).subscribe({
       next: (blogs) => {
         this.relatedBlogs = blogs.filter(b => b._id !== currentId).slice(0, 3);
+        this.cdr.detectChanges();   // ✅ hiện related blogs ngay
       }
     });
   }

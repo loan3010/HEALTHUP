@@ -2,77 +2,99 @@
   <div class="auth-bg"></div>
 
   <div class="box">
-    <h2 class="title">ĐĂNG NHẬP</h2>
 
-    <form (ngSubmit)="onLogin()">
+    <!-- LOGO + TITLE -->
+    <div class="title-wrap">
+      <div class="title-logo">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
+          <path d="M8 12c0-2.21 1.79-4 4-4s4 1.79 4 4-1.79 4-4 4-4-1.79-4-4z"/>
+          <path d="M12 6v2M12 16v2M6 12H4M20 12h-2"/>
+        </svg>
+      </div>
+      <h2 class="title">Chào mừng trở lại</h2>
+      <p class="title-sub">Đăng nhập để tiếp tục hành trình sức khoẻ</p>
+    </div>
+
+    <!-- autocomplete="off" + fake inputs chống autofill (từ nhánh kia) -->
+    <form (ngSubmit)="onLogin()" autocomplete="off">
+      <input type="text" style="display:none">
+      <input type="password" style="display:none">
+
       <!-- USERNAME / EMAIL / PHONE -->
       <div class="field">
-        <div class="label">
+        <label class="label">
           Tên tài khoản <span class="req">*</span>
-        </div>
-
+        </label>
         <div class="control">
+          <span class="inp-icon">
+            <i class="bi bi-person"></i>
+          </span>
           <input
             type="text"
             class="inp"
-            placeholder="Nhập email hoặc số điện thoại"
+            placeholder="Email hoặc số điện thoại"
             name="emailOrPhone"
             [(ngModel)]="emailOrPhone"
+            autocomplete="off"
             required
           />
-
-          <!-- nút clear -->
           <button type="button" class="clear" (click)="emailOrPhone=''">×</button>
         </div>
       </div>
 
       <!-- PASSWORD -->
       <div class="field">
-        <div class="label">
+        <label class="label">
           Mật khẩu <span class="req">*</span>
-        </div>
-
+        </label>
         <div class="control">
+          <span class="inp-icon">
+            <i class="bi bi-lock"></i>
+          </span>
           <input
             type="password"
             class="inp has-two"
-            placeholder="Mật khẩu tối thiểu 6 ký tự"
+            placeholder="Tối thiểu 6 ký tự"
             name="password"
             [(ngModel)]="password"
+            autocomplete="new-password"
             minlength="6"
             required
           />
-
-          <!-- nút clear -->
           <button type="button" class="clear" (click)="password=''">×</button>
         </div>
       </div>
 
+      <!-- FORGOT -->
       <div class="row">
         <a routerLink="/forgotpw" class="link">Quên mật khẩu?</a>
       </div>
 
-      <!-- nút submit phải có type="submit" để ngSubmit chạy -->
+      <!-- SUBMIT -->
       <button type="submit" class="submit" [disabled]="isLoading">
         {{ isLoading ? 'Đang đăng nhập...' : 'Đăng nhập' }}
       </button>
 
-      <div class="divider">hoặc đăng nhập bằng</div>
+      <!-- DIVIDER -->
+      <div class="divider">hoặc tiếp tục với</div>
 
+      <!-- SOCIAL -->
       <div class="social">
         <button type="button" class="social-btn">
-          <span class="ico">G</span> Google
+          <span class="ico ico-g">G</span> Google
         </button>
-
         <button type="button" class="social-btn">
-          <span class="ico">f</span> Facebook
+          <span class="ico ico-f">f</span> Facebook
         </button>
       </div>
 
+      <!-- BOTTOM -->
       <div class="bottom">
-        <span>Bạn chưa có tài khoản?</span>
+        <span>Chưa có tài khoản?</span>
         <a routerLink="/register">Đăng ký ngay</a>
       </div>
+
     </form>
   </div>
 </div>

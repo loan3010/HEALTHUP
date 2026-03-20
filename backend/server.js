@@ -56,6 +56,8 @@ app.use('/api/carts',     require('./routes/carts'));
 // app.use('/api/addresses', require('./routes/addresses'));
 app.use('/api/users',     require('./routes/users'));   // ✅ THÊM MỚI
 app.use('/api/chatbot',   require('./routes/chatbot.routes'));
+app.use('/api/admin/customers', require('./routes/customer'));
+app.use('/api/admin/dashboard', require('./routes/admin-dashboard'));
 
 // Health check
 app.get('/api/health', (req, res) => {

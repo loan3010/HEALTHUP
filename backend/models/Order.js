@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 const OrderItemSchema = new mongoose.Schema(
   {
     productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
+    variantId: { type: mongoose.Schema.Types.ObjectId, default: null },
+    variantLabel: { type: String, default: '' },
     name: { type: String, required: true },     // snapshot tên lúc mua
     price: { type: Number, required: true },    // snapshot giá lúc mua
     quantity: { type: Number, required: true, min: 1 },
@@ -36,10 +38,10 @@ const OrderSchema = new mongoose.Schema(
     total: { type: Number, required: true, min: 0 },
 
     status: {
-      type: String,
-      enum: ['pending', 'pending_payment', 'paid', 'cancelled'],
-      default: 'pending'
-    }
+  type: String,
+  enum: ['pending', 'confirmed', 'shipping', 'delivered', 'cancelled'],
+  default: 'pending'
+}
   },
   { timestamps: true }
 );

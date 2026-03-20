@@ -1,11 +1,15 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule, CurrencyPipe } from '@angular/common';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { Subscription } from 'rxjs';
 import { ApiService } from '../services/api.service';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
 
-export interface PolicyItem { icon: string; title: string; desc: string; }
+export interface PolicyItem {
+  icon: string;
+  title: string;
+  desc: string;
+}
 
 export interface ConsultingQuestion {
   _id?: string;
@@ -31,32 +35,38 @@ export interface ConsultingStats {
   templateUrl: './product-detail-page.html',
   styleUrls: ['./product-detail-page.css']
 })
-export class ProductDetailPageComponent implements OnInit {
+export class ProductDetailPageComponent implements OnInit, OnDestroy {
 
   product: any = null;
   relatedProducts: any[] = [];
+
   activeImage = '';
-  selectedWeight  = '';
-  selectedType    = '';
+  selectedWeight = '';
+  selectedType = '';
+  selectedVariantId = '';
+
   activeTab: 'desc' | 'nutrition' | 'policy' = 'desc';
+
   qty = 1;
+
   addedToCart = false;
-  isWishlisted = false;
+  addToCartError = '';
   isLoading = true;
 
-  private API = 'http://localhost:3000/api';
-  private userId = '';
-  private token = '';
+  private wishlistSub!: Subscription;
+  get isWishlisted(): boolean {
+    return this.product?._id ? this.api.isWishlisted(this.product._id) : false;
+  }
 
   policyItems: PolicyItem[] = [
-    { icon: 'bi-arrow-repeat', title: 'Đổi trả trong 7 ngày',  desc: 'Áp dụng khi sản phẩm lỗi, hư hỏng do vận chuyển hoặc không đúng đơn hàng.' },
-    { icon: 'bi-truck',        title: 'Giao hàng toàn quốc',   desc: 'Từ 2-5 ngày làm việc. Nội thành TP.HCM & Hà Nội giao trong ngày hoặc hôm sau.' },
-    { icon: 'bi-credit-card',  title: 'Thanh toán an toàn',    desc: 'Hỗ trợ COD, VNPay, Momo. Không thu phí giao dịch.' },
-    { icon: 'bi-patch-check',  title: 'Chất lượng kiểm định',  desc: 'Sản phẩm đạt chứng nhận VSATTP, nguồn gốc rõ ràng, truy xuất được.' },
+    { icon: 'bi-arrow-repeat', title: 'Đổi trả trong 7 ngày',  desc: 'Áp dụng khi sản phẩm lỗi hoặc không đúng đơn hàng.' },
+    { icon: 'bi-truck',        title: 'Giao hàng toàn quốc',   desc: 'Từ 2-5 ngày làm việc.' },
+    { icon: 'bi-credit-card',  title: 'Thanh toán an toàn',    desc: 'Hỗ trợ COD, VNPay, Momo.' },
+    { icon: 'bi-patch-check',  title: 'Chất lượng kiểm định',  desc: 'Sản phẩm đạt chứng nhận VSATTP.' }
   ];
 
   // ---- TƯ VẤN / Q&A ----
-  isLoggedIn = true;   // TODO: thay bằng auth service thực
+  isLoggedIn = true;
   askText = '';
   isAskSubmitting = false;
   askSubmitSuccess = false;
@@ -73,12 +83,15 @@ export class ProductDetailPageComponent implements OnInit {
   constructor(
     private router: Router,
     private route: ActivatedRoute,
-    private api: ApiService,
-    private cdr: ChangeDetectorRef,
-    private http: HttpClient
+    public api: ApiService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
+    this.wishlistSub = this.api.wishlist$.subscribe(() => {
+      this.cdr.detectChanges();
+    });
+
     this.route.paramMap.subscribe(params => {
       const id = params.get('id');
       if (id) {
@@ -91,25 +104,33 @@ export class ProductDetailPageComponent implements OnInit {
         this.cdr.detectChanges();
         this.loadProduct(id);
         this.loadRelated(id);
-        this.loadUserAuth();
         this.loadConsultingQuestions(id);
       }
     });
   }
 
+  ngOnDestroy(): void {
+    this.wishlistSub?.unsubscribe();
+  }
+
   loadProduct(id: string): void {
     this.api.getProductById(id).subscribe({
-      next: (data) => {
+      next: (data: any) => {
         this.product        = data;
         this.activeImage    = data.images?.[0] || '';
         this.selectedWeight = data.weights?.[0]?.label || '';
-        this.selectedType   = data.packagingTypes?.[0] || '';
+        this.selectedType   = this.visiblePackagingTypes(data)?.[0] || '';
+        this.selectedVariantId = data.variants?.[0]?._id || '';
         this.isLoading      = false;
         this.cdr.detectChanges();
       },
-      error: (err) => {
+      error: (err: any) => {
         console.error('Lỗi tải sản phẩm:', err);
         this.isLoading = false;
+        // 404 = sản phẩm không tồn tại hoặc đang ẩn → về trang danh sách
+        if (err.status === 404) {
+          this.router.navigate(['/product-listing-page']);
+        }
         this.cdr.detectChanges();
       }
     });
@@ -117,15 +138,15 @@ export class ProductDetailPageComponent implements OnInit {
 
   loadRelated(id: string): void {
     this.api.getRelatedProducts(id).subscribe({
-      next: (data) => {
+      next: (data: any[]) => {
         this.relatedProducts = data;
         this.cdr.detectChanges();
       },
-      error: (err) => { console.error('Lỗi tải SP liên quan:', err); }
+      error: (err: any) => {
+        console.error('Lỗi tải SP liên quan:', err);
+      }
     });
   }
-
-  // ---- TƯ VẤN ----
 
   loadConsultingQuestions(productId?: string, append = false): void {
     const id = productId || this.product?._id;
@@ -141,21 +162,18 @@ export class ProductDetailPageComponent implements OnInit {
     }).subscribe({
       next: (res) => {
         const questions: ConsultingQuestion[] = res.questions || [];
-
         if (!append) {
           this.consultingQuestions = questions;
         } else {
           this.consultingQuestions = [...this.consultingQuestions, ...questions];
         }
-
         this.consultingStats = {
-          total:    res.stats?.total    || res.total    || 0,
+          total:    res.stats?.total    || res.total || 0,
           pending:  res.stats?.pending  || 0,
           answered: res.stats?.answered || 0,
         };
-
         this.applyConsultingFilter();
-        this.hasMoreQuestions = questions.length === 5;
+        this.hasMoreQuestions    = questions.length === 5;
         this.isConsultingLoading = false;
         this.cdr.detectChanges();
       },
@@ -204,6 +222,7 @@ export class ProductDetailPageComponent implements OnInit {
         this.consultingPage      = 1;
         this.consultingQuestions = [];
         this.loadConsultingQuestions();
+        this.api.showToast('Câu hỏi của bạn đã được gửi! Chúng tôi sẽ phản hồi sớm nhất.', 'success');
         setTimeout(() => {
           this.askSubmitSuccess = false;
           this.cdr.detectChanges();
@@ -213,12 +232,11 @@ export class ProductDetailPageComponent implements OnInit {
       error: (err) => {
         console.error('Lỗi gửi câu hỏi:', err);
         this.isAskSubmitting = false;
+        this.api.showToast('Không thể gửi câu hỏi. Vui lòng thử lại.', 'error');
         this.cdr.detectChanges();
       }
     });
   }
-
-  // ---- HELPERS ----
 
   getStars(rating: number): string {
     const full = Math.round(rating);
@@ -227,8 +245,6 @@ export class ProductDetailPageComponent implements OnInit {
 
   selectWeight(label: string): void {
     this.selectedWeight = label;
-
-    // Cập nhật giá theo khối lượng được chọn
     if (this.product?.weightPrices?.length) {
       const wp = this.product.weightPrices.find((w: any) => w.label === label);
       if (wp) {
@@ -238,71 +254,113 @@ export class ProductDetailPageComponent implements OnInit {
     }
   }
 
-  decreaseQty(): void { if (this.qty > 1) this.qty--; }
-  increaseQty(): void { if (this.product && this.qty < this.product.stock) this.qty++; }
+  decreaseQty(): void {
+    if (this.qty > 1) this.qty--;
+  }
+
+  increaseQty(): void {
+    if (this.product && this.qty < this.currentStock()) this.qty++;
+  }
+
+  currentVariant(): any | null {
+    if (!this.product?.variants?.length) return null;
+    return this.product.variants.find((v: any) => String(v._id) === String(this.selectedVariantId)) || null;
+  }
+
+  currentPrice(): number {
+    const v = this.currentVariant();
+    return Number(v?.price ?? this.product?.price ?? 0);
+  }
+
+  currentOldPrice(): number {
+    const v = this.currentVariant();
+    return Number(v?.oldPrice ?? this.product?.oldPrice ?? 0);
+  }
+
+  currentStock(): number {
+    const v = this.currentVariant();
+    return Number(v?.stock ?? this.product?.stock ?? 0);
+  }
+
+  visiblePackagingTypes(productLike?: any): string[] {
+    const p = productLike || this.product;
+    const pack = Array.isArray(p?.packagingTypes) ? p.packagingTypes : [];
+    const variantLabels = Array.isArray(p?.variants) ? p.variants.map((v: any) => String(v.label || '').trim()) : [];
+    if (!pack.length) return [];
+    if (!variantLabels.length) return pack;
+
+    const variantsSet = new Set(variantLabels.map((x: string) => x.toLowerCase()));
+    const filtered = pack.filter((x: string) => !variantsSet.has(String(x || '').trim().toLowerCase()));
+    return filtered;
+  }
+
+  isProductCompletelyOutOfStock(): boolean {
+    if (!this.product) return true;
+    if (Array.isArray(this.product.variants) && this.product.variants.length > 0) {
+      const total = this.product.variants.reduce((sum: number, v: any) => sum + Number(v?.stock || 0), 0);
+      return total <= 0;
+    }
+    return Number(this.product.stock || 0) <= 0;
+  }
 
   addToCart(): void {
-    if (this.addedToCart) return;
-    this.addedToCart = true;
-    setTimeout(() => (this.addedToCart = false), 2500);
-  }
+    if (this.addedToCart || !this.product?._id) return;
+    this.addToCartError = '';
 
-  buyNow(): void { this.addToCart(); this.router.navigate(['/checkout']); }
-
-  loadUserAuth(): void {
-    const userStr = localStorage.getItem('user');
-    const token   = localStorage.getItem('token');
-    if (userStr && token) {
-      try {
-        const user   = JSON.parse(userStr);
-        this.userId  = user.id;
-        this.token   = token;
-        this.checkWishlist();
-      } catch {}
-    }
-  }
-
-  checkWishlist(): void {
-    if (!this.userId || !this.token) return;
-    const headers = new HttpHeaders({ Authorization: `Bearer ${this.token}` });
-    this.http.get<any>(`${this.API}/users/${this.userId}/wishlist`, { headers })
-      .subscribe({
-        next: (res) => {
-          const wishlist: any[] = res.wishlist || [];
-          this.isWishlisted = wishlist.some(p => p._id === this.product?._id);
+    const v = this.currentVariant();
+    this.api.addToCart(
+      this.product._id,
+      this.qty,
+      this.product.name,
+      v?._id || null,
+      v?.label || ''
+    ).subscribe({
+      next: () => {
+        this.addedToCart = true;
+        setTimeout(() => {
+          this.addedToCart = false;
           this.cdr.detectChanges();
-        }
-      });
+        }, 2500);
+        this.cdr.detectChanges();
+      },
+      error: (err: any) => {
+        console.error('Lỗi thêm vào giỏ hàng:', err);
+        this.addToCartError = 'Không thể thêm vào giỏ hàng. Vui lòng thử lại.';
+        this.api.showToast(this.addToCartError, 'error');
+        this.cdr.detectChanges();
+      }
+    });
   }
 
-  toggleWishlist(): void {
-    if (!this.userId || !this.token) {
-      this.router.navigate(['/login']);
+  buyNow(): void {
+    if (!this.product?._id) return;
+
+    const v = this.currentVariant();
+    const checkoutItem = [{
+      productId: this.product._id,
+      variantId: v?._id || null,
+      variantLabel: v?.label || '',
+      name:      this.product.name,
+      price:     this.currentPrice(),
+      quantity:  this.qty,
+      imageUrl:  this.product.images?.[0] || this.product.image || null,
+      weight:    this.selectedWeight,
+      type:      this.selectedType,
+    }];
+
+    try {
+      localStorage.setItem('checkout_v1', JSON.stringify(checkoutItem));
+    } catch (e) {
+      console.error('Lỗi lưu checkout:', e);
       return;
     }
 
-    const headers = new HttpHeaders({ Authorization: `Bearer ${this.token}` });
+    this.router.navigate(['/checkout']);
+  }
 
-    if (this.isWishlisted) {
-      // Xóa khỏi wishlist
-      this.http.delete(`${this.API}/users/${this.userId}/wishlist/${this.product._id}`, { headers })
-        .subscribe({
-          next: () => {
-            this.isWishlisted = false;
-            this.cdr.detectChanges();
-          }
-        });
-    } else {
-      // Thêm vào wishlist
-      this.http.post(`${this.API}/users/${this.userId}/wishlist`,
-        { productId: this.product._id },
-        { headers }
-      ).subscribe({
-        next: () => {
-          this.isWishlisted = true;
-          this.cdr.detectChanges();
-        }
-      });
+  toggleWishlist(): void {
+    if (this.product?._id) {
+      this.api.toggleWishlist(this.product._id, this.product.name);
     }
   }
 
@@ -311,12 +369,19 @@ export class ProductDetailPageComponent implements OnInit {
       navigator.share({ title: this.product?.name, url: window.location.href });
     } else {
       navigator.clipboard.writeText(window.location.href);
+      this.api.showToast('Đã sao chép link sản phẩm!', 'info');
     }
   }
 
-  addRelated(event: Event, id: string): void {
+  addRelated(event: Event, product: any): void {
     event.stopPropagation();
-    console.log('Add related to cart:', id);
+    if (!product?._id) return;
+    this.api.addToCart(product._id, 1, product.name).subscribe({
+      error: (err) => {
+        console.error('Lỗi thêm SP liên quan:', err);
+        this.api.showToast('Không thể thêm vào giỏ hàng.', 'error');
+      }
+    });
   }
 
   goToProduct(id: string): void {

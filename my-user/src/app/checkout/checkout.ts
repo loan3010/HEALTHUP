@@ -9,6 +9,8 @@ type PaymentMethod = 'cod' | 'momo' | 'vnpay';
 
 type CheckoutItem = {
   productId: string;
+  variantId?: string | null;
+  variantLabel?: string;
   name: string;
   price: number;
   quantity: number;
@@ -201,6 +203,8 @@ export class Checkout {
       customer: this.form.value,
       items: this.items().map(i => ({
         productId: i.productId,
+        variantId: i.variantId || null,
+        variantLabel: i.variantLabel || '',
         quantity: i.quantity
       })),
       shippingMethod: this.shippingMethod(),

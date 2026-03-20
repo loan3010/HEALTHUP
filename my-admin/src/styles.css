@@ -1,6 +1,7 @@
 /* Nhúng Bootstrap vào Angular */
 @import 'bootstrap/dist/css/bootstrap.min.css';
 @import 'bootstrap-icons/font/bootstrap-icons.css';
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&display=swap');
 
 /* Setup màu thương hiệu */
 :root {
@@ -17,9 +18,16 @@
 body {
   background-color: var(--bg-color);
   color: var(--text-dark);
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
   margin: 0;
   padding: 0;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
 }
 
 /* Style cho Sidebar */

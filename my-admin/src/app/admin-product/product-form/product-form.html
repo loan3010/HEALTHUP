@@ -6,6 +6,11 @@
 
   <div class="modal-body">
     <div class="form-grid">
+      <!-- SKU (read-only) -->
+      <div class="form-group full-width">
+        <label>SKU</label>
+        <input type="text" [(ngModel)]="formData.sku" disabled placeholder="SKU sẽ được tự sinh khi tạo sản phẩm">
+      </div>
 
       <!-- Tên sản phẩm -->
       <div class="form-group full-width">
@@ -16,7 +21,21 @@
       <!-- Danh mục -->
       <div class="form-group">
         <label>Danh mục <span class="required">*</span></label>
-        <input type="text" [(ngModel)]="formData.cat" placeholder="VD: Rau củ, Đồ ăn vặt...">
+        <select [(ngModel)]="formData.cat" (ngModelChange)="onCategorySelectionChange()">
+          <option value="">-- Chọn danh mục --</option>
+          <option *ngFor="let c of categoryOptions" [value]="c">{{ c }}</option>
+          <option value="__new__">+ Thêm danh mục mới</option>
+        </select>
+        <div class="inline-row" *ngIf="showNewCategoryInput">
+          <input
+            type="text"
+            [(ngModel)]="newCategory"
+            placeholder="Nhập tên danh mục mới..."
+            (keydown.enter)="addNewCategory(); $event.preventDefault()"
+          >
+          <button type="button" class="btn-inline-add" (click)="addNewCategory()">Thêm</button>
+          <button type="button" class="btn-inline-cancel" (click)="cancelNewCategory()">Hủy</button>
+        </div>
       </div>
 
       <!-- Trạng thái -->
@@ -32,19 +51,19 @@
       <!-- Giá bán -->
       <div class="form-group">
         <label>Giá bán <span class="required">*</span></label>
-        <input type="number" [(ngModel)]="formData.price" placeholder="0">
+        <input type="number" [(ngModel)]="formData.price" placeholder="0" [disabled]="variants.length > 0">
       </div>
 
       <!-- Giá cũ -->
       <div class="form-group">
         <label>Giá cũ</label>
-        <input type="number" [(ngModel)]="formData.oldPrice" placeholder="0">
+        <input type="number" [(ngModel)]="formData.oldPrice" placeholder="0" [disabled]="variants.length > 0">
       </div>
 
       <!-- Tồn kho -->
       <div class="form-group">
         <label>Tồn kho <span class="required">*</span></label>
-        <input type="number" [(ngModel)]="formData.stock" placeholder="0">
+        <input type="number" [(ngModel)]="formData.stock" placeholder="0" [disabled]="variants.length > 0">
       </div>
 
       <!-- Khối lượng -->
@@ -65,11 +84,57 @@
 
       <!-- Đơn vị đóng gói -->
       <div class="form-group full-width">
-        <label>Đơn vị đóng gói</label>
-        <input type="text" 
-  [value]="getPackagingText()"
-  (change)="onPackagingChange($any($event.target).value)"
-  placeholder="VD: Hộp, Gói, Túi (phân cách bằng dấu phẩy)">
+        <div class="variant-header">
+          <label>Phân loại (giá + tồn kho riêng)</label>
+          <button type="button" class="btn-inline-add" (click)="addVariant()">+ Thêm phân loại</button>
+        </div>
+        <div class="variant-empty" *ngIf="variants.length === 0">
+          Chưa có phân loại. Hệ thống sẽ dùng giá và tồn kho chung ở trên.
+        </div>
+        <div class="variant-grid" *ngFor="let v of variants; let i = index">
+          <input type="text" [(ngModel)]="v.label" placeholder="Tên phân loại, ví dụ: 300g">
+          <input type="number" [(ngModel)]="v.price" placeholder="Giá">
+          <input type="number" [(ngModel)]="v.oldPrice" placeholder="Giá cũ (optional)">
+          <input type="number" [(ngModel)]="v.stock" placeholder="Tồn kho">
+          <button type="button" class="btn-inline-cancel" (click)="removeVariant(i)">Xóa</button>
+        </div>
+      </div>
+
+      <!-- Loại đóng gói (mô tả) -->
+      <div class="form-group full-width">
+        <label>Loại đóng gói (khác phân loại)</label>
+        <div class="inline-row">
+          <input
+            type="text"
+            [(ngModel)]="packagingInput"
+            placeholder="VD: Túi zip, Hộp giấy, Chai..."
+            (keydown)="onPackagingInputKeyDown($event)"
+          >
+          <button type="button" class="btn-inline-add" (click)="addPackagingType()">Thêm</button>
+        </div>
+        <div class="chip-wrap" *ngIf="(formData.packagingTypes || []).length > 0">
+          <span class="chip" *ngFor="let item of formData.packagingTypes; let i = index">
+            {{ item }}
+            <button type="button" class="chip-remove" (click)="removePackagingType(i)" aria-label="Xóa">×</button>
+          </span>
+        </div>
+      </div>
+
+      <!-- Dinh dưỡng -->
+      <div class="form-group full-width">
+        <div class="variant-header">
+          <label>Dinh dưỡng (name / value / percent)</label>
+          <button type="button" class="btn-inline-add" (click)="addNutrition()">+ Thêm dòng</button>
+        </div>
+        <div class="variant-empty" *ngIf="nutritions.length === 0">
+          Chưa có dữ liệu dinh dưỡng.
+        </div>
+        <div class="nutrition-grid" *ngFor="let n of nutritions; let i = index">
+          <input type="text" [(ngModel)]="n.name" placeholder="Tên thành phần, ví dụ: Năng lượng">
+          <input type="text" [(ngModel)]="n.value" placeholder="Hàm lượng, ví dụ: 120 kcal">
+          <input type="number" [(ngModel)]="n.percent" placeholder="% NDH">
+          <button type="button" class="btn-inline-cancel" (click)="removeNutrition(i)">Xóa</button>
+        </div>
       </div>
       <!-- Hình ảnh -->
 <div class="form-group full-width">

@@ -15,7 +15,7 @@ export class OrderReviewComponent implements OnInit {
 
   productId    = '';
   productName  = '';
-  isLoggedIn   = true;
+  isLoggedIn   = false;   // ✅ mặc định false, kiểm tra thực tế từ localStorage
   isLoading    = false;
   isSubmitting = false;
 
@@ -53,11 +53,16 @@ export class OrderReviewComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private api: ApiService,
+    public api: ApiService,
     private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
+    // ✅ Kiểm tra đăng nhập thực tế từ localStorage
+    const token = localStorage.getItem('token');
+    const user  = localStorage.getItem('user');
+    this.isLoggedIn = !!(token && user);
+
     this.route.queryParams.subscribe(params => {
       this.productId = params['productId'] || '';
       if (this.productId) {
@@ -105,7 +110,7 @@ export class OrderReviewComponent implements OnInit {
 
         this.hasMoreReviews = (res.reviews?.length || 0) === 10;
         this.isLoading = false;
-        this.cdr.detectChanges(); // ✅ force re-render sau khi data về
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Lỗi tải đánh giá:', err);
@@ -160,9 +165,16 @@ export class OrderReviewComponent implements OnInit {
     if (!this.canSubmit() || !this.productId) return;
     this.isSubmitting = true;
 
+    // ✅ Lấy tên user thực tế từ localStorage
+    let userName = 'Khách hàng';
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      userName = user?.username || user?.name || 'Khách hàng';
+    } catch { /* keep default */ }
+
     this.api.submitReview({
       productId: this.productId,
-      name:      'Khách hàng',
+      name:      userName,
       rating:    this.selectedStar,
       variant:   this.selectedVariant || undefined,
       tags:      this.selectedTags,
@@ -174,10 +186,12 @@ export class OrderReviewComponent implements OnInit {
         this.allReviews  = [];
         this.loadReviews();
         this.isSubmitting = false;
+        this.api.showToast('Đánh giá của bạn đã được gửi thành công!', 'success');
       },
       error: (err) => {
         console.error('Lỗi gửi đánh giá:', err);
         this.isSubmitting = false;
+        this.api.showToast('Không thể gửi đánh giá. Vui lòng thử lại.', 'error');
       }
     });
   }
