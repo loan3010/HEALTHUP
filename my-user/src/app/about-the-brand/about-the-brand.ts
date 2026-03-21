@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
 
 @Component({
   selector: 'app-about-the-brand',
@@ -13,8 +14,23 @@ export class AboutTheBrand implements OnInit, AfterViewInit, OnDestroy {
 
   private intersectionObserver?: IntersectionObserver;
   private countersAnimated = false;
+  private readonly BASE = 'http://localhost:3000/images/about-the-brand';
 
-  ngOnInit(): void {}
+  // Đặt URL mặc định ngay — hình hiện liền khi load trang
+  images: { [key: string]: string | null } = {
+    hero:  `${this.BASE}/hero.png`,
+    story: `${this.BASE}/story.png`,
+    dist1: `${this.BASE}/dist1.png`,
+    dist2: `${this.BASE}/dist2.png`,
+    dist3: `${this.BASE}/dist3.png`,
+    dist4: `${this.BASE}/dist4.png`,
+  };
+
+  constructor(private http: HttpClient) {}
+
+  ngOnInit(): void {
+    this.loadImages();
+  }
 
   ngAfterViewInit(): void {
     this.initScrollAnimations();
@@ -27,28 +43,36 @@ export class AboutTheBrand implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  // Fade in khi scroll đến
+  private loadImages(): void {
+    this.http.get<any>('http://localhost:3000/api/about-images').subscribe({
+      next: (res) => {
+        if (res.success) {
+          // Chỉ cập nhật key nào có URL thật, giữ nguyên default nếu null
+          Object.keys(res.images).forEach(key => {
+            if (res.images[key]) this.images[key] = res.images[key];
+          });
+        }
+      },
+      error: (err) => console.error('Lỗi load hình about:', err)
+    });
+  }
+
   private initScrollAnimations(): void {
     this.intersectionObserver = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('visible');
-          }
+          if (entry.isIntersecting) entry.target.classList.add('visible');
         });
       },
       { threshold: 0.1, rootMargin: '0px 0px -50px 0px' }
     );
-
     document.querySelectorAll('.fade-in').forEach((el) => {
       this.intersectionObserver?.observe(el);
     });
   }
 
-  // Đếm số khi scroll đến section stats
   private initCounterAnimation(): void {
     const statsSection = document.querySelector('.stats');
-
     if (statsSection) {
       const observer = new IntersectionObserver(
         (entries) => {
@@ -66,13 +90,11 @@ export class AboutTheBrand implements OnInit, AfterViewInit, OnDestroy {
 
   private animateCounters(): void {
     const counters = document.querySelectorAll('[data-target]');
-
     counters.forEach((counter) => {
       const target = parseInt((counter as HTMLElement).dataset['target'] || '0');
       const duration = 2000;
       const increment = target / (duration / 16);
       let current = 0;
-
       const update = (): void => {
         current += increment;
         if (current < target) {
@@ -82,7 +104,6 @@ export class AboutTheBrand implements OnInit, AfterViewInit, OnDestroy {
           (counter as HTMLElement).textContent = target.toLocaleString('vi-VN');
         }
       };
-
       setTimeout(update, Math.random() * 300);
     });
   }
