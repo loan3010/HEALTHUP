@@ -41,9 +41,7 @@
   background: #fff; border-radius: 18px;
   padding: 24px; box-shadow: 0 2px 12px rgba(0,0,0,0.05);
 }
-.co-section-head {
-  display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
-}
+.co-section-head { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
 .co-section-num {
   width: 28px; height: 28px; border-radius: 50%;
   background: #36873A; color: #fff;
@@ -56,18 +54,15 @@
   display: inline-flex; align-items: center; gap: 6px;
   padding: 7px 16px; background: #36873A; color: #fff;
   border: none; border-radius: 10px; font-size: 13px; font-weight: 600;
-  cursor: pointer; transition: all 0.2s; white-space: nowrap;
-  font-family: inherit;
+  cursor: pointer; transition: all 0.2s; white-space: nowrap; font-family: inherit;
 }
 .co-addr-add-btn:hover { background: #2A6B2E; transform: translateY(-1px); }
 
-/* ── LOADING ── */
 .co-addr-loading {
   display: flex; align-items: center; gap: 10px;
   color: #888; font-size: 14px; padding: 8px 0 16px;
 }
 
-/* ── GUEST NOTICE ── */
 .co-guest-notice {
   display: flex; align-items: center; gap: 8px;
   padding: 12px 16px; background: #fff8e1;
@@ -77,7 +72,6 @@
 .co-guest-notice a { color: #36873A; font-weight: 700; text-decoration: none; }
 .co-guest-notice a:hover { text-decoration: underline; }
 
-/* ── NOTE ── */
 .co-note-wrap { margin-top: 20px; }
 .co-label { font-size: 13px; font-weight: 700; color: #374151; display: block; margin-bottom: 6px; }
 .co-inp {
@@ -90,7 +84,6 @@
 .co-inp::placeholder { color: #bbb; }
 .co-textarea { resize: vertical; min-height: 68px; }
 
-/* ── ALERT ── */
 .co-alert {
   display: flex; align-items: center; gap: 8px;
   padding: 12px 16px; border-radius: 12px; font-size: 14px; font-weight: 500;
@@ -98,19 +91,16 @@
 .co-alert-error { background: #fff1f1; border: 1px solid #fecaca; color: #b91c1c; }
 
 /* ══════════════════════════════════════════
-   ADDRESS BOOK STYLES (ab-)
+   ADDRESS BOOK (ab-)
    ══════════════════════════════════════════ */
 .ab-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 4px; }
-
 .ab-card {
-  background: #fff; border-radius: 14px;
-  border: 1.5px solid #eee; overflow: hidden;
-  transition: all 0.25s; position: relative; cursor: pointer;
+  background: #fff; border-radius: 14px; border: 1.5px solid #eee;
+  overflow: hidden; transition: all 0.25s; position: relative; cursor: pointer;
 }
 .ab-card:hover { border-color: #A2C37F; box-shadow: 0 4px 16px rgba(54,135,58,0.1); }
 .ab-card.is-default { background: linear-gradient(135deg, #f6fbf6 0%, #fff 100%); }
 .ab-card.is-selected { border-color: #36873A; box-shadow: 0 0 0 3px rgba(54,135,58,0.12); }
-
 .ab-select-check {
   position: absolute; top: 12px; left: 14px;
   width: 22px; height: 22px; border-radius: 50%;
@@ -121,12 +111,10 @@
 .ab-ribbon {
   position: absolute; top: 12px; right: 14px;
   display: inline-flex; align-items: center; gap: 5px;
-  background: #36873A; color: #fff;
-  font-size: 11px; font-weight: 700;
+  background: #36873A; color: #fff; font-size: 11px; font-weight: 700;
   padding: 4px 10px; border-radius: 999px;
 }
 .ab-ribbon i { font-size: 10px; }
-
 .ab-card-body { display: flex; gap: 14px; padding: 18px 20px 14px 46px; }
 .ab-avatar {
   width: 44px; height: 44px; border-radius: 50%;
@@ -139,10 +127,8 @@
 .ab-name { font-size: 15px; font-weight: 700; color: #1a1a1a; }
 .ab-phone { font-size: 13px; color: #666; padding: 2px 10px; background: #f5f5f5; border-radius: 999px; }
 .ab-address { font-size: 13.5px; color: #555; line-height: 1.6; margin: 0; }
-
 .ab-card-footer {
-  display: flex; gap: 8px;
-  padding: 10px 20px 14px 46px;
+  display: flex; gap: 8px; padding: 10px 20px 14px 46px;
   border-top: 1px solid #f5f5f5; flex-wrap: wrap;
 }
 .ab-btn-edit, .ab-btn-default, .ab-btn-delete {
@@ -157,11 +143,9 @@
 .ab-btn-default:hover { background: #36873A; border-color: #36873A; color: #fff; }
 .ab-btn-delete  { background: #fff1f1; color: #C62828; margin-left: auto; }
 .ab-btn-delete:hover { background: #C62828; color: #fff; }
-
 .ab-empty {
-  text-align: center; padding: 48px 20px;
-  background: #fff; border-radius: 16px;
-  border: 2px dashed #e0e0e0;
+  text-align: center; padding: 48px 20px; background: #fff;
+  border-radius: 16px; border: 2px dashed #e0e0e0;
 }
 .ab-empty-icon {
   width: 64px; height: 64px; border-radius: 50%;
@@ -186,11 +170,9 @@
   z-index: 9998; padding: 20px; animation: fadeIn 0.2s ease;
 }
 .ab-modal {
-  background: #fff; border-radius: 18px;
-  width: 100%; max-width: 540px;
+  background: #fff; border-radius: 18px; width: 100%; max-width: 540px;
   max-height: 90vh; overflow-y: auto;
-  box-shadow: 0 24px 64px rgba(0,0,0,0.25);
-  animation: slideUp 0.28s ease;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.25); animation: slideUp 0.28s ease;
 }
 .ab-modal-header {
   display: flex; align-items: center; justify-content: space-between;
@@ -205,20 +187,17 @@
 }
 .ab-close:hover { background: #eee; color: #333; }
 .ab-modal-body { padding: 24px; }
-
 .ab-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .ab-field { margin-bottom: 18px; }
 .ab-field label { display: block; margin-bottom: 7px; font-size: 13.5px; font-weight: 600; color: #333; }
 .req { color: #C62828; }
 .ab-input {
-  width: 100%; padding: 11px 14px;
-  border: 1.5px solid #e0e0e0; border-radius: 10px;
+  width: 100%; padding: 11px 14px; border: 1.5px solid #e0e0e0; border-radius: 10px;
   font-size: 14px; background: #fafafa; outline: none;
   transition: border-color 0.2s; font-family: 'Be Vietnam Pro', sans-serif;
 }
 .ab-input:focus { border-color: #36873A; background: #fff; }
 .ab-error { display: block; margin-top: 5px; font-size: 12px; color: #C62828; font-weight: 500; }
-
 .ab-select-wrap { position: relative; }
 .ab-select {
   appearance: none; -webkit-appearance: none; cursor: pointer;
@@ -228,8 +207,7 @@
 .ab-select:disabled { opacity: 0.5; cursor: not-allowed; background-color: #f5f5f5; }
 .ab-select-spinner {
   position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
-  width: 14px; height: 14px;
-  border: 2px solid #A2C37F; border-top-color: #36873A;
+  width: 14px; height: 14px; border: 2px solid #A2C37F; border-top-color: #36873A;
   border-radius: 50%; animation: spin 0.7s linear infinite;
 }
 .ab-address-preview {
@@ -241,8 +219,7 @@
 .ab-address-preview i { color: #36873A; font-size: 15px; margin-top: 1px; flex-shrink: 0; }
 .ab-checkbox {
   display: flex; align-items: center; gap: 10px;
-  cursor: pointer; margin-bottom: 16px;
-  font-size: 14px; font-weight: 500; color: #333;
+  cursor: pointer; margin-bottom: 16px; font-size: 14px; font-weight: 500; color: #333;
 }
 .ab-checkbox input[type="checkbox"] { width: 18px; height: 18px; accent-color: #36873A; cursor: pointer; }
 .ab-msg { display: flex; align-items: center; gap: 8px; padding: 11px 14px; border-radius: 8px; font-size: 13px; font-weight: 500; margin-bottom: 16px; }
@@ -265,7 +242,7 @@
   border-radius: 50%; animation: spin 0.7s linear infinite;
 }
 
-/* ── OPTIONS (shipping/payment) ── */
+/* ── OPTIONS ── */
 .co-options { display: flex; flex-direction: column; gap: 10px; }
 .co-opt {
   display: flex; align-items: center; gap: 14px;
@@ -308,47 +285,31 @@
 .co-voucher-inp { flex: 1; border: none; background: transparent; font-size: 13.5px; font-family: inherit; color: #1a1a1a; outline: none; }
 .co-voucher-inp::placeholder { color: #aaa; }
 .co-voucher-btn { padding: 6px 12px; background: #36873A; color: #fff; border: none; border-radius: 8px; font-size: 12.5px; font-weight: 700; cursor: pointer; font-family: inherit; transition: background 0.2s; }
-.co-voucher-btn:hover { background: #2A6B2E; }
+.co-voucher-btn:hover:not(:disabled) { background: #2A6B2E; }
+.co-voucher-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .co-voucher-clear { background: #eee; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #666; flex-shrink: 0; }
-
-/* FIX: Nút xem tất cả mã */
 .co-voucher-see-all {
   display: flex; align-items: center; gap: 6px;
-  margin-top: 8px; padding: 0;
-  background: none; border: none;
-  font-size: 12.5px; font-weight: 600;
-  color: #36873A; cursor: pointer; font-family: inherit;
+  margin-top: 8px; padding: 0; background: none; border: none;
+  font-size: 12.5px; font-weight: 600; color: #36873A; cursor: pointer; font-family: inherit;
   transition: opacity 0.2s;
 }
 .co-voucher-see-all:hover { opacity: 0.75; text-decoration: underline; }
-
-/* FIX: Msg màu theo trạng thái */
-.co-voucher-msg {
-  margin-top: 6px;
-  font-size: 12px;
-  font-weight: 600;
-}
+.co-voucher-msg { margin-top: 6px; font-size: 12px; font-weight: 600; }
 .co-voucher-msg.success { color: #36873A; }
 .co-voucher-msg.error   { color: #d10000; }
 
 /* ── Totals ── */
 .co-totals { margin: 4px 0 16px; }
 .co-total-row { display: flex; justify-content: space-between; padding: 7px 0; font-size: 13.5px; color: #555; }
-
-/* FIX: Giảm tiền hàng / giảm ship */
 .co-discount span:last-child { color: #36873A; font-weight: 700; }
 .co-discount-tag {
-  display: inline-block;
-  background: #e8f5e9; color: #36873A;
-  font-size: 10px; font-weight: 700;
-  padding: 1px 7px; border-radius: 999px;
+  display: inline-block; background: #e8f5e9; color: #36873A;
+  font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 999px;
   margin-left: 5px; vertical-align: middle;
 }
-
-/* FIX: Phí ship miễn phí */
 .co-ship-free { display: flex; align-items: center; gap: 6px; }
 .co-ship-old { text-decoration: line-through; color: #bbb; font-size: 12px; }
-
 .co-total-final { display: flex; justify-content: space-between; padding: 14px 0 10px; border-top: 2px solid #f0f0f0; font-size: 15px; font-weight: 700; color: #1a1a1a; }
 .co-total-final strong { font-size: 20px; color: #36873A; }
 
@@ -366,86 +327,227 @@
 .co-trust i { color: #36873A; }
 
 /* ══════════════════════════════════════════
-   VOUCHER MODAL (FIX MỚI)
+   VOUCHER MODAL — REDESIGNED
    ══════════════════════════════════════════ */
+.co-modal-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center;
+  z-index: 9999; animation: fadeIn 0.2s ease; padding: 20px;
+}
+
 .co-voucher-modal {
   background: #fff; border-radius: 20px;
-  width: 100%; max-width: 460px;
-  box-shadow: 0 24px 60px rgba(0,0,0,0.2);
+  width: 100%; max-width: 520px;
+  max-height: 85vh;
+  display: flex; flex-direction: column;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.22);
   animation: slideUp 0.28s ease;
   overflow: hidden;
 }
 
+/* Header */
 .co-voucher-modal-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 18px 24px;
-  border-bottom: 1px solid #f0f0f0;
-  background: linear-gradient(135deg, #f6fbf6, #fff);
-}
-.co-voucher-modal-header h5 {
-  margin: 0; font-size: 16px; font-weight: 800; color: #1a1a1a;
-  display: flex; align-items: center; gap: 8px;
-}
-.co-voucher-modal-header h5 i { color: #36873A; }
-
-.co-voucher-modal-body {
-  padding: 20px; display: flex; flex-direction: column; gap: 12px;
-}
-
-/* Card voucher */
-.co-voucher-card {
-  display: flex; align-items: center; gap: 14px;
-  padding: 14px 16px;
-  border: 1.5px solid #e8e8e8; border-radius: 14px;
-  cursor: pointer; transition: all 0.2s;
+  padding: 18px 20px 14px;
+  flex-shrink: 0;
   background: #fff;
+  border-bottom: 1px solid #f0f0f0;
 }
-.co-voucher-card:hover { border-color: #A2C37F; background: #f8fdf8; }
-.co-voucher-card.is-applied { border-color: #36873A; background: #f0f7f0; }
+.co-voucher-modal-title {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 16px; font-weight: 800; color: #1a1a1a;
+}
+.co-voucher-modal-title i { color: #36873A; font-size: 18px; }
 
+/* Subheader */
+.co-voucher-modal-subheader {
+  padding: 10px 20px;
+  background: #F0F7F0;
+  font-size: 13px; color: #555;
+  display: flex; align-items: center; gap: 8px;
+  flex-shrink: 0;
+}
+.co-voucher-modal-subheader i { color: #36873A; }
+.co-voucher-modal-subheader strong { color: #36873A; font-weight: 800; }
+
+/* Loading */
+.co-voucher-modal-loading {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 40px 20px; color: #888; font-size: 14px;
+}
+
+/* Body — scrollable */
+.co-voucher-modal-body {
+  flex: 1; overflow-y: auto;
+  padding: 14px 16px 20px;
+  display: flex; flex-direction: column; gap: 0;
+}
+.co-voucher-modal-body::-webkit-scrollbar { width: 5px; }
+.co-voucher-modal-body::-webkit-scrollbar-track { background: transparent; }
+.co-voucher-modal-body::-webkit-scrollbar-thumb { background: #d4e6d4; border-radius: 10px; }
+
+/* Section label */
+.co-voucher-section-label {
+  font-size: 11.5px; font-weight: 700; color: #36873A;
+  text-transform: uppercase; letter-spacing: 0.6px;
+  padding: 6px 0 10px;
+  display: flex; align-items: center; gap: 6px;
+}
+.co-voucher-section-label i { font-size: 12px; }
+
+/* Divider chưa đủ điều kiện */
+.co-voucher-section-divider {
+  margin: 12px -4px 10px;
+  padding: 7px 14px;
+  background: #f5f5f5; border-radius: 8px;
+  font-size: 12px; font-weight: 700; color: #999;
+  display: flex; align-items: center; gap: 7px;
+}
+.co-voucher-section-divider i { font-size: 12px; color: #bbb; }
+
+/* ── Card voucher ── */
+.co-voucher-card {
+  margin-bottom: 10px;
+}
+
+/* FIX: Card đủ điều kiện — sáng, cursor pointer */
+.co-voucher-card.is-eligible .co-voucher-card-inner {
+  border: 1.5px solid #e8e8e8;
+  background: #fff;
+  cursor: pointer;
+  opacity: 1;
+  transition: all 0.2s;
+}
+.co-voucher-card.is-eligible .co-voucher-card-inner:hover {
+  border-color: #A2C37F;
+  background: #f8fdf8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(54,135,58,0.1);
+}
+.co-voucher-card.is-applied .co-voucher-card-inner {
+  border-color: #36873A !important;
+  background: #f0f7f0 !important;
+  box-shadow: 0 0 0 3px rgba(54,135,58,0.12) !important;
+}
+
+/* FIX: Card không đủ điều kiện — mờ xám, không click */
+.co-voucher-card.is-ineligible .co-voucher-card-inner {
+  border: 1.5px solid #ebebeb;
+  background: #fafafa;
+  cursor: not-allowed;
+  opacity: 0.52;
+  filter: grayscale(30%);
+  transition: none;
+}
+.co-voucher-card.is-ineligible .co-voucher-card-inner:hover {
+  border-color: #ebebeb;
+  background: #fafafa;
+  transform: none;
+  box-shadow: none;
+}
+
+.co-voucher-card-inner {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Sọc dọc màu bên trái (giống voucher vật lý) */
+.co-voucher-card-inner::before {
+  content: '';
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: 5px; border-radius: 14px 0 0 14px;
+}
+.co-voucher-card.is-eligible .co-voucher-card-inner::before { background: #36873A; }
+.co-voucher-card.is-ineligible .co-voucher-card-inner::before { background: #ccc; }
+.co-voucher-card.is-applied .co-voucher-card-inner::before { background: #2A6B2E; }
+
+/* Icon */
 .co-voucher-card-icon {
-  width: 44px; height: 44px; border-radius: 12px;
-  background: #F0F7F0; color: #36873A;
+  width: 42px; height: 42px; border-radius: 10px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 20px; flex-shrink: 0;
+  font-size: 18px; flex-shrink: 0; margin-left: 6px;
 }
+.icon-percent { background: #e8f5e9; color: #36873A; }
+.icon-ship    { background: #e3f2fd; color: #1565C0; }
+.icon-fixed   { background: #fff3e0; color: #E65100; }
 
+/* Body */
 .co-voucher-card-body { flex: 1; min-width: 0; }
-.co-voucher-card-label { font-size: 14px; font-weight: 700; color: #1a1a1a; margin-bottom: 3px; }
-.co-voucher-card-desc  { font-size: 12px; color: #888; margin-bottom: 6px; }
+.co-voucher-card-label { font-size: 13.5px; font-weight: 700; color: #1a1a1a; margin-bottom: 2px; }
+.co-voucher-card-desc  { font-size: 11.5px; color: #888; margin-bottom: 5px; line-height: 1.4; }
+
+/* Điều kiện */
+.co-voucher-card-cond { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 5px; }
+.co-voucher-cond-item {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 11px; font-weight: 600;
+  padding: 2px 7px; border-radius: 999px;
+  background: #f5f5f5; color: #888;
+}
+.co-voucher-cond-item i { font-size: 11px; }
+.cond-ok   { background: #e8f5e9; color: #36873A; }
+.cond-fail { background: #fff3e0; color: #E65100; }
+
+/* Cần thêm */
+.co-voucher-card-need {
+  font-size: 11px; color: #E65100; font-weight: 600;
+  margin-bottom: 5px;
+  display: flex; align-items: center; gap: 4px;
+}
+.co-voucher-card-need i { font-size: 11px; }
+
+/* Code badge */
 .co-voucher-card-code span {
   display: inline-block;
   background: #e8f5e9; color: #36873A;
-  font-size: 12px; font-weight: 800; letter-spacing: 0.5px;
-  padding: 3px 10px; border-radius: 6px;
+  font-size: 11.5px; font-weight: 800; letter-spacing: 0.5px;
+  padding: 2px 9px; border-radius: 5px;
   border: 1px dashed #A2C37F;
+  font-family: 'Courier New', monospace;
+}
+.co-voucher-card.is-ineligible .co-voucher-card-code span {
+  background: #f0f0f0; color: #aaa; border-color: #ddd;
 }
 
-.co-voucher-card-action { flex-shrink: 0; }
-.co-voucher-applied-badge {
-  display: inline-flex; align-items: center; gap: 5px;
-  color: #36873A; font-size: 12.5px; font-weight: 700;
+/* Action */
+.co-voucher-card-action {
+  flex-shrink: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 4px;
+  min-width: 72px;
 }
-.co-voucher-applied-badge i { font-size: 14px; }
+.co-voucher-applied-badge {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  color: #36873A; font-size: 11px; font-weight: 700; text-align: center;
+}
+.co-voucher-applied-badge i { font-size: 18px; }
 .co-voucher-select-btn {
   padding: 7px 14px; background: #36873A; color: #fff;
   border: none; border-radius: 8px;
-  font-size: 13px; font-weight: 600;
+  font-size: 12.5px; font-weight: 600;
   cursor: pointer; font-family: inherit;
-  transition: background 0.2s;
+  transition: background 0.2s; white-space: nowrap;
 }
 .co-voucher-select-btn:hover { background: #2A6B2E; }
+.co-voucher-lock-badge {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: #f0f0f0; color: #bbb;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+}
 
+/* Empty */
 .co-voucher-modal-empty {
-  text-align: center; padding: 32px 20px;
+  text-align: center; padding: 40px 20px;
   color: #aaa; font-size: 14px;
 }
-.co-voucher-modal-empty i { font-size: 32px; display: block; margin-bottom: 10px; }
+.co-voucher-modal-empty i { font-size: 36px; display: block; margin-bottom: 10px; color: #ddd; }
 
 /* ══════════════════════════════════════════
    SUCCESS MODAL
    ══════════════════════════════════════════ */
-.co-modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 9999; animation: fadeIn 0.2s ease; }
 .co-modal { background: #fff; border-radius: 24px; padding: 40px 36px 32px; max-width: 420px; width: 90vw; text-align: center; box-shadow: 0 24px 60px rgba(0,0,0,0.2); animation: slideUp 0.3s cubic-bezier(0.22,1,0.36,1); }
 .co-modal-icon { width: 72px; height: 72px; margin: 0 auto 20px; }
 .co-modal-icon svg { width: 100%; height: 100%; }
@@ -454,7 +556,7 @@
 .co-modal-id { display: inline-block; background: #f0f7f0; border: 1px solid #A2C37F; border-radius: 10px; padding: 8px 18px; font-size: 13.5px; color: #36873A; margin-bottom: 24px; }
 .co-modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
-/* ── Spinner ── */
+/* Spinner */
 .co-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(54,135,58,0.3); border-top-color: #36873A; border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
 .co-spinner-white { border-color: rgba(255,255,255,0.3); border-top-color: #fff; }
 
@@ -479,7 +581,7 @@
   .ab-modal-footer { flex-direction: column; }
   .ab-card-body { padding-left: 16px; }
   .ab-card-footer { padding-left: 16px; }
-  .co-voucher-modal { max-width: calc(100vw - 40px); }
+  .co-voucher-modal { max-width: calc(100vw - 32px); max-height: 90vh; }
 }
 @media (max-width: 480px) {
   .co-modal { padding: 28px 20px 24px; }
@@ -487,4 +589,6 @@
   .co-trust { gap: 10px; flex-wrap: wrap; }
   .ab-card-footer { gap: 6px; }
   .ab-btn-delete { margin-left: 0; }
+  .co-voucher-card-inner { padding: 10px 10px 10px 10px; gap: 10px; }
+  .co-voucher-card-action { min-width: 60px; }
 }

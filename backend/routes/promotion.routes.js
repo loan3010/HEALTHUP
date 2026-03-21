@@ -33,12 +33,14 @@ router.post('/apply', async (req, res) => {
       return res.status(400).json({ valid: false, message: 'Voucher đã hết hạn' });
     }
 
-    // Kiểm tra thời gian
-    const now = new Date();
-    if (now < promo.startDate) {
+    // Kiểm tra thời gian — dùng new Date() để tương thích cả String lẫn ISODate
+    const now   = new Date();
+    const start = promo.startDate ? new Date(promo.startDate) : null;
+    const end   = promo.endDate   ? new Date(promo.endDate)   : null;
+    if (start && now < start) {
       return res.status(400).json({ valid: false, message: 'Voucher chưa đến thời gian sử dụng' });
     }
-    if (now > promo.endDate) {
+    if (end && now > end) {
       return res.status(400).json({ valid: false, message: 'Voucher đã hết hạn' });
     }
 
@@ -97,15 +99,25 @@ router.post('/apply', async (req, res) => {
 router.get('/available', async (req, res) => {
   try {
     const now = new Date();
-    const list = await Promotion.find({
+    const nowStr = now.toISOString();
+
+    // FIX: Lấy tất cả ongoing trước, rồi filter date ở JS
+    // để tương thích cả trường hợp startDate/endDate là Date object hoặc String
+    const all = await Promotion.find({
       status: 'ongoing',
-      startDate: { $lte: now },
-      endDate:   { $gte: now },
       $or: [
         { totalLimit: 0 },
         { $expr: { $lt: ['$usedCount', '$totalLimit'] } }
       ]
-    }).select('code name description discountType discountValue minOrder maxDiscount').lean();
+    }).select('code name description discountType discountValue minOrder maxDiscount startDate endDate').lean();
+
+    const list = all.filter(p => {
+      const start = p.startDate ? new Date(p.startDate) : null;
+      const end   = p.endDate   ? new Date(p.endDate)   : null;
+      const startOk = !start || start <= now;
+      const endOk   = !end   || end   >= now;
+      return startOk && endOk;
+    }).map(({ startDate, endDate, ...rest }) => rest); // bỏ startDate/endDate khỏi response
 
     res.json(list);
   } catch (err) {

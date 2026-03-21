@@ -119,7 +119,6 @@ export class Checkout implements OnInit {
     this.shippingMethod() === 'express' ? 30000 : (this.subTotal() > 500000 ? 0 : 20000)
   );
 
-  // FIX: Phân loại giảm từ API
   discountOnItems = computed(() => {
     const r = this.voucherResult();
     if (!r?.valid || r.discountOnType !== 'items') return 0;
@@ -386,6 +385,28 @@ export class Checkout implements OnInit {
   // ══════════════════════════════════════
   // VOUCHER
   // ══════════════════════════════════════
+
+  /**
+   * FIX: Kiểm tra voucher có đủ điều kiện áp dụng không
+   * dựa trên subTotal hiện tại vs minOrder của voucher.
+   * Trả về true = đủ điều kiện (sáng), false = không đủ (mờ xám).
+   */
+  isVoucherEligible(v: VoucherInfo): boolean {
+    const min = v.minOrder ?? 0;
+    return this.subTotal() >= min;
+  }
+
+  /**
+   * Tooltip hiển thị lý do voucher bị disable
+   */
+  voucherDisabledReason(v: VoucherInfo): string {
+    const min = v.minOrder ?? 0;
+    if (this.subTotal() < min) {
+      return `Cần thêm ${this.vnd(min - this.subTotal())} để dùng mã này`;
+    }
+    return '';
+  }
+
   onVoucherInput(v: string): void {
     this.voucherCode.set(v.trim().toUpperCase());
     this.voucherMsg.set('');
@@ -435,7 +456,10 @@ export class Checkout implements OnInit {
 
     this.http.get<VoucherInfo[]>(`${this.API_BASE}/promotions/available`).subscribe({
       next: (list) => {
-        this.availableVouchers.set(list || []);
+        // FIX: Sort — đủ điều kiện lên trước, không đủ xuống dưới
+        const eligible   = (list || []).filter(v => this.isVoucherEligible(v));
+        const ineligible = (list || []).filter(v => !this.isVoucherEligible(v));
+        this.availableVouchers.set([...eligible, ...ineligible]);
         this.isLoadingVouchers = false;
         this.cdr.detectChanges();
       },
@@ -449,7 +473,8 @@ export class Checkout implements OnInit {
 
   closeVoucherModal(): void { this.showVoucherModal = false; this.cdr.detectChanges(); }
 
-  selectVoucher(code: string): void {
+  selectVoucher(code: string, eligible: boolean): void {
+    if (!eligible) return; // không cho chọn voucher không đủ điều kiện
     this.voucherCode.set(code);
     this.closeVoucherModal();
     this.applyVoucher();
@@ -491,23 +516,15 @@ export class Checkout implements OnInit {
     const note = this.checkoutForm.value.note || '';
 
     const customer: any = {
-      fullName: addr.name,
-      phone:    addr.phone,
-      email:    '',
-      address:  addr.address,
-      province: 'N/A',
-      district: 'N/A',
-      ward:     'N/A',
-      note,
+      fullName: addr.name, phone: addr.phone, email: '',
+      address: addr.address, province: 'N/A', district: 'N/A', ward: 'N/A', note,
     };
 
     const payload: any = {
       customer,
       items: this.items().map(i => ({
-        productId:    i.productId,
-        variantId:    i.variantId || null,
-        variantLabel: i.variantLabel || '',
-        quantity:     i.quantity,
+        productId: i.productId, variantId: i.variantId || null,
+        variantLabel: i.variantLabel || '', quantity: i.quantity,
       })),
       shippingMethod: this.shippingMethod(),
       paymentMethod:  this.paymentMethod(),
