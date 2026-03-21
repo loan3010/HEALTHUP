@@ -36,7 +36,7 @@ export class OrderManagement implements OnInit {
     this.loadOrders();
   }
 
-  // ✅ FIX: lấy userId từ localStorage — ưu tiên 'userId', fallback về user._id hoặc user.id
+  // ✅ Lấy userId từ localStorage — ưu tiên 'userId', fallback về user._id hoặc user.id
   private getUserId(): string {
     const direct = localStorage.getItem('userId');
     if (direct) return direct;
@@ -46,11 +46,20 @@ export class OrderManagement implements OnInit {
     } catch { return ''; }
   }
 
-  loadOrders(): void {
-    const userId = this.getUserId();
+  // ✅ Lấy phone từ localStorage (giữ lại từ feature/backup-code)
+  private getUserPhone(): string {
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      return user?.phone || '';
+    } catch { return ''; }
+  }
 
-    // ✅ FIX: không gọi API nếu chưa đăng nhập
-    if (!userId) {
+  loadOrders(): void {
+    const userId    = this.getUserId();
+    const userPhone = this.getUserPhone();
+
+    // ✅ Không gọi API nếu chưa đăng nhập
+    if (!userId && !userPhone) {
       this.orders         = [];
       this.filteredOrders = [];
       this.updateTabCounts();
@@ -60,10 +69,16 @@ export class OrderManagement implements OnInit {
 
     this.api.getOrders(userId).subscribe({
       next: (res: any) => {
-        this.orders         = Array.isArray(res) ? res : [];
+        const all = Array.isArray(res) ? res : [];
+
+        // ✅ Nếu có phone thì lọc thêm theo phone (logic từ feature/backup-code)
+        this.orders = userPhone
+          ? all.filter((o: any) => o.customer?.phone === userPhone)
+          : all;
+
         this.filteredOrders = [...this.orders];
         this.updateTabCounts();
-        this.cdr.detectChanges();   // ✅ hiện ngay không cần click
+        this.cdr.detectChanges();
       },
       error: () => {
         this.orders         = [];

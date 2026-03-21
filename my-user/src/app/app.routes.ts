@@ -25,7 +25,7 @@ import { AddressBook } from './address-book/address-book';
 
 import { OrderManagement } from './order-management/order-management';
 import { OrderDetail } from './order-details/order-details';
-import { Notifications } from './notifications/notifications';
+import { Notification } from './notifications/notifications';
 
 export const routes: Routes = [
 
@@ -63,13 +63,15 @@ export const routes: Routes = [
     path: 'profile',
     component: UserProfile,
     children: [
-      { path: '',                  redirectTo: 'overview', pathMatch: 'full' },
-      { path: 'overview',          component: ProfileOverview },
-      { path: 'address',           component: AddressBook },
-      { path: 'wishlist',          component: Wishlist },
-      { path: 'order-management',  component: OrderManagement },
-      { path: 'order-detail/:id',  component: OrderDetail },   // ✅ đúng route
-      { path: 'notifications',  component: Notifications },   // ✅ đúng route
+      { path: '', redirectTo: 'overview', pathMatch: 'full' },
+      { path: 'overview', component: ProfileOverview },
+      { path: 'address', component: AddressBook },
+      { path: 'wishlist', component: Wishlist },
+      { path: 'order-management', component: OrderManagement },
+      { path: 'order-detail/:id', component: OrderDetail},
+      { path: 'notifications', component: Notification },
+    
+      
     ]
   },
 
