@@ -36,7 +36,6 @@
         <div class="position-sticky" style="top:88px;">
           <div class="gallery-main mb-3" style="position:relative;">
             <img [src]="activeImage || 'assets/images/placeholder.png'" [alt]="product.name" />
-            <!-- Overlay TẠM HẾT HÀNG -->
             <div class="out-of-stock-overlay" *ngIf="isProductCompletelyOutOfStock() || product.isOutOfStock">
               <div class="out-of-stock-circle">
                 <i class="bi bi-slash-circle"></i>
@@ -67,7 +66,9 @@
         <div class="d-flex align-items-center gap-2 flex-wrap">
           <span class="rating-stars">{{ getStars(product.rating || 0) }}</span>
           <span class="rating-score">{{ product.rating || 0 }}</span>
-          <span class="rating-meta">· {{ product.reviewCount || 0 }} đánh giá · {{ product.sold || 0 }} đã bán</span>
+          <span class="rating-meta">
+            · {{ product.reviewCount || 0 }} đánh giá · {{ product.sold || 0 }} đã bán
+          </span>
           <a class="rating-link ms-1"
             [routerLink]="['/order-review']"
             [queryParams]="{productId: product._id}">Xem đánh giá</a>
@@ -84,17 +85,52 @@
           </span>
         </div>
 
-        <div *ngIf="product.variants?.length">
+        <!-- Biến thể 2 chiều (attr1 + attr2) - từ TN -->
+        <div *ngIf="product.variants?.length && hasSecondAttrDimension()">
+          <div class="variant-label mb-2">{{ variantLabel1() }}</div>
+          <div class="d-flex gap-2 flex-wrap">
+            <button
+              type="button"
+              class="variant-btn"
+              *ngFor="let a1 of variantAttr1Options()"
+              [class.active]="selectedAttr1 === a1"
+              (click)="onSelectVariantAttr1(a1)">
+              {{ a1 }}
+            </button>
+          </div>
+          <div class="variant-label mb-2 mt-3">{{ variantLabel2() }}</div>
+          <div class="d-flex gap-2 flex-wrap">
+            <button
+              type="button"
+              class="variant-btn"
+              *ngFor="let a2 of variantAttr2OptionsForSelection()"
+              [class.active]="selectedAttr2 === a2"
+              [class.out-of-stock]="variantStockForAttrs(selectedAttr1, a2) === 0"
+              (click)="onSelectVariantAttr2(a2)">
+              {{ a2 }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Biến thể 1 chiều (label đơn) - giữ cả main lẫn TN -->
+        <div *ngIf="product.variants?.length && !hasSecondAttrDimension()">
           <div class="variant-label mb-2">Phân loại</div>
           <div class="d-flex gap-2 flex-wrap">
             <button
+              type="button"
               class="variant-btn"
               *ngFor="let v of product.variants"
               [class.active]="selectedVariantId === v._id"
               [class.out-of-stock]="(v.stock || 0) === 0"
-              (click)="selectedVariantId = v._id">
+              (click)="selectVariant(v)">
               {{ v.label }}
+              <span *ngIf="(v.stock || 0) === 0" style="font-size:11px;opacity:0.75;"> (Hết)</span>
             </button>
+          </div>
+          <div class="mt-2" style="font-size:13px;font-weight:500;color:#C62828;"
+               *ngIf="isCurrentVariantOutOfStock() && !isProductCompletelyOutOfStock()">
+            <i class="bi bi-exclamation-circle me-1"></i>
+            Phân loại này đã hết hàng — vui lòng chọn phân loại khác.
           </div>
         </div>
 
@@ -102,7 +138,7 @@
         <p class="detail-desc mb-0">{{ product.shortDesc }}</p>
 
         <!-- Trọng lượng -->
-        <div *ngIf="product.weights?.length">
+        <div *ngIf="!product.variants?.length && product.weights?.length">
           <div class="variant-label mb-2">Trọng lượng</div>
           <div class="d-flex gap-2 flex-wrap">
             <button class="variant-btn"
@@ -134,43 +170,41 @@
               <i class="bi bi-dash"></i>
             </button>
             <span class="qty-value">{{ qty }}</span>
-            <button class="qty-btn" (click)="increaseQty()" [disabled]="qty >= currentStock()">
+            <button class="qty-btn"
+              (click)="increaseQty()"
+              [disabled]="currentStock() === 0 || qty >= currentStock()">
               <i class="bi bi-plus"></i>
             </button>
           </div>
-          <span class="stock-info" [class.low]="currentStock() < 10">
+          <span class="stock-info" *ngIf="!isCurrentVariantOutOfStock()" [class.low]="currentStock() < 10">
             <i class="bi me-1"
               [class.bi-check-circle]="currentStock() >= 10"
               [class.bi-exclamation-triangle]="currentStock() < 10"></i>
             Còn {{ currentStock() }} sản phẩm
           </span>
+          <span class="stock-info" *ngIf="isCurrentVariantOutOfStock()" style="color:#C62828;">
+            <i class="bi bi-slash-circle me-1"></i>Hết hàng
+          </span>
         </div>
 
         <!-- CTA -->
         <div class="d-flex gap-3 mt-4">
-
-  <button
-    class="btn-cart flex-grow-1"
-    [class.added]="addedToCart"
-    [disabled]="currentStock() === 0 || product.isOutOfStock"
-    (click)="addToCart()">
-
-    <i class="bi bi-cart3"></i>
-    {{ (currentStock() === 0 || product.isOutOfStock) ? 'Tạm hết hàng' : (addedToCart ? 'Đã thêm vào giỏ!' : 'Thêm vào giỏ hàng') }}
-
-  </button>
-
-  <button
-    class="btn-buy flex-grow-1"
-    [disabled]="currentStock() === 0 || product.isOutOfStock"
-    (click)="buyNow()">
-
-    <i class="bi bi-lightning-charge-fill me-1"></i>
-    {{ (currentStock() === 0 || product.isOutOfStock) ? 'Tạm hết hàng' : 'Mua ngay' }}
-
-  </button>
-
-</div>
+          <button
+            class="btn-cart flex-grow-1"
+            [class.added]="addedToCart"
+            [disabled]="isCurrentVariantOutOfStock() || addedToCart"
+            (click)="addToCart()">
+            <i class="bi bi-cart3"></i>
+            {{ isCurrentVariantOutOfStock() ? 'Tạm hết hàng' : (addedToCart ? 'Đã thêm vào giỏ!' : 'Thêm vào giỏ hàng') }}
+          </button>
+          <button
+            class="btn-buy flex-grow-1"
+            [disabled]="isCurrentVariantOutOfStock()"
+            (click)="buyNow()">
+            <i class="bi bi-lightning-charge-fill me-1"></i>
+            {{ isCurrentVariantOutOfStock() ? 'Tạm hết hàng' : 'Mua ngay' }}
+          </button>
+        </div>
 
         <!-- Yêu thích & Chia sẻ -->
         <div class="d-flex gap-2">
@@ -201,13 +235,9 @@
             <button class="tab-btn" [class.active]="activeTab === 'policy'"   (click)="activeTab = 'policy'">Chính sách</button>
           </div>
           <div class="tab-content">
-
-            <!-- Mô tả -->
             <div *ngIf="activeTab === 'desc'">
               <div class="desc-text" [innerHTML]="product.description"></div>
             </div>
-
-            <!-- Dinh dưỡng -->
             <div *ngIf="activeTab === 'nutrition'">
               <p class="nutrition-note mb-3">Thông tin dinh dưỡng trên 100g sản phẩm</p>
               <div *ngIf="!product.nutrition?.length" class="text-secondary" style="font-size:14px;">
@@ -231,8 +261,6 @@
               </table>
               <p class="nutrition-disclaimer mt-2">* NDH = Nhu cầu dinh dưỡng hàng ngày dựa trên chế độ 2000 kcal.</p>
             </div>
-
-            <!-- Chính sách -->
             <div *ngIf="activeTab === 'policy'">
               <div class="policy-item" *ngFor="let item of policyItems">
                 <i class="policy-icon bi {{ item.icon }}"></i>
@@ -242,7 +270,6 @@
                 </div>
               </div>
             </div>
-
           </div>
         </div>
 
@@ -251,9 +278,7 @@
   </div>
 </div>
 
-<!-- ============================================================
-     SẢN PHẨM LIÊN QUAN — dùng product-card giống "Bán chạy"
-     ============================================================ -->
+<!-- SẢN PHẨM LIÊN QUAN -->
 <section class="py-5" style="background:#FAF6F0;" *ngIf="relatedProducts.length > 0">
   <div class="container">
     <div class="d-flex justify-content-between align-items-end mb-4">
@@ -269,41 +294,44 @@
 
     <div class="row g-4">
       <div class="col-12 col-sm-6 col-md-3" *ngFor="let p of relatedProducts">
-        <div class="product-card h-100" (click)="goToProduct(p._id)">
-          <div class="product-img-wrap">
-            <span class="badge-new" *ngIf="p.badge === 'new'">Mới</span>
-            <span class="badge-hot" *ngIf="p.badge === 'hot'">Hot</span>
-            <span class="badge-sale" *ngIf="p.sale">{{ p.sale }}</span>
-            <img
-              [src]="p.image || 'assets/images/placeholder.png'"
-              [alt]="p.name"
-              onerror="this.src='assets/images/placeholder.png'" />
-            <!-- Overlay TẠM HẾT HÀNG trên card liên quan -->
-            <div class="out-of-stock-overlay" *ngIf="p.stock === 0 || p.isOutOfStock">
-              <div class="out-of-stock-circle small">
-                <i class="bi bi-slash-circle"></i>
-                <span>TẠM HẾT HÀNG</span>
-              </div>
-            </div>
-          </div>
-          <div class="p-3">
-            <div class="product-cat mb-1">{{ p.cat }}</div>
-            <div class="product-name mb-1">{{ p.name }}</div>
-            <div class="product-weight mb-2">{{ p.weight || p.weights?.[0]?.label }}</div>
-            <div class="d-flex align-items-center justify-content-between pt-2 product-footer-row">
-              <div>
-                <span class="product-price">{{ p.price | currency:'VND':'symbol':'1.0-0' }}</span>
-                <span class="product-price-old ms-1" *ngIf="p.oldPrice">
-                  {{ p.oldPrice | currency:'VND':'symbol':'1.0-0' }}
-                </span>
-                <div class="product-rating">
-                  <span class="stars">{{ getStars(p.rating || 0) }}</span>
-                  <span class="ms-1">({{ p.reviewCount || p.reviews || 0 }})</span>
+        <div class="product-card h-100" style="cursor:pointer; position:relative;">
+          <div (click)="goToProduct(p._id)" style="display:contents;">
+            <div class="product-img-wrap">
+              <span class="badge-new" *ngIf="p.badge === 'new'">Mới</span>
+              <span class="badge-hot" *ngIf="p.badge === 'hot'">Hot</span>
+              <span class="badge-sale" *ngIf="p.sale">{{ p.sale }}</span>
+              <img
+                [src]="p.image || p.images?.[0] || 'assets/images/placeholder.png'"
+                [alt]="p.name"
+                (error)="$any($event.target).src='assets/images/placeholder.png'" />
+              <div class="out-of-stock-overlay" *ngIf="p.stock === 0 || p.isOutOfStock">
+                <div class="out-of-stock-circle small">
+                  <i class="bi bi-slash-circle"></i>
+                  <span>TẠM HẾT HÀNG</span>
                 </div>
               </div>
-              <button class="btn-add" [disabled]="p.stock === 0 || p.isOutOfStock" (click)="addRelated($event, p)">
-                <i class="bi bi-plus"></i>
-              </button>
+            </div>
+            <div class="p-3">
+              <div class="product-cat mb-1">{{ p.cat }}</div>
+              <div class="product-name mb-1">{{ p.name }}</div>
+              <div class="product-weight mb-2">{{ p.weight || p.weights?.[0]?.label }}</div>
+              <div class="d-flex align-items-center justify-content-between pt-2 product-footer-row">
+                <div>
+                  <span class="product-price">{{ p.price | currency:'VND':'symbol':'1.0-0' }}</span>
+                  <span class="product-price-old ms-1" *ngIf="p.oldPrice">
+                    {{ p.oldPrice | currency:'VND':'symbol':'1.0-0' }}
+                  </span>
+                  <div class="product-rating">
+                    <span class="stars">{{ getStars(p.rating || 0) }}</span>
+                    <span class="ms-1">({{ p.reviewCount || p.reviews || 0 }})</span>
+                  </div>
+                </div>
+                <button class="btn-add"
+                        [disabled]="p.stock === 0 || p.isOutOfStock"
+                        (click)="addRelated($event, p)">
+                  <i class="bi bi-plus"></i>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -312,19 +340,15 @@
   </div>
 </section>
 
-<!-- ============================================================
-     TƯ VẤN SẢN PHẨM (USER SIDE)
-     ============================================================ -->
+<!-- TƯ VẤN SẢN PHẨM -->
 <section class="consulting-section py-5">
   <div class="container">
 
-    <!-- Tiêu đề section -->
     <div class="d-flex justify-content-between align-items-end mb-4">
       <div>
         <h2 class="section-title mb-1">Hỏi & Đáp về sản phẩm</h2>
         <p style="font-size:15px;color:#A2C37F;margin:0;">Đặt câu hỏi để được tư vấn từ chuyên gia HealthUp</p>
       </div>
-      <!-- Thống kê nhanh -->
       <div class="d-none d-md-flex align-items-center gap-3">
         <span style="font-size:13px;color:#A2C37F;">
           <strong style="color:#36873A;">{{ consultingStats.total }}</strong> câu hỏi
@@ -342,7 +366,6 @@
 
     <div class="d-flex flex-column gap-4">
 
-      <!-- FORM ĐẶT CÂU HỎI (đã đăng nhập) -->
       <div class="consulting-ask-card p-4" *ngIf="isLoggedIn">
         <div class="consulting-ask-title mb-1">
           <i class="bi bi-chat-dots me-2"></i>Đặt câu hỏi của bạn
@@ -351,7 +374,6 @@
           Đội ngũ chuyên gia HealthUp sẽ phản hồi trong vòng 24 giờ làm việc.
         </p>
 
-        <!-- Success message -->
         <div class="ask-success-msg mb-3" *ngIf="askSubmitSuccess">
           <i class="bi bi-check-circle-fill"></i>
           Câu hỏi của bạn đã được gửi! Chúng tôi sẽ phản hồi sớm nhất.
@@ -382,7 +404,6 @@
         </div>
       </div>
 
-      <!-- LOGIN PROMPT -->
       <div class="consulting-login-prompt p-4 d-flex align-items-center gap-3" *ngIf="!isLoggedIn">
         <i class="bi bi-chat-dots-fill fs-2" style="color:#A2C37F;"></i>
         <div class="flex-grow-1">
@@ -391,15 +412,13 @@
             Nhận tư vấn chuyên sâu từ chuyên gia dinh dưỡng HealthUp miễn phí.
           </span>
         </div>
-        <button
-          class="btn-ask-submit"
-          routerLink="/user-authentication">
+        <button class="btn-ask-submit" routerLink="/user-authentication">
           <i class="bi bi-person-circle"></i>Đăng nhập
         </button>
       </div>
 
-      <!-- BỘ LỌC -->
-      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2" *ngIf="consultingQuestions.length > 0 || consultingFilter !== 'all'">
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2"
+           *ngIf="consultingQuestions.length > 0 || consultingFilter !== 'all'">
         <div class="consulting-filter-bar">
           <button class="consulting-filter-btn"
             [class.active]="consultingFilter === 'all'"
@@ -419,10 +438,8 @@
         </div>
       </div>
 
-      <!-- DANH SÁCH CÂU HỎI -->
       <div class="d-flex flex-column gap-3">
 
-        <!-- Skeleton loading -->
         <ng-container *ngIf="isConsultingLoading">
           <div class="consulting-skeleton p-4" *ngFor="let s of [1,2]">
             <div class="skeleton-line mb-2" style="width:30%"></div>
@@ -431,14 +448,12 @@
           </div>
         </ng-container>
 
-        <!-- Danh sách câu hỏi thực -->
         <div
           class="question-card-user p-4"
           [class.pending]="q.status === 'pending'"
           [class.answered]="q.status === 'answered'"
           *ngFor="let q of filteredConsultingQuestions; let i = index">
 
-          <!-- Header: user + status -->
           <div class="d-flex align-items-start justify-content-between mb-3">
             <div class="d-flex align-items-center gap-2">
               <div class="q-user-avatar" [style.background]="getAvatarColor(i)">
@@ -449,19 +464,19 @@
                 <div class="q-time">{{ q.time }}</div>
               </div>
             </div>
-            <span class="q-status-badge" [class.pending]="q.status === 'pending'" [class.answered]="q.status === 'answered'">
-              <i class="bi" [class.bi-clock]="q.status === 'pending'" [class.bi-check-circle-fill]="q.status === 'answered'"></i>
+            <span class="q-status-badge"
+                  [class.pending]="q.status === 'pending'"
+                  [class.answered]="q.status === 'answered'">
+              <i class="bi"
+                 [class.bi-clock]="q.status === 'pending'"
+                 [class.bi-check-circle-fill]="q.status === 'answered'"></i>
               {{ q.status === 'pending' ? 'Chờ trả lời' : 'Đã trả lời' }}
             </span>
           </div>
 
-          <!-- Nội dung câu hỏi -->
-          <div class="mb-1">
-            <span class="q-label-tag">Câu hỏi</span>
-          </div>
+          <div class="mb-1"><span class="q-label-tag">Câu hỏi</span></div>
           <p class="q-content-text mb-3">{{ q.content }}</p>
 
-          <!-- Câu trả lời (nếu có) -->
           <div class="q-answer-box p-3 mb-3" *ngIf="q.status === 'answered' && q.answer">
             <div class="d-flex align-items-center gap-2 mb-2">
               <span class="q-answer-badge">
@@ -472,8 +487,8 @@
             <p class="q-answer-text mb-0">{{ q.answer }}</p>
           </div>
 
-          <!-- Helpful -->
-          <div class="d-flex align-items-center gap-2 flex-wrap pt-3 border-top" style="border-color:#F0F7F0 !important;">
+          <div class="d-flex align-items-center gap-2 flex-wrap pt-3 border-top"
+               style="border-color:#F0F7F0 !important;">
             <span class="q-helpful-text">Câu hỏi này có hữu ích không?</span>
             <button class="q-helpful-btn">
               <i class="bi bi-hand-thumbs-up"></i> Có ({{ q.helpful || 0 }})
@@ -481,7 +496,6 @@
           </div>
         </div>
 
-        <!-- EMPTY STATE -->
         <div class="consulting-empty text-center py-5 px-3"
           *ngIf="filteredConsultingQuestions.length === 0 && !isConsultingLoading">
           <i class="bi bi-chat-square-dots fs-1 text-secondary d-block mb-3"></i>
@@ -491,7 +505,6 @@
           </p>
         </div>
 
-        <!-- LOAD MORE -->
         <div class="text-center mt-2" *ngIf="hasMoreQuestions">
           <button class="btn-load-more-q"
             (click)="loadMoreQuestions()"

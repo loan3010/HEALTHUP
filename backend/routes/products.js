@@ -20,15 +20,17 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // ─────────────────────────────────────────────────────────────────
-// GET featured/bestsellers — user chỉ thấy sản phẩm không ẩn
+// GET featured — random 4 sản phẩm đang hiện, không ẩn
 // ─────────────────────────────────────────────────────────────────
 router.get('/featured', async (req, res) => {
   try {
-    const products = await Product
-      .find({ isHidden: { $ne: true } })
-      .sort({ sold: -1 })
-      .limit(4)
-      .lean();
+    const limit = Math.max(1, Number(req.query.limit) || 4);
+
+    const products = await Product.aggregate([
+      { $match: { isHidden: { $ne: true } } },
+      { $sample: { size: limit } }
+    ]);
+
     res.json(products);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -66,21 +68,51 @@ function normalizeVN(str) {
     .trim();
 }
 
+/** Tách "A | B" từ label cũ → attr1 / attr2 (khi client chưa gửi attr). */
+function splitLabelToAttrs(label) {
+  const raw = String(label || '').trim();
+  if (!raw) return { a1: '', a2: '' };
+  const parts = raw.split('|').map((x) => x.trim()).filter(Boolean);
+  if (parts.length >= 2) return { a1: parts[0], a2: parts[1] };
+  return { a1: raw, a2: '' };
+}
+
+function normalizeVariantAttrName(v, fallback) {
+  const t = String(v ?? '').trim();
+  const max = 80;
+  return (t.length > max ? t.slice(0, max) : t) || fallback;
+}
+
 function normalizeVariantsInput(rawVariants) {
   if (!Array.isArray(rawVariants)) return [];
   const cleaned = rawVariants
-    .map(v => ({
-      label:    String(v?.label || '').trim(),
-      price:    Number(v?.price || 0),
-      stock:    Math.max(0, Number(v?.stock || 0)),
-      oldPrice: Math.max(0, Number(v?.oldPrice || 0)),
-      isActive: v?.isActive !== false
-    }))
-    .filter(v => v.label && Number.isFinite(v.price) && v.price >= 0);
+    .map((v) => {
+      let attr1 = String(v?.attr1Value ?? '').trim();
+      let attr2 = String(v?.attr2Value ?? '').trim();
+      let label = String(v?.label || '').trim();
+      if ((!attr1 || !attr2) && label) {
+        const p = splitLabelToAttrs(label);
+        if (!attr1) attr1 = p.a1;
+        if (!attr2) attr2 = p.a2;
+      }
+      if (attr1 && attr2) label = `${attr1} | ${attr2}`;
+      else if (!label && (attr1 || attr2)) label = attr1 && attr2 ? `${attr1} | ${attr2}` : (attr1 || attr2);
 
-  // Không cho trùng label (không phân biệt hoa thường)
+      return {
+        label,
+        attr1Value: attr1,
+        attr2Value: attr2,
+        image: String(v?.image || '').trim(),
+        price: Number(v?.price || 0),
+        stock: Math.max(0, Number(v?.stock || 0)),
+        oldPrice: Math.max(0, Number(v?.oldPrice || 0)),
+        isActive: v?.isActive !== false
+      };
+    })
+    .filter((v) => v.label && Number.isFinite(v.price) && v.price >= 0);
+
   const seen = new Set();
-  return cleaned.filter(v => {
+  return cleaned.filter((v) => {
     const key = v.label.toLowerCase();
     if (seen.has(key)) return false;
     seen.add(key);
@@ -90,8 +122,6 @@ function normalizeVariantsInput(rawVariants) {
 
 // ─────────────────────────────────────────────────────────────────
 // GET /api/products   — browse + search + filter
-//   isAdmin=true  →  admin xem tất cả kể cả sản phẩm đã ẩn
-//   (không có)    →  user chỉ thấy sản phẩm chưa ẩn
 // ─────────────────────────────────────────────────────────────────
 router.get('/', async (req, res) => {
   try {
@@ -103,7 +133,7 @@ router.get('/', async (req, res) => {
 
     const adminMode = isAdmin === 'true';
 
-    // ── SEARCH MODE: chỉ tìm theo tên sản phẩm ──
+    // ── SEARCH MODE ──
     if (search && search.trim() !== '') {
       const kwNorm   = normalizeVN(search.trim());
       const limitNum = Math.min(Number(limit) || 6, 20);
@@ -119,7 +149,6 @@ router.get('/', async (req, res) => {
         normalizeVN(p.name).includes(kwNorm)
       );
 
-      // Sắp xếp: tên bắt đầu bằng keyword lên đầu
       matched.sort((a, b) => {
         const aN = normalizeVN(a.name);
         const bN = normalizeVN(b.name);
@@ -139,7 +168,6 @@ router.get('/', async (req, res) => {
     // ── BROWSE / FILTER MODE ──
     let query = {};
 
-    // Admin thấy hết; user chỉ thấy sản phẩm chưa ẩn
     if (!adminMode) {
       query.isHidden = { $ne: true };
     }
@@ -202,7 +230,7 @@ router.post('/upload-image', upload.single('image'), (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────
-// PATCH /:id/toggle-hidden  — admin ẩn/hiện sản phẩm
+// PATCH /:id/toggle-hidden
 // ─────────────────────────────────────────────────────────────────
 router.patch('/:id/toggle-hidden', async (req, res) => {
   try {
@@ -236,7 +264,6 @@ router.patch('/:id/toggle-outofstock', async (req, res) => {
 });
 
 // GET single product
-// isAdmin=true → admin thấy cả SP ẩn; user thường bị chặn nếu SP đang ẩn
 router.get('/:id', async (req, res) => {
   try {
     const product = await Product.findById(req.params.id).lean();
@@ -253,17 +280,48 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// GET related products — user không thấy SP ẩn
+// ─────────────────────────────────────────────────────────────────
+// GET related products — FIX: random bằng $sample
+// Ưu tiên cùng danh mục, nếu không đủ thì bổ sung từ danh mục khác
+// ─────────────────────────────────────────────────────────────────
 router.get('/:id/related', async (req, res) => {
   try {
+    const limit = Math.max(1, Number(req.query.limit) || 4);
+
     const product = await Product.findById(req.params.id).lean();
     if (!product) return res.status(404).json({ error: 'Not found' });
-    const related = await Product.find({
-      cat:      product.cat,
-      _id:      { $ne: product._id },
-      isHidden: { $ne: true },
-    }).limit(4).lean();
-    res.json(related);
+
+    // Lấy random trong cùng danh mục trước
+    const sameCat = await Product.aggregate([
+      {
+        $match: {
+          cat:      product.cat,
+          _id:      { $ne: product._id },
+          isHidden: { $ne: true },
+        }
+      },
+      { $sample: { size: limit } }
+    ]);
+
+    // Nếu chưa đủ số lượng → bổ sung từ danh mục khác (cũng random)
+    if (sameCat.length < limit) {
+      const excludeIds = [product._id, ...sameCat.map(p => p._id)];
+      const remaining  = limit - sameCat.length;
+
+      const otherCat = await Product.aggregate([
+        {
+          $match: {
+            _id:      { $nin: excludeIds },
+            isHidden: { $ne: true },
+          }
+        },
+        { $sample: { size: remaining } }
+      ]);
+
+      return res.json([...sameCat, ...otherCat]);
+    }
+
+    res.json(sameCat);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -272,8 +330,6 @@ router.get('/:id/related', async (req, res) => {
 // POST create product
 router.post('/', async (req, res) => {
   try {
-    // Tự sinh SKU nếu client chưa truyền.
-    // Định dạng: SKU0001, SKU0002... (4 số), dựa trên max sku hiện có.
     if (!req.body.sku || String(req.body.sku).trim() === '') {
       const skuDocs = await Product.find(
         { sku: { $regex: '^SKU\\d{4}$' } },
@@ -317,6 +373,8 @@ router.put('/:id', async (req, res) => {
         req.body.price    = variants[0].price;
         req.body.oldPrice = variants[0].oldPrice || req.body.oldPrice || 0;
         req.body.stock    = variants.reduce((sum, v) => sum + (v.stock || 0), 0);
+        req.body.variantAttr1Name = normalizeVariantAttrName(req.body.variantAttr1Name, 'Phân loại 1');
+        req.body.variantAttr2Name = normalizeVariantAttrName(req.body.variantAttr2Name, 'Phân loại 2');
       }
     }
 

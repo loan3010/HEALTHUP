@@ -12,8 +12,13 @@ const WeightOptionSchema = new mongoose.Schema({
 });
 
 // Biến thể bán hàng: mỗi phân loại có giá + tồn kho riêng.
+// attr1Value / attr2Value: hai chiều phân loại (VD: hương vị + khối lượng).
+// label giữ dạng "A | B" để tương thích API/cart cũ.
 const VariantSchema = new mongoose.Schema({
   label: { type: String, required: true, trim: true },
+  attr1Value: { type: String, default: '', trim: true },
+  attr2Value: { type: String, default: '', trim: true },
+  image: { type: String, default: '' },
   price: { type: Number, required: true, min: 0 },
   stock: { type: Number, required: true, min: 0 },
   oldPrice: { type: Number, default: 0, min: 0 },
@@ -38,6 +43,9 @@ const ProductSchema = new mongoose.Schema({
   description: String,
   stock: { type: Number, default: 100 },
   variants: { type: [VariantSchema], default: [] },
+  // Tên hiển thị cho 2 chiều phân loại (admin đặt tùy ý, ví dụ "Hương vị" / "Khối lượng").
+  variantAttr1Name: { type: String, default: 'Phân loại 1', trim: true },
+  variantAttr2Name: { type: String, default: 'Phân loại 2', trim: true },
   weights: [WeightOptionSchema],
   packagingTypes: [String],
   nutrition: [NutritionSchema],

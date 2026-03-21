@@ -2,9 +2,17 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
+export const ADMIN_API_BASE = 'http://localhost:3000/api';
+export const ADMIN_STATIC_BASE = 'http://localhost:3000';
+
 export interface ProductVariant {
   _id?: string;
   label: string;
+  /** Giá trị chiều 1 (VD: Dâu) — đồng bộ với label "A | B". */
+  attr1Value?: string;
+  /** Giá trị chiều 2 (VD: 200g). */
+  attr2Value?: string;
+  image?: string;
   price: number;
   stock: number;
   oldPrice?: number;
@@ -36,13 +44,15 @@ export interface Product {
   weight?: string;
   saving?: string;
   packagingTypes?: string[];
+  /** Nhãn hiển thị chiều 1/2 trên trang khách (VD: "Hương vị", "Khối lượng"). */
+  variantAttr1Name?: string;
+  variantAttr2Name?: string;
   variants?: ProductVariant[];
   nutrition?: ProductNutrition[];
   createdAt?: string;
   updatedAt?: string;           // ← thêm: timestamps: true trong Mongoose tự sinh
   isHidden?: boolean;
   isOutOfStock?: boolean;       // admin bật tay "Tạm hết hàng"
-  status?: 'active' | 'outofstock' | 'suspended';
 }
 
 export interface ProductResponse {
@@ -54,7 +64,7 @@ export interface ProductResponse {
 
 @Injectable({ providedIn: 'root' })
 export class ProductService {
-  private apiUrl = 'http://localhost:3000/api/products';
+  private apiUrl = `${ADMIN_API_BASE}/products`;
 
   constructor(private http: HttpClient) {}
 

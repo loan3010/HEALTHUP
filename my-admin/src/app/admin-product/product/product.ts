@@ -1,7 +1,7 @@
 import { Component, HostListener, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ProductService, Product } from '../product.service';
+import { ProductService, Product, ADMIN_STATIC_BASE } from '../product.service';
 import { ProductFormComponent } from '../product-form/product-form';
 
 @Component({
@@ -12,10 +12,11 @@ import { ProductFormComponent } from '../product-form/product-form';
   styleUrls: ['./product.css']
 })
 export class ProductComponent implements OnInit {
+  readonly staticBase = ADMIN_STATIC_BASE;
   products: Product[] = [];
   filteredProducts: Product[] = [];
   searchText = '';
-  isModalOpen = false;
+  isEditorPageOpen = false;
   selectedProduct: Product | null = null;
   isLoading = false;
 
@@ -40,13 +41,17 @@ export class ProductComponent implements OnInit {
   filterMinPrice: number | null = null;
   filterMaxPrice: number | null = null;
   filterMinRating: number | null = null;
+  filterSaleStatus: '' | 'selling' | 'out' = '';
+  filterVisibility: '' | 'visible' | 'hidden' = '';
   categories: string[] = [];
   get hasActiveFilter(): boolean {
     return !!(
       this.filterCat ||
       this.filterMinPrice != null ||
       this.filterMaxPrice != null ||
-      this.filterMinRating != null
+      this.filterMinRating != null ||
+      this.filterSaleStatus ||
+      this.filterVisibility
     );
   }
 
@@ -60,8 +65,19 @@ export class ProductComponent implements OnInit {
       parts.push(`Giá: ${a}-${b}`);
     }
     if (this.filterMinRating != null) parts.push(`⭐ ${this.filterMinRating}+`);
+    if (this.filterSaleStatus === 'selling') parts.push('Đang bán');
+    if (this.filterSaleStatus === 'out') parts.push('Tạm hết');
+    if (this.filterVisibility === 'visible') parts.push('Hiển thị');
+    if (this.filterVisibility === 'hidden') parts.push('Ẩn');
     return parts.join(' · ');
   }
+
+  // Modal xác nhận dùng thay cho confirm() để đồng bộ UX.
+  showConfirmModal = false;
+  confirmTitle = '';
+  confirmMessage = '';
+  confirmDanger = false;
+  private confirmAction: (() => void) | null = null;
 
   // ── SẮP XẾP (dropdown kiểu admin-customer) ──
   sortMenuOpen = false;
@@ -168,11 +184,18 @@ export class ProductComponent implements OnInit {
   }
 
   applySearch() {
-    if (!this.searchText) { this.filteredProducts = [...this.products]; return; }
-    const kw = this.searchText.toLowerCase();
-    this.filteredProducts = this.products.filter(p =>
-      p.name.toLowerCase().includes(kw) || p.cat.toLowerCase().includes(kw)
-    );
+    const kw = this.searchText.trim().toLowerCase();
+    this.filteredProducts = this.products.filter((p) => {
+      const matchSearch = !kw || p.name.toLowerCase().includes(kw) || p.cat.toLowerCase().includes(kw);
+      const matchSaleStatus =
+        !this.filterSaleStatus ||
+        (this.filterSaleStatus === 'selling' ? (!p.isHidden && !this.isEffectiveOutOfStock(p)) : this.isEffectiveOutOfStock(p));
+      const matchVisibility =
+        !this.filterVisibility ||
+        (this.filterVisibility === 'visible' ? !p.isHidden : !!p.isHidden);
+      return matchSearch && matchSaleStatus && matchVisibility;
+    });
+    this.allChecked = this.filteredProducts.length > 0 && this.filteredProducts.every(p => this.selectedIds.has(p._id!));
   }
 
   onSearch() { this.applySearch(); }
@@ -187,6 +210,9 @@ export class ProductComponent implements OnInit {
   toggleOne(id: string, checked: boolean) {
     checked ? this.selectedIds.add(id) : this.selectedIds.delete(id);
     this.allChecked = this.filteredProducts.every(p => this.selectedIds.has(p._id!));
+  }
+  onRowClick(p: Product): void {
+    this.editProduct(p);
   }
 
   get selectedCount() { return this.selectedIds.size; }
@@ -208,66 +234,122 @@ export class ProductComponent implements OnInit {
     this.filterMinPrice = null;
     this.filterMaxPrice = null;
     this.filterMinRating = null;
+    this.filterSaleStatus = '';
+    this.filterVisibility = '';
     this.currentPage    = 1;
     this.loadProducts();
   }
 
   // ── CRUD & ACTIONS ──
-  addProduct() { this.selectedProduct = null; this.isModalOpen = true; }
+  addProduct() {
+    this.selectedProduct = null;
+    this.isEditorPageOpen = true;
+  }
 
   editProduct(p: Product) {
     this.selectedProduct = { ...p };
-    this.isModalOpen = true;
+    this.isEditorPageOpen = true;
   }
 
   editSelected() {
     if (this.selectedCount !== 1) return;
     const id = [...this.selectedIds][0];
     const p  = this.filteredProducts.find(x => x._id === id);
-    if (p) { this.selectedProduct = { ...p }; this.isModalOpen = true; }
+    if (p) { this.selectedProduct = { ...p }; this.isEditorPageOpen = true; }
   }
 
   /** Ẩn/hiện 1 sản phẩm từ nút inline trong bảng */
   toggleHidden(p: Product) {
-    // Soft delete theo yêu cầu: đổi label UI sang "Xóa/Hiển thị" nhưng vẫn dùng toggle-hidden.
-    const action = p.isHidden ? 'hiển thị' : 'xóa';
     const verb = p.isHidden ? 'Hiển thị' : 'Xóa';
     const warning = p.isHidden
       ? 'Sản phẩm sẽ trở lại trạng thái đang hiển thị trong admin/user.'
       : 'Sản phẩm sẽ bị ẩn khỏi hệ thống (có thể khôi phục bằng nút "Hiển thị").';
-    if (
-      !confirm(`${verb} sản phẩm "${p.name}"?\n\n${warning}`)
-    ) return;
-    this.productService.toggleHidden(p._id!).subscribe({
-      next: (res) => {
-        // Cập nhật local để không cần reload toàn trang
-        p.isHidden = res.isHidden;
-        this.applySearch();
-      },
-      error: (err) => console.error(err)
-    });
+    this.openConfirmModal(
+      `${verb} sản phẩm`,
+      `Bạn có chắc muốn ${verb.toLowerCase()} sản phẩm "${p.name}"?\n\n${warning}`,
+      !p.isHidden,
+      () => {
+        this.productService.toggleHidden(p._id!).subscribe({
+          next: (res) => {
+            p.isHidden = res.isHidden;
+            this.applySearch();
+          },
+          error: (err) => console.error(err)
+        });
+      }
+    );
   }
 
   /** Ẩn nhiều sản phẩm đã chọn */
   hideSelected() {
-    if (!confirm(`Xóa (ẩn) ${this.selectedCount} sản phẩm đã chọn khỏi hệ thống?\n\nCó thể khôi phục bằng "Hiển thị".`)) return;
-    const ids = [...this.selectedIds];
-    Promise.all(ids.map(id => this.productService.toggleHidden(id).toPromise()))
-      .then(() => this.loadProducts());
+    this.openConfirmModal(
+      'Xóa sản phẩm đã chọn',
+      `Bạn có chắc muốn xóa (ẩn) ${this.selectedCount} sản phẩm đã chọn?\n\nBạn vẫn có thể hiển thị lại sau.`,
+      true,
+      () => {
+        const ids = [...this.selectedIds];
+        Promise.all(ids.map(id => this.productService.toggleHidden(id).toPromise()))
+          .then(() => this.loadProducts());
+      }
+    );
   }
 
   /** Toggle Tạm hết hàng thủ công */
   toggleOutOfStock(p: Product) {
-    const action = p.isOutOfStock ? "bỏ tạm hết hàng" : "bật tạm hết hàng";
-    if (!confirm(`${action.charAt(0).toUpperCase() + action.slice(1)} cho "${p.name}"?`)) return;
-    this.productService.toggleOutOfStock(p._id!).subscribe({
-      next: (res) => { p.isOutOfStock = res.isOutOfStock; this.applySearch(); },
-      error: (err) => console.error(err)
-    });
+    const action = p.isOutOfStock ? 'Bỏ tạm hết hàng' : 'Bật tạm hết hàng';
+    this.openConfirmModal(
+      action,
+      `Bạn có chắc muốn ${action.toLowerCase()} cho sản phẩm "${p.name}"?`,
+      false,
+      () => {
+        this.productService.toggleOutOfStock(p._id!).subscribe({
+          next: (res) => { p.isOutOfStock = res.isOutOfStock; this.applySearch(); },
+          error: (err) => console.error(err)
+        });
+      }
+    );
   }
 
-  onFormSave()   { this.isModalOpen = false; this.loadProducts(); }
-  onFormCancel() { this.isModalOpen = false; }
+  openConfirmModal(title: string, message: string, danger: boolean, action: () => void): void {
+    this.confirmTitle = title;
+    this.confirmMessage = message;
+    this.confirmDanger = danger;
+    this.confirmAction = action;
+    this.showConfirmModal = true;
+  }
+
+  closeConfirmModal(): void {
+    this.showConfirmModal = false;
+    this.confirmAction = null;
+  }
+
+  executeConfirmAction(): void {
+    if (this.confirmAction) this.confirmAction();
+    this.closeConfirmModal();
+  }
+
+  onFormCancel() { this.isEditorPageOpen = false; }
+
+  onBackToList(): void {
+    this.isEditorPageOpen = false;
+  }
+
+  onFormSave() {
+    this.isEditorPageOpen = false;
+    this.loadProducts();
+  }
+
+  // Tính tồn kho thực tế: nếu có variants thì lấy tổng stock của variants.
+  stockOf(p: Product): number {
+    if (Array.isArray(p.variants) && p.variants.length > 0) {
+      return p.variants.reduce((sum, v) => sum + Number(v?.stock || 0), 0);
+    }
+    return Number(p.stock || 0);
+  }
+
+  isEffectiveOutOfStock(p: Product): boolean {
+    return !!p.isOutOfStock || this.stockOf(p) <= 0;
+  }
 
   changePage(page: number) {
     if (page < 1 || page > this.totalPages) return;

@@ -3,7 +3,6 @@
   <div class="container">
     <ol class="breadcrumb mb-0">
       <li class="breadcrumb-item"><a routerLink="/">Trang chủ</a></li>
-      <!-- ✅ Dùng (click) thay vì routerLink tĩnh để truyền đúng productId -->
       <li class="breadcrumb-item">
         <a style="cursor:pointer;" (click)="goToProduct()">{{ productName || 'Sản phẩm' }}</a>
       </li>
@@ -17,6 +16,25 @@
   <i class="bi bi-chat-square-text fs-1 text-secondary d-block mb-3"></i>
   <p class="text-secondary">Vui lòng mở trang này từ một sản phẩm cụ thể.</p>
   <a class="btn-reset" routerLink="/product-listing-page">Xem sản phẩm</a>
+</div>
+
+<!-- CONFIRM DELETE MODAL -->
+<div class="co-modal-backdrop" *ngIf="deletingReviewId" (click)="cancelDelete()">
+  <div class="co-modal" style="max-width:400px;" (click)="$event.stopPropagation()">
+    <div class="co-modal-icon" style="color:#C62828;">
+      <i class="bi bi-trash3-fill" style="font-size:48px;"></i>
+    </div>
+    <h2 class="co-modal-title" style="font-size:18px;">Xóa đánh giá này?</h2>
+    <p class="co-modal-sub">Hành động này không thể hoàn tác.</p>
+    <div class="co-modal-actions">
+      <button class="co-btn co-btn-outline" (click)="cancelDelete()" [disabled]="isDeleting">Hủy</button>
+      <button class="co-btn" style="background:#C62828;color:#fff;"
+              (click)="submitDelete()" [disabled]="isDeleting">
+        <span *ngIf="!isDeleting"><i class="bi bi-trash3 me-1"></i>Xóa</span>
+        <span *ngIf="isDeleting"><span class="spinner-border spinner-border-sm me-1"></span>Đang xóa...</span>
+      </button>
+    </div>
+  </div>
 </div>
 
 <div class="container py-4" style="background:#FAF6F0; max-width:100%;" *ngIf="productId">
@@ -54,62 +72,73 @@
         </div>
       </div>
 
-      <!-- VIẾT ĐÁNH GIÁ -->
-      <div class="write-review-card p-4" *ngIf="isLoggedIn">
+      <!-- VIẾT ĐÁNH GIÁ MỚI -->
+      <div class="write-review-card p-4" *ngIf="isLoggedIn && !editingReviewId">
         <div class="write-title mb-4">Chia sẻ trải nghiệm của bạn</div>
+
         <div class="mb-3">
           <div class="write-label mb-2">Đánh giá sao <span class="required">*</span></div>
           <div class="d-flex align-items-center gap-1">
-            <button class="star-btn"
-              *ngFor="let s of [1, 2, 3, 4, 5]"
+            <button class="star-btn" *ngFor="let s of [1, 2, 3, 4, 5]"
               [class.active]="s <= (hoverStar || selectedStar)"
-              (mouseenter)="hoverStar = s"
-              (mouseleave)="hoverStar = 0"
+              (mouseenter)="hoverStar = s" (mouseleave)="hoverStar = 0"
               (click)="selectedStar = s">&#9733;</button>
             <span class="star-hint ms-2" *ngIf="selectedStar > 0">{{ starLabels[selectedStar] }}</span>
           </div>
         </div>
+
         <div class="mb-3" *ngIf="purchasedVariants.length > 0">
           <div class="write-label mb-2">Bạn đã mua loại nào?</div>
           <div class="d-flex flex-wrap gap-2">
-            <button class="variant-chip"
-              *ngFor="let v of purchasedVariants"
-              [class.active]="selectedVariant === v"
-              (click)="selectedVariant = v">{{ v }}</button>
+            <button class="variant-chip" *ngFor="let v of purchasedVariants"
+              [class.active]="selectedVariant === v" (click)="selectedVariant = v">{{ v }}</button>
           </div>
         </div>
+
         <div class="mb-3">
           <div class="write-label mb-2">Nhận xét chi tiết <span class="required">*</span></div>
-          <textarea class="review-textarea"
-            [(ngModel)]="reviewText"
+          <textarea class="review-textarea" [(ngModel)]="reviewText"
             placeholder="Chia sẻ cảm nhận: chất lượng, mùi vị, đóng gói..."
             maxlength="500" rows="4"></textarea>
           <div class="char-count">{{ reviewText.length }}/500</div>
         </div>
+
         <div class="mb-3">
           <div class="write-label mb-2">Chọn nhanh từ khóa</div>
           <div class="d-flex flex-wrap gap-2">
-            <button class="quick-tag"
-              *ngFor="let tag of quickTags"
-              [class.active]="isTagSelected(tag)"
-              (click)="toggleQuickTag(tag)">{{ tag }}</button>
+            <button class="quick-tag" *ngFor="let tag of quickTags"
+              [class.active]="isTagSelected(tag)" (click)="toggleQuickTag(tag)">{{ tag }}</button>
           </div>
         </div>
+
         <div class="mb-4">
-          <div class="write-label mb-2">Thêm hình ảnh thực tế</div>
-          <div class="upload-area" (click)="fileInput.click()">
+          <div class="write-label mb-2">
+            Thêm hình ảnh thực tế
+            <span class="text-secondary ms-1" style="font-size:12px;">({{ selectedImages.length }}/5)</span>
+          </div>
+          <div class="d-flex flex-wrap gap-2 mb-2" *ngIf="imagePreviewUrls.length > 0">
+            <div class="preview-img-wrap" *ngFor="let url of imagePreviewUrls; let i = index">
+              <img [src]="url" class="preview-img" alt="Ảnh {{ i + 1 }}" />
+              <button class="preview-img-remove" (click)="removeImage(i)" type="button">
+                <i class="bi bi-x"></i>
+              </button>
+            </div>
+          </div>
+          <div class="upload-area" *ngIf="selectedImages.length < 5" (click)="fileInput.click()">
             <i class="upload-icon bi bi-camera"></i>
-            <span class="upload-label">Thêm ảnh sản phẩm thực tế (tối đa 5 ảnh)</span>
-            <span class="upload-hint">JPG, PNG · Tối đa 5MB/ảnh</span>
+            <span class="upload-label">Thêm ảnh sản phẩm thực tế</span>
+            <span class="upload-hint">JPG, PNG · Tối đa 5MB/ảnh · Tối đa 5 ảnh</span>
           </div>
           <input type="file" #fileInput accept="image/*" multiple hidden (change)="onFileSelected($event)" />
         </div>
+
         <div class="d-flex align-items-center gap-3">
-          <button class="btn-submit-review"
-            [class.ready]="canSubmit()"
-            [disabled]="!canSubmit()"
-            (click)="submitReview()">
-            {{ isSubmitting ? 'Đang gửi...' : 'Gửi đánh giá' }}
+          <button class="btn-submit-review" [class.ready]="canSubmit()"
+            [disabled]="!canSubmit() || isSubmitting" (click)="submitReview()">
+            <span *ngIf="!isSubmitting"><i class="bi bi-send me-1"></i>Gửi đánh giá</span>
+            <span *ngIf="isSubmitting">
+              <span class="spinner-border spinner-border-sm me-1"></span>Đang gửi...
+            </span>
           </button>
           <span class="submit-hint" *ngIf="!canSubmit()">Vui lòng chọn số sao và nhập nhận xét</span>
         </div>
@@ -130,10 +159,8 @@
         <button class="review-filter-btn" [class.active]="activeFilter === 'all'" (click)="setFilter('all')">
           Tất cả ({{ totalReviews }})
         </button>
-        <button class="review-filter-btn"
-          *ngFor="let s of [5, 4, 3, 2, 1]"
-          [class.active]="activeFilter === s.toString()"
-          (click)="setFilter(s.toString())">
+        <button class="review-filter-btn" *ngFor="let s of [5, 4, 3, 2, 1]"
+          [class.active]="activeFilter === s.toString()" (click)="setFilter(s.toString())">
           {{ s }} sao ({{ ratingCounts[s] }})
         </button>
         <button class="review-filter-btn" [class.active]="activeFilter === 'photo'" (click)="setFilter('photo')">
@@ -153,54 +180,175 @@
       <div class="d-flex flex-column gap-3">
 
         <div class="review-card p-4" *ngFor="let review of filteredReviews; let i = index">
-          <div class="d-flex align-items-start justify-content-between mb-3">
-            <div class="d-flex align-items-center gap-3">
-              <div class="reviewer-avatar" [style.background]="getAvatarColor(i)">
-                {{ getAvatarInitial(review.name) }}
+
+          <!-- ── INLINE EDIT FORM ── -->
+          <div *ngIf="editingReviewId === review._id">
+            <div class="write-title mb-3" style="font-size:16px;">
+              <i class="bi bi-pencil-square me-2"></i>Chỉnh sửa đánh giá
+            </div>
+
+            <div class="mb-3">
+              <div class="write-label mb-2">Đánh giá sao <span class="required">*</span></div>
+              <div class="d-flex align-items-center gap-1">
+                <button class="star-btn" *ngFor="let s of [1, 2, 3, 4, 5]"
+                  [class.active]="s <= (editHoverStar || editStar)"
+                  (mouseenter)="editHoverStar = s" (mouseleave)="editHoverStar = 0"
+                  (click)="editStar = s">&#9733;</button>
+                <span class="star-hint ms-2" *ngIf="editStar > 0">{{ starLabels[editStar] }}</span>
               </div>
-              <div>
-                <div class="reviewer-name">{{ review.name }}</div>
-                <div class="reviewer-verified" *ngIf="review.verified">
-                  <i class="bi bi-patch-check-fill me-1"></i>Đã mua hàng
+            </div>
+
+            <div class="mb-3">
+              <div class="write-label mb-2">Nhận xét <span class="required">*</span></div>
+              <textarea class="review-textarea" [(ngModel)]="editText"
+                maxlength="500" rows="4"
+                placeholder="Nhận xét của bạn..."></textarea>
+              <div class="char-count">{{ editText.length }}/500</div>
+            </div>
+
+            <div class="mb-3">
+              <div class="write-label mb-2">Từ khóa</div>
+              <div class="d-flex flex-wrap gap-2">
+                <button class="quick-tag" *ngFor="let tag of quickTags"
+                  [class.active]="isEditTagSelected(tag)"
+                  (click)="toggleEditTag(tag)">{{ tag }}</button>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <div class="write-label mb-2">
+                Hình ảnh
+                <span class="text-secondary ms-1" style="font-size:12px;">
+                  ({{ editExistingImgs.length + editImages.length }}/5)
+                </span>
+              </div>
+              <!-- Ảnh cũ + ảnh mới preview -->
+              <div class="d-flex flex-wrap gap-2 mb-2"
+                   *ngIf="editExistingImgs.length > 0 || editImages.length > 0">
+                <!-- Ảnh cũ đang giữ -->
+                <div class="preview-img-wrap"
+                     *ngFor="let url of editExistingImgs; let ei = index">
+                  <img [src]="fixImgUrl(url)" class="preview-img" alt="Ảnh cũ {{ ei + 1 }}" />
+                  <button class="preview-img-remove" (click)="removeEditExistingImg(ei)" type="button">
+                    <i class="bi bi-x"></i>
+                  </button>
+                </div>
+                <!-- Ảnh mới thêm -->
+                <div class="preview-img-wrap"
+                     *ngFor="let url of editPreviewUrls.slice(editExistingImgs.length); let ni = index">
+                  <img [src]="url" class="preview-img" alt="Ảnh mới {{ ni + 1 }}" />
+                  <button class="preview-img-remove" (click)="removeEditNewImg(ni)" type="button">
+                    <i class="bi bi-x"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="upload-area"
+                   *ngIf="editExistingImgs.length + editImages.length < 5"
+                   (click)="editFileInput.click()">
+                <i class="upload-icon bi bi-camera"></i>
+                <span class="upload-label">Thêm ảnh</span>
+              </div>
+              <input type="file" #editFileInput accept="image/*" multiple hidden
+                     (change)="onEditFileSelected($event)" />
+            </div>
+
+            <div class="d-flex gap-2">
+              <button class="btn-submit-review" [class.ready]="canEditSubmit()"
+                [disabled]="!canEditSubmit() || isEditSubmitting"
+                (click)="submitEdit()">
+                <span *ngIf="!isEditSubmitting"><i class="bi bi-check-lg me-1"></i>Lưu thay đổi</span>
+                <span *ngIf="isEditSubmitting">
+                  <span class="spinner-border spinner-border-sm me-1"></span>Đang lưu...
+                </span>
+              </button>
+              <button class="helpful-btn" (click)="cancelEdit()" [disabled]="isEditSubmitting">
+                Hủy
+              </button>
+            </div>
+          </div>
+
+          <!-- ── HIỂN THỊ BÌNH THƯỜNG ── -->
+          <ng-container *ngIf="editingReviewId !== review._id">
+            <div class="d-flex align-items-start justify-content-between mb-3">
+              <div class="d-flex align-items-center gap-3">
+                <div class="reviewer-avatar" [style.background]="getAvatarColor(i)">
+                  {{ getAvatarInitial(review.name) }}
+                </div>
+                <div>
+                  <div class="reviewer-name">{{ review.name }}</div>
+                  <div class="reviewer-verified" *ngIf="review.verified">
+                    <i class="bi bi-patch-check-fill me-1"></i>Đã mua hàng
+                  </div>
+                </div>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <div class="text-end">
+                  <div class="review-stars">{{ getStarStr(review.rating) }}</div>
+                  <div class="review-date">{{ review.createdAt | date:'dd/MM/yyyy' }}</div>
+                </div>
+                <!-- Nút Sửa / Xóa — chỉ hiện với review của mình -->
+                <div class="d-flex flex-column gap-1 ms-2" *ngIf="isMyReview(review)">
+                  <button class="helpful-btn" style="font-size:12px;padding:4px 10px;"
+                          (click)="openEditForm(review)" title="Sửa đánh giá">
+                    <i class="bi bi-pencil me-1"></i>Sửa
+                  </button>
+                  <button class="helpful-btn" style="font-size:12px;padding:4px 10px;color:#C62828;border-color:#C62828;"
+                          (click)="confirmDelete(review._id)" title="Xóa đánh giá">
+                    <i class="bi bi-trash3 me-1"></i>Xóa
+                  </button>
                 </div>
               </div>
             </div>
-            <div class="text-end">
-              <div class="review-stars">{{ getStarStr(review.rating) }}</div>
-              <div class="review-date">{{ review.createdAt | date:'dd/MM/yyyy' }}</div>
+
+            <div class="mb-2" *ngIf="review.variant">
+              <span class="review-variant">Đã mua: <strong>{{ review.variant }}</strong></span>
             </div>
-          </div>
-          <div class="mb-2" *ngIf="review.variant">
-            <span class="review-variant">Đã mua: <strong>{{ review.variant }}</strong></span>
-          </div>
-          <div class="d-flex flex-wrap gap-2 mb-2" *ngIf="review.tags?.length">
-            <span class="review-tag" *ngFor="let tag of review.tags">{{ tag }}</span>
-          </div>
-          <p class="review-text mb-3">{{ review.text }}</p>
-          <div class="d-flex gap-2 flex-wrap mb-3" *ngIf="review.imgs?.length">
-            <div class="review-img" *ngFor="let img of review.imgs" (click)="openImageViewer(img)">
-              <img [src]="img" alt="Ảnh đánh giá" />
+            <div class="d-flex flex-wrap gap-2 mb-2" *ngIf="review.tags?.length">
+              <span class="review-tag" *ngFor="let tag of review.tags">{{ tag }}</span>
             </div>
-          </div>
-          <div class="admin-reply p-3 mb-3" *ngIf="review.adminReply">
-            <div class="d-flex align-items-center gap-2 mb-2">
-              <span class="admin-badge">HealthUp phản hồi</span>
-              <span class="admin-reply-date">{{ review.adminReplyDate }}</span>
+            <p class="review-text mb-3">{{ review.text }}</p>
+
+            <!-- Ảnh đánh giá — FIX: fix URL trước khi hiển thị -->
+            <div class="d-flex gap-2 flex-wrap mb-3" *ngIf="review.imgs?.length">
+              <div class="review-img" *ngFor="let img of review.imgs"
+                   (click)="openImageViewer(fixImgUrl(img))">
+                <img [src]="fixImgUrl(img)" alt="Ảnh đánh giá" />
+              </div>
             </div>
-            <p class="admin-reply-text mb-0">{{ review.adminReply }}</p>
-          </div>
-          <div class="d-flex align-items-center gap-2 flex-wrap pt-3 border-top">
-            <span class="helpful-text">Đánh giá này có hữu ích không?</span>
-            <button class="helpful-btn" (click)="markHelpful(review._id)">
-              <i class="bi bi-hand-thumbs-up"></i> Có ({{ review.helpful || 0 }})
-            </button>
-            <button class="helpful-btn" (click)="markNotHelpful(review._id)">
-              <i class="bi bi-hand-thumbs-down"></i> Không
-            </button>
-            <button class="report-btn ms-auto" (click)="reportReview(review._id)">
-              <i class="bi bi-flag me-1"></i>Báo cáo
-            </button>
-          </div>
+
+            <!-- Admin reply -->
+            <div class="admin-reply p-3 mb-3" *ngIf="review.adminReply">
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <span class="admin-badge">HealthUp phản hồi</span>
+                <span class="admin-reply-date">{{ review.adminReplyDate }}</span>
+              </div>
+              <p class="admin-reply-text mb-0">{{ review.adminReply }}</p>
+            </div>
+
+            <!-- Like / Not helpful -->
+            <div class="d-flex align-items-center gap-2 flex-wrap pt-3 border-top"
+                 style="border-color:#F0F7F0 !important;">
+              <span class="helpful-text">Đánh giá này có hữu ích không?</span>
+              <button class="helpful-btn" [class.active]="isLiked(review._id)"
+                      (click)="markHelpful(review._id)"
+                      [title]="isLiked(review._id) ? 'Bỏ đánh dấu hữu ích' : 'Đánh dấu hữu ích'">
+                <i class="bi" [class.bi-hand-thumbs-up-fill]="isLiked(review._id)"
+                              [class.bi-hand-thumbs-up]="!isLiked(review._id)"></i>
+                Có ({{ review.helpful || 0 }})
+              </button>
+              <button class="helpful-btn" [class.active]="isDisliked(review._id)"
+                      (click)="markNotHelpful(review._id)"
+                      [title]="isDisliked(review._id) ? 'Bỏ đánh dấu' : 'Không hữu ích'">
+                <i class="bi" [class.bi-hand-thumbs-down-fill]="isDisliked(review._id)"
+                              [class.bi-hand-thumbs-down]="!isDisliked(review._id)"></i>
+                Không
+              </button>
+              <button class="report-btn ms-auto" (click)="reportReview(review._id)">
+                <i class="bi bi-flag me-1"></i>Báo cáo
+              </button>
+            </div>
+          </ng-container>
+
         </div>
 
         <!-- SKELETON -->

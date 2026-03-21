@@ -55,7 +55,7 @@
     <div class="order-status" [ngClass]="'status-' + order.status">
       <span class="status-dot"></span>
       {{ getStatusLabel(order.status) }}
-      <span class="status-id">#{{ order._id?.toString()?.substring(0, 8)?.toUpperCase() }}</span>
+      <span class="status-id">#{{ order.orderCode || order._id?.toString()?.substring(0, 8)?.toUpperCase() }}</span>
     </div>
 
     <!-- PRODUCTS -->

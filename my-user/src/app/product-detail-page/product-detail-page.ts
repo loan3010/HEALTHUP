@@ -3,7 +3,7 @@ import { CommonModule, CurrencyPipe } from '@angular/common';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
-import { ApiService } from '../services/api.service';
+import { ApiService, STATIC_BASE } from '../services/api.service';
 
 export interface PolicyItem {
   icon: string;
@@ -44,6 +44,9 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
   selectedWeight = '';
   selectedType = '';
   selectedVariantId = '';
+  /** Hai chiều phân loại (đồng bộ với admin: attr1 + attr2). */
+  selectedAttr1 = '';
+  selectedAttr2 = '';
 
   activeTab: 'desc' | 'nutrition' | 'policy' = 'desc';
 
@@ -65,7 +68,6 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
     { icon: 'bi-patch-check',  title: 'Chất lượng kiểm định',  desc: 'Sản phẩm đạt chứng nhận VSATTP.' }
   ];
 
-  // ---- TƯ VẤN / Q&A ----
   isLoggedIn = true;
   askText = '';
   isAskSubmitting = false;
@@ -95,6 +97,9 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
     this.route.paramMap.subscribe(params => {
       const id = params.get('id');
       if (id) {
+        // Cuộn về đầu trang mỗi khi load sản phẩm mới
+        window.scrollTo({ top: 0, behavior: 'instant' });
+
         this.product = null;
         this.relatedProducts = [];
         this.isLoading = true;
@@ -117,18 +122,29 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
   loadProduct(id: string): void {
     this.api.getProductById(id).subscribe({
       next: (data: any) => {
-        this.product        = data;
-        this.activeImage    = data.images?.[0] || '';
+        this.product     = data;
+        this.activeImage = data.images?.[0] || '';
         this.selectedWeight = data.weights?.[0]?.label || '';
         this.selectedType   = this.visiblePackagingTypes(data)?.[0] || '';
-        this.selectedVariantId = data.variants?.[0]?._id || '';
-        this.isLoading      = false;
+
+        // Ưu tiên chọn variant còn hàng (main), dùng selectVariant(v) của TN
+        const firstInStock = (data.variants || []).find((v: any) => Number(v.stock || 0) > 0);
+        const v0 = firstInStock || data.variants?.[0];
+        if (v0) {
+          this.selectVariant(v0);
+        } else {
+          this.selectedVariantId = '';
+          this.selectedAttr1 = '';
+          this.selectedAttr2 = '';
+        }
+
+        this.isLoading = false;
+        this.qty = 1;
         this.cdr.detectChanges();
       },
       error: (err: any) => {
         console.error('Lỗi tải sản phẩm:', err);
         this.isLoading = false;
-        // 404 = sản phẩm không tồn tại hoặc đang ẩn → về trang danh sách
         if (err.status === 404) {
           this.router.navigate(['/product-listing-page']);
         }
@@ -255,17 +271,125 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * Chọn variant theo object (từ TN).
+   * Đồng bộ selectedVariantId, selectedAttr1, selectedAttr2 và ảnh biến thể nếu có.
+   */
+  selectVariant(v: any): void {
+    this.selectedVariantId = v?._id || '';
+    const p = this.parseVariantParts(v);
+    this.selectedAttr1 = p.a1;
+    this.selectedAttr2 = p.a2;
+    // Hỗ trợ ảnh theo phân loại nếu backend trả về field image/imageUrl.
+    const variantImage = v?.image || v?.imageUrl || '';
+    if (variantImage) {
+      this.activeImage = String(variantImage).startsWith('http')
+        ? variantImage
+        : `${STATIC_BASE}${variantImage}`;
+    }
+    if (this.qty > this.currentStock()) this.qty = Math.max(1, this.currentStock());
+  }
+
   decreaseQty(): void {
     if (this.qty > 1) this.qty--;
   }
 
   increaseQty(): void {
-    if (this.product && this.qty < this.currentStock()) this.qty++;
+    const stock = this.currentStock();
+    if (stock > 0 && this.qty < stock) this.qty++;
   }
 
   currentVariant(): any | null {
     if (!this.product?.variants?.length) return null;
-    return this.product.variants.find((v: any) => String(v._id) === String(this.selectedVariantId)) || null;
+    return this.product.variants.find(
+      (v: any) => String(v._id) === String(this.selectedVariantId)
+    ) || null;
+  }
+
+  /**
+   * Đọc attr1/attr2 từ API; fallback tách "A | B" trong label (sản phẩm cũ).
+   */
+  parseVariantParts(v: any): { a1: string; a2: string } {
+    const a1 = String(v?.attr1Value ?? '').trim();
+    const a2 = String(v?.attr2Value ?? '').trim();
+    if (a1 && a2) return { a1, a2 };
+    const label = String(v?.label || '').trim();
+    const parts = label.split('|').map((x: string) => x.trim()).filter(Boolean);
+    if (parts.length >= 2) return { a1: parts[0], a2: parts[1] };
+    return { a1: parts[0] || label, a2: '' };
+  }
+
+  /** Có đủ 2 chiều để hiển thị 2 hàng nút (thay vì một hàng theo label đầy đủ). */
+  hasSecondAttrDimension(): boolean {
+    return (this.product?.variants || []).some((v: any) => !!this.parseVariantParts(v).a2);
+  }
+
+  variantLabel1(): string {
+    return String(this.product?.variantAttr1Name || 'Phân loại 1').trim() || 'Phân loại 1';
+  }
+
+  variantLabel2(): string {
+    return String(this.product?.variantAttr2Name || 'Phân loại 2').trim() || 'Phân loại 2';
+  }
+
+  variantAttr1Options(): string[] {
+    const set = new Set<string>();
+    (this.product?.variants || []).forEach((v: any) => {
+      const p = this.parseVariantParts(v);
+      if (p.a1) set.add(p.a1);
+    });
+    return Array.from(set);
+  }
+
+  /** Giá trị chiều 2 khả dụng sau khi đã chọn chiều 1. */
+  variantAttr2OptionsForSelection(): string[] {
+    const set = new Set<string>();
+    const a1 = String(this.selectedAttr1 || '').trim();
+    (this.product?.variants || []).forEach((v: any) => {
+      const p = this.parseVariantParts(v);
+      if (p.a1 === a1 && p.a2) set.add(p.a2);
+    });
+    return Array.from(set);
+  }
+
+  onSelectVariantAttr1(value: string): void {
+    this.selectedAttr1 = value;
+    const opts = this.variantAttr2OptionsForSelection();
+    if (!opts.includes(this.selectedAttr2)) {
+      this.selectedAttr2 = opts[0] || '';
+    }
+    this.syncVariantFromAttrs();
+  }
+
+  onSelectVariantAttr2(value: string): void {
+    this.selectedAttr2 = value;
+    this.syncVariantFromAttrs();
+  }
+
+  /** Tồn kho của tổ hợp (attr1, attr2) — dùng để tô nút chiều 2. */
+  variantStockForAttrs(a1: string, a2: string): number {
+    const match = (this.product?.variants || []).find((v: any) => {
+      const p = this.parseVariantParts(v);
+      return p.a1 === a1 && p.a2 === a2;
+    });
+    return Number(match?.stock ?? 0);
+  }
+
+  /** Ghép variant hiện tại theo (attr1, attr2) hoặc chỉ attr1 nếu một chiều. */
+  syncVariantFromAttrs(): void {
+    const list = this.product?.variants || [];
+    if (!list.length) return;
+    const two = this.hasSecondAttrDimension();
+    const match = list.find((v: any) => {
+      const p = this.parseVariantParts(v);
+      if (two) {
+        return p.a1 === this.selectedAttr1 && p.a2 === this.selectedAttr2;
+      }
+      return p.a1 === this.selectedAttr1;
+    });
+    if (match) {
+      this.selectVariant(match);
+    }
   }
 
   currentPrice(): number {
@@ -280,25 +404,36 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
 
   currentStock(): number {
     const v = this.currentVariant();
-    return Number(v?.stock ?? this.product?.stock ?? 0);
+    if (this.product?.variants?.length) {
+      return Number(v?.stock ?? 0);
+    }
+    return Number(this.product?.stock ?? 0);
+  }
+
+  isCurrentVariantOutOfStock(): boolean {
+    if (!this.product) return true;
+    if (this.product.isOutOfStock) return true;
+    return this.currentStock() <= 0;
   }
 
   visiblePackagingTypes(productLike?: any): string[] {
     const p = productLike || this.product;
     const pack = Array.isArray(p?.packagingTypes) ? p.packagingTypes : [];
-    const variantLabels = Array.isArray(p?.variants) ? p.variants.map((v: any) => String(v.label || '').trim()) : [];
+    const variantLabels = Array.isArray(p?.variants)
+      ? p.variants.map((v: any) => String(v.label || '').trim())
+      : [];
     if (!pack.length) return [];
     if (!variantLabels.length) return pack;
-
     const variantsSet = new Set(variantLabels.map((x: string) => x.toLowerCase()));
-    const filtered = pack.filter((x: string) => !variantsSet.has(String(x || '').trim().toLowerCase()));
-    return filtered;
+    return pack.filter((x: string) => !variantsSet.has(String(x || '').trim().toLowerCase()));
   }
 
   isProductCompletelyOutOfStock(): boolean {
     if (!this.product) return true;
     if (Array.isArray(this.product.variants) && this.product.variants.length > 0) {
-      const total = this.product.variants.reduce((sum: number, v: any) => sum + Number(v?.stock || 0), 0);
+      const total = this.product.variants.reduce(
+        (sum: number, v: any) => sum + Number(v?.stock || 0), 0
+      );
       return total <= 0;
     }
     return Number(this.product.stock || 0) <= 0;
@@ -306,6 +441,10 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
 
   addToCart(): void {
     if (this.addedToCart || !this.product?._id) return;
+    if (this.isCurrentVariantOutOfStock()) {
+      this.api.showToast('Sản phẩm này đã hết hàng, vui lòng chọn phân loại khác.', 'error');
+      return;
+    }
     this.addToCartError = '';
 
     const v = this.currentVariant();
@@ -327,7 +466,7 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
       },
       error: (err: any) => {
         console.error('Lỗi thêm vào giỏ hàng:', err);
-        this.addToCartError = 'Không thể thêm vào giỏ hàng. Vui lòng thử lại.';
+        this.addToCartError = err?.error?.message || 'Không thể thêm vào giỏ hàng. Vui lòng thử lại.';
         this.api.showToast(this.addToCartError, 'error');
         this.cdr.detectChanges();
       }
@@ -336,18 +475,22 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
 
   buyNow(): void {
     if (!this.product?._id) return;
+    if (this.isCurrentVariantOutOfStock()) {
+      this.api.showToast('Sản phẩm này đã hết hàng, vui lòng chọn phân loại khác.', 'error');
+      return;
+    }
 
     const v = this.currentVariant();
     const checkoutItem = [{
-      productId: this.product._id,
-      variantId: v?._id || null,
+      productId:    this.product._id,
+      variantId:    v?._id || null,
       variantLabel: v?.label || '',
-      name:      this.product.name,
-      price:     this.currentPrice(),
-      quantity:  this.qty,
-      imageUrl:  this.product.images?.[0] || this.product.image || null,
-      weight:    this.selectedWeight,
-      type:      this.selectedType,
+      name:         this.product.name,
+      price:        this.currentPrice(),
+      quantity:     this.qty,
+      imageUrl:     this.product.images?.[0] || this.product.image || null,
+      weight:       this.selectedWeight,
+      type:         this.selectedType,
     }];
 
     try {
@@ -356,7 +499,6 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
       console.error('Lỗi lưu checkout:', e);
       return;
     }
-
     this.router.navigate(['/checkout']);
   }
 
@@ -378,6 +520,10 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
   addRelated(event: Event, product: any): void {
     event.stopPropagation();
     if (!product?._id) return;
+    if ((product.stock === 0 || product.isOutOfStock) && !product.variants?.length) {
+      this.api.showToast('Sản phẩm này đã hết hàng.', 'error');
+      return;
+    }
     this.api.addToCart(product._id, 1, product.name).subscribe({
       next: () => {
         this.api.showToast(`Đã thêm "${product.name}" vào giỏ hàng!`, 'success');
@@ -389,8 +535,10 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
     });
   }
 
+  // Cuộn về đầu trang trước khi navigate sang sản phẩm khác
   goToProduct(id: string): void {
     if (!id) return;
+    window.scrollTo({ top: 0, behavior: 'instant' });
     this.router.navigate(['/product-detail-page', id]);
   }
 

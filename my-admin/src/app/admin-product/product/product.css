@@ -137,9 +137,10 @@
 /* ── CARD ── */
 .hu-card {
   background: var(--background-secondary);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-md);
-  overflow: hidden;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  /* Cho phép dropdown filter/sort tràn ra ngoài card, tránh bị cắt nội dung. */
+  overflow: visible;
   border: 1px solid var(--border-color);
 }
 
@@ -150,7 +151,7 @@
   gap: 10px;
   padding: 16px 20px;
   border-bottom: 1px solid var(--border-color);
-  background: #FDFCFA;
+  background: #fff;
   flex-wrap: wrap;
 }
 .hu-toolbar-right {
@@ -262,8 +263,8 @@
 
 /* Table head */
 .hu-table thead tr {
-  background: linear-gradient(135deg, #F0F7F0 0%, #EAF4EB 100%);
-  border-bottom: 2px solid #D0E8D1;
+  background: #f7faf7;
+  border-bottom: 1px solid #DDE8DE;
 }
 .hu-table th {
   padding: 13px 16px;
@@ -282,8 +283,9 @@
 .hu-table tbody tr {
   border-bottom: 1px solid #F3F6F3;
   transition: background 0.15s;
+  cursor: pointer;
 }
-.hu-table tbody tr:hover { background: #FAFDF9; }
+.hu-table tbody tr:hover { background: #F8FBF8; }
 .hu-table td {
   padding: 13px 16px;
   color: var(--text-primary);
@@ -368,12 +370,21 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-weight: 700;
   padding: 2px 8px;
   border-radius: 20px;
-  margin-top: 4px;
+  margin-top: 2px;
   letter-spacing: 0.02em;
+}
+.status-chip-btn {
+  border: none;
+  cursor: pointer;
+  transition: transform 0.12s ease, filter 0.12s ease;
+}
+.status-chip-btn:hover {
+  filter: brightness(0.97);
+  transform: translateY(-1px);
 }
 .active-chip {
   background: var(--primary-bg-color);
@@ -538,7 +549,7 @@ input[type="checkbox"] {
   gap: 12px;
   padding: 18px 20px;
   border-top: 1px solid var(--border-color);
-  background: #FDFCFA;
+  background: #fff;
 }
 .hu-pagination button {
   background: #fff;
@@ -591,7 +602,36 @@ input[type="checkbox"] {
   padding: 16px;
   z-index: 9999;
   min-width: 230px;
+  max-height: min(72vh, 560px);
+  overflow-y: auto;
   animation: slideDown 0.15s ease;
+}
+
+/* Màn hình hẹp: đưa panel lọc về dạng block để không bị khuất/cắt. */
+@media (max-width: 900px) {
+  .hu-toolbar {
+    align-items: stretch;
+  }
+  .hu-toolbar-right {
+    width: 100%;
+    margin-left: 0;
+    flex-wrap: wrap;
+  }
+  .hu-dropdown-wrap {
+    width: 100%;
+  }
+  .hu-dropdown-wrap > .hu-toolbar-btn {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .hu-dropdown-panel {
+    position: static;
+    width: 100%;
+    min-width: 0;
+    margin-top: 8px;
+    max-height: 62vh;
+    border-radius: 12px;
+  }
 }
 @keyframes slideDown {
   from { opacity: 0; transform: translateY(-6px); }
@@ -808,4 +848,87 @@ input[type="checkbox"] {
   opacity: 0.3;
   cursor: not-allowed;
   pointer-events: none;
+}
+
+/* ── CONFIRM MODAL ── */
+.confirm-modal {
+  width: min(520px, 92vw);
+  background: #fff;
+  border-radius: 16px;
+  padding: 26px 24px 20px;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.2);
+  text-align: center;
+}
+.confirm-icon-wrap {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 14px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: #eef7ef;
+  color: #2a6b2e;
+  font-size: 1.8rem;
+}
+.confirm-icon-wrap.danger {
+  background: #fff2e8;
+  color: #d97706;
+}
+.confirm-title {
+  margin: 0 0 8px;
+  font-size: 1.7rem;
+  color: #2a2f35;
+  font-weight: 800;
+}
+.confirm-message {
+  margin: 0 auto;
+  max-width: 440px;
+  font-size: 1.05rem;
+  color: #5f6772;
+  line-height: 1.55;
+  white-space: pre-line;
+}
+.confirm-actions {
+  margin-top: 22px;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+.confirm-btn {
+  min-width: 120px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  border: 1px solid #d9dde3;
+  background: #fff;
+  color: #3e4650;
+  font-weight: 700;
+  cursor: pointer;
+}
+.confirm-btn.submit {
+  border-color: #2a6b2e;
+  background: #36873a;
+  color: #fff;
+}
+.confirm-btn.submit.danger {
+  border-color: #dc3545;
+  background: #dc3545;
+}
+.confirm-btn:hover {
+  filter: brightness(0.98);
+}
+
+/* ── EDITOR PAGE (thay modal form) ── */
+.product-editor-page {
+  margin-top: 8px;
+}
+.editor-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.editor-note {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.82rem;
 }

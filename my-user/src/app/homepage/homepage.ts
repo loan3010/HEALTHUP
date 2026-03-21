@@ -197,9 +197,33 @@ export class HomepageComponent implements OnInit, OnDestroy {
     this.api.toggleWishlist(id, productName);
   }
 
+  // FIX: Kiểm tra hết hàng trước khi thêm vào giỏ
+  isOutOfStock(product: any): boolean {
+    if (!product) return true;
+    if (product.isOutOfStock) return true;
+
+    // Có variants → kiểm tra tổng stock của tất cả variants
+    if (Array.isArray(product.variants) && product.variants.length > 0) {
+      const totalStock = product.variants.reduce(
+        (sum: number, v: any) => sum + Number(v?.stock || 0), 0
+      );
+      return totalStock <= 0;
+    }
+
+    // Không có variants → kiểm tra stock tổng
+    return Number(product.stock || 0) <= 0;
+  }
+
   addToCart(event: Event, product: any): void {
     event.stopPropagation();
     if (!product?._id) return;
+
+    // FIX: Chặn thêm vào giỏ nếu hết hàng
+    if (this.isOutOfStock(product)) {
+      this.api.showToast('Sản phẩm này đã hết hàng.', 'error');
+      return;
+    }
+
     this.api.addToCart(product._id, 1, product.name).subscribe({
       error: () => this.api.showToast('Không thể thêm vào giỏ hàng.', 'error'),
     });
