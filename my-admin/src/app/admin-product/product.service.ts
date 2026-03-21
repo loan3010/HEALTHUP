@@ -53,7 +53,6 @@ export interface Product {
   updatedAt?: string;           // ← thêm: timestamps: true trong Mongoose tự sinh
   isHidden?: boolean;
   isOutOfStock?: boolean;       // admin bật tay "Tạm hết hàng"
-  status?: 'active' | 'outofstock' | 'suspended';
 }
 
 export interface ProductResponse {

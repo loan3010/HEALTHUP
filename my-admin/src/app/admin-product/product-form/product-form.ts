@@ -82,6 +82,9 @@ export class ProductFormComponent implements OnInit {
   this.setupTypeWeightOptions();
   this.ensureVariantCombinations();
   this.setupNutritions();
+  // Boolean từ API có thể undefined — chuẩn hóa để select [ngValue] khớp.
+  this.formData.isHidden = !!this.formData.isHidden;
+  this.formData.isOutOfStock = !!this.formData.isOutOfStock;
 }
 
   emptyForm(): Product {
@@ -97,7 +100,8 @@ export class ProductFormComponent implements OnInit {
       badge: null,
       weight: '',
       saving: '',
-      status: 'active',
+      isHidden: false,
+      isOutOfStock: false,
       packagingTypes: [],
       nutrition: [],
       variantAttr1Name: 'Phân loại 1',
@@ -168,6 +172,8 @@ export class ProductFormComponent implements OnInit {
   private normalizeBeforeSave(): void {
     this.formData.name = String(this.formData.name || '').trim();
     this.formData.cat = String(this.formData.cat || '').trim();
+    this.formData.isHidden = !!this.formData.isHidden;
+    this.formData.isOutOfStock = !!this.formData.isOutOfStock;
     this.selectedPackagingType = String(this.selectedPackagingType || this.packagingInput || '').trim();
     this.formData.packagingTypes = this.selectedPackagingType ? [this.selectedPackagingType] : [];
 
