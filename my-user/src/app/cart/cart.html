@@ -43,21 +43,29 @@
       <!-- ITEM -->
       <div class="item"
            *ngFor="let it of items; trackBy: trackById"
-           [class.selected]="it.selected">
+           [class.selected]="it.selected"
+           [class.item-oos]="isItemOutOfStock(it)">
 
         <input type="checkbox"
                [(ngModel)]="it.selected"
                (change)="updateTotal()" />
 
         <!-- Ảnh — click để xem sản phẩm -->
-        <img *ngIf="it.imageUrl"
-             class="thumb clickable-thumb"
-             [src]="it.imageUrl"
-             [title]="'Xem: ' + it.name"
-             (click)="viewProduct(it)" />
-        <div *ngIf="!it.imageUrl"
-             class="thumb thumb-empty clickable-thumb"
-             (click)="viewProduct(it)"></div>
+        <div class="thumb-wrap">
+          <img *ngIf="it.imageUrl"
+               class="thumb clickable-thumb"
+               [src]="it.imageUrl"
+               [title]="'Xem: ' + it.name"
+               (click)="viewProduct(it)" />
+          <div *ngIf="!it.imageUrl"
+               class="thumb thumb-empty clickable-thumb"
+               (click)="viewProduct(it)"></div>
+
+          <!-- FIX: Overlay hết hàng trên ảnh item trong giỏ -->
+          <div class="item-oos-overlay" *ngIf="isItemOutOfStock(it)">
+            <span class="item-oos-label">Hết hàng</span>
+          </div>
+        </div>
 
         <div class="info">
 
@@ -70,7 +78,6 @@
           <div class="variant-row"
                *ngIf="it.allVariants && it.allVariants.length > 0">
             <div class="variant-group">
-              <!-- Label: "Phân loại" cho variant, "Trọng lượng" cho weight -->
               <span class="variant-label">
                 {{ it.optionType === 'weight' ? 'Trọng lượng:' : 'Phân loại:' }}
               </span>
@@ -78,11 +85,13 @@
                 <button class="variant-btn"
                         *ngFor="let opt of it.allVariants"
                         [class.active]="currentOptionId(it) === opt._id"
-                        [class.out-of-stock]="opt.stock <= 0"
-                        [title]="opt.stock <= 0 ? 'Hết hàng' : opt.label"
+                        [class.out-of-stock]="opt.stock <= 0 && opt.stock !== 999"
+                        [disabled]="opt.stock <= 0 && opt.stock !== 999"
+                        [title]="(opt.stock <= 0 && opt.stock !== 999) ? 'Hết hàng' : opt.label"
                         (click)="changeOption(it, opt._id)">
                   {{ opt.label }}
-                  <span *ngIf="opt.stock <= 0" style="font-size:10px;opacity:0.7;"> (Hết)</span>
+                  <span *ngIf="opt.stock <= 0 && opt.stock !== 999"
+                        style="font-size:10px;opacity:0.7;"> (Hết)</span>
                 </button>
               </div>
             </div>
@@ -97,14 +106,18 @@
           <div class="price">{{ it.price | number }} đ</div>
         </div>
 
-        <!-- QTY -->
+        <!-- QTY: FIX disable nút + khi hết hàng -->
         <div class="qty">
           <button class="btn icon" (click)="confirmDecrease(it)">−</button>
           <input type="number"
                  min="1"
                  [value]="it.quantity"
+                 [disabled]="isItemOutOfStock(it)"
                  (input)="onQtyInput(it, $any($event.target).value)" />
-          <button class="btn icon" (click)="inc(it)">+</button>
+          <button class="btn icon"
+                  [disabled]="isItemOutOfStock(it)"
+                  [title]="isItemOutOfStock(it) ? 'Sản phẩm đã hết hàng' : ''"
+                  (click)="inc(it)">+</button>
         </div>
 
         <div class="line-total">

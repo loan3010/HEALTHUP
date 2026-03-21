@@ -18,23 +18,20 @@ export interface CartItemVariants {
   colors?: ColorOption[];
 }
 
-// Dùng chung cho cả variant lẫn weight option
 export interface VariantOption {
-  _id: string;    // variant: _id thật | weight: label (dùng làm key)
+  _id: string;
   label: string;
   price: number;
   stock: number;
   oldPrice?: number;
-  isWeight?: boolean; // true = đây là weight option, không phải variant
+  isWeight?: boolean;
 }
 
 export interface CartItem {
   productId: string;
   variantId?: string | null;
   variantLabel?: string;
-  // Danh sách lựa chọn phân loại (variants HOẶC weights)
   allVariants?: VariantOption[];
-  // Loại lựa chọn đang hiển thị
   optionType?: 'variant' | 'weight' | 'none';
   name: string;
   price: number;
@@ -99,10 +96,8 @@ export class Cart implements OnInit, OnDestroy {
           res?.data?.items ||
           (Array.isArray(res) ? res : []);
 
-        // Bước 1: Map sơ bộ
         const partialItems = rawItems.map((item: any) => this.mapRawItem(item));
 
-        // Bước 2: Những item chưa có allVariants → fetch product riêng
         const needFetch = partialItems.filter(
           it => (!it.allVariants || it.allVariants.length === 0) && it.productId
         );
@@ -152,7 +147,6 @@ export class Cart implements OnInit, OnDestroy {
     setTimeout(() => this.cdr.detectChanges());
   }
 
-  // Map 1 raw cart item → CartItem
   private mapRawItem(item: any): CartItem {
     const p = (item.productId && typeof item.productId === 'object') ? item.productId : null;
 
@@ -163,7 +157,6 @@ export class Cart implements OnInit, OnDestroy {
 
     const { allVariants, optionType } = this.buildOptions(p, item);
 
-    // Giá: ưu tiên theo variant/weight đang chọn
     const currentOption = this.findCurrentOption(allVariants, item.variantId, item.variantLabel);
     const price = currentOption?.price ?? p?.price ?? item.price ?? 0;
 
@@ -181,7 +174,6 @@ export class Cart implements OnInit, OnDestroy {
     } as CartItem;
   }
 
-  // Enrich item khi cần fetch product riêng
   private enrichWithProductData(item: CartItem, p: any): CartItem {
     const { allVariants, optionType } = this.buildOptions(p, item);
     const currentOption = this.findCurrentOption(allVariants, item.variantId, item.variantLabel);
@@ -204,14 +196,9 @@ export class Cart implements OnInit, OnDestroy {
     };
   }
 
-  /**
-   * Xây dựng danh sách lựa chọn phân loại từ product data.
-   * Ưu tiên: variants[] (có giá/stock riêng) → weights[] + weightPrices[] → none
-   */
   private buildOptions(p: any, item?: any): { allVariants: VariantOption[]; optionType: 'variant' | 'weight' | 'none' } {
     if (!p) return { allVariants: [], optionType: 'none' };
 
-    // --- Trường hợp 1: Sản phẩm có variants ---
     if (Array.isArray(p.variants) && p.variants.length > 0) {
       const allVariants: VariantOption[] = p.variants.map((v: any) => ({
         _id:      String(v._id),
@@ -224,9 +211,7 @@ export class Cart implements OnInit, OnDestroy {
       return { allVariants, optionType: 'variant' };
     }
 
-    // --- Trường hợp 2: Sản phẩm có weights ---
     if (Array.isArray(p.weights) && p.weights.length > 0) {
-      // weightPrices map để lấy giá theo label
       const wpMap: Record<string, { price: number; oldPrice: number }> = {};
       (p.weightPrices || []).forEach((wp: any) => {
         wpMap[wp.label] = { price: Number(wp.price || 0), oldPrice: Number(wp.oldPrice || 0) };
@@ -237,10 +222,10 @@ export class Cart implements OnInit, OnDestroy {
       const allVariants: VariantOption[] = p.weights.map((w: any) => {
         const wp = wpMap[w.label];
         return {
-          _id:      w.label,           // dùng label làm key vì weight không có _id riêng
+          _id:      w.label,
           label:    String(w.label || ''),
           price:    wp?.price ?? basePrice,
-          stock:    w.outOfStock ? 0 : 999, // weights không track stock → dùng 999 nếu còn hàng
+          stock:    w.outOfStock ? 0 : 999,
           oldPrice: wp?.oldPrice ?? Number(p.oldPrice || 0),
           isWeight: true,
         };
@@ -251,11 +236,6 @@ export class Cart implements OnInit, OnDestroy {
     return { allVariants: [], optionType: 'none' };
   }
 
-  /**
-   * Tìm option đang được chọn.
-   * - Variant: so sánh _id với variantId
-   * - Weight:  so sánh label với variantLabel
-   */
   private findCurrentOption(
     allVariants: VariantOption[],
     variantId: string | null | undefined,
@@ -263,20 +243,31 @@ export class Cart implements OnInit, OnDestroy {
   ): VariantOption | undefined {
     if (!allVariants.length) return undefined;
 
-    // Thử match theo _id (variant)
     if (variantId) {
       const byId = allVariants.find(v => String(v._id) === String(variantId));
       if (byId) return byId;
     }
 
-    // Thử match theo label (weight)
     if (variantLabel) {
       const byLabel = allVariants.find(v => v.label === variantLabel);
       if (byLabel) return byLabel;
     }
 
-    // Fallback: option đầu tiên
     return allVariants[0];
+  }
+
+  // ================= KIỂM TRA HẾT HÀNG =================
+  /**
+   * FIX: Kiểm tra item hiện tại có hết hàng không.
+   * - Nếu có allVariants → tìm option đang chọn và check stock
+   * - Nếu không có allVariants → coi là còn hàng (không track được)
+   */
+  isItemOutOfStock(item: CartItem): boolean {
+    if (!item.allVariants || item.allVariants.length === 0) return false;
+    const current = this.findCurrentOption(item.allVariants, item.variantId, item.variantLabel);
+    if (!current) return false;
+    // stock 999 là weight không track stock → coi là còn hàng
+    return current.stock <= 0 && current.stock !== 999;
   }
 
   // ================= TOTAL =================
@@ -304,10 +295,6 @@ export class Cart implements OnInit, OnDestroy {
   }
 
   // ================= ĐỔI PHÂN LOẠI =================
-  /**
-   * Đổi variant hoặc weight cho item trong giỏ.
-   * optionId = variant._id hoặc weight.label
-   */
   changeOption(item: CartItem, optionId: string): void {
     const currentId = item.optionType === 'weight' ? item.variantLabel : item.variantId;
     if (currentId === optionId) return;
@@ -315,7 +302,8 @@ export class Cart implements OnInit, OnDestroy {
     const newOption = item.allVariants?.find(v => v._id === optionId);
     if (!newOption) return;
 
-    if (newOption.stock <= 0) {
+    // FIX: Chặn chọn option hết hàng (stock <= 0 và không phải weight unlimited)
+    if (newOption.stock <= 0 && newOption.stock !== 999) {
       this.api.showToast(`"${newOption.label}" đã hết hàng.`, 'error');
       return;
     }
@@ -324,13 +312,10 @@ export class Cart implements OnInit, OnDestroy {
     const oldVariantLabel = item.variantLabel;
     const oldPrice        = item.price;
 
-    // Cập nhật UI ngay (optimistic)
     if (item.optionType === 'weight') {
-      // Weight: lưu label vào variantLabel, variantId giữ null
       item.variantId    = null;
       item.variantLabel = newOption.label;
     } else {
-      // Variant: lưu _id vào variantId
       item.variantId    = newOption._id;
       item.variantLabel = newOption.label;
     }
@@ -342,13 +327,11 @@ export class Cart implements OnInit, OnDestroy {
     this.cdr.detectChanges();
 
     if (item.optionType === 'weight') {
-      // Weight: chỉ cập nhật giá cục bộ, không cần gọi API xóa/thêm
-      // vì backend không track weight trong cart item
       this.api.showToast(`Đã chọn "${newOption.label}"`, 'success');
       return;
     }
 
-    // Variant: xóa item cũ → thêm item mới với variant mới
+    // Variant: xóa item cũ → thêm item mới
     this.api.removeCartItem(item.productId, oldVariantId).subscribe({
       next: () => {
         this.api.addToCart(
@@ -385,7 +368,6 @@ export class Cart implements OnInit, OnDestroy {
     this.router.navigate(['/product-detail-page', item.productId]);
   }
 
-  // Lấy optionId hiện tại (để highlight button đang active)
   currentOptionId(item: CartItem): string {
     if (item.optionType === 'weight') return item.variantLabel || '';
     return item.variantId || '';
@@ -502,7 +484,25 @@ export class Cart implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * FIX: Chặn tăng số lượng nếu item hết hàng
+   */
   inc(it: CartItem): void {
+    if (this.isItemOutOfStock(it)) {
+      this.api.showToast('Sản phẩm này đã hết hàng.', 'error');
+      return;
+    }
+
+    // Kiểm tra giới hạn stock của option hiện tại
+    const currentOption = it.allVariants?.length
+      ? this.findCurrentOption(it.allVariants, it.variantId, it.variantLabel)
+      : undefined;
+
+    if (currentOption && currentOption.stock < 999 && it.quantity >= currentOption.stock) {
+      this.api.showToast(`Chỉ còn ${currentOption.stock} sản phẩm trong kho.`, 'error');
+      return;
+    }
+
     const newQty = it.quantity + 1;
     it.quantity  = newQty;
     this.calcTotal();
@@ -521,11 +521,24 @@ export class Cart implements OnInit, OnDestroy {
     const next = Number(value);
     if (!Number.isFinite(next) || next < 0) return;
     if (next <= 0) { this.confirmDecrease(it); return; }
+
+    // FIX: Chặn nhập số lượng vượt stock
+    const currentOption = it.allVariants?.length
+      ? this.findCurrentOption(it.allVariants, it.variantId, it.variantLabel)
+      : undefined;
+    const maxStock = currentOption && currentOption.stock < 999 ? currentOption.stock : Infinity;
+    const safeQty  = Math.min(next, maxStock);
+
     const prev  = it.quantity;
-    it.quantity = next;
+    it.quantity = safeQty;
     this.calcTotal();
     this.cdr.detectChanges();
-    this.api.updateCartItem(it.productId, next, it.variantId).subscribe({
+
+    if (safeQty < next) {
+      this.api.showToast(`Chỉ còn ${maxStock} sản phẩm trong kho.`, 'error');
+    }
+
+    this.api.updateCartItem(it.productId, safeQty, it.variantId).subscribe({
       error: () => {
         it.quantity = prev;
         this.calcTotal();
