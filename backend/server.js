@@ -49,6 +49,7 @@ app.use('/api/promotions',      require('./routes/promotion.routes'));
 app.use('/api/categories',      require('./routes/categories'));
 app.use('/api/admin/customers', require('./routes/customer'));
 app.use('/api/admin/dashboard', require('./routes/admin-dashboard'));
+app.use('/api/about-images', require('./routes/about-images'));
 
 // Health check
 app.get('/api/health', (req, res) => {

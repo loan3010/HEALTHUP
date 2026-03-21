@@ -1,13 +1,15 @@
 <div class="about-page">
 
   <!-- HERO -->
-  <section class="hero">
+  <section class="hero" [class.hero-has-image]="images['hero']">
+    <!-- Hình nền hero (nếu có) -->
+    <div class="hero-bg" *ngIf="images['hero']">
+      <img [src]="images['hero']" alt="HealthUp Hero" />
+    </div>
+
     <div class="hero-content">
       <h1>HealthUp – Healthy Snack cho lối sống năng động</h1>
-      <p>
-        Chúng tôi tin rằng ăn lành mạnh bắt đầu từ những lựa chọn nhỏ
-        mỗi ngày.
-      </p>
+      <p>Chúng tôi tin rằng ăn lành mạnh bắt đầu từ những lựa chọn nhỏ mỗi ngày.</p>
       <div class="hero-divider"></div>
     </div>
   </section>
@@ -31,8 +33,12 @@
     </div>
 
     <div class="story-image">
-      <img src="/assets/images/story.png" alt="HealthUp Story"
-           onerror="this.style.display='none'" />
+      <img *ngIf="images['story']"
+           [src]="images['story']"
+           alt="HealthUp Story" />
+      <div class="img-placeholder" *ngIf="!images['story']">
+        <span>🌿</span>
+      </div>
     </div>
   </section>
 
@@ -45,17 +51,14 @@
         <h3>Tự nhiên</h3>
         <p>Không phụ gia nhân tạo, không đường tinh luyện.</p>
       </div>
-
       <div class="value-card">
         <h3>Chọn lọc kỹ lưỡng</h3>
         <p>Nguyên liệu được kiểm soát nguồn gốc rõ ràng.</p>
       </div>
-
       <div class="value-card">
         <h3>Minh bạch dinh dưỡng</h3>
         <p>Công khai thông tin calo và thành phần trên bao bì.</p>
       </div>
-
       <div class="value-card">
         <h3>Tiện lợi mỗi ngày</h3>
         <p>Snack healthy dễ mang theo cho mọi lịch trình.</p>
@@ -72,17 +75,14 @@
         <h3>Granola thủ công</h3>
         <p>Nướng chậm để giữ độ giòn và hương vị tự nhiên.</p>
       </div>
-
       <div class="quality-card">
         <h3>Trái cây sấy lạnh</h3>
         <p>Giữ nguyên màu sắc và vitamin tự nhiên.</p>
       </div>
-
       <div class="quality-card">
         <h3>Hạt dinh dưỡng cao cấp</h3>
         <p>Chọn lọc từ nguồn cung uy tín và chất lượng.</p>
       </div>
-
       <div class="quality-card">
         <h3>Đóng gói thân thiện</h3>
         <p>Bao bì tối giản, hướng đến bền vững môi trường.</p>
@@ -109,7 +109,6 @@
           nhằm đưa sản phẩm healthy đến gần hơn với khách hàng.
         </p>
 
-        <!-- stats: thêm data-target để counter animation hoạt động -->
         <div class="stats">
           <div>
             <h4><span data-target="20000">0</span>+</h4>
@@ -134,19 +133,23 @@
       <div class="distribution-right">
 
         <div class="img-large">
-          <img src="/assets/images/about1.png" alt="Distribution 1" />
+          <img *ngIf="images['dist1']" [src]="images['dist1']" alt="Distribution 1" />
+          <div class="img-placeholder" *ngIf="!images['dist1']"><span>📦</span></div>
         </div>
 
         <div class="img-vertical">
-          <img src="/assets/images/about4.png" alt="Distribution 2" />
+          <img *ngIf="images['dist2']" [src]="images['dist2']" alt="Distribution 2" />
+          <div class="img-placeholder" *ngIf="!images['dist2']"><span>🚚</span></div>
         </div>
 
         <div class="img-small">
-          <img src="/assets/images/about2.png" alt="Distribution 3" />
+          <img *ngIf="images['dist3']" [src]="images['dist3']" alt="Distribution 3" />
+          <div class="img-placeholder" *ngIf="!images['dist3']"><span>🌿</span></div>
         </div>
 
         <div class="img-small">
-          <img src="/assets/images/about5.png" alt="Distribution 4" />
+          <img *ngIf="images['dist4']" [src]="images['dist4']" alt="Distribution 4" />
+          <div class="img-placeholder" *ngIf="!images['dist4']"><span>✨</span></div>
         </div>
 
       </div>
