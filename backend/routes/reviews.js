@@ -5,6 +5,7 @@ const path      = require('path');
 const multer    = require('multer');
 const Review    = require('../models/Review');
 const Product   = require('../models/Product');
+const Order     = require('../models/Order');
 
 // ── Multer: lưu ảnh review vào public/images/reviews ──
 const storage = multer.diskStorage({
@@ -18,7 +19,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) cb(null, true);
     else cb(new Error('Chỉ chấp nhận file ảnh'));
@@ -139,12 +140,41 @@ router.get('/product/:productId', async (req, res) => {
 
 // ─────────────────────────────────────────────────────────────────
 // POST /api/reviews — tạo đánh giá mới
+// ✅ Chỉ cho phép nếu userId có đơn hàng delivered chứa productId
 // ─────────────────────────────────────────────────────────────────
 router.post('/', async (req, res) => {
   try {
+    const { userId, productId } = req.body;
+
+    // ── Validate bắt buộc ──
+    if (!productId) {
+      return res.status(400).json({ error: 'Thiếu productId' });
+    }
+
+    // ── Kiểm tra userId hợp lệ ──
+    if (!userId || !mongoose.Types.ObjectId.isValid(String(userId))) {
+      return res.status(403).json({
+        error: 'Bạn cần đăng nhập để đánh giá sản phẩm'
+      });
+    }
+
+    // ── Kiểm tra có đơn delivered chứa sản phẩm này không ──
+    const deliveredOrder = await Order.findOne({
+      userId:  new mongoose.Types.ObjectId(String(userId)),
+      status:  'delivered',
+      'items.productId': new mongoose.Types.ObjectId(String(productId)),
+    }).lean();
+
+    if (!deliveredOrder) {
+      return res.status(403).json({
+        error: 'Bạn chỉ có thể đánh giá sản phẩm đã mua và đã giao thành công'
+      });
+    }
+
+    // ── Tạo review ──
     const review = new Review(req.body);
     await review.save();
-    await syncProductStats(req.body.productId);
+    await syncProductStats(productId);
     res.status(201).json(review);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -181,7 +211,6 @@ router.delete('/:id', async (req, res) => {
     const review = await Review.findByIdAndDelete(req.params.id).lean();
     if (!review) return res.status(404).json({ error: 'Review not found' });
 
-    // Cập nhật lại rating + reviewCount sau khi xóa
     await syncProductStats(review.productId);
     res.json({ message: 'Đã xóa đánh giá', id: req.params.id });
   } catch (err) {

@@ -236,25 +236,18 @@ export class ApiService {
     return this.http.post<any>(`${API_BASE}/reviews`, data);
   }
 
-  // FIX: Upload ảnh review — trả về mảng URL từ server
   uploadReviewImages(files: File[]): Observable<{ urls: string[] }> {
     const formData = new FormData();
     files.forEach(file => formData.append('images', file));
     return this.http.post<{ urls: string[] }>(`${API_BASE}/reviews/upload-images`, formData);
   }
 
-  // FIX: Sửa đánh giá
   updateReview(reviewId: string, data: {
-    rating: number;
-    text: string;
-    tags?: string[];
-    variant?: string;
-    imgs?: string[];
+    rating: number; text: string; tags?: string[]; variant?: string; imgs?: string[];
   }): Observable<any> {
     return this.http.put<any>(`${API_BASE}/reviews/${reviewId}`, data);
   }
 
-  // FIX: Xóa đánh giá
   deleteReview(reviewId: string): Observable<any> {
     return this.http.delete<any>(`${API_BASE}/reviews/${reviewId}`);
   }
@@ -360,5 +353,39 @@ export class ApiService {
 
   deleteOrder(id: string): Observable<any> {
     return this.http.delete(`${API_BASE}/orders/${id}`);
+  }
+
+  // ── Return APIs ────────────────────────────────────────────────────────────
+
+  /**
+   * User gửi yêu cầu đổi trả — hỗ trợ upload ảnh minh chứng (tối đa 5 ảnh).
+   * Gửi dưới dạng multipart/form-data thay vì JSON.
+   */
+  requestReturn(orderId: string, data: {
+    reason: string;
+    note?: string;
+    items?: any[];
+    images?: File[];   // ✅ MỚI: ảnh minh chứng
+  }): Observable<any> {
+    const formData = new FormData();
+    formData.append('reason', data.reason);
+    if (data.note) formData.append('note', data.note);
+    if (data.items && data.items.length > 0) {
+      formData.append('items', JSON.stringify(data.items));
+    }
+    // Append từng file ảnh
+    if (data.images && data.images.length > 0) {
+      data.images.forEach(file => formData.append('images', file));
+    }
+
+    // Không set Content-Type — browser tự set boundary cho multipart
+    const token = this.getToken();
+    const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+
+    return this.http.patch<any>(
+      `${API_BASE}/orders/${orderId}/request-return`,
+      formData,
+      { headers }
+    );
   }
 }

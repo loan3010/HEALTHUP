@@ -22,6 +22,7 @@ export class OrderManagement implements OnInit {
     { id: 'all',       label: 'Tất cả',        count: 0 },
     { id: 'pending',   label: 'Chờ xác nhận',  count: 0 },
     { id: 'confirmed', label: 'Chờ giao hàng', count: 0 },
+    { id: 'shipping',  label: 'Đang giao',      count: 0 },
     { id: 'delivered', label: 'Đã giao',        count: 0 },
     { id: 'cancelled', label: 'Đã hủy',         count: 0 },
   ];
@@ -32,11 +33,8 @@ export class OrderManagement implements OnInit {
     private cdr: ChangeDetectorRef
   ) {}
 
-  ngOnInit(): void {
-    this.loadOrders();
-  }
+  ngOnInit(): void { this.loadOrders(); }
 
-  // ✅ FIX: lấy userId từ localStorage — ưu tiên 'userId', fallback về user._id hoặc user.id
   private getUserId(): string {
     const direct = localStorage.getItem('userId');
     if (direct) return direct;
@@ -48,28 +46,17 @@ export class OrderManagement implements OnInit {
 
   loadOrders(): void {
     const userId = this.getUserId();
-
-    // ✅ FIX: không gọi API nếu chưa đăng nhập
     if (!userId) {
-      this.orders         = [];
-      this.filteredOrders = [];
-      this.updateTabCounts();
-      this.cdr.detectChanges();
-      return;
+      this.orders = []; this.filteredOrders = [];
+      this.updateTabCounts(); this.cdr.detectChanges(); return;
     }
-
     this.api.getOrders(userId).subscribe({
       next: (res: any) => {
         this.orders         = Array.isArray(res) ? res : [];
         this.filteredOrders = [...this.orders];
-        this.updateTabCounts();
-        this.cdr.detectChanges();   // ✅ hiện ngay không cần click
+        this.updateTabCounts(); this.cdr.detectChanges();
       },
-      error: () => {
-        this.orders         = [];
-        this.filteredOrders = [];
-        this.cdr.detectChanges();
-      }
+      error: () => { this.orders = []; this.filteredOrders = []; this.cdr.detectChanges(); }
     });
   }
 
@@ -81,18 +68,11 @@ export class OrderManagement implements OnInit {
     });
   }
 
-  onTabClick(tab: string): void {
-    this.activeTab = tab;
-    this.filterOrders();
-  }
+  onTabClick(tab: string): void { this.activeTab = tab; this.filterOrders(); }
 
   filterOrders(): void {
     let data = [...this.orders];
-
-    if (this.activeTab !== 'all') {
-      data = data.filter(o => o.status === this.activeTab);
-    }
-
+    if (this.activeTab !== 'all') data = data.filter(o => o.status === this.activeTab);
     if (this.searchQuery.trim()) {
       const q = this.searchQuery.toLowerCase();
       data = data.filter(o =>
@@ -102,30 +82,32 @@ export class OrderManagement implements OnInit {
         o.items?.some((i: any) => i.name?.toLowerCase().includes(q))
       );
     }
-
-    this.filteredOrders = data;
-    this.cdr.detectChanges();
+    this.filteredOrders = data; this.cdr.detectChanges();
   }
 
-  // ✅ Click vào đơn → sang trang detail
   goToDetail(orderId: string): void {
     this.router.navigate(['/profile/order-detail', orderId]);
   }
 
+  // ✅ Navigate đến order-review với productId của SP đầu tiên
+  goToReview(order: any): void {
+    const firstItem = order?.items?.[0];
+    if (!firstItem?.productId) return;
+    this.router.navigate(['/profile/order-review'], {
+      queryParams: { productId: String(firstItem.productId) }
+    });
+  }
+
   formatCurrency(price: number): string {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency', currency: 'VND'
-    }).format(price);
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
   }
 
   getStatusLabel(status: string): string {
     const map: Record<string, string> = {
-      pending:         'Chờ xác nhận',
-      confirmed:       'Chờ giao hàng',
-      delivered:       'Đã giao',
-      cancelled:       'Đã hủy',
-      pending_payment: 'Chờ thanh toán',
-      paid:            'Đã thanh toán',
+      pending: 'Chờ xác nhận', confirmed: 'Chờ giao hàng',
+      shipping: 'Đang giao',  // ✅ thêm dòng này
+      delivered: 'Đã giao', cancelled: 'Đã hủy',
+      pending_payment: 'Chờ thanh toán', paid: 'Đã thanh toán',
     };
     return map[status] || status;
   }

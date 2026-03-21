@@ -18,11 +18,8 @@
     <!-- Right: search + actions + hamburger -->
     <div class="header-right">
 
-      <!-- ══════════════════════════════════════
-           SEARCH BOX + AUTOCOMPLETE DROPDOWN
-           ══════════════════════════════════════ -->
+      <!-- SEARCH BOX -->
       <div class="search-box" [class.search-active]="showSearchDropdown">
-
         <input
           #searchInput
           type="text"
@@ -35,85 +32,51 @@
           spellcheck="false"
           aria-label="Tìm kiếm sản phẩm"
         />
-
-        <!-- Icon search / loading -->
         <button class="search-submit-btn" (click)="submitSearch()" aria-label="Tìm kiếm">
           <i class="bi bi-search" *ngIf="!isSearching"></i>
           <span class="search-loading" *ngIf="isSearching"></span>
         </button>
 
-        <!-- ── AUTOCOMPLETE DROPDOWN ── -->
         <div class="search-dropdown" *ngIf="showSearchDropdown && searchQuery.trim()">
-
-          <!-- Đang tìm kiếm -->
           <div class="search-dropdown-loading" *ngIf="isSearching">
-            <span class="search-spinner"></span>
-            Đang tìm kiếm...
+            <span class="search-spinner"></span>Đang tìm kiếm...
           </div>
-
-          <!-- Có kết quả -->
           <ng-container *ngIf="!isSearching && searchResults.length > 0">
-            <div class="search-dropdown-header">
-              Gợi ý sản phẩm
-            </div>
-            <div
-              *ngFor="let product of searchResults; let i = index"
-              class="search-result-item"
-              [class.active]="i === activeIndex"
-              (click)="selectProduct(product)"
-              (mouseenter)="activeIndex = i">
-
-              <!-- Thumbnail -->
+            <div class="search-dropdown-header">Gợi ý sản phẩm</div>
+            <div *ngFor="let product of searchResults; let i = index"
+              class="search-result-item" [class.active]="i === activeIndex"
+              (click)="selectProduct(product)" (mouseenter)="activeIndex = i">
               <div class="search-result-thumb">
-                <img
-                  [src]="product.images?.[0] || '/assets/images/placeholder.png'"
-                  [alt]="product.name"
-                  onerror="this.src='/assets/images/placeholder.png'"
-                />
-                <!-- Badge -->
+                <img [src]="product.images?.[0] || '/assets/images/placeholder.png'"
+                  [alt]="product.name" onerror="this.src='/assets/images/placeholder.png'" />
                 <span class="search-badge search-badge-new" *ngIf="product.badge === 'new'">Mới</span>
                 <span class="search-badge search-badge-hot" *ngIf="product.badge === 'hot'">Hot</span>
               </div>
-
-              <!-- Info -->
               <div class="search-result-info">
                 <p class="search-result-name">{{ product.name }}</p>
                 <p class="search-result-cat">{{ product.cat }}</p>
                 <div class="search-result-price-row">
                   <span class="search-result-price">{{ formatPrice(product.price) }}</span>
-                  <span class="search-result-old-price" *ngIf="product.oldPrice">
-                    {{ formatPrice(product.oldPrice) }}
-                  </span>
+                  <span class="search-result-old-price" *ngIf="product.oldPrice">{{ formatPrice(product.oldPrice) }}</span>
                 </div>
               </div>
-
-              <!-- Arrow icon -->
               <i class="bi bi-arrow-right-short search-result-arrow"></i>
             </div>
-
-            <!-- Xem tất cả kết quả -->
             <div class="search-dropdown-footer" (click)="submitSearch()">
               <i class="bi bi-search"></i>
               Xem tất cả kết quả cho "<strong>{{ searchQuery }}</strong>"
             </div>
           </ng-container>
-
-          <!-- Không có kết quả -->
           <div class="search-no-result" *ngIf="!isSearching && searchResults.length === 0">
             <i class="bi bi-emoji-frown"></i>
             <p>Không tìm thấy sản phẩm nào</p>
             <span>Thử tìm với từ khóa khác nhé!</span>
           </div>
-
         </div>
-        <!-- /AUTOCOMPLETE DROPDOWN -->
-
       </div>
-      <!-- /SEARCH BOX -->
 
       <!-- Actions -->
       <div class="header-actions">
-        <!-- Chưa đăng nhập -->
         <ng-container *ngIf="!isLoggedIn">
           <button type="button" class="btn-track-order" (click)="openTrackOrder()" title="Tra cứu đơn hàng">
             <i class="bi bi-search btn-icon-only"></i>
@@ -129,11 +92,8 @@
           </button>
         </ng-container>
 
-        <!-- Đã đăng nhập -->
         <ng-container *ngIf="isLoggedIn">
           <i class="bi bi-bell icon" title="Thông báo"></i>
-
-          <!-- ✅ Cart icon với badge đếm số lượng -->
           <div class="cart-icon-wrap" routerLink="/cart" title="Giỏ hàng">
             <i class="bi bi-cart icon"></i>
             <span class="cart-badge" *ngIf="cartCount > 0">{{ cartCount > 99 ? '99+' : cartCount }}</span>
@@ -150,9 +110,6 @@
               <a routerLink="/profile/overview" (click)="closeDropdown()">
                 <i class="bi bi-person"></i> Tài khoản của tôi
               </a>
-              <!-- <a routerLink="/orders" (click)="closeDropdown()">
-                <i class="bi bi-box-seam"></i> Đơn hàng
-              </a> -->
               <a routerLink="/profile/wishlist" (click)="closeDropdown()">
                 <i class="bi bi-heart"></i> Yêu thích
               </a>
@@ -163,6 +120,7 @@
                 <i class="bi-box-seam"></i> Theo dõi đơn hàng
               </a>
               <div class="dropdown-divider"></div>
+              <!-- ✅ Gọi logout() → mở popup xác nhận -->
               <a class="logout-link" (click)="logout()">
                 <i class="bi bi-box-arrow-right"></i> Đăng xuất
               </a>
@@ -171,17 +129,12 @@
         </ng-container>
       </div>
 
-      <!-- Hamburger (mobile only) -->
       <button class="hamburger" (click)="toggleMenu()" [class.active]="menuOpen" aria-label="Menu">
-        <span></span>
-        <span></span>
-        <span></span>
+        <span></span><span></span><span></span>
       </button>
-
     </div>
   </div>
 
-  <!-- Mobile nav dropdown -->
   <div class="mobile-nav-menu" [class.open]="menuOpen">
     <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}" (click)="closeMenu()">Trang chủ</a>
     <a routerLink="/about-the-brand" routerLinkActive="active" (click)="closeMenu()">Giới thiệu</a>
@@ -196,3 +149,20 @@
   [isOpen]="showTrackOrderModal"
   (closeModal)="closeTrackOrderModal()">
 </app-track-order-modal>
+
+<!-- ✅ POPUP XÁC NHẬN ĐĂNG XUẤT -->
+<div class="logout-confirm-backdrop" *ngIf="showLogoutConfirm" (click)="cancelLogout()">
+  <div class="logout-confirm-modal" (click)="$event.stopPropagation()">
+    <div class="logout-confirm-icon">
+      <i class="bi bi-box-arrow-right"></i>
+    </div>
+    <h3 class="logout-confirm-title">Đăng xuất?</h3>
+    <p class="logout-confirm-sub">Bạn có chắc muốn đăng xuất khỏi tài khoản không?</p>
+    <div class="logout-confirm-actions">
+      <button class="logout-btn-cancel" (click)="cancelLogout()">Hủy</button>
+      <button class="logout-btn-confirm" (click)="confirmLogout()">
+        <i class="bi bi-box-arrow-right me-1"></i> Đăng xuất
+      </button>
+    </div>
+  </div>
+</div>

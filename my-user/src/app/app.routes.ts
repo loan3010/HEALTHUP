@@ -26,6 +26,7 @@ import { AddressBook } from './address-book/address-book';
 import { OrderManagement } from './order-management/order-management';
 import { OrderDetail } from './order-details/order-details';
 import { Notifications } from './notifications/notifications';
+import { ReturnManagement } from './return-management/return-management';
 
 export const routes: Routes = [
 
@@ -68,8 +69,10 @@ export const routes: Routes = [
       { path: 'address',           component: AddressBook },
       { path: 'wishlist',          component: Wishlist },
       { path: 'order-management',  component: OrderManagement },
-      { path: 'order-detail/:id',  component: OrderDetail },   // ✅ đúng route
-      { path: 'notifications',  component: Notifications },   // ✅ đúng route
+      { path: 'order-detail/:id',  component: OrderDetail },
+      { path: 'return-management', component: ReturnManagement },
+      { path: 'order-review', component: OrderReviewComponent },
+      { path: 'notifications',     component: Notifications },
     ]
   },
 
