@@ -19,7 +19,7 @@ function calcShipping(subTotal, shippingMethod) {
 }
 
 /**
- * FIX: Tính discount từ DB thay vì hardcode.
+ * Tính discount từ DB theo type của promo.
  * Trả về { discountAmount, discountOnType }
  */
 async function calcDiscountFromDB(voucherCode, subTotal, shippingFee) {
@@ -40,20 +40,32 @@ async function calcDiscountFromDB(voucherCode, subTotal, shippingFee) {
   if (subTotal < promo.minOrder) return { discountAmount: 0, discountOnType: null };
 
   let discountAmount = 0;
-  let discountOnType = 'items';
+  // Dùng promo.type làm chuẩn phân loại (order | shipping)
+  const discountOnType = (promo.type === 'shipping') ? 'shipping' : 'items';
 
-  if (promo.discountType === 'freeship') {
-    discountAmount = Number(shippingFee);
-    discountOnType = 'shipping';
-  } else if (promo.discountType === 'percent') {
-    discountAmount = Math.round(subTotal * promo.discountValue / 100);
-    if (promo.maxDiscount > 0 && discountAmount > promo.maxDiscount) {
-      discountAmount = promo.maxDiscount;
+  if (promo.type === 'shipping') {
+    // Mã giảm phí vận chuyển
+    if (promo.discountType === 'percent') {
+      discountAmount = Math.round(Number(shippingFee) * promo.discountValue / 100);
+      if (promo.maxDiscount > 0 && discountAmount > promo.maxDiscount) {
+        discountAmount = promo.maxDiscount;
+      }
+    } else if (promo.discountType === 'fixed') {
+      discountAmount = Math.min(promo.discountValue, Number(shippingFee));
+    } else {
+      // freeship → giảm toàn bộ phí ship
+      discountAmount = Number(shippingFee);
     }
-    discountOnType = 'items';
-  } else if (promo.discountType === 'fixed') {
-    discountAmount = promo.discountValue;
-    discountOnType = 'items';
+  } else {
+    // Mã giảm tiền hàng (promo.type === 'order')
+    if (promo.discountType === 'percent') {
+      discountAmount = Math.round(subTotal * promo.discountValue / 100);
+      if (promo.maxDiscount > 0 && discountAmount > promo.maxDiscount) {
+        discountAmount = promo.maxDiscount;
+      }
+    } else if (promo.discountType === 'fixed') {
+      discountAmount = promo.discountValue;
+    }
   }
 
   return { discountAmount, discountOnType };
@@ -63,7 +75,15 @@ async function calcDiscountFromDB(voucherCode, subTotal, shippingFee) {
 
 router.post('/', async (req, res) => {
   try {
-    const { customer, items, shippingMethod, paymentMethod, voucherCode, userId } = req.body;
+    const {
+      customer,
+      items,
+      shippingMethod,
+      paymentMethod,
+      voucherCode,     // mã giảm tiền hàng
+      shipVoucherCode, // mã giảm phí vận chuyển
+      userId
+    } = req.body;
 
     // Validate customer
     if (!customer?.fullName || !customer?.phone || !customer?.address) {
@@ -71,9 +91,6 @@ router.post('/', async (req, res) => {
     }
     if (!isValidPhoneVN(customer.phone)) {
       return res.status(400).json({ message: 'Số điện thoại không hợp lệ' });
-    }
-    if (!customer?.province || !customer?.district || !customer?.ward) {
-      return res.status(400).json({ message: 'Thiếu tỉnh/huyện/xã' });
     }
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ message: 'Giỏ hàng trống' });
@@ -126,7 +143,9 @@ router.post('/', async (req, res) => {
       if (i.variantId && mongoose.Types.ObjectId.isValid(i.variantId)) {
         variant = (p.variants || []).find(v => String(v._id) === String(i.variantId));
         if (!variant) {
-          return res.status(400).json({ message: `Biến thể không tồn tại cho sản phẩm ${p.name}` });
+          return res.status(400).json({
+            message: `Biến thể không tồn tại cho sản phẩm ${p.name}`
+          });
         }
       }
 
@@ -138,10 +157,8 @@ router.post('/', async (req, res) => {
         });
       }
 
-      const price  = Number(variant?.price ?? p.price ?? 0);
-      subTotal    += price * qty;
-
-      const image = p.images?.[0] ?? null;
+      const price = Number(variant?.price ?? p.price ?? 0);
+      subTotal   += price * qty;
 
       orderItems.push({
         productId:    p._id,
@@ -150,16 +167,22 @@ router.post('/', async (req, res) => {
         name:         p.name || 'Product',
         price,
         quantity:     qty,
-        imageUrl:     image,
+        imageUrl:     p.images?.[0] ?? null,
       });
     }
 
     const ship = calcShipping(subTotal, shippingMethod);
 
-    // FIX: Tính discount từ DB
-    const { discountAmount: disc, discountOnType } = await calcDiscountFromDB(voucherCode, subTotal, ship);
+    // Tính discount tiền hàng (voucherCode)
+    const { discountAmount: discOrder, discountOnType: typeOrder } =
+      await calcDiscountFromDB(voucherCode, subTotal, ship);
 
-    const total = Math.max(0, subTotal + ship - disc);
+    // Tính discount phí ship (shipVoucherCode)
+    const { discountAmount: discShip, discountOnType: typeShip } =
+      await calcDiscountFromDB(shipVoucherCode, subTotal, ship);
+
+    const totalDiscount = discOrder + discShip;
+    const total = Math.max(0, subTotal - discOrder + ship - discShip);
 
     // Build order data
     const orderData = {
@@ -168,22 +191,24 @@ router.post('/', async (req, res) => {
         phone:    customer.phone,
         email:    customer.email || '',
         address:  customer.address,
-        province: customer.province,
-        district: customer.district,
-        ward:     customer.ward,
-        note:     customer.note || '',
+        province: customer.province || 'N/A',
+        district: customer.district || 'N/A',
+        ward:     customer.ward     || 'N/A',
+        note:     customer.note     || '',
       },
-      items:          orderItems,
-      shippingMethod: shippingMethod || 'standard',
-      paymentMethod:  paymentMethod  || 'cod',
-      voucherCode:    voucherCode    || null,
+      items:           orderItems,
+      shippingMethod:  shippingMethod || 'standard',
+      paymentMethod:   paymentMethod  || 'cod',
+      voucherCode:     voucherCode     || null,
+      shipVoucherCode: shipVoucherCode || null,
       subTotal,
-      shippingFee:    ship,
-      discount:       disc,
-      discountOnType: discountOnType || null, // FIX: lưu thêm loại giảm
+      shippingFee:     ship,
+      discount:        totalDiscount,
+      discountOnItems:    discOrder,
+      discountOnShipping: discShip,
       total,
-      status:         'pending',
-      userId:         null,
+      status:  'pending',
+      userId:  null,
     };
 
     if (userId && mongoose.Types.ObjectId.isValid(String(userId))) {
@@ -192,15 +217,27 @@ router.post('/', async (req, res) => {
 
     const order = await Order.create(orderData);
 
-    // Tăng usedCount voucher
+    // Tăng usedCount cho cả 2 voucher nếu có
+    const voucherUpdates = [];
     if (voucherCode) {
-      await Promotion.updateOne(
-        { code: voucherCode.trim().toUpperCase() },
-        { $inc: { usedCount: 1 } }
+      voucherUpdates.push(
+        Promotion.updateOne(
+          { code: voucherCode.trim().toUpperCase() },
+          { $inc: { usedCount: 1 } }
+        )
       );
     }
+    if (shipVoucherCode) {
+      voucherUpdates.push(
+        Promotion.updateOne(
+          { code: shipVoucherCode.trim().toUpperCase() },
+          { $inc: { usedCount: 1 } }
+        )
+      );
+    }
+    if (voucherUpdates.length) await Promise.all(voucherUpdates);
 
-    // Xóa các sản phẩm đã mua khỏi cart trên DB
+    // Xóa sản phẩm đã mua khỏi cart trên DB
     if (order.userId) {
       const boughtIds = orderItems.map(i => String(i.productId));
       try {
@@ -212,23 +249,36 @@ router.post('/', async (req, res) => {
       } catch (e) { /* không chặn response nếu lỗi xóa cart */ }
     }
 
-    // Trừ kho sau khi tạo đơn thành công
+    // Trừ kho + cộng sold sau khi tạo đơn thành công
     for (const item of orderItems) {
       const p = await Product.findById(item.productId);
       if (!p) continue;
 
       if (item.variantId) {
-        const idx = (p.variants || []).findIndex(v => String(v._id) === String(item.variantId));
+        const idx = (p.variants || []).findIndex(
+          v => String(v._id) === String(item.variantId)
+        );
         if (idx >= 0) {
-          p.variants[idx].stock = Math.max(0, Number(p.variants[idx].stock || 0) - Number(item.quantity || 0));
+          p.variants[idx].stock = Math.max(
+            0,
+            Number(p.variants[idx].stock || 0) - Number(item.quantity || 0)
+          );
         }
       } else {
-        p.stock = Math.max(0, Number(p.stock || 0) - Number(item.quantity || 0));
+        p.stock = Math.max(
+          0,
+          Number(p.stock || 0) - Number(item.quantity || 0)
+        );
       }
 
+      // Đồng bộ stock tổng từ variants
       if (Array.isArray(p.variants) && p.variants.length > 0) {
         p.stock = p.variants.reduce((sum, v) => sum + Number(v.stock || 0), 0);
       }
+
+      // FIX: Cộng số lượng đã bán
+      p.sold = Number(p.sold || 0) + Number(item.quantity || 0);
+
       await p.save();
     }
 

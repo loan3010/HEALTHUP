@@ -94,6 +94,9 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
     this.route.paramMap.subscribe(params => {
       const id = params.get('id');
       if (id) {
+        // FIX: Cuộn về đầu trang mỗi khi load sản phẩm mới
+        window.scrollTo({ top: 0, behavior: 'instant' });
+
         this.product = null;
         this.relatedProducts = [];
         this.isLoading = true;
@@ -121,7 +124,6 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
         this.selectedWeight = data.weights?.[0]?.label || '';
         this.selectedType   = this.visiblePackagingTypes(data)?.[0] || '';
 
-        // Chọn variant đầu tiên CÒN HÀNG
         const firstInStock = (data.variants || []).find((v: any) => Number(v.stock || 0) > 0);
         this.selectedVariantId = firstInStock?._id || data.variants?.[0]?._id || '';
 
@@ -258,7 +260,6 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
     }
   }
 
-  // FIX: method selectVariant — reset qty về 1 khi đổi phân loại
   selectVariant(variantId: string): void {
     if (this.selectedVariantId === variantId) return;
     this.selectedVariantId = variantId;
@@ -300,7 +301,6 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
     return Number(this.product?.stock ?? 0);
   }
 
-  // FIX: Kiểm tra variant/sản phẩm hiện tại có hết hàng không
   isCurrentVariantOutOfStock(): boolean {
     if (!this.product) return true;
     if (this.product.isOutOfStock) return true;
@@ -332,7 +332,6 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
 
   addToCart(): void {
     if (this.addedToCart || !this.product?._id) return;
-    // FIX: Kiểm tra stock variant hiện tại trước khi thêm
     if (this.isCurrentVariantOutOfStock()) {
       this.api.showToast('Sản phẩm này đã hết hàng, vui lòng chọn phân loại khác.', 'error');
       return;
@@ -427,8 +426,10 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
     });
   }
 
+  // FIX: Cuộn về đầu trang trước khi navigate sang sản phẩm khác
   goToProduct(id: string): void {
     if (!id) return;
+    window.scrollTo({ top: 0, behavior: 'instant' });
     this.router.navigate(['/product-detail-page', id]);
   }
 
