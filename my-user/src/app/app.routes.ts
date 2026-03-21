@@ -33,6 +33,7 @@ export const routes: Routes = [
   { path: '', component: HomepageComponent },
 
   // ===== PRODUCT =====
+  { path: 'products', component: ProductListingPageComponent },
   { path: 'product-listing-page', component: ProductListingPageComponent },
   { path: 'product-detail-page/:id', component: ProductDetailPageComponent },
 
@@ -40,19 +41,19 @@ export const routes: Routes = [
   { path: 'order-review', component: OrderReviewComponent },
 
   // ===== AUTH =====
-  { path: 'login', component: Login },
+  { path: 'login',    component: Login },
   { path: 'forgotpw', component: Forgotpw },
   { path: 'register', component: Register },
 
   // ===== STATIC PAGES =====
   { path: 'about-the-brand', component: AboutTheBrand },
-  { path: 'blog', component: BlogComponent },
-  { path: 'blog/:id', component: BlogDetailComponent }, // ✅ thêm từ 0ed69bcb
+  { path: 'blog',     component: BlogComponent },
+  { path: 'blog/:id', component: BlogDetailComponent },
   { path: 'policies', component: PoliciesComponent },
 
   // ===== SHOPPING =====
   { path: 'checkout', component: Checkout },
-  { path: 'cart', component: Cart },
+  { path: 'cart',     component: Cart },
 
   // ===== CHATBOT =====
   { path: 'chatbot', component: ChatbotComponent },

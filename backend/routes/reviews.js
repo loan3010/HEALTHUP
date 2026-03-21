@@ -1,15 +1,66 @@
-const express = require('express');
-const router = express.Router();
-const mongoose = require('mongoose');
-const Review = require('../models/Review');
-const Product = require('../models/Product');
+const express   = require('express');
+const router    = express.Router();
+const mongoose  = require('mongoose');
+const path      = require('path');
+const multer    = require('multer');
+const Review    = require('../models/Review');
+const Product   = require('../models/Product');
 
-// GET reviews by product
+// ── Multer: lưu ảnh review vào public/images/reviews ──
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, path.join(__dirname, '../public/images/reviews'));
+  },
+  filename: (req, file, cb) => {
+    const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, unique + path.extname(file.originalname));
+  }
+});
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) cb(null, true);
+    else cb(new Error('Chỉ chấp nhận file ảnh'));
+  }
+});
+
+// ── Helper: cập nhật rating + reviewCount trên Product ──
+async function syncProductStats(productId) {
+  try {
+    const pid = new mongoose.Types.ObjectId(String(productId));
+    const all = await Review.find({ productId: pid }).lean();
+    const avg = all.length
+      ? Number((all.reduce((s, r) => s + r.rating, 0) / all.length).toFixed(1))
+      : 0;
+    await Product.findByIdAndUpdate(productId, {
+      rating:      avg,
+      reviewCount: all.length,
+    });
+  } catch (e) { console.error('syncProductStats error:', e.message); }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// POST /api/reviews/upload-images — upload tối đa 5 ảnh
+// ─────────────────────────────────────────────────────────────────
+router.post('/upload-images', upload.array('images', 5), (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: 'Không có file nào được upload' });
+    }
+    const urls = req.files.map(f => '/images/reviews/' + f.filename);
+    res.json({ urls });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────
+// GET /api/reviews/product/:productId
+// ─────────────────────────────────────────────────────────────────
 router.get('/product/:productId', async (req, res) => {
   try {
     const { filter, sort = 'newest', page = 1, limit = 10 } = req.query;
-
-    // ✅ Cast sang ObjectId
     const productObjectId = new mongoose.Types.ObjectId(req.params.productId);
 
     let query = { productId: productObjectId };
@@ -71,9 +122,9 @@ router.get('/product/:productId', async (req, res) => {
     res.json({
       reviews,
       total,
-      page: Number(page),
+      page:       Number(page),
       totalPages: Math.ceil(total / Number(limit)),
-      stats: { total, average, counts, praiseTags, photoCount },
+      stats:      { total, average, counts, praiseTags, photoCount },
       product: product ? {
         name:           product.name,
         sold:           product.sold,
@@ -86,28 +137,61 @@ router.get('/product/:productId', async (req, res) => {
   }
 });
 
-// POST create review
+// ─────────────────────────────────────────────────────────────────
+// POST /api/reviews — tạo đánh giá mới
+// ─────────────────────────────────────────────────────────────────
 router.post('/', async (req, res) => {
   try {
     const review = new Review(req.body);
     await review.save();
-
-    const productObjectId = new mongoose.Types.ObjectId(req.body.productId);
-    const allReviews = await Review.find({ productId: productObjectId });
-    const avg = allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length;
-
-    await Product.findByIdAndUpdate(req.body.productId, {
-      rating:      Math.round(avg * 10) / 10,
-      reviewCount: allReviews.length,
-    });
-
+    await syncProductStats(req.body.productId);
     res.status(201).json(review);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
 
-// PATCH mark helpful
+// ─────────────────────────────────────────────────────────────────
+// PUT /api/reviews/:id — sửa đánh giá
+// ─────────────────────────────────────────────────────────────────
+router.put('/:id', async (req, res) => {
+  try {
+    const { rating, text, tags, variant, imgs } = req.body;
+
+    const review = await Review.findByIdAndUpdate(
+      req.params.id,
+      { rating, text, tags, variant, imgs },
+      { new: true, runValidators: true }
+    ).lean();
+
+    if (!review) return res.status(404).json({ error: 'Review not found' });
+
+    await syncProductStats(review.productId);
+    res.json(review);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────
+// DELETE /api/reviews/:id — xóa đánh giá
+// ─────────────────────────────────────────────────────────────────
+router.delete('/:id', async (req, res) => {
+  try {
+    const review = await Review.findByIdAndDelete(req.params.id).lean();
+    if (!review) return res.status(404).json({ error: 'Review not found' });
+
+    // Cập nhật lại rating + reviewCount sau khi xóa
+    await syncProductStats(review.productId);
+    res.json({ message: 'Đã xóa đánh giá', id: req.params.id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────
+// PATCH /api/reviews/:id/helpful — đánh dấu hữu ích
+// ─────────────────────────────────────────────────────────────────
 router.patch('/:id/helpful', async (req, res) => {
   try {
     const review = await Review.findByIdAndUpdate(

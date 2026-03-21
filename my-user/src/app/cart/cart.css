@@ -45,13 +45,46 @@
   color: #4a6b4c;
 }
 
+.select-all-bar .left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.select-all-bar .right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .select-all-bar input[type="checkbox"] {
   width: 17px;
   height: 17px;
   accent-color: #36873A;
   cursor: pointer;
-  margin-right: 8px;
   vertical-align: middle;
+}
+
+.btn-clear-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1.5px solid #EF5350;
+  background: #FFEBEE;
+  color: #C62828;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.btn-clear-all:hover {
+  background: #C62828;
+  color: #fff;
+  border-color: #C62828;
 }
 
 /* ================= ITEM ================= */
@@ -71,7 +104,6 @@
   cursor: default;
 }
 
-/* ── hover nổi đẹp ── */
 .item:hover {
   transform: translateY(-4px);
   box-shadow: 0 12px 28px rgba(54,135,58,0.13);
@@ -90,6 +122,19 @@
   box-shadow: 0 12px 28px rgba(42,107,46,0.15);
 }
 
+/* FIX: item hết hàng */
+.item.item-oos {
+  opacity: 0.72;
+  background: #f8f8f8;
+  border-color: #e0e0e0;
+}
+.item.item-oos:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: #e0e0e0;
+  background: #f8f8f8;
+}
+
 .item input[type="checkbox"] {
   width: 17px;
   height: 17px;
@@ -98,7 +143,15 @@
   justify-self: center;
 }
 
-/* ================= IMAGE ================= */
+/* ================= IMAGE WRAP ================= */
+/* FIX: bọc ảnh trong wrapper để overlay hết hàng hoạt động */
+.thumb-wrap {
+  position: relative;
+  width: 90px;
+  height: 90px;
+  flex-shrink: 0;
+}
+
 .thumb {
   width: 90px;
   height: 90px;
@@ -106,17 +159,53 @@
   border-radius: 12px;
   border: 1px solid #e2ebe2;
   transition: transform 0.22s ease;
+  display: block;
+}
+
+.thumb-empty {
+  width: 90px;
+  height: 90px;
+  border-radius: 12px;
+  border: 1px solid #e2ebe2;
+  background: #F0F7F0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .item:hover .thumb {
   transform: scale(1.04);
 }
 
+/* FIX: Overlay hết hàng trên ảnh item */
+.item-oos-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.42);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.item-oos-label {
+  background: rgba(255,255,255,0.92);
+  color: #C62828;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
 /* ================= INFO ================= */
 .info {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
   min-width: 0;
 }
 
@@ -138,12 +227,84 @@
   font-size: 14px;
 }
 
-/* ================= QTY — căn đều hoàn toàn ================= */
+/* ================= PHÂN LOẠI ================= */
+.variant-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 2px 0;
+}
+
+.variant-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.variant-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #8aab8c;
+  min-width: 32px;
+  flex-shrink: 0;
+}
+
+.variant-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.variant-btn {
+  padding: 2px 9px;
+  border-radius: 6px;
+  border: 1.5px solid #d4e6d4;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  color: #4a6b4c;
+  cursor: pointer;
+  line-height: 1.7;
+  transition: all 0.15s ease;
+}
+
+.variant-btn:hover:not(:disabled) {
+  border-color: #A2C37F;
+  color: #36873A;
+  background: #F0F7F0;
+}
+
+.variant-btn.active {
+  border-color: #36873A;
+  background: #36873A;
+  color: #fff;
+}
+
+/* FIX: variant hết hàng — mờ xám, không click */
+.variant-btn.out-of-stock,
+.variant-btn:disabled {
+  opacity: 0.4;
+  text-decoration: line-through;
+  cursor: not-allowed;
+  pointer-events: none;
+  border-color: #ddd;
+  color: #aaa;
+  background: #f5f5f5;
+}
+
+.simple-variant-label {
+  font-size: 12px;
+  color: #8aab8c;
+  margin: 2px 0;
+}
+
+/* ================= QTY ================= */
 .qty {
   display: grid;
-  grid-template-columns: 40px 1fr 40px; /* 3 cột đều */
+  grid-template-columns: 40px 1fr 40px;
   align-items: stretch;
-
   height: 42px;
   width: 132px;
   border: 1.5px solid #d4e6d4;
@@ -153,19 +314,14 @@
   transition: border-color 0.2s;
 }
 
-
-
-/* nút +/- */
 .qty button {
   display: flex;
   align-items: center;
   justify-content: center;
-
   height: 100%;
   width: 100%;
   border: none;
   background: transparent;
-
   font-size: 18px;
   font-weight: 700;
   color: #36873A;
@@ -174,24 +330,22 @@
   padding: 0;
   margin: 0;
   font-family: 'Be Vietnam Pro', sans-serif;
-
   transition: background 0.15s, color 0.15s;
 }
 
-.qty button:hover {
-  background: #F0F7F0;
-  color: #2A6B2E;
+.qty button:hover:not(:disabled) { background: #F0F7F0; color: #2A6B2E; }
+.qty button:active:not(:disabled) { background: #e2ebe2; }
+
+/* FIX: nút + disabled khi hết hàng */
+.qty button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  color: #aaa;
 }
 
-.qty button:active {
-  background: #e2ebe2;
-}
-
-/* input ở giữa */
 .qty input {
   display: flex;
   align-items: center;
-
   width: 100%;
   height: 100%;
   border: none;
@@ -199,7 +353,6 @@
   border-right: 1px solid #e2ebe2;
   outline: none;
   background: transparent;
-
   text-align: center;
   font-size: 15px;
   font-weight: 700;
@@ -208,6 +361,11 @@
   padding: 0;
   margin: 0;
   line-height: 42px;
+}
+
+.qty input:disabled {
+  opacity: 0.5;
+  background: #f5f5f5;
 }
 
 .qty input::-webkit-outer-spin-button,
@@ -344,7 +502,7 @@
   border: 1px solid #e2ebe2;
 }
 
-.empty-icon { font-size: 48px; margin-bottom: 14px; opacity: 0.55; }
+.empty-icon  { font-size: 48px; margin-bottom: 14px; opacity: 0.55; }
 .empty-title { font-size: 19px; font-weight: 700; color: #1a2e1b; margin-bottom: 8px; }
 .empty-desc  { font-size: 14px; color: #4a6b4c; margin-bottom: 22px; }
 
@@ -416,16 +574,33 @@
   font-size: 14px;
 }
 
-/* =====================================================================
-   RESPONSIVE
-   ===================================================================== */
+/* ================= CLICKABLE ================= */
+.product-name-link {
+  cursor: pointer;
+  transition: color 0.18s ease;
+}
+.product-name-link:hover {
+  color: #36873A;
+  text-decoration: underline;
+}
 
+.clickable-thumb {
+  cursor: pointer;
+  transition: transform 0.22s ease, opacity 0.18s ease;
+}
+.clickable-thumb:hover {
+  opacity: 0.88;
+}
+
+/* ================= RESPONSIVE ================= */
 .line-total { white-space: nowrap; }
 
 @media (max-width: 1200px) {
   .cart-page { max-width: 1000px; }
   .item { grid-template-columns: 24px 84px 1fr 132px 110px 36px; gap: 14px; }
-  .thumb { width: 84px; height: 84px; }
+  .thumb-wrap { width: 84px; height: 84px; }
+  .thumb      { width: 84px; height: 84px; }
+  .thumb-empty { width: 84px; height: 84px; }
 }
 
 @media (max-width: 992px) {
@@ -458,12 +633,14 @@
   .item > :nth-child(5) { grid-area: total; justify-self: end; align-self: center; }
   .item > :nth-child(6) { grid-area: rm;    justify-self: end; align-self: start; }
 
-  .thumb     { width: 76px; height: 76px; }
-  .qty       { width: 120px; height: 40px; grid-template-columns: 36px 1fr 36px; }
-  .qty button { font-size: 16px; }
-  .qty input  { font-size: 14px; }
-  .line-total { min-width: 0; font-size: 14px; }
-  .btn.remove { font-size: 18px; }
+  .thumb-wrap  { width: 76px; height: 76px; }
+  .thumb       { width: 76px; height: 76px; }
+  .thumb-empty { width: 76px; height: 76px; }
+  .qty         { width: 120px; height: 40px; grid-template-columns: 36px 1fr 36px; }
+  .qty button  { font-size: 16px; }
+  .qty input   { font-size: 14px; }
+  .line-total  { min-width: 0; font-size: 14px; }
+  .btn.remove  { font-size: 18px; }
 }
 
 @media (max-width: 480px) {
@@ -486,5 +663,7 @@
 
 @media (max-width: 360px) {
   .item  { grid-template-columns: 20px 68px 1fr 30px; }
-  .thumb { width: 68px; height: 68px; }
+  .thumb-wrap  { width: 68px; height: 68px; }
+  .thumb       { width: 68px; height: 68px; }
+  .thumb-empty { width: 68px; height: 68px; }
 }

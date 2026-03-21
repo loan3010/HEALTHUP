@@ -1,0 +1,119 @@
+<div class="detail-page">
+  <button class="back-btn" (click)="back.emit()">
+    <i class="bi bi-arrow-left"></i> Quay lại trang đơn hàng
+  </button>
+
+  <div *ngIf="isLoading" class="state-box">
+    <i class="bi bi-arrow-repeat spin"></i> Đang tải chi tiết đơn hàng...
+  </div>
+
+  <div *ngIf="errorMsg && !isLoading" class="state-box error">
+    <i class="bi bi-exclamation-circle"></i> {{ errorMsg }}
+  </div>
+
+  <ng-container *ngIf="order && !isLoading && !errorMsg">
+    <div class="grid">
+      <section class="left">
+        <div class="card">
+          <div class="order-code">#{{ order.orderCode || order._id.slice(-12).toUpperCase() }}</div>
+          <div class="date">{{ order.createdAt | date:'dd/MM/yyyy HH:mm' }}</div>
+          <div class="status-wrap">
+            <div>
+              <div class="label">Trạng thái đơn hàng</div>
+              <span class="badge">{{ statusLabel }}</span>
+            </div>
+            <div>
+              <div class="label">Phương thức thanh toán</div>
+              <span class="badge gray">{{ paymentLabel(order.paymentMethod) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Danh sách sản phẩm</h3>
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th>TÊN SẢN PHẨM</th>
+                <th>SỐ LƯỢNG</th>
+                <th>GIÁ</th>
+                <th>THÀNH TIỀN</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of order.items">
+                <td class="product">
+                  <img [src]="item.imageUrl ? 'http://localhost:3000' + item.imageUrl : 'assets/no-image.png'" alt="" />
+                  <div>
+                    <div class="name">{{ item.name }}</div>
+                    <div class="sku">{{ item.variantLabel || 'SKU' }}</div>
+                  </div>
+                </td>
+                <td>{{ item.quantity }}</td>
+                <td>{{ formatMoney(item.price) }}</td>
+                <td class="money">{{ formatMoney(item.price * item.quantity) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="right">
+        <div class="card">
+          <h4>Thông tin người mua</h4>
+          <div class="line"><span>{{ order.customer.fullName }}</span></div>
+          <div class="line"><span>{{ order.customer.phone }}</span></div>
+          <div class="line"><span>{{ order.customer.email || '—' }}</span></div>
+          <div class="line"><label>ID khách hàng</label><strong>{{ order.customerSummary?.customerID || 'KH0000' }}</strong></div>
+          <div class="line">
+            <label>Hạng thành viên</label>
+            <span class="tier-badge" [ngClass]="getTierClass(order.customerSummary?.membershipTier || 'Đồng')">
+              {{ order.customerSummary?.membershipTier || 'Đồng' }}
+            </span>
+          </div>
+        </div>
+
+        <div class="card">
+          <h4>Thông tin giao hàng</h4>
+          <div class="line"><label>Người nhận</label><strong>{{ order.customer.fullName }}</strong></div>
+          <div class="line"><label>SĐT nhận hàng</label><strong>{{ order.customer.phone }}</strong></div>
+          <div class="line"><label>Phương thức giao</label><strong>{{ order.shippingMethod === 'express' ? 'Giao nhanh' : 'Giao tiêu chuẩn' }}</strong></div>
+          <div class="line"><label>Địa chỉ giao</label><strong>{{ order.customer.address }}, {{ order.customer.ward }}, {{ order.customer.district }}, {{ order.customer.province }}</strong></div>
+          <div class="line" *ngIf="order.customer.note"><label>Ghi chú giao hàng</label><strong>{{ order.customer.note }}</strong></div>
+        </div>
+
+        <div class="card">
+          <h4>Thông tin đơn hàng</h4>
+          <div class="line"><label>Số lượng sản phẩm</label><strong>{{ itemCount }}</strong></div>
+          <div class="line"><label>Tổng tiền hàng</label><strong>{{ formatMoney(order.subTotal) }}</strong></div>
+          <div class="line"><label>Giảm giá</label><strong>{{ formatMoney(order.discount) }}</strong></div>
+          <div class="line"><label>Phí vận chuyển</label><strong>{{ formatMoney(order.shippingFee) }}</strong></div>
+          <div class="line"><label>Ghi chú đơn hàng</label><strong>{{ order.customer.note || 'Không có' }}</strong></div>
+          <div class="line total"><label>Thành tiền</label><strong>{{ formatMoney(order.total) }}</strong></div>
+        </div>
+
+        <div class="card actions">
+          <button class="btn-main" *ngIf="canConfirm()" [disabled]="actionLoading" (click)="setStatus('confirmed')">
+            Xác nhận đơn hàng
+          </button>
+          <button class="btn-main" *ngIf="canStartShipping()" [disabled]="actionLoading" (click)="setStatus('shipping')">
+            Bắt đầu giao hàng
+          </button>
+          <button class="btn-main" *ngIf="canDeliver()" [disabled]="actionLoading" (click)="setStatus('delivered')">
+            Xác nhận đã giao
+          </button>
+          <button class="btn-danger" *ngIf="canCancel()" [disabled]="actionLoading" (click)="setStatus('cancelled')">
+            Hủy đơn hàng
+          </button>
+
+          <button class="btn-sub" *ngIf="canRequestReturn()" [disabled]="actionLoading" (click)="setReturnStatus('requested')">
+            Ghi nhận yêu cầu trả/hoàn
+          </button>
+          <button class="btn-sub" *ngIf="canCompleteReturn()" [disabled]="actionLoading" (click)="setReturnStatus('completed')">
+            Xác nhận đã trả/hoàn
+          </button>
+        </div>
+      </section>
+    </div>
+  </ng-container>
+</div>

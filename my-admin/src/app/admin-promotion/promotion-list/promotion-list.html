@@ -9,80 +9,226 @@
   <div class="summary-cards">
     <div class="s-card">
       <span class="s-label">TỔNG KHUYẾN MÃI</span>
-      <span class="s-value">11</span>
+      <span class="s-value">{{ totalCount }}</span>
     </div>
     <div class="s-card">
       <span class="s-label text-danger">ĐÃ KẾT THÚC</span>
-      <span class="s-value">1</span>
+      <span class="s-value">{{ expiredCount }}</span>
     </div>
     <div class="s-card">
       <span class="s-label text-success">ĐANG DIỄN RA</span>
-      <span class="s-value">7</span>
+      <span class="s-value">{{ ongoingCount }}</span>
     </div>
     <div class="s-card">
       <span class="s-label text-warning">SẮP DIỄN RA</span>
-      <span class="s-value">3</span>
+      <span class="s-value">{{ upcomingCount }}</span>
     </div>
   </div>
 
-  <div class="toolbar">
-    <div class="search-box">
-      <i class="bi bi-search"></i>
-      <input type="text" [(ngModel)]="searchText" placeholder="Tìm kiếm mã khuyến mãi">
+  <div class="toolbar-enhanced shadow-sm">
+    <div class="toolbar-main">
+      <div class="search-box-group">
+        <div class="search-box">
+          <i class="bi bi-search"></i>
+          <input type="text" 
+                 [(ngModel)]="searchText" 
+                 (keyup.enter)="onSearchEnter()" 
+                 placeholder="Nhập từ khóa và nhấn Enter để tìm kiếm...">
+        </div>
+        <button class="btn-reset-filter" (click)="resetFilters()" title="Thiết lập lại mặc định">
+          <i class="bi bi-arrow-counterclockwise"></i> Đặt lại
+        </button>
+      </div>
+
+      <div class="action-group">
+        <span class="count" *ngIf="selectedCount > 0">{{selectedCount}} đã chọn</span>
+        <button class="btn-tool" [disabled]="selectedCount !== 1" (click)="onEditClick()">
+          <i class="bi bi-pencil"></i> Chỉnh
+        </button>
+        <button class="btn-tool text-danger" [disabled]="selectedCount === 0" (click)="confirmDeletePromotions()">
+          <i class="bi bi-trash"></i> Xoá
+        </button>
+        <button class="btn-tool btn-group-tool" [disabled]="selectedCount < 2" (click)="openGroupModal()">
+          <i class="bi bi-folder-plus"></i> Nhóm
+        </button>
+      </div>
     </div>
 
-    <div class="action-group">
-      <span class="count">{{selectedCount}} đã chọn</span>
+    <div class="filter-bar">
+      <div class="filter-item">
+        <label><i class="bi bi-tag"></i> Loại giảm giá</label>
+        <select [(ngModel)]="filterDiscountType" (change)="organizeGroups()">
+          <option value="">Tất cả</option>
+          <option value="fixed">Số tiền cố định</option>
+          <option value="percent">Phần trăm (%)</option>
+        </select>
+      </div>
+
+      <div class="filter-item">
+        <label><i class="bi bi-box-seam"></i> Phân loại</label>
+        <select [(ngModel)]="filterCategory" (change)="organizeGroups()">
+          <option value="">Tất cả mục</option>
+          <option value="order">Giảm tiền hàng</option>
+          <option value="freeship">Phí vận chuyển</option>
+        </select>
+      </div>
+
+      <div class="filter-item">
+        <label><i class="bi bi-layers"></i> Áp dụng cho</label>
+        <select [(ngModel)]="filterApplyTo" (change)="organizeGroups()">
+          <option value="">Toàn cửa hàng</option>
+          <option value="category">Danh mục sản phẩm</option>
+          <option value="product">Sản phẩm cụ thể</option>
+        </select>
+      </div>
+
+      <div class="filter-item">
+        <label><i class="bi bi-clock-history"></i> Trạng thái</label>
+        <select [(ngModel)]="filterStatus" (change)="organizeGroups()">
+          <option value="">Tất cả trạng thái</option>
+          <option value="upcoming">Sắp diễn ra</option>
+          <option value="ongoing">Đang diễn ra</option>
+          <option value="expired">Đã kết thúc</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="folder-layout" cdkDropListGroup>
+    <div *ngFor="let group of groupedPromotions" class="folder-group">
       
-      <button class="btn-tool" [disabled]="selectedCount !== 1" (click)="onEditClick()">
-        <i class="bi bi-pencil"></i> Chỉnh
-      </button>
+      <div class="folder-header" 
+           (click)="toggleGroup(group)"
+           style="cursor: pointer;"
+           cdkDropList 
+           [cdkDropListData]="group.items"
+           (cdkDropListDropped)="onDrop($event, group.groupName)">
+        
+        <div class="folder-info">
+          <input type="checkbox" 
+                 [(ngModel)]="group.selected" 
+                 (change)="toggleGroupSelection(group)"
+                 (click)="$event.stopPropagation()"
+                 class="group-checkbox">
 
-      <button class="btn-tool text-danger" [disabled]="selectedCount === 0">
-        <i class="bi bi-trash"></i> Xoá
-      </button>
+          <div class="folder-click-area">
+            <i class="bi" [ngClass]="group.isOpen ? 'bi-folder2-open' : 'bi-folder'"></i>
+            
+            <div class="edit-group-container" (click)="$event.stopPropagation()">
+              <span *ngIf="!group.isEditing" 
+                    (click)="startEditGroupName(group, $event)" 
+                    class="folder-name" 
+                    title="Nhấp để đổi tên nhóm">
+                {{ group.groupName || 'Chưa phân nhóm' }}
+              </span>
 
-      <button class="btn-tool btn-group-tool" [disabled]="selectedCount < 2">
-        <i class="bi bi-folder"></i> Nhóm
-      </button>
+              <input *ngIf="group.isEditing" 
+                     type="text" 
+                     [(ngModel)]="group.tempName" 
+                     (keyup.enter)="saveGroupName(group)" 
+                     (keyup.esc)="cancelEditGroup(group)"
+                     (blur)="saveGroupName(group)"
+                     class="input-inline-edit"
+                     #editInput
+                     [autofocus]="true">
+            </div>
 
-      <button class="btn-tool"><i class="bi bi-arrow-down-up"></i> Sắp xếp</button>
+            <span class="item-count">({{ group.items.length }})</span>
+          </div>
+
+          <button class="btn-delete-folder" 
+                  *ngIf="group.groupName" 
+                  (click)="confirmDeleteGroup(group); $event.stopPropagation()" 
+                  title="Giải tán nhóm">
+            <i class="bi bi-folder-minus"></i> Xóa nhóm
+          </button>
+        </div>
+
+        <i class="bi" [ngClass]="group.isOpen ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+      </div>
+
+      <div class="folder-content" *ngIf="group.isOpen">
+        <table class="promo-table">
+          <thead>
+            <tr>
+              <th style="width: 50px;"></th>
+              <th style="width: 30%;" class="text-start">TÊN KHUYẾN MÃI</th>
+              <th style="width: 15%;">LƯỢT DÙNG</th>
+              <th style="width: 15%;">TRẠNG THÁI</th>
+              <th style="width: 20%;">HẠN DÙNG</th>
+              <th style="width: 15%;">CẬP NHẬT</th>
+            </tr>
+          </thead>
+          <tbody cdkDropList 
+                 [cdkDropListData]="group.items" 
+                 (cdkDropListDropped)="onDrop($event, group.groupName)">
+            <tr *ngFor="let p of group.items" 
+                cdkDrag 
+                [cdkDragData]="p"
+                (click)="goEdit.emit(p)" 
+                [class.selected]="p.selected">
+              
+              <div class="drag-placeholder" *cdkDragPlaceholder></div>
+
+              <td (click)="$event.stopPropagation()" class="text-center">
+                <input type="checkbox" [(ngModel)]="p.selected" (change)="updateGroupCheckboxState(group)">
+              </td>
+              <td class="col-name">
+                <div class="p-title">{{p.name}}</div>
+                <div class="p-code">{{p.code}}</div>
+              </td>
+              <td class="text-center">{{p.usage}}</td>
+              <td class="text-center">
+                <span class="status-badge" [ngClass]="p.status">
+                  {{ p.status === 'ongoing' ? 'Đang diễn ra' : (p.status === 'upcoming' ? 'Sắp diễn ra' : 'Đã kết thúc') }}
+                </span>
+              </td>
+              <td class="text-center small-date">{{p.start}} - {{p.end}}</td>
+              <td class="text-center">{{p.updated}}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div *ngIf="group.items.length === 0" class="empty-folder">
+          Không tìm thấy khuyến mãi phù hợp trong nhóm này
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="groupedPromotions.length === 0" class="search-empty-state text-center">
+      <i class="bi bi-funnel"></i>
+      <p>Rất tiếc, hệ thống không tìm thấy kết quả nào khớp với tiêu chí.</p>
+      <button class="btn-tool" (click)="resetFilters()">Xóa tất cả bộ lọc</button>
     </div>
   </div>
 
-  <div class="table-card shadow-sm">
-    <table class="promo-table">
-      <thead>
-        <tr>
-          <th width="50"><input type="checkbox" (change)="toggleAll($event)"></th>
-          <th class="text-start">TÊN KHUYẾN MÃI</th>
-          <th>LƯỢT SỬ DỤNG</th>
-          <th>TRẠNG THÁI</th>
-          <th>BẮT ĐẦU</th>
-          <th>KẾT THÚC</th>
-          <th>CẬP NHẬT GẦN NHẤT</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let p of promotions" (click)="goEdit.emit(p)" [class.selected]="p.selected">
-          <td (click)="$event.stopPropagation()">
-            <input type="checkbox" [(ngModel)]="p.selected">
-          </td>
-          <td class="col-name">
-            <div class="p-title">{{p.name}}</div>
-            <div class="p-code">{{p.code}}</div>
-          </td>
-          <td class="text-center">{{p.usage}}</td>
-          <td class="text-center">
-            <span class="status-badge" [ngClass]="p.status">
-              {{ p.status === 'ongoing' ? 'Đang diễn ra' : (p.status === 'upcoming' ? 'Sắp diễn ra' : 'Đã kết thúc') }}
-            </span>
-          </td>
-          <td class="text-center">{{p.start}}</td>
-          <td class="text-center">{{p.end}}</td>
-          <td class="text-center">{{p.updated}}</td>
-        </tr>
-      </tbody>
-    </table>
+  <div class="modal-overlay" *ngIf="isGroupModalOpen">
+    <div class="group-modal shadow-lg">
+      <div class="modal-header">
+        <h5><i class="bi bi-folder-plus"></i> Tạo nhóm khuyến mãi</h5>
+        <button class="btn-close" (click)="isGroupModalOpen = false">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>Gom <strong>{{ selectedCount }}</strong> chương trình vào nhóm mới:</p>
+        <input type="text" [(ngModel)]="tempGroupName" placeholder="Nhập tên nhóm mới..." class="form-control">
+      </div>
+      <div class="modal-footer">
+        <button class="btn-huy" (click)="isGroupModalOpen = false">HỦY</button>
+        <button class="btn-luu" (click)="confirmGrouping()" [disabled]="!tempGroupName.trim()">XÁC NHẬN</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" *ngIf="notify.show">
+    <div class="notify-modal shadow-lg" [ngClass]="notify.type">
+      <div class="notify-body text-center">
+        <div class="notify-icon"><i class="bi" [ngClass]="notify.icon"></i></div>
+        <h4 class="notify-title">{{ notify.title }}</h4>
+        <p class="notify-message" [innerHTML]="notify.message"></p>
+      </div>
+      <div class="notify-footer">
+        <button class="btn-huy" *ngIf="notify.isConfirm" (click)="notify.show = false">HỦY BỎ</button>
+        <button class="btn-action" (click)="handleNotifyAction()">{{ notify.btnText }}</button>
+      </div>
+    </div>
   </div>
 </div>

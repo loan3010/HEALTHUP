@@ -1,230 +1,124 @@
 <div class="orders-page">
 
-<!-- HEADER -->
+  <!-- HEADER -->
+  <div class="orders-header">
+    <h2 class="orders-title">Theo dõi đơn hàng</h2>
+    <div class="search-wrap">
+      <!-- Search icon -->
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input
+        type="text"
+        [(ngModel)]="searchQuery"
+        (ngModelChange)="filterOrders()"
+        placeholder="Tìm kiếm đơn hàng của bạn"
+        class="search-input"
+      />
+    </div>
+  </div>
 
-<div class="orders-header">
+  <!-- TABS -->
+  <div class="order-tabs">
+    <button
+      *ngFor="let tab of tabs"
+      (click)="onTabClick(tab.id)"
+      [class.active]="activeTab === tab.id"
+    >
+      {{ tab.label }}
+      <span class="tab-badge">{{ tab.count }}</span>
+    </button>
+  </div>
 
-<h2 class="orders-title">Theo dõi đơn hàng</h2>
+  <!-- EMPTY STATE -->
+  <div class="orders-empty" *ngIf="filteredOrders.length === 0">
+    <div class="empty-icon">
+      <!-- Shopping bag icon -->
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <path d="M16 10a4 4 0 01-8 0"/>
+      </svg>
+    </div>
+    <p>Chưa có đơn hàng nào</p>
+    <small>Hãy mua sắm để đơn hàng xuất hiện tại đây</small>
+  </div>
 
-<input
-type="text"
-[(ngModel)]="searchQuery"
-(ngModelChange)="filterOrders()"
-placeholder="Tìm kiếm đơn hàng của bạn"
-class="search-input"
-/>
-
-</div>
-
-
-
-<!-- TABS -->
-
-<div class="order-tabs">
-
-<button
-*ngFor="let tab of tabs"
-(click)="onTabClick(tab.id)"
-[class.active]="activeTab===tab.id"
->
-
-{{tab.label}}
-
-<span class="tab-badge">{{tab.count}}</span>
-
-</button>
-
-</div>
-
-
-
-<!-- ORDERS -->
-
-<div *ngFor="let order of filteredOrders" class="order-card">
-
-
-<!-- STATUS -->
-
-<div class="order-status">
-
-{{getStatusLabel(order.status)}}
-
-</div>
-
-
-<!-- PRODUCTS -->
-
-<div *ngFor="let item of order.items" class="order-product">
-<!-- chinhr nef -->
-<img
-[src]="item.imageUrl ? 'http://localhost:3000' + item.imageUrl : '/assets/no-image.png'"
-class="product-img"
-/>
-<div class="product-info">
-
-<div class="product-name">
-
-{{item.name}}
-
-</div>
-
-<div class="product-price">
-
-{{formatCurrency(item.price)}}
-
-</div>
-
-</div>
-
-
-<div class="product-right">
-
-<div>Số lượng: {{item.quantity}}</div>
-
-<div class="product-total">
-
-{{formatCurrency(item.price * item.quantity)}}
-
-</div>
-
-</div>
-
-</div>
-
-
-
-<!-- FOOTER -->
-
-<div class="order-footer">
-
-<div class="collapse">
-
-Thu gọn
-
-</div>
-
-
-<div class="order-total">
-
-Tổng số tiền:
-
-<strong>{{formatCurrency(order.total)}}</strong>
-
-</div>
-
-
-<div class="order-actions" *ngIf="order.status === 'delivered' || order.status === 'paid'">
-
-  <!-- Trả hàng -->
-  <button
-    class="btn-outline"
-    [routerLink]="['/return-management', order._id]"
+  <!-- ORDER CARDS -->
+  <div
+    *ngFor="let order of filteredOrders"
+    class="order-card"
+    (click)="goToDetail(order._id)"
   >
-    Trả hàng
-  </button>
 
-  <!-- Đánh giá -->
-  <button
-    class="btn-primary"
-    [routerLink]="['/review-order', order._id]"
-  >
-    Đánh giá
-  </button>
+    <!-- STATUS BAR -->
+    <div class="order-status" [ngClass]="'status-' + order.status">
+      <span class="status-dot"></span>
+      {{ getStatusLabel(order.status) }}
+      <span class="status-id">#{{ order.orderCode || order._id?.toString()?.substring(0, 8)?.toUpperCase() }}</span>
+    </div>
 
-  <!-- Mua lại -->
-  <button
-    class="btn-outline"
-    (click)="reorder(order)"
-  >
-    Mua lại
-  </button>
+    <!-- PRODUCTS -->
+    <div *ngFor="let item of order.items" class="order-product">
+      <img
+        [src]="item.imageUrl ? 'http://localhost:3000' + item.imageUrl : '/assets/no-image.png'"
+        class="product-img"
+        onerror="this.src='/assets/no-image.png'"
+        [alt]="item.name"
+      />
+      <div class="product-info">
+        <div class="product-name">{{ item.name }}</div>
+        <div class="product-price">{{ formatCurrency(item.price) }} / sản phẩm</div>
+      </div>
+      <div class="product-right">
+        <div class="product-qty">x{{ item.quantity }}</div>
+        <div class="product-total">{{ formatCurrency(item.price * item.quantity) }}</div>
+      </div>
+    </div>
 
-</div>
+    <!-- FOOTER -->
+    <div class="order-footer" (click)="$event.stopPropagation()">
 
+      <div class="order-total">
+        Tổng tiền: <strong>{{ formatCurrency(order.total) }}</strong>
+      </div>
 
-<div class="order-actions">
+      <div class="order-actions">
 
+        <!-- CHỜ XÁC NHẬN -->
+        <ng-container *ngIf="order.status === 'pending'">
+          <button class="btn-outline">Liên hệ người bán</button>
+          <button class="btn-danger" (click)="cancelOrder(order._id)">Hủy đơn hàng</button>
+        </ng-container>
 
-<!-- CHỜ XÁC NHẬN -->
+        <!-- CHỜ THANH TOÁN -->
+        <ng-container *ngIf="order.status === 'pending_payment'">
+          <button class="btn-primary">Thanh toán ngay</button>
+        </ng-container>
 
-<button
-*ngIf="order.status==='pending'"
-class="btn-outline"
->
+        <!-- ĐÃ GIAO / ĐÃ THANH TOÁN -->
+        <ng-container *ngIf="order.status === 'delivered' || order.status === 'paid'">
+          <button class="btn-outline" [routerLink]="['/return-management', order._id]">Trả hàng</button>
+          <button class="btn-primary" [routerLink]="['/review-order', order._id]">Đánh giá</button>
+          <button class="btn-outline" (click)="reorder(order)">Mua lại</button>
+        </ng-container>
 
-Liên hệ người bán
+        <!-- ĐÃ HỦY -->
+        <ng-container *ngIf="order.status === 'cancelled'">
+          <button class="btn-outline" (click)="reorder(order)">Mua lại</button>
+        </ng-container>
 
-</button>
+      </div>
 
-<button
-*ngIf="order.status==='pending'"
-class="btn-danger"
-(click)="cancelOrder(order._id)"
->
-Hủy đơn hàng
-</button>
+      <button class="btn-detail" (click)="goToDetail(order._id)">
+        Xem chi tiết
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 18 15 12 9 6"/>
+        </svg>
+      </button>
 
+    </div>
 
-<!-- CHỜ GIAO -->
-
-<button
-*ngIf="order.status==='pending_payment'"
-class="btn-primary"
->
-
-Thanh toán
-
-</button>
-
-
-
-<!-- ĐÃ GIAO -->
-
-<button
-*ngIf="order.status==='paid'"
-class="btn-outline"
->
-
-Trả hàng
-
-</button>
-
-<button
-*ngIf="order.status==='paid'"
-class="btn-primary"
->
-
-Đánh giá
-
-</button>
-
-<button
-*ngIf="order.status==='paid'"
-class="btn-outline"
->
-
-Mua lại
-
-</button>
-
-
-
-<!-- ĐÃ HỦY -->
-
-<button
-*ngIf="order.status==='cancelled'"
-class="btn-outline"
->
-
-Mua lại
-
-</button>
-
-
-</div>
-
-</div>
-
-</div>
+  </div>
 
 </div>

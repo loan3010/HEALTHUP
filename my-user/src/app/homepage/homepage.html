@@ -1,56 +1,65 @@
-<!-- HERO -->
-<section class="hero-section">
-  <div class="container-fluid px-0">
-    <div class="row g-0">
-      <div class="col-lg-6 d-flex align-items-center">
-        <div class="px-5 py-5 py-lg-0">
-          <span class="hero-tag mb-3 d-inline-block">Thực phẩm lành mạnh số 1 Việt Nam</span>
-          <h1 class="hero-title mb-3">
-            Dinh dưỡng <span class="highlight">thuần khiết</span><br>từ thiên nhiên
-          </h1>
-          <p class="hero-desc mb-4">
-            Khám phá hơn 100 sản phẩm hạt dinh dưỡng, granola và trà thảo mộc.
-            Không phụ gia, không chất bảo quản – chỉ thuần túy từ thiên nhiên.
-          </p>
-          <div class="d-flex gap-3 flex-wrap">
-            <button class="btn-hero-primary" routerLink="/product-listing-page">Khám phá ngay</button>
-            <button class="btn-hero-outline"
-              [routerLink]="['/product-listing-page']"
-              [queryParams]="{cat: 'Combo'}">
-              Xem combo tiết kiệm
-            </button>
-          </div>
-        </div>
-      </div>
+<!-- ═══════════════════════════════════════════
+     BANNER SLIDER
+     ═══════════════════════════════════════════ -->
+<section class="banner-slider" (mouseenter)="resetTimer()" (mouseleave)="startTimer()">
 
-      <!-- Hero right: ảnh + badges cạnh nhau, không che nhau -->
-      <div class="col-lg-6 hero-right-panel d-none d-lg-flex align-items-center justify-content-center">
-        <div class="d-flex align-items-center gap-3" *ngIf="!isLoading && featuredProducts.length > 0">
-          <img
-            [src]="featuredProducts[0].image || 'http://localhost:3000/images/products/placeholder.png'"
-            [alt]="featuredProducts[0].name"
-            class="img-fluid rounded-4 hero-product-img"
-            (click)="goToDetail(featuredProducts[0]._id)"
-            onerror="this.src='http://localhost:3000/images/products/placeholder.png'"
-            style="max-width:260px; cursor:pointer;" />
-          <div class="hero-badges-col">
-            <div class="hero-badge"><i class="bi bi-check-circle-fill me-1"></i>100% Tự nhiên</div>
-            <div class="hero-badge"><i class="bi bi-truck me-1"></i>Freeship đơn 299K</div>
-            <div class="hero-badge"><i class="bi bi-lightning-charge me-1"></i>Giao trong 2h</div>
-          </div>
-        </div>
-        <div *ngIf="isLoading" style="width:300px;height:300px;background:linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%);
-          background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:16px;"></div>
+  <div class="banner-track">
+    <div
+      class="banner-slide"
+      *ngFor="let slide of banners; let i = index"
+      [class.active]="i === currentBanner"
+      [style.backgroundImage]="'url(' + slide.image + ')'">
+
+      <div class="banner-overlay"></div>
+
+      <div class="banner-content" [class.visible]="i === currentBanner">
+        <p class="banner-eyebrow">
+          <i class="bi bi-leaf-fill me-2"></i>HealthUp — Sống khoẻ mỗi ngày
+        </p>
+        <h1 class="banner-title">{{ slide.title }}</h1>
+        <p class="banner-subtitle">{{ slide.subtitle }}</p>
+        <a
+          class="banner-btn"
+          [routerLink]="slide.btnLink"
+          [queryParams]="slide.btnQueryParams || {}">
+          {{ slide.btnLabel }}
+          <i class="bi bi-arrow-right ms-2"></i>
+        </a>
       </div>
     </div>
   </div>
+
+  <button class="banner-arrow banner-prev" (click)="prevBanner()" aria-label="Slide trước">
+    <i class="bi bi-chevron-left"></i>
+  </button>
+  <button class="banner-arrow banner-next" (click)="nextBanner()" aria-label="Slide sau">
+    <i class="bi bi-chevron-right"></i>
+  </button>
+
+  <div class="banner-footer">
+    <div class="banner-dots">
+      <button
+        class="banner-dot"
+        *ngFor="let slide of banners; let i = index"
+        [class.active]="i === currentBanner"
+        (click)="goToBanner(i)"
+        [attr.aria-label]="'Xem slide ' + (i + 1)">
+      </button>
+    </div>
+  </div>
+
 </section>
 
-<!-- TRUST STRIP -->
+<!-- ═══════════════════════════════════════════
+     TRUST STRIP
+     ═══════════════════════════════════════════ -->
 <div class="trust-strip py-3">
   <div class="container">
-    <div class="row g-3 justify-content-center">
-      <div class="col-6 col-md-3 d-flex align-items-center gap-2 trust-item" *ngFor="let item of trustItems">
+    <div class="row g-0 justify-content-center">
+      <div
+        class="col-6 col-md-3 trust-item"
+        *ngFor="let item of trustItems; let last = last"
+        [class.border-end-custom]="!last">
         <i class="trust-icon bi {{ item.icon }}"></i>
         <div>
           <div class="trust-title">{{ item.title }}</div>
@@ -61,27 +70,29 @@
   </div>
 </div>
 
-<!-- DANH MỤC -->
-<section class="py-5" style="background:#FAF6F0;">
+<!-- ═══════════════════════════════════════════
+     DANH MỤC SẢN PHẨM
+     ═══════════════════════════════════════════ -->
+<section class="section-bg py-5">
   <div class="container">
-    <div class="d-flex justify-content-between align-items-end mb-4">
+    <div class="section-header">
       <div>
-        <h2 class="section-title mb-1">Danh mục sản phẩm</h2>
-        <p class="section-subtitle mb-0">Tìm kiếm theo nhu cầu dinh dưỡng của bạn</p>
+        <h2 class="section-title">Danh mục sản phẩm</h2>
+        <p class="section-subtitle">Tìm kiếm theo nhu cầu dinh dưỡng của bạn</p>
       </div>
-      <a class="link-more" routerLink="/product-listing-page">Xem tất cả</a>
+      <a class="link-more" routerLink="/product-listing-page">Xem tất cả →</a>
     </div>
+
     <div class="row g-3">
       <div class="col-4 col-md-2" *ngFor="let cat of categories; let i = index">
-        <div class="category-card p-3"
+        <div
+          class="category-card"
           [class.active]="activeCategory === i"
           [style.background]="cat.color"
           (click)="onCategoryClick(i, cat.name)">
-          <div class="cat-img-wrap mb-2">
-            <img [src]="cat.image"
-              [alt]="cat.name"
-              class="cat-img"
-              onerror="this.style.display='none'" />
+          <div class="cat-img-wrap">
+            <img [src]="cat.image" [alt]="cat.name" class="cat-img"
+              (error)="$any($event.target).style.display='none'" />
           </div>
           <div class="cat-name">{{ cat.name }}</div>
           <div class="cat-count">{{ cat.count }}</div>
@@ -91,58 +102,68 @@
   </div>
 </section>
 
-<!-- SẢN PHẨM BÁN CHẠY -->
-<section class="py-5" style="background:#FAF6F0;">
+<!-- ═══════════════════════════════════════════
+     SẢN PHẨM BÁN CHẠY
+     ═══════════════════════════════════════════ -->
+<section class="section-bg py-5">
   <div class="container">
-    <div class="d-flex justify-content-between align-items-end mb-4">
+    <div class="section-header">
       <div>
-        <h2 class="section-title mb-1">Bán chạy tuần này</h2>
-        <p class="section-subtitle mb-0">Được khách hàng tin dùng nhiều nhất</p>
+        <h2 class="section-title">Bán chạy tuần này</h2>
+        <p class="section-subtitle">Được khách hàng tin dùng nhiều nhất</p>
       </div>
-      <a class="link-more" routerLink="/product-listing-page">Xem thêm</a>
+      <a class="link-more" routerLink="/product-listing-page">Xem thêm →</a>
     </div>
 
-    <!-- SKELETON -->
+    <!-- Skeleton -->
     <div class="row g-4" *ngIf="isLoading">
       <div class="col-12 col-sm-6 col-md-3" *ngFor="let s of [1,2,3,4]">
         <div class="product-card">
-          <div style="height:200px;background:linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%);
-            background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:14px 14px 0 0;"></div>
+          <div class="skeleton-img"></div>
           <div class="p-3 d-flex flex-column gap-2">
-            <div style="height:10px;border-radius:5px;background:#eee;width:50%"></div>
-            <div style="height:10px;border-radius:5px;background:#eee;width:80%"></div>
-            <div style="height:10px;border-radius:5px;background:#eee;width:40%"></div>
+            <div class="skeleton-line" style="width:50%"></div>
+            <div class="skeleton-line" style="width:80%"></div>
+            <div class="skeleton-line" style="width:40%"></div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- DANH SÁCH SẢN PHẨM -->
+    <!-- Danh sách -->
     <div class="row g-4" *ngIf="!isLoading">
       <div class="col-12 text-center py-5" *ngIf="featuredProducts.length === 0">
         <i class="bi bi-box-seam fs-1 text-secondary d-block mb-2"></i>
-        <p class="text-secondary">Chưa có sản phẩm nào. Hãy chạy seed.js để thêm dữ liệu.</p>
+        <p class="text-secondary">Chưa có sản phẩm nào.</p>
       </div>
 
       <div class="col-12 col-sm-6 col-md-3" *ngFor="let p of featuredProducts">
         <div class="product-card h-100" (click)="goToDetail(p._id)">
           <div class="product-img-wrap">
-            <span class="badge-new" *ngIf="p.badge === 'new'">Mới</span>
-            <span class="badge-hot" *ngIf="p.badge === 'hot'">Hot</span>
-            <span class="badge-sale" *ngIf="p.sale">{{ p.sale }}</span>
+            <span class="badge-label badge-new" *ngIf="p.badge === 'new'">Mới</span>
+            <span class="badge-label badge-hot" *ngIf="p.badge === 'hot'">Hot</span>
+            <span class="badge-label badge-sale" *ngIf="p.sale">{{ p.sale }}</span>
+
             <img
-              [src]="p.image || 'http://localhost:3000/images/products/placeholder.png'"
+              [src]="p.image || PLACEHOLDER_PRODUCT"
               [alt]="p.name"
-              onerror="this.src='http://localhost:3000/images/products/placeholder.png'" />
-            <!-- ✅ toggleWishlist nhận tên sản phẩm để hiện toast rõ ràng -->
-            <button class="btn-wishlist"
+              (error)="$any($event.target).src = PLACEHOLDER_PRODUCT" />
+
+            <!-- Overlay hết hàng trên card -->
+            <div class="oos-overlay" *ngIf="isOutOfStock(p)">
+              <span class="oos-label">Tạm hết hàng</span>
+            </div>
+
+            <button
+              class="btn-wishlist"
               [class.active]="isWishlisted(p._id)"
-              (click)="toggleWishlist($event, p._id, p.name)">
+              (click)="toggleWishlist($event, p._id, p.name)"
+              [attr.aria-label]="isWishlisted(p._id) ? 'Bỏ yêu thích' : 'Thêm yêu thích'">
               <i class="bi"
-                [class.bi-heart-fill]="isWishlisted(p._id)"
-                [class.bi-heart]="!isWishlisted(p._id)"></i>
+                 [class.bi-heart-fill]="isWishlisted(p._id)"
+                 [class.bi-heart]="!isWishlisted(p._id)"></i>
             </button>
           </div>
+
           <div class="p-3">
             <div class="product-cat mb-1">{{ p.cat }}</div>
             <div class="product-name mb-1">{{ p.name }}</div>
@@ -158,8 +179,13 @@
                   <span class="ms-1">({{ p.reviewCount || p.reviews || 0 }})</span>
                 </div>
               </div>
-              <!-- ✅ truyền cả object p để lấy tên khi toast -->
-              <button class="btn-add" (click)="addToCart($event, p)">
+              <!-- Disabled khi hết hàng -->
+              <button
+                class="btn-add"
+                [disabled]="isOutOfStock(p)"
+                [title]="isOutOfStock(p) ? 'Sản phẩm đã hết hàng' : 'Thêm vào giỏ hàng'"
+                (click)="addToCart($event, p)"
+                aria-label="Thêm vào giỏ">
                 <i class="bi bi-plus"></i>
               </button>
             </div>
@@ -170,18 +196,21 @@
   </div>
 </section>
 
-<!-- PROMO BANNER -->
-<section class="py-5" style="background:#FAF6F0;">
+<!-- ═══════════════════════════════════════════
+     PROMO BANNER
+     ═══════════════════════════════════════════ -->
+<section class="section-bg py-5">
   <div class="container">
     <div class="promo-banner p-5">
-      <div class="row align-items-center">
+      <div class="row align-items-center g-4">
         <div class="col-lg-8">
           <span class="promo-tag mb-3 d-inline-block">
             <i class="bi bi-lightning-charge-fill me-1"></i>Ưu đãi có hạn
           </span>
           <h3 class="promo-title mb-2">Combo Gym &amp; Eat Clean<br><em>Tiết kiệm đến 25%</em></h3>
           <p class="promo-desc mb-4">Bộ đôi Granola + Hạt Macadamia dành riêng cho người tập luyện thể thao.</p>
-          <button class="btn-promo"
+          <button
+            class="btn-promo"
             [routerLink]="['/product-listing-page']"
             [queryParams]="{cat: 'Combo'}">
             <i class="bi bi-bag-heart me-2"></i>Mua combo ngay
@@ -191,68 +220,64 @@
           <img
             [src]="categories[5].image"
             alt="Combo Gym & Eat Clean"
-            class="img-fluid rounded-3"
-            onerror="this.src='http://localhost:3000/images/products/placeholder.png'"
-            style="max-height:200px; object-fit:contain; cursor:pointer;"
+            class="img-fluid rounded-3 promo-img"
             [routerLink]="['/product-listing-page']"
-            [queryParams]="{cat: 'Combo'}" />
+            [queryParams]="{cat: 'Combo'}"
+            style="cursor:pointer;" />
         </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- BLOG -->
-<section class="py-5" style="background:#FAF6F0;">
+<!-- ═══════════════════════════════════════════
+     BLOG
+     ═══════════════════════════════════════════ -->
+<section class="section-bg py-5">
   <div class="container">
-    <div class="d-flex justify-content-between align-items-end mb-4">
+    <div class="section-header">
       <div>
-        <h2 class="section-title mb-1">Cẩm nang sức khỏe</h2>
-        <p class="section-subtitle mb-0">Bí quyết ăn uống lành mạnh từ chuyên gia</p>
+        <h2 class="section-title">Cẩm nang sức khỏe</h2>
+        <p class="section-subtitle">Bí quyết ăn uống lành mạnh từ chuyên gia</p>
       </div>
-      <a class="link-more" style="cursor:pointer;" (click)="goToAllBlogs()">Xem tất cả</a>
+      <a class="link-more" style="cursor:pointer;" (click)="goToAllBlogs()">Xem tất cả →</a>
     </div>
 
-    <!-- SKELETON BLOG -->
+    <!-- Skeleton -->
     <div class="row g-4" *ngIf="isBlogLoading">
       <div class="col-12 col-md-4" *ngFor="let s of [1,2,3]">
         <div class="blog-card">
-          <div style="height:200px;background:linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%);
-            background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:14px 14px 0 0;"></div>
+          <div class="skeleton-img"></div>
           <div class="p-3 d-flex flex-column gap-2">
-            <div style="height:10px;border-radius:5px;background:#eee;width:30%"></div>
-            <div style="height:10px;border-radius:5px;background:#eee;width:80%"></div>
-            <div style="height:10px;border-radius:5px;background:#eee;width:60%"></div>
+            <div class="skeleton-line" style="width:30%"></div>
+            <div class="skeleton-line" style="width:80%"></div>
+            <div class="skeleton-line" style="width:60%"></div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- DANH SÁCH BLOG -->
+    <!-- Danh sách blog -->
     <div class="row g-4" *ngIf="!isBlogLoading">
       <div class="col-12 col-md-4" *ngFor="let post of blogPosts">
-        <div class="blog-card h-100" style="cursor:pointer;" (click)="goToBlogDetail(post._id || '')">
+        <div class="blog-card h-100" (click)="goToBlogDetail(post._id || '')">
           <div class="blog-img-wrap">
             <img
               [src]="getBlogImageUrl(post.coverImage)"
               [alt]="post.title"
               class="blog-cover-img"
-              onerror="this.src='http://localhost:3000/images/blogs/placeholder.png'" />
+              (error)="$any($event.target).src='http://localhost:3000/images/blogs/placeholder.png'" />
           </div>
-          <div class="p-3">
+          <div class="p-3 d-flex flex-column flex-grow-1">
             <div class="blog-tag mb-1">{{ post.tag }}</div>
             <div class="blog-title mb-2">{{ post.title }}</div>
-            <p class="blog-excerpt mb-3">{{ post.excerpt }}</p>
+            <p class="blog-excerpt mb-3 flex-grow-1">{{ post.excerpt }}</p>
             <div class="d-flex justify-content-between align-items-center border-top pt-2">
               <div class="d-flex flex-column gap-1">
-                <span class="blog-author">
-                  <i class="bi bi-person-circle me-1"></i>{{ post.author }}
-                </span>
-                <span class="blog-date">
-                  <i class="bi bi-calendar3 me-1"></i>{{ post.date }}
-                </span>
+                <span class="blog-meta"><i class="bi bi-person-circle me-1"></i>{{ post.author }}</span>
+                <span class="blog-meta"><i class="bi bi-calendar3 me-1"></i>{{ post.date }}</span>
               </div>
-              <a class="blog-read">Đọc tiếp <i class="bi bi-arrow-right ms-1"></i></a>
+              <span class="blog-read">Đọc tiếp <i class="bi bi-arrow-right ms-1"></i></span>
             </div>
           </div>
         </div>

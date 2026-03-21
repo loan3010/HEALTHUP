@@ -1,17 +1,43 @@
-# See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
-
+# =========================
 # Compiled output
-/dist
-/tmp
-/out-tsc
-/bazel-out
+# =========================
+dist/
+tmp/
+out-tsc/
+bazel-out/
 
-# Node
-/node_modules
-npm-debug.log
-yarn-error.log
+# =========================
+# Angular
+# =========================
+**/.angular/
+.angular/cache/
+.angular/
 
+# =========================
+# Node.js
+# =========================
+node_modules/
+**/node_modules/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# =========================
+# Environment files
+# =========================
+.env
+.env.*
+!.env.example
+
+# =========================
+# Logs
+# =========================
+logs/
+*.log
+
+# =========================
 # IDEs and editors
+# =========================
 .idea/
 .project
 .classpath
@@ -20,25 +46,48 @@ yarn-error.log
 .settings/
 *.sublime-workspace
 
-# Visual Studio Code
+# =========================
+# VS Code
+# =========================
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
-!.vscode/mcp.json
-.history/*
 
-# Miscellaneous
-/.angular/cache
-.sass-cache/
-/connect.lock
-/coverage
-/libpeerconnection.log
+.history/
+
+# =========================
+# Testing / coverage
+# =========================
+coverage/
 testem.log
-/typings
+
+# =========================
+# Miscellaneous
+# =========================
+.sass-cache/
+connect.lock
+libpeerconnection.log
+typings/
 __screenshots__/
 
+# =========================
 # System files
+# =========================
 .DS_Store
 Thumbs.db
+
+# =========================
+# Project-specific (HealthUp)
+# =========================
+my-user/.angular/
+backend/node_modules/
+my-user/node_modules/
+
+# Images (optional - nếu bạn muốn giảm repo)
+# Uncomment nếu không muốn push ảnh
+# *.png
+# *.jpg
+# *.jpeg
+# *.webp

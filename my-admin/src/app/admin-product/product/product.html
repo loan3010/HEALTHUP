@@ -1,0 +1,376 @@
+<div class="promotion-wrapper">
+  <!-- Breadcrumb -->
+  <nav class="promo-breadcrumb-box">
+    <span class="p-crumb">Quản trị viên</span>
+    <span class="p-sep">/</span>
+    <span class="p-active">Quản lý sản phẩm</span>
+  </nav>
+
+  <div class="promotion-main-content" *ngIf="!isEditorPageOpen">
+    <!-- Header -->
+    <div class="hu-header">
+      <div>
+        <h1 class="page-title">DANH SÁCH SẢN PHẨM</h1>
+        <p class="total-count">Hiển thị <strong>{{ total }}</strong> sản phẩm</p>
+      </div>
+      <button class="hu-btn-primary" (click)="addProduct()">
+        <i class="bi bi-plus-lg"></i> Thêm sản phẩm
+      </button>
+    </div>
+
+    <!-- Card -->
+    <div class="hu-card">
+      <!-- Toolbar -->
+      <div class="hu-toolbar">
+        <!-- Search -->
+        <div class="hu-search-wrap">
+          <i class="bi bi-search"></i>
+          <input
+            type="text"
+            class="hu-search-input"
+            placeholder="Tìm kiếm sản phẩm..."
+            [(ngModel)]="searchText"
+            (input)="onSearch()"
+          />
+        </div>
+
+        <!-- Bulk actions khi đã chọn -->
+        <ng-container *ngIf="selectedCount > 0">
+          <span class="hu-selected-count">{{ selectedCount }} đã chọn</span>
+          <button class="hu-toolbar-btn" (click)="editSelected()" [disabled]="selectedCount !== 1">
+            <i class="bi bi-pencil"></i> Chỉnh sửa
+          </button>
+          <button class="hu-toolbar-btn danger" (click)="hideSelected()">
+            <i class="bi bi-trash"></i> Xóa sản phẩm
+          </button>
+        </ng-container>
+
+        <div class="hu-toolbar-right">
+          <!-- Filter -->
+          <div class="hu-dropdown-wrap">
+            <button
+              class="hu-toolbar-btn"
+              (click)="showFilterPanel = !showFilterPanel; sortMenuOpen = false"
+            >
+              <i class="bi bi-funnel"></i> Lọc
+              <i class="bi bi-caret-down-fill" style="font-size:0.6rem"></i>
+              <span class="filter-pill" *ngIf="hasActiveFilter">{{ filterLabelShort }}</span>
+            </button>
+            <div class="hu-dropdown-panel" *ngIf="showFilterPanel">
+              <div class="filter-row">
+                <label>Danh mục</label>
+                <select [(ngModel)]="filterCat">
+                  <option value="">Tất cả</option>
+                  <option *ngFor="let c of categories" [value]="c">{{ c }}</option>
+                </select>
+              </div>
+              <div class="filter-row">
+                <label>Giá từ (₫)</label>
+                <input type="number" [(ngModel)]="filterMinPrice" placeholder="0" />
+              </div>
+              <div class="filter-row">
+                <label>Giá đến (₫)</label>
+                <input type="number" [(ngModel)]="filterMaxPrice" placeholder="999999999" />
+              </div>
+              <div class="filter-row">
+                <label>Đánh giá tối thiểu</label>
+                <select [(ngModel)]="filterMinRating">
+                  <option [ngValue]="null">Tất cả</option>
+                  <option [ngValue]="4.5">⭐ 4.5+</option>
+                  <option [ngValue]="4">⭐ 4.0+</option>
+                  <option [ngValue]="3">⭐ 3.0+</option>
+                </select>
+              </div>
+              <div class="filter-row">
+                <label>Trạng thái bán</label>
+                <select [(ngModel)]="filterSaleStatus">
+                  <option value="">Tất cả</option>
+                  <option value="selling">Đang bán</option>
+                  <option value="out">Tạm hết hàng</option>
+                </select>
+              </div>
+              <div class="filter-row">
+                <label>Hiển thị</label>
+                <select [(ngModel)]="filterVisibility">
+                  <option value="">Tất cả</option>
+                  <option value="visible">Hiển thị</option>
+                  <option value="hidden">Ẩn</option>
+                </select>
+              </div>
+              <div class="filter-actions">
+                <button class="hu-btn-primary small" (click)="applyFilterPanel()">Áp dụng</button>
+                <button class="hu-toolbar-btn" (click)="resetFilter()">Đặt lại</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sort (dropdown kiểu admin-customer) -->
+          <div class="sort-wrap">
+            <button
+              type="button"
+              class="hu-toolbar-btn sort-trigger"
+              (click)="toggleSortMenu()"
+              [class.sort-trigger-open]="sortMenuOpen"
+              [attr.aria-expanded]="sortMenuOpen"
+            >
+              <i class="bi bi-arrow-down-up"></i> Sắp xếp
+              <span class="sort-pill">{{ sortLabelShort }}</span>
+              <i class="sort-chevron" [ngClass]="sortMenuOpen ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+            </button>
+
+            <div class="sort-menu" *ngIf="sortMenuOpen" role="menu" (click)="$event.stopPropagation()">
+              <div class="sort-menu-section">Giá</div>
+              <button type="button" class="sort-item" role="menuitem" (click)="applySort('price','asc')" [class.active]="isSortActive('price','asc')">
+                Giá · thấp → cao
+                <i *ngIf="isSortActive('price','asc')" class="bi bi-check2 sort-check"></i>
+              </button>
+              <button type="button" class="sort-item" role="menuitem" (click)="applySort('price','desc')" [class.active]="isSortActive('price','desc')">
+                Giá · cao → thấp
+                <i *ngIf="isSortActive('price','desc')" class="bi bi-check2 sort-check"></i>
+              </button>
+
+              <div class="sort-menu-section">Đánh giá</div>
+              <button type="button" class="sort-item" role="menuitem" (click)="applySort('rating','desc')" [class.active]="isSortActive('rating','desc')">
+                Đánh giá · cao → thấp
+                <i *ngIf="isSortActive('rating','desc')" class="bi bi-check2 sort-check"></i>
+              </button>
+              <button type="button" class="sort-item" role="menuitem" (click)="applySort('rating','asc')" [class.active]="isSortActive('rating','asc')">
+                Đánh giá · thấp → cao
+                <i *ngIf="isSortActive('rating','asc')" class="bi bi-check2 sort-check"></i>
+              </button>
+
+              <div class="sort-menu-section">Ngày cập nhật</div>
+              <button type="button" class="sort-item" role="menuitem" (click)="applySort('updatedAt','desc')" [class.active]="isSortActive('updatedAt','desc')">
+                Ngày cập nhật · mới nhất
+                <i *ngIf="isSortActive('updatedAt','desc')" class="bi bi-check2 sort-check"></i>
+              </button>
+              <button type="button" class="sort-item" role="menuitem" (click)="applySort('updatedAt','asc')" [class.active]="isSortActive('updatedAt','asc')">
+                Ngày cập nhật · cũ nhất
+                <i *ngIf="isSortActive('updatedAt','asc')" class="bi bi-check2 sort-check"></i>
+              </button>
+
+              <div class="sort-menu-section">Tồn kho</div>
+              <button type="button" class="sort-item" role="menuitem" (click)="applySort('stock','desc')" [class.active]="isSortActive('stock','desc')">
+                Tồn kho · nhiều → ít
+                <i *ngIf="isSortActive('stock','desc')" class="bi bi-check2 sort-check"></i>
+              </button>
+              <button type="button" class="sort-item" role="menuitem" (click)="applySort('stock','asc')" [class.active]="isSortActive('stock','asc')">
+                Tồn kho · ít → nhiều
+                <i *ngIf="isSortActive('stock','asc')" class="bi bi-check2 sort-check"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <div class="hu-loading" *ngIf="isLoading">
+        <i class="bi bi-arrow-repeat"></i> Đang tải...
+      </div>
+
+      <!-- Table -->
+      <div class="hu-table-wrap" *ngIf="!isLoading">
+        <table class="hu-table">
+          <thead>
+            <tr>
+              <th class="col-check">
+                <input type="checkbox" [checked]="allChecked" (change)="toggleAll($any($event.target).checked)" />
+              </th>
+              <th>SKU</th>
+              <th>Tên sản phẩm</th>
+              <th>Phân loại</th>
+              <th>Đơn vị</th>
+              <th>Tồn kho</th>
+              <th>Giá bán</th>
+              <th>Đánh giá</th>
+              <th>Ngày cập nhật</th>
+              <th>Trạng thái</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              *ngFor="let p of filteredProducts"
+              [class.selected-row]="selectedIds.has(p._id!)"
+              [class.row-hidden]="p.isHidden"
+              (click)="onRowClick(p)">
+              <!-- Checkbox -->
+              <td class="col-check">
+                <input type="checkbox"
+                  [checked]="selectedIds.has(p._id!)"
+                  (click)="$event.stopPropagation()"
+                  (change)="toggleOne(p._id!, $any($event.target).checked)" />
+              </td>
+
+              <!-- SKU -->
+              <td>{{ p.sku || '—' }}</td>
+
+              <!-- Tên sản phẩm -->
+              <td>
+                <div class="product-cell">
+                  <div class="thumb-wrap">
+                    <img
+                      *ngIf="p.images && p.images.length"
+                      [src]="staticBase + p.images[0]"
+                      class="product-thumb" alt=""
+                    />
+                    <div class="product-thumb placeholder" *ngIf="!p.images || !p.images.length">
+                      <i class="bi bi-image"></i>
+                    </div>
+                    <!-- Overlay "ẨN" trên ảnh khi isHidden -->
+                    <span class="hidden-overlay" *ngIf="p.isHidden">ẨN</span>
+                  </div>
+                  <div>
+                    <div class="product-name">{{ p.name }}</div>
+                    <span class="badge-tag" *ngIf="p.badge" [ngClass]="p.badge">{{ p.badge }}</span>
+                    <!-- Chip trạng thái -->
+                    <span class="status-chip hidden-chip" *ngIf="p.isHidden">
+                      <i class="bi bi-eye-slash-fill"></i> Đang ẩn
+                    </span>
+                    <span class="status-chip oos-chip" *ngIf="!p.isHidden && isEffectiveOutOfStock(p)">
+                      <i class="bi bi-slash-circle-fill"></i> Tạm hết hàng
+                    </span>
+                    <span class="status-chip active-chip" *ngIf="!p.isHidden && !isEffectiveOutOfStock(p)">
+                      <i class="bi bi-eye-fill"></i> Đang bán
+                    </span>
+                  </div>
+                </div>
+              </td>
+
+              <!-- Phân loại -->
+              <td>{{ p.cat }}</td>
+
+              <!-- Đơn vị -->
+              <td>
+                <span *ngIf="p.packagingTypes && p.packagingTypes.length">{{ p.packagingTypes.join(', ') }}</span>
+                <span *ngIf="!p.packagingTypes || !p.packagingTypes.length" class="hu-empty-cell">—</span>
+              </td>
+
+              <!-- Tồn kho -->
+              <td>
+                <span class="stock-badge"
+                  [class.low-stock]="stockOf(p) > 0 && stockOf(p) < 20"
+                  [class.out-stock]="stockOf(p) === 0">
+                  {{ stockOf(p) }}
+                  <small *ngIf="stockOf(p) === 0"> · Hết</small>
+                </span>
+              </td>
+
+              <!-- Giá bán -->
+              <td class="price-cell">{{ p.price | number:'1.0-0' }} ₫</td>
+
+              <!-- Đánh giá -->
+              <td class="rating-cell">
+                ⭐ {{ p.rating | number:'1.1-1' }}
+                <small>({{ p.reviewCount }})</small>
+              </td>
+
+              <!-- Ngày cập nhật (thay ngày tạo) -->
+              <td class="date-cell">{{ p.updatedAt | date:'dd/MM/yyyy HH:mm' }}</td>
+
+              <!-- Trạng thái + hành động -->
+              <td>
+                <div class="hu-actions" style="flex-wrap: wrap;">
+                  <!-- Toggle hiển thị/ẩn ngay trên chip -->
+                  <button
+                    type="button"
+                    class="status-chip status-chip-btn active-chip"
+                    *ngIf="!p.isHidden"
+                    (click)="$event.stopPropagation(); toggleHidden(p)"
+                    title="Bấm để ẩn sản phẩm">
+                    <i class="bi bi-eye-fill"></i> Hiển thị
+                  </button>
+                  <button
+                    type="button"
+                    class="status-chip status-chip-btn hidden-chip"
+                    *ngIf="p.isHidden"
+                    (click)="$event.stopPropagation(); toggleHidden(p)"
+                    title="Bấm để hiện sản phẩm">
+                    <i class="bi bi-eye-slash-fill"></i> Ẩn
+                  </button>
+
+                  <!-- Toggle tạm hết ngay trên chip -->
+                  <button
+                    type="button"
+                    class="status-chip status-chip-btn oos-chip"
+                    *ngIf="!p.isHidden && isEffectiveOutOfStock(p)"
+                    (click)="$event.stopPropagation(); toggleOutOfStock(p)"
+                    title="Bấm để bỏ tạm hết">
+                    <i class="bi bi-slash-circle-fill"></i> Tạm hết
+                  </button>
+                  <button
+                    type="button"
+                    class="status-chip status-chip-btn active-chip"
+                    *ngIf="!p.isHidden && !isEffectiveOutOfStock(p)"
+                    (click)="$event.stopPropagation(); toggleOutOfStock(p)"
+                    title="Bấm để bật tạm hết">
+                    <i class="bi bi-check-circle-fill"></i> Đang bán
+                  </button>
+
+                  <!-- Hành động -->
+                  <div style="display:flex;gap:6px;align-items:center;margin-left:auto;">
+                    <!-- Soft delete -->
+                    <button
+                      class="hu-btn-icon"
+                      [class.hu-btn-danger]="true"
+                      (click)="$event.stopPropagation(); toggleHidden(p)"
+                      [title]="p.isHidden ? 'Hiển thị sản phẩm' : 'Ẩn sản phẩm'">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </div>
+              </td>
+            </tr>
+
+            <tr *ngIf="filteredProducts.length === 0">
+              <td colspan="10" class="hu-empty">Không tìm thấy sản phẩm nào.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="hu-pagination" *ngIf="totalPages > 1">
+        <button (click)="changePage(currentPage - 1)" [disabled]="currentPage === 1">
+          <i class="bi bi-chevron-left"></i>
+        </button>
+        <span>Trang {{ currentPage }} / {{ totalPages }}</span>
+        <button (click)="changePage(currentPage + 1)" [disabled]="currentPage === totalPages">
+          <i class="bi bi-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form dạng trang -->
+  <div class="product-editor-page" *ngIf="isEditorPageOpen">
+    <div class="editor-header">
+      <button class="hu-toolbar-btn" (click)="onBackToList()">
+        <i class="bi bi-arrow-left"></i> Quay lại danh sách
+      </button>
+      <p class="editor-note">Đang chỉnh sửa chi tiết sản phẩm trên trang riêng.</p>
+    </div>
+    <app-product-form
+      [embedded]="true"
+      [product]="selectedProduct"
+      [categories]="categories"
+      (save)="onFormSave()"
+      (cancel)="onFormCancel()">
+    </app-product-form>
+  </div>
+
+  <div class="modal-overlay" *ngIf="showConfirmModal">
+    <div class="confirm-modal">
+      <div class="confirm-icon-wrap" [class.danger]="confirmDanger">
+        <i class="bi" [ngClass]="confirmDanger ? 'bi-exclamation-triangle-fill' : 'bi-question-circle-fill'"></i>
+      </div>
+      <h3 class="confirm-title">{{ confirmTitle }}</h3>
+      <p class="confirm-message" [innerText]="confirmMessage"></p>
+      <div class="confirm-actions">
+        <button class="confirm-btn cancel" (click)="closeConfirmModal()">Hủy</button>
+        <button class="confirm-btn submit" [class.danger]="confirmDanger" (click)="executeConfirmAction()">
+          {{ confirmDanger ? 'Xác nhận xóa' : 'Xác nhận' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

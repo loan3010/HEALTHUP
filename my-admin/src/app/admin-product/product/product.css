@@ -1,0 +1,934 @@
+/* ═══════════════════════════════════════════════════════════════
+   HEALTHUP ADMIN — PRODUCT PAGE CSS
+   Brand palette: Primary #36873A · Secondary #D4A017 · Danger #C62828
+   Bg main: #FAF6F0 · Bg secondary: #FFFFFF
+   Font: Be Vietnam Pro
+   ═══════════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&display=swap');
+
+/* ── CSS VARS ── */
+:root {
+  --primary-main:      #36873A;
+  --primary-hover:     #2A6B2E;
+  --primary-light:     #A2C37F;
+  --primary-bg-color:  #F0F7F0;
+
+  --secondary-main:    #D4A017;
+  --secondary-hover:   #B8860B;
+  --secondary-bg:      #FFFBEA;
+
+  --danger-main:       #C62828;
+  --danger-hover:      #8E1C1C;
+  --danger-light:      #EF5350;
+  --danger-bg-color:   #FFEBEE;
+
+  --info-main:         #6AAEDB;
+  --info-hover:        #4A8FBB;
+  --info-bg-color:     #EAF4FB;
+
+  --background-main:      #FAF6F0;
+  --background-secondary: #FFFFFF;
+
+  --border-color:   #E8EDE8;
+  --text-primary:   #1A2E1B;
+  --text-secondary: #5A7060;
+  --text-muted:     #9AAA9B;
+
+  --shadow-sm:  0 1px 3px rgba(54,135,58,0.08);
+  --shadow-md:  0 4px 16px rgba(54,135,58,0.10);
+  --shadow-lg:  0 8px 32px rgba(54,135,58,0.14);
+
+  --radius-sm:  6px;
+  --radius-md:  10px;
+  --radius-lg:  14px;
+  --radius-xl:  20px;
+
+  --typography-font: 'Be Vietnam Pro', sans-serif;
+}
+
+/* ── BASE ── */
+* { box-sizing: border-box; }
+.promotion-wrapper {
+  padding: 28px 32px;
+  background: var(--background-main);
+  min-height: 100vh;
+  font-family: var(--typography-font);
+}
+
+/* ── BREADCRUMB ── */
+.promo-breadcrumb-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+.p-crumb {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.2s;
+  font-weight: 500;
+}
+.p-crumb:hover { color: var(--primary-main); }
+.p-sep {
+  color: var(--border-color);
+  font-size: 0.9rem;
+  user-select: none;
+}
+.p-active {
+  font-size: 0.82rem;
+  color: var(--primary-main);
+  font-weight: 700;
+}
+
+/* ── PAGE HEADER ── */
+.hu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+.page-title {
+  font-size: 1.55rem;
+  font-weight: 900;
+  color: var(--primary-main);
+  margin: 0 0 4px 0;
+  letter-spacing: -0.02em;
+  font-family: var(--typography-font);
+}
+.total-count {
+  font-size: 0.83rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+.total-count strong {
+  color: var(--primary-main);
+  font-weight: 700;
+}
+
+/* ── PRIMARY BUTTON ── */
+.hu-btn-primary {
+  /* Dùng màu cứng để tránh phụ thuộc biến CSS (project hiện dùng ::root nên đôi lúc var không apply) */
+  background: #36873A;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+  box-shadow: 0 2px 8px rgba(54,135,58,0.28);
+  letter-spacing: 0.01em;
+  font-family: var(--typography-font);
+}
+.hu-btn-primary:hover {
+  background: #2A6B2E;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(54,135,58,0.35);
+}
+.hu-btn-primary:active { transform: translateY(0); }
+.hu-btn-primary.small { padding: 7px 14px; font-size: 0.83rem; }
+
+/* ── CARD ── */
+.hu-card {
+  background: var(--background-secondary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  /* Cho phép dropdown filter/sort tràn ra ngoài card, tránh bị cắt nội dung. */
+  overflow: visible;
+  border: 1px solid var(--border-color);
+}
+
+/* ── TOOLBAR ── */
+.hu-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+  background: #fff;
+  flex-wrap: wrap;
+}
+.hu-toolbar-right {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+/* Search */
+.hu-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 8px 14px;
+  flex: 1;
+  max-width: 380px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.hu-search-wrap:focus-within {
+  border-color: var(--primary-main);
+  box-shadow: 0 0 0 3px rgba(54,135,58,0.10);
+}
+.hu-search-wrap i { color: var(--text-muted); font-size: 0.9rem; }
+.hu-search-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 0.88rem;
+  width: 100%;
+  font-family: var(--typography-font);
+  color: var(--text-primary);
+}
+.hu-search-input::placeholder { color: var(--text-muted); }
+
+/* Selected count */
+.hu-selected-count {
+  font-size: 0.83rem;
+  font-weight: 700;
+  color: var(--primary-main);
+  background: var(--primary-bg-color);
+  border: 1.5px solid #C4DBC5;
+  border-radius: var(--radius-sm);
+  padding: 5px 11px;
+}
+
+/* Toolbar buttons */
+.hu-toolbar-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff;
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 7px 14px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.18s;
+  white-space: nowrap;
+  font-family: var(--typography-font);
+}
+.hu-toolbar-btn:hover:not(:disabled) {
+  border-color: var(--primary-main);
+  color: var(--primary-main);
+  background: var(--primary-bg-color);
+}
+.hu-toolbar-btn.warn {
+  color: var(--secondary-main);
+  border-color: #E8D080;
+  background: var(--secondary-bg);
+}
+.hu-toolbar-btn.warn:hover {
+  background: #FFF8D6;
+  border-color: var(--secondary-main);
+}
+.hu-toolbar-btn.danger { color: var(--danger-main); }
+.hu-toolbar-btn.danger:hover {
+  background: var(--danger-bg-color);
+  border-color: var(--danger-main);
+}
+.hu-toolbar-btn:disabled { opacity: 0.38; cursor: not-allowed; }
+
+/* ── LOADING ── */
+.hu-loading {
+  padding: 56px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.hu-loading i { animation: spin 1s linear infinite; font-size: 1.1rem; color: var(--primary-main); }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── TABLE ── */
+.hu-table-wrap { overflow-x: auto; }
+.hu-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+  font-family: var(--typography-font);
+}
+
+/* Table head */
+.hu-table thead tr {
+  background: #f7faf7;
+  border-bottom: 1px solid #DDE8DE;
+}
+.hu-table th {
+  padding: 13px 16px;
+  text-align: left;
+  font-weight: 800;
+  color: var(--primary-main);
+  white-space: nowrap;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.hu-table th:first-child { padding-left: 20px; }
+.hu-table th:last-child  { padding-right: 20px; }
+
+/* Table body */
+.hu-table tbody tr {
+  border-bottom: 1px solid #F3F6F3;
+  transition: background 0.15s;
+  cursor: pointer;
+}
+.hu-table tbody tr:hover { background: #F8FBF8; }
+.hu-table td {
+  padding: 13px 16px;
+  color: var(--text-primary);
+  vertical-align: middle;
+}
+.hu-table td:first-child { padding-left: 20px; }
+.hu-table td:last-child  { padding-right: 20px; }
+
+/* ── ROW TRẠNG THÁI ẨN ── */
+.row-hidden {
+  opacity: 0.6;
+  background: #FAFAFA !important;
+}
+.row-hidden:hover { background: #F5F5F5 !important; }
+
+/* ── SELECTED ROW ── */
+.selected-row {
+  background: #F0F7F0 !important;
+}
+.selected-row td { border-color: transparent; }
+
+/* ── PRODUCT CELL ── */
+.product-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 220px;
+}
+
+/* Thumbnail wrapper — chứa ảnh + overlay "ẨN" */
+.thumb-wrap {
+  position: relative;
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+}
+.product-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  border: 1.5px solid #E5EEE5;
+  display: block;
+}
+.product-thumb.placeholder {
+  background: var(--primary-bg-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-light);
+  font-size: 1.2rem;
+  border-radius: var(--radius-md);
+  border: 1.5px dashed #C4DBC5;
+}
+
+/* Overlay "ẨN" trên ảnh */
+.hidden-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.48);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: 0.08em;
+  backdrop-filter: blur(1px);
+}
+
+/* Tên và chip */
+.product-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.4;
+  font-size: 0.875rem;
+}
+
+/* Status chips */
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+  margin-top: 2px;
+  letter-spacing: 0.02em;
+}
+.status-chip-btn {
+  border: none;
+  cursor: pointer;
+  transition: transform 0.12s ease, filter 0.12s ease;
+}
+.status-chip-btn:hover {
+  filter: brightness(0.97);
+  transform: translateY(-1px);
+}
+.active-chip {
+  background: var(--primary-bg-color);
+  color: var(--primary-main);
+  border: 1px solid #C4DBC5;
+}
+.hidden-chip {
+  background: #F5F5F5;
+  color: #888;
+  border: 1px solid #DDD;
+}
+
+/* Badge tag NEW / HOT */
+.badge-tag {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+.badge-tag.new {
+  background: var(--info-bg-color);
+  color: var(--info-hover);
+  border: 1px solid #B8DDF2;
+}
+.badge-tag.hot {
+  background: var(--danger-bg-color);
+  color: var(--danger-main);
+  border: 1px solid #F5C6C6;
+}
+
+/* ── STOCK BADGE ── */
+.stock-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 700;
+  color: var(--primary-main);
+  font-size: 0.875rem;
+}
+.stock-badge small {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--danger-main);
+  background: var(--danger-bg-color);
+  padding: 1px 6px;
+  border-radius: 20px;
+}
+.stock-badge.low-stock { color: var(--secondary-main); }
+.stock-badge.out-stock  { color: var(--danger-main); }
+
+/* ── PRICE ── */
+.price-cell {
+  font-weight: 700;
+  color: var(--primary-main);
+  white-space: nowrap;
+  font-size: 0.9rem;
+}
+
+/* ── RATING ── */
+.rating-cell {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+.rating-cell small {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+/* ── DATE ── */
+.date-cell {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* ── EMPTY ── */
+.hu-empty {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 56px;
+  font-size: 0.9rem;
+}
+.hu-empty-cell { color: #CCC; }
+
+/* ── ACTION BUTTONS ── */
+.hu-actions { display: flex; gap: 6px; align-items: center; }
+
+.hu-btn-icon {
+  background: #fff;
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 6px 9px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.18s;
+  font-size: 0.85rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+}
+.hu-btn-icon:hover {
+  background: var(--primary-bg-color);
+  color: var(--primary-main);
+  border-color: #C4DBC5;
+}
+
+/* Ẩn → warn/amber */
+.hu-btn-icon.hu-btn-warn {
+  color: var(--secondary-main);
+  border-color: #E8D080;
+}
+.hu-btn-icon.hu-btn-warn:hover {
+  background: var(--secondary-bg);
+  border-color: var(--secondary-main);
+}
+
+/* Hiện → primary/green */
+.hu-btn-icon.hu-btn-success {
+  color: var(--primary-main);
+  border-color: #C4DBC5;
+  background: var(--primary-bg-color);
+}
+.hu-btn-icon.hu-btn-success:hover {
+  background: var(--primary-main);
+  color: #fff;
+  border-color: var(--primary-main);
+}
+
+.hu-btn-danger { color: var(--danger-main); border-color: #F5C6C6; }
+.hu-btn-danger:hover {
+  background: var(--danger-bg-color);
+  color: var(--danger-main);
+  border-color: var(--danger-light);
+}
+
+/* ── CHECKBOX ── */
+.col-check { width: 44px; }
+input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--primary-main);
+  border-radius: 4px;
+}
+
+/* ── PAGINATION ── */
+.hu-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 18px 20px;
+  border-top: 1px solid var(--border-color);
+  background: #fff;
+}
+.hu-pagination button {
+  background: #fff;
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 7px 14px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 0.85rem;
+  font-family: var(--typography-font);
+  transition: all 0.18s;
+}
+.hu-pagination button:hover:not(:disabled) {
+  background: var(--primary-main);
+  color: #fff;
+  border-color: var(--primary-main);
+}
+.hu-pagination button:disabled { opacity: 0.35; cursor: not-allowed; }
+.hu-pagination span {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+/* ── MODAL OVERLAY ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(26,46,27,0.45);
+  backdrop-filter: blur(6px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 99999;
+  animation: fadeIn 0.2s ease;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* ── DROPDOWN ── */
+.hu-dropdown-wrap { position: relative; }
+.hu-dropdown-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: #fff;
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 16px;
+  z-index: 9999;
+  min-width: 230px;
+  max-height: min(72vh, 560px);
+  overflow-y: auto;
+  animation: slideDown 0.15s ease;
+}
+
+/* Màn hình hẹp: đưa panel lọc về dạng block để không bị khuất/cắt. */
+@media (max-width: 900px) {
+  .hu-toolbar {
+    align-items: stretch;
+  }
+  .hu-toolbar-right {
+    width: 100%;
+    margin-left: 0;
+    flex-wrap: wrap;
+  }
+  .hu-dropdown-wrap {
+    width: 100%;
+  }
+  .hu-dropdown-wrap > .hu-toolbar-btn {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .hu-dropdown-panel {
+    position: static;
+    width: 100%;
+    min-width: 0;
+    margin-top: 8px;
+    max-height: 62vh;
+    border-radius: 12px;
+  }
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── PILLS (Filter + Sort trigger) ── */
+.filter-pill {
+  margin-left: 10px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #36873A;
+  background: rgba(54,135,58,0.12);
+  border: 1px solid rgba(54,135,58,0.18);
+  padding: 2px 10px;
+  border-radius: 999px;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── SẮP XẾP (dropdown kiểu admin-customer) ── */
+.sort-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.sort-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.sort-trigger-open {
+  border-color: #36873A !important;
+  background-color: rgba(54,135,58,0.08) !important;
+}
+
+.sort-pill {
+  margin-left: 4px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  color: #36873A;
+  background: rgba(54,135,58,0.12);
+  padding: 2px 8px;
+  border-radius: 999px;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sort-chevron {
+  font-size: 0.75rem;
+  opacity: 0.75;
+}
+
+.sort-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  min-width: 280px;
+  max-height: min(70vh, 420px);
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 10px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
+  z-index: 9999;
+  padding: 8px 0;
+}
+
+.sort-menu-section {
+  padding: 8px 14px 4px;
+  font-size: 0.7rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #999;
+}
+
+.sort-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-start;
+  text-align: left;
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  font-size: 0.875rem;
+  color: #333;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  font-family: var(--typography-font);
+}
+
+.sort-item:hover {
+  background: #f4faf4;
+  color: #36873A;
+  font-weight: 700;
+}
+
+.sort-item.active {
+  background: #f4faf4;
+  color: #36873A;
+  font-weight: 900;
+}
+
+.sort-check {
+  margin-left: auto;
+  color: #36873A;
+  opacity: 0.95;
+  font-size: 1rem;
+}
+
+/* Filter rows */
+.filter-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 13px;
+}
+.filter-row label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.filter-row select,
+.filter-row input {
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 7px 10px;
+  font-size: 0.85rem;
+  outline: none;
+  font-family: var(--typography-font);
+  color: var(--text-primary);
+  background: #fff;
+  transition: border-color 0.2s;
+}
+.filter-row select:focus,
+.filter-row input:focus {
+  border-color: var(--primary-main);
+  box-shadow: 0 0 0 3px rgba(54,135,58,0.08);
+}
+.filter-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color);
+}
+
+/* Sort options */
+.sort-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  transition: all 0.15s;
+  font-family: var(--typography-font);
+  font-weight: 500;
+}
+.sort-option:hover {
+  background: var(--primary-bg-color);
+  color: var(--primary-main);
+  font-weight: 600;
+}
+
+/* ── CHIP: TẠM HẾT HÀNG ── */
+.oos-chip {
+  background: #FFF8E7;
+  color: #B8860B;
+  border: 1px solid #F0D080;
+}
+
+/* ── NÚT TOGGLE TẠM HẾT HÀNG ── */
+/* Đang bán bình thường → hover để bật */
+.hu-btn-oos-off {
+  color: var(--text-muted);
+  border-color: var(--border-color);
+}
+.hu-btn-oos-off:hover {
+  color: var(--secondary-main);
+  background: var(--secondary-bg);
+  border-color: #E8D080;
+}
+
+/* Đang tạm hết → amber nổi bật */
+.hu-btn-oos-on {
+  color: var(--secondary-main);
+  background: var(--secondary-bg);
+  border-color: #E8D080;
+}
+.hu-btn-oos-on:hover {
+  background: #FFF3C0;
+  border-color: var(--secondary-main);
+}
+
+/* Disabled (stock=0 → tự động, không cho tắt thủ công) */
+.hu-btn-icon:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── CONFIRM MODAL ── */
+.confirm-modal {
+  width: min(520px, 92vw);
+  background: #fff;
+  border-radius: 16px;
+  padding: 26px 24px 20px;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.2);
+  text-align: center;
+}
+.confirm-icon-wrap {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 14px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: #eef7ef;
+  color: #2a6b2e;
+  font-size: 1.8rem;
+}
+.confirm-icon-wrap.danger {
+  background: #fff2e8;
+  color: #d97706;
+}
+.confirm-title {
+  margin: 0 0 8px;
+  font-size: 1.7rem;
+  color: #2a2f35;
+  font-weight: 800;
+}
+.confirm-message {
+  margin: 0 auto;
+  max-width: 440px;
+  font-size: 1.05rem;
+  color: #5f6772;
+  line-height: 1.55;
+  white-space: pre-line;
+}
+.confirm-actions {
+  margin-top: 22px;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+.confirm-btn {
+  min-width: 120px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  border: 1px solid #d9dde3;
+  background: #fff;
+  color: #3e4650;
+  font-weight: 700;
+  cursor: pointer;
+}
+.confirm-btn.submit {
+  border-color: #2a6b2e;
+  background: #36873a;
+  color: #fff;
+}
+.confirm-btn.submit.danger {
+  border-color: #dc3545;
+  background: #dc3545;
+}
+.confirm-btn:hover {
+  filter: brightness(0.98);
+}
+
+/* ── EDITOR PAGE (thay modal form) ── */
+.product-editor-page {
+  margin-top: 8px;
+}
+.editor-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.editor-note {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}

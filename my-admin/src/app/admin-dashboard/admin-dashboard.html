@@ -1,0 +1,160 @@
+<section class="dashboard-page">
+  <div class="top-row">
+    <div>
+      <div class="breadcrumb-text">Quản trị viên / Tổng quan</div>
+      <h2 class="title">TỔNG QUAN</h2>
+    </div>
+    <button type="button" class="btn btn-secondary btn-sm export-btn" (click)="exportReport()">
+      <i class="bi bi-file-earmark-arrow-down me-1"></i>Xuất
+    </button>
+  </div>
+
+  <div class="filter-row">
+    <button type="button" class="btn btn-sm" [class.btn-success]="selectedPreset === 'today'" [class.btn-outline-secondary]="selectedPreset !== 'today'" (click)="onPresetChange('today')">Hôm nay</button>
+    <button type="button" class="btn btn-sm" [class.btn-success]="selectedPreset === '7days'" [class.btn-outline-secondary]="selectedPreset !== '7days'" (click)="onPresetChange('7days')">7 ngày</button>
+    <button type="button" class="btn btn-sm" [class.btn-success]="selectedPreset === 'month'" [class.btn-outline-secondary]="selectedPreset !== 'month'" (click)="onPresetChange('month')">Tháng này</button>
+    <button type="button" class="btn btn-sm" [class.btn-success]="selectedPreset === 'custom'" [class.btn-outline-secondary]="selectedPreset !== 'custom'" (click)="onPresetChange('custom')">Tùy chỉnh</button>
+
+    <div class="custom-range" *ngIf="selectedPreset === 'custom'">
+      <input type="date" class="form-control form-control-sm" [(ngModel)]="customFrom" />
+      <span>-</span>
+      <input type="date" class="form-control form-control-sm" [(ngModel)]="customTo" />
+      <button type="button" class="btn btn-sm btn-primary" (click)="applyCustomRange()">Áp dụng</button>
+    </div>
+  </div>
+
+  <p class="error-text" *ngIf="errorText">{{ errorText }}</p>
+
+  <div class="kpi-grid">
+    <article class="kpi-card">
+      <div class="kpi-label">Doanh thu</div>
+      <div class="kpi-value">{{ kpiRevenue | currency:'VND':'symbol':'1.0-0':'vi' }}</div>
+      <div class="kpi-delta" [ngClass]="getDeltaClass(deltaRevenue)">{{ getDeltaText(deltaRevenue) }}</div>
+    </article>
+    <article class="kpi-card">
+      <div class="kpi-label">Đơn hàng</div>
+      <div class="kpi-value">{{ kpiOrders }}</div>
+      <div class="kpi-delta" [ngClass]="getDeltaClass(deltaOrders)">{{ getDeltaText(deltaOrders) }}</div>
+    </article>
+    <article class="kpi-card">
+      <div class="kpi-label">Khách hàng mới</div>
+      <div class="kpi-value">{{ kpiNewCustomers }}</div>
+      <div class="kpi-delta" [ngClass]="getDeltaClass(deltaNewCustomers)">{{ getDeltaText(deltaNewCustomers) }}</div>
+    </article>
+    <article class="kpi-card">
+      <div class="kpi-label">Sản phẩm</div>
+      <div class="kpi-value">{{ kpiProducts }}</div>
+      <div class="kpi-delta" [ngClass]="getDeltaClass(deltaProducts)">{{ getDeltaText(deltaProducts) }}</div>
+    </article>
+  </div>
+
+  <div class="chart-card large">
+    <div class="card-title">Doanh thu (so sánh kỳ trước)</div>
+    <div class="line-legend">
+      <span class="legend-item">
+        <span class="legend-line legend-current"></span>
+        <span>Kỳ hiện tại</span>
+      </span>
+      <span class="legend-item">
+        <span class="legend-line legend-previous"></span>
+        <span>Kỳ trước</span>
+      </span>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="revenue-line-chart"></canvas>
+    </div>
+  </div>
+
+  <div class="two-cols">
+    <div class="chart-card">
+      <div class="card-title">Tổng đơn hàng</div>
+      <div class="chart-wrap">
+        <canvas id="orders-bar-chart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="card-title">Khách hàng mới</div>
+      <div class="chart-wrap">
+        <canvas id="new-customers-bar-chart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="three-cols">
+    <div class="chart-card pie">
+      <div class="card-title">Tình trạng đơn hàng (all-time)</div>
+      <div class="chart-wrap pie-wrap">
+        <canvas id="status-pie-chart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card pie">
+      <div class="card-title">Tình trạng khuyến mãi (all-time)</div>
+      <div class="chart-wrap pie-wrap">
+        <canvas id="promotion-pie-chart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card pie">
+      <div class="card-title">Tổng khách hàng (all-time)</div>
+      <div class="chart-wrap pie-wrap">
+        <canvas id="customer-pie-chart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="two-cols bottom">
+    <div class="table-card">
+      <div class="card-title">Đơn hàng gần đây</div>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Mã đơn</th>
+              <th>Khách hàng</th>
+              <th>Tổng tiền</th>
+              <th>Trạng thái</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let o of recentOrders">
+              <td>{{ shortOrderId(o.orderId) }}</td>
+              <td>{{ o.customerName }}</td>
+              <td>{{ o.total | currency:'VND':'symbol':'1.0-0':'vi' }}</td>
+              <td>{{ o.status }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="title-flex">
+        <div class="card-title">Sản phẩm</div>
+        <div class="btn-group btn-group-sm">
+          <button type="button" class="btn" [class.btn-success]="topMode === 'best'" [class.btn-outline-secondary]="topMode !== 'best'" (click)="topMode = 'best'">Top bán chạy</button>
+          <button type="button" class="btn" [class.btn-success]="topMode === 'slow'" [class.btn-outline-secondary]="topMode !== 'slow'" (click)="topMode = 'slow'">Top bán chậm</button>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Sản phẩm</th>
+              <th>Danh mục / Phân loại</th>
+              <th>SL bán</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let p of productRows">
+              <td>{{ p.name }}</td>
+              <td>{{ p.category }} <span *ngIf="p.variantLabel">/ {{ p.variantLabel }}</span></td>
+              <td>{{ p.quantity }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="loading-box" *ngIf="isLoading">Đang tải dashboard...</div>
+</section>

@@ -13,18 +13,27 @@
       <div [ngSwitch]="currentTab">
         
         <div *ngSwitchCase="'tong-quan'">
-          <div style="padding: 20px; background: white; border-radius: 8px;">
-            <h2>Chào mừng bạn đến với Dashboard</h2>
-            <p>Chọn một mục bên trái để bắt đầu quản lý.</p>
-          </div>
+          <app-admin-dashboard></app-admin-dashboard>
         </div>
 
-        <div *ngSwitchCase="'blog'">
-          <app-admin-blog></app-admin-blog>
+        <div *ngSwitchCase="'san-pham'">
+          <app-product></app-product>
+        </div>
+
+        <div *ngSwitchCase="'khach-hang'">
+          <app-customer></app-customer>
+        </div>
+
+        <div *ngSwitchCase="'don-hang'">
+          <app-order></app-order>
         </div>
 
         <div *ngSwitchCase="'khuyen-mai'">
           <app-promotion></app-promotion>
+        </div>
+
+        <div *ngSwitchCase="'blog'">
+          <app-admin-blog></app-admin-blog>
         </div>
 
         <div *ngSwitchCase="'tu-van'">
@@ -36,7 +45,7 @@
         </div>
 
         <div *ngSwitchDefault>
-          <div class="text-center mt-5">
+          <div style="text-align: center; margin-top: 50px;">
             <i class="bi bi-cone-striped" style="font-size: 3rem; color: #ccc;"></i>
             <p>Tính năng quản lý <strong>{{currentTab}}</strong> đang được phát triển.</p>
           </div>

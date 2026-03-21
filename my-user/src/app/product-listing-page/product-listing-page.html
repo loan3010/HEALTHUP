@@ -72,14 +72,21 @@
 
       <!-- GRID VIEW -->
       <div class="row g-3" *ngIf="viewMode === 'grid' && !isLoading">
-        <div class="col-6 col-md-4" *ngFor="let p of displayedProducts">
+        <div class="col-6 col-md-4" *ngFor="let p of displayedProducts; trackBy: trackByProductId">
           <div class="product-card h-100" (click)="goToDetail(p._id)">
             <div class="product-img-wrap">
               <span class="badge-new" *ngIf="p.badge === 'new'">Mới</span>
               <span class="badge-hot" *ngIf="p.badge === 'hot'">Hot</span>
               <span class="badge-sale" *ngIf="p.sale">{{ p.sale }}</span>
-              <img [src]="p.image || 'assets/images/placeholder.png'" [alt]="p.name" />
-              <!-- ✅ truyền object p để lấy tên khi toast -->
+              <!-- FIX #2: Thêm loading="lazy" để browser không block render -->
+              <img
+                [src]="p.image || 'assets/images/placeholder.png'"
+                [alt]="p.name"
+                loading="lazy"
+                width="300"
+                height="300"
+                style="object-fit:contain;"
+              />
               <button class="btn-wishlist"
                 [class.active]="isWishlisted(p._id)"
                 (click)="toggleWishlist($event, p)">
@@ -103,7 +110,6 @@
                     <span class="ms-1">({{ p.reviewCount || p.reviews || 0 }})</span>
                   </div>
                 </div>
-                <!-- ✅ truyền object p -->
                 <button class="btn-add" (click)="addToCart($event, p)">
                   <i class="bi bi-plus"></i>
                 </button>
@@ -116,10 +122,18 @@
       <!-- LIST VIEW -->
       <div class="d-flex flex-column gap-3" *ngIf="viewMode === 'list' && !isLoading">
         <div class="product-list-item d-flex gap-3 p-3"
-          *ngFor="let p of displayedProducts"
+          *ngFor="let p of displayedProducts; trackBy: trackByProductId"
           (click)="goToDetail(p._id)">
           <div class="list-img">
-            <img [src]="p.image || 'assets/images/placeholder.png'" [alt]="p.name" />
+            <!-- FIX #2: Thêm loading="lazy" -->
+            <img
+              [src]="p.image || 'assets/images/placeholder.png'"
+              [alt]="p.name"
+              loading="lazy"
+              width="120"
+              height="120"
+              style="object-fit:contain;"
+            />
           </div>
           <div class="flex-grow-1">
             <div class="product-cat mb-1">{{ p.cat }}</div>
