@@ -38,14 +38,26 @@
         </div>
       </div>
 
-      <!-- Trạng thái -->
+      <!--
+        Trạng thái: dùng đúng field backend (isHidden, isOutOfStock) — khớp bộ lọc danh sách.
+        (Trước đây dropdown "status" chỉ nằm ở admin, DB không lưu → dễ lệch với filter.)
+      -->
       <div class="form-group">
-        <label>Trạng thái <span class="required">*</span></label>
-        <select [(ngModel)]="formData.status">
-          <option value="active">Còn hàng</option>
-          <option value="outofstock">Hết hàng</option>
-          <option value="suspended">Tạm ngưng bán</option>
+        <label>Hiển thị <span class="required">*</span></label>
+        <select [(ngModel)]="formData.isHidden">
+          <option [ngValue]="false">Hiển thị trên shop</option>
+          <option [ngValue]="true">Ẩn (không hiện cho khách)</option>
         </select>
+      </div>
+      <div class="form-group">
+        <label>Tạm hết hàng (cờ admin)</label>
+        <select [(ngModel)]="formData.isOutOfStock">
+          <option [ngValue]="false">Không — để hệ thống theo tồn kho</option>
+          <option [ngValue]="true">Bật — luôn coi là tạm hết dù còn tồn</option>
+        </select>
+        <div class="form-helper">
+          Danh sách vẫn coi là “hết” nếu tổng tồn = 0 (hoặc từng biến thể). Cờ này để chặn bán khi vẫn còn số lượng.
+        </div>
       </div>
 
       <!-- Giá bán -->
@@ -102,11 +114,11 @@
         <div class="form-helper">Ví dụ đổi thành "Hương vị" và "Khối lượng" thay vì mặc định.</div>
         <div class="inline-row variant-name-row">
           <div class="flex-1">
-            <span class="sub-label">Chiều 1</span>
+            <span class="sub-label">Phân loại 1</span>
             <input type="text" [(ngModel)]="formData.variantAttr1Name" maxlength="80" placeholder="Phân loại 1">
           </div>
           <div class="flex-1">
-            <span class="sub-label">Chiều 2</span>
+            <span class="sub-label">Phân loại 2 </span>
             <input type="text" [(ngModel)]="formData.variantAttr2Name" maxlength="80" placeholder="Phân loại 2">
           </div>
         </div>
