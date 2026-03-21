@@ -1,6 +1,6 @@
 <div class="modal-container shadow-lg">
   <div class="modal-header">
-    <h2 class="modal-title">Chi tiết khuyến mãi</h2>
+    <h2 class="modal-title">{{ mode === 'add' ? 'Thêm mới' : 'Chỉnh sửa' }} khuyến mãi</h2>
     <button class="btn-close-x" (click)="goBack.emit()">&times;</button>
   </div>
 
@@ -8,50 +8,64 @@
     <div class="form-grid">
       <div class="form-group">
         <label>Mã khuyến mãi <span class="required">*</span></label>
-        <input type="text" [(ngModel)]="formData.code" placeholder="NEWYEAR25">
+        <input type="text" [(ngModel)]="formData.code" placeholder="VD: NHAPMOI20">
       </div>
       <div class="form-group">
         <label>Tên khuyến mãi <span class="required">*</span></label>
-        <input type="text" [(ngModel)]="formData.name" placeholder="Mừng năm mới - Giảm 25%">
+        <input type="text" [(ngModel)]="formData.name" placeholder="VD: Giảm 20k cho đơn đầu tiên">
       </div>
 
       <div class="form-group full-width">
-        <label>Mô tả</label>
-        <textarea rows="3" [(ngModel)]="formData.description" placeholder="Mô tả chi tiết..."></textarea>
+        <label>Mô tả (Không bắt buộc)</label>
+        <textarea rows="2" [(ngModel)]="formData.description" placeholder="Mô tả chi tiết chương trình..."></textarea>
       </div>
 
       <div class="form-group">
         <label>Loại khuyến mãi <span class="required">*</span></label>
         <select [(ngModel)]="formData.type">
-          <option value="user">Người dùng (User)</option>
+          <option value="order">Tiền hàng</option>
+          <option value="freeship">Phí vận chuyển</option>
         </select>
       </div>
       <div class="form-group">
         <label>Trạng thái <span class="required">*</span></label>
         <select [(ngModel)]="formData.status">
-          <option value="upcoming">Sắp diễn ra (Upcoming)</option>
+          <option value="upcoming">Sắp diễn ra</option>
           <option value="ongoing">Đang diễn ra</option>
+          <option value="expired">Đã kết thúc</option>
         </select>
       </div>
 
       <div class="form-group">
         <label>Loại giảm giá <span class="required">*</span></label>
-        <select [(ngModel)]="formData.discountType">
+        <select [(ngModel)]="formData.discountType" (change)="onDiscountTypeChange()">
           <option value="percent">Phần trăm (%)</option>
+          <option value="fixed">Số tiền cố định (đ)</option>
         </select>
       </div>
+      
       <div class="form-group">
         <label>Giá trị giảm <span class="required">*</span></label>
-        <input type="number" [(ngModel)]="formData.discountValue">
+        <div class="input-with-suffix">
+          <input type="number" 
+                 [(ngModel)]="formData.discountValue" 
+                 [min]="0" 
+                 [max]="formData.discountType === 'percent' ? 100 : null"
+                 placeholder="0">
+          <span class="suffix">{{ formData.discountType === 'percent' ? '%' : 'đ' }}</span>
+        </div>
       </div>
 
       <div class="form-group">
-        <label>Giá trị đơn hàng tối thiểu</label>
-        <input type="number" [(ngModel)]="formData.minOrder">
+        <label>Giá trị đơn hàng tối thiểu (đ)</label>
+        <input type="number" [(ngModel)]="formData.minOrder" placeholder="0">
       </div>
+      
       <div class="form-group">
         <label>Giảm tối đa (đ)</label>
-        <input type="number" [(ngModel)]="formData.maxDiscount">
+        <input type="number" [(ngModel)]="formData.maxDiscount" 
+               [disabled]="formData.discountType === 'fixed'"
+               [placeholder]="formData.discountType === 'fixed' ? 'Không áp dụng' : '0'">
       </div>
 
       <div class="form-group">
@@ -68,11 +82,11 @@
       </div>
 
       <div class="form-group">
-        <label>Giới hạn sử dụng</label>
+        <label>Tổng giới hạn sử dụng <span class="required">*</span></label>
         <input type="number" [(ngModel)]="formData.totalLimit">
       </div>
       <div class="form-group">
-        <label>Giới hạn mỗi người dùng</label>
+        <label>Giới hạn mỗi khách hàng <span class="required">*</span></label>
         <input type="number" [(ngModel)]="formData.userLimit">
       </div>
     </div>
@@ -80,6 +94,64 @@
     <div class="checkbox-group mt-3">
       <input type="checkbox" id="firstOrder" [(ngModel)]="formData.firstOrderOnly">
       <label for="firstOrder">Chỉ áp dụng cho đơn hàng đầu tiên</label>
+    </div>
+
+    <hr class="form-divider" />
+
+    <div class="form-group full-width">
+      <label>Phạm vi áp dụng <span class="required">*</span></label>
+      <select [(ngModel)]="formData.applyScope" class="form-select">
+        <option value="all">Toàn bộ cửa hàng</option>
+        <option value="category">Danh mục sản phẩm</option>
+        <option value="product">Sản phẩm cụ thể</option>
+      </select>
+    </div>
+
+    <div class="selection-container mt-2" *ngIf="formData.applyScope === 'category'">
+      <label class="sub-label">Chọn các danh mục áp dụng:</label>
+      <div class="scroll-list shadow-sm">
+        <div *ngFor="let cat of categories" class="item-check">
+          <input type="checkbox" 
+                 [id]="'cat-' + cat._id" 
+                 [checked]="isSelected(cat._id, 'category')"
+                 (change)="toggleSelection(cat._id, 'category')">
+          <label [for]="'cat-' + cat._id">{{ cat.name }}</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="selection-container mt-2" *ngIf="formData.applyScope === 'product'">
+      <label class="sub-label">Chọn sản phẩm theo từng danh mục:</label>
+      <div class="product-selection-grid">
+        <div class="category-sidebar">
+          <div *ngFor="let cat of categories" 
+               class="cat-item" 
+               [class.active]="selectedCatNameForProd === cat.name"
+               (click)="chonDanhMucDeLoc(cat.name)">
+            {{ cat.name }}
+          </div>
+        </div>
+
+        <div class="scroll-list product-list shadow-sm">
+          <div *ngIf="filteredProductsByCat.length === 0" class="no-data p-3">
+            Không có sản phẩm nào trong danh mục này.
+          </div>
+          <div *ngFor="let prod of filteredProductsByCat" class="item-check">
+            <input type="checkbox" 
+                   [id]="'prod-' + prod._id" 
+                   [checked]="isSelected(prod._id, 'product')"
+                   (change)="toggleSelection(prod._id, 'product')">
+            <label [for]="'prod-' + prod._id">
+              {{ prod.name }} 
+              <span class="text-danger ms-1" *ngIf="prod.price">({{ prod.price | number }}đ)</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="alert-error" *ngIf="errorMessage">
+      <i class="bi bi-exclamation-circle-fill"></i> {{ errorMessage }}
     </div>
   </div>
 

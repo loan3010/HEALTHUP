@@ -21,7 +21,6 @@
   background-position: center;
   background-repeat: no-repeat;
   opacity: 0;
-  /* Fade + scale nhẹ cho cảm giác sống động */
   transform: scale(1.04);
   transition: opacity 0.75s ease, transform 0.75s ease;
   pointer-events: none;
@@ -33,8 +32,6 @@
   pointer-events: auto;
 }
 
-/* ── Overlay gradient mạnh phía trái, mờ dần → đảm bảo text luôn đọc được
-      dù ảnh sáng hay tối ── */
 .banner-overlay {
   position: absolute;
   inset: 0;
@@ -152,7 +149,7 @@
 .banner-prev { left: 22px; }
 .banner-next { right: 22px; }
 
-/* ── Footer: dots + counter ── */
+/* ── Footer: dots ── */
 .banner-footer {
   position: absolute;
   bottom: 22px;
@@ -160,7 +157,6 @@
   transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: 16px;
   z-index: 20;
 }
 
@@ -191,13 +187,6 @@
 .banner-dot:hover:not(.active) {
   background: rgba(255,255,255,0.5);
   border-color: rgba(255,255,255,0.8);
-}
-
-.banner-counter {
-  font-size: 12px;
-  font-weight: 700;
-  color: rgba(255,255,255,0.75);
-  letter-spacing: 0.8px;
 }
 
 /* ── Responsive ── */
@@ -519,3 +508,33 @@
 .blog-meta   { font-size: 12px; color: #A2C37F; }
 .blog-read   { font-size: 13px; font-weight: 600; color: #D4A017; transition: color 0.2s; }
 .blog-read:hover { color: #B8860B; }
+
+/* ===== OOS OVERLAY ===== */
+.oos-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.38);
+  border-radius: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.oos-label {
+  background: rgba(255, 255, 255, 0.92);
+  color: #C62828;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 14px;
+  border-radius: 20px;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.btn-add:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}

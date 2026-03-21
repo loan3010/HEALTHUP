@@ -46,3 +46,9 @@ node_modules/
 .angular/
 dist/
 .env
+
+.angular/
+**/vite/
+
+node_modules/
+.angular/cache/

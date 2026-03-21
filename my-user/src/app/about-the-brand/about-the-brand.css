@@ -19,7 +19,6 @@
   overflow: hidden;
 }
 
-/* Vòng trang trí nền */
 .hero::before {
   content: '';
   position: absolute;
@@ -42,6 +41,25 @@
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.04);
   pointer-events: none;
+}
+
+/* Hình nền hero */
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.hero-bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.25;
+}
+
+/* Overlay tối hơn khi có hình nền */
+.hero-has-image {
+  background: linear-gradient(135deg, #1a4a27ee 0%, #2f6f3ecc 50%, #3d8a50bb 100%);
 }
 
 .hero-content {
@@ -71,7 +89,6 @@
   margin: 0 auto 36px;
 }
 
-/* Đường kẻ trang trí dưới hero */
 .hero-divider {
   width: 60px;
   height: 3px;
@@ -101,7 +118,6 @@
   line-height: 1.2;
 }
 
-/* Gạch nhấn dưới tiêu đề */
 .story-text h2::after {
   content: '';
   display: block;
@@ -155,7 +171,6 @@
   box-shadow: 0 20px 60px rgba(47, 111, 62, 0.15);
 }
 
-/* Nếu sau này có thêm ảnh thật */
 .story-image img {
   width: 100%;
   height: 100%;
@@ -163,7 +178,6 @@
   border-radius: 24px;
 }
 
-/* Placeholder decoration */
 .story-image::after {
   content: '';
   position: absolute;
@@ -395,7 +409,6 @@
   align-items: center;
 }
 
-/* LEFT */
 .distribution-left h3 {
   font-size: 28px;
   font-weight: 800;
@@ -492,6 +505,26 @@
 }
 
 /* =====================
+   PLACEHOLDER (khi chưa có hình)
+===================== */
+.img-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #c8ecd2, #e8f5e9);
+  border-radius: 16px;
+  font-size: 48px;
+  opacity: 0.6;
+}
+
+.story-image .img-placeholder {
+  border-radius: 24px;
+  height: 440px;
+}
+
+/* =====================
    RESPONSIVE
 ===================== */
 @media (max-width: 1100px) {
@@ -579,6 +612,7 @@
     height: 200px;
   }
 }
+
 /* =====================
    SCROLL FADE-IN
 ===================== */

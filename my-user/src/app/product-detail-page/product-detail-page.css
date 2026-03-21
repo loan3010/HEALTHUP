@@ -841,3 +841,72 @@
   align-items: center;
   gap: 8px;
 }
+/* ══════════════════════════════════════════════
+   OVERLAY: TẠM HẾT HÀNG
+   Dùng cho gallery ảnh chính + card liên quan
+   ══════════════════════════════════════════════ */
+
+/* Overlay nền mờ phủ lên ảnh */
+.out-of-stock-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.38);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  border-radius: inherit;
+}
+
+/* Vòng tròn xám giữa */
+.out-of-stock-circle {
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  background: rgba(80, 80, 80, 0.82);
+  border: 2.5px solid rgba(255,255,255,0.55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #fff;
+  text-align: center;
+  padding: 12px;
+}
+
+.out-of-stock-circle i {
+  font-size: 1.6rem;
+  opacity: 0.9;
+}
+
+.out-of-stock-circle span {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.3;
+}
+
+/* Phiên bản nhỏ cho card sản phẩm liên quan */
+.out-of-stock-circle.small {
+  width: 84px;
+  height: 84px;
+  gap: 4px;
+}
+.out-of-stock-circle.small i    { font-size: 1.1rem; }
+.out-of-stock-circle.small span { font-size: 0.55rem; }
+
+/* Nút bị disable khi hết hàng */
+.btn-cart:disabled,
+.btn-buy:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+  filter: grayscale(0.4);
+}
+
+.btn-add:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
