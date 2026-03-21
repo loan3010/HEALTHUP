@@ -2,9 +2,10 @@ const express  = require('express');
 const mongoose = require('mongoose');
 const router   = express.Router();
 
-const Order   = require('../models/Order');
-const Product = require('../models/Product');
-const Cart    = require('../models/Cart');
+const Order     = require('../models/Order');
+const Product   = require('../models/Product');
+const Cart      = require('../models/Cart');
+const Promotion = require('../models/Promotion');
 
 // ======================= HELPER =======================
 
@@ -17,10 +18,45 @@ function calcShipping(subTotal, shippingMethod) {
   return subTotal > 500000 ? 0 : 20000;
 }
 
-function calcDiscount(voucherCode, subTotal, shippingFee) {
-  if (voucherCode === 'SALE10')   return subTotal * 0.1;
-  if (voucherCode === 'FREESHIP') return shippingFee;
-  return 0;
+/**
+ * FIX: Tính discount từ DB thay vì hardcode.
+ * Trả về { discountAmount, discountOnType }
+ */
+async function calcDiscountFromDB(voucherCode, subTotal, shippingFee) {
+  if (!voucherCode) return { discountAmount: 0, discountOnType: null };
+
+  const now   = new Date();
+  const promo = await Promotion.findOne({
+    code:      voucherCode.trim().toUpperCase(),
+    status:    'ongoing',
+    startDate: { $lte: now },
+    endDate:   { $gte: now },
+  });
+
+  if (!promo) return { discountAmount: 0, discountOnType: null };
+  if (promo.totalLimit > 0 && promo.usedCount >= promo.totalLimit) {
+    return { discountAmount: 0, discountOnType: null };
+  }
+  if (subTotal < promo.minOrder) return { discountAmount: 0, discountOnType: null };
+
+  let discountAmount = 0;
+  let discountOnType = 'items';
+
+  if (promo.discountType === 'freeship') {
+    discountAmount = Number(shippingFee);
+    discountOnType = 'shipping';
+  } else if (promo.discountType === 'percent') {
+    discountAmount = Math.round(subTotal * promo.discountValue / 100);
+    if (promo.maxDiscount > 0 && discountAmount > promo.maxDiscount) {
+      discountAmount = promo.maxDiscount;
+    }
+    discountOnType = 'items';
+  } else if (promo.discountType === 'fixed') {
+    discountAmount = promo.discountValue;
+    discountOnType = 'items';
+  }
+
+  return { discountAmount, discountOnType };
 }
 
 // ======================= CREATE ORDER =======================
@@ -118,11 +154,14 @@ router.post('/', async (req, res) => {
       });
     }
 
-    const ship  = calcShipping(subTotal, shippingMethod);
-    const disc  = calcDiscount(voucherCode, subTotal, ship);
+    const ship = calcShipping(subTotal, shippingMethod);
+
+    // FIX: Tính discount từ DB
+    const { discountAmount: disc, discountOnType } = await calcDiscountFromDB(voucherCode, subTotal, ship);
+
     const total = Math.max(0, subTotal + ship - disc);
 
-    // Build order data — gắn userId nếu hợp lệ
+    // Build order data
     const orderData = {
       customer: {
         fullName: customer.fullName,
@@ -141,6 +180,7 @@ router.post('/', async (req, res) => {
       subTotal,
       shippingFee:    ship,
       discount:       disc,
+      discountOnType: discountOnType || null, // FIX: lưu thêm loại giảm
       total,
       status:         'pending',
       userId:         null,
@@ -152,7 +192,15 @@ router.post('/', async (req, res) => {
 
     const order = await Order.create(orderData);
 
-    // ✅ Xóa các sản phẩm đã mua khỏi cart trên DB
+    // Tăng usedCount voucher
+    if (voucherCode) {
+      await Promotion.updateOne(
+        { code: voucherCode.trim().toUpperCase() },
+        { $inc: { usedCount: 1 } }
+      );
+    }
+
+    // Xóa các sản phẩm đã mua khỏi cart trên DB
     if (order.userId) {
       const boughtIds = orderItems.map(i => String(i.productId));
       try {
@@ -178,7 +226,6 @@ router.post('/', async (req, res) => {
         p.stock = Math.max(0, Number(p.stock || 0) - Number(item.quantity || 0));
       }
 
-      // Đồng bộ tồn tổng từ biến thể nếu sản phẩm đang dùng variants
       if (Array.isArray(p.variants) && p.variants.length > 0) {
         p.stock = p.variants.reduce((sum, v) => sum + Number(v.stock || 0), 0);
       }
@@ -201,11 +248,9 @@ router.post('/', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const { userId } = req.query;
-
     const filter = userId && mongoose.Types.ObjectId.isValid(userId)
       ? { userId: new mongoose.Types.ObjectId(userId) }
       : {};
-
     const orders = await Order.find(filter).sort({ createdAt: -1 });
     res.json(orders);
   } catch (err) {

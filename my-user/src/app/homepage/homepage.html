@@ -3,7 +3,6 @@
      ═══════════════════════════════════════════ -->
 <section class="banner-slider" (mouseenter)="resetTimer()" (mouseleave)="startTimer()">
 
-  <!-- Slides -->
   <div class="banner-track">
     <div
       class="banner-slide"
@@ -11,10 +10,8 @@
       [class.active]="i === currentBanner"
       [style.backgroundImage]="'url(' + slide.image + ')'">
 
-      <!-- Gradient overlay mạnh hơn phía trái để text luôn đọc được -->
       <div class="banner-overlay"></div>
 
-      <!-- Nội dung -->
       <div class="banner-content" [class.visible]="i === currentBanner">
         <p class="banner-eyebrow">
           <i class="bi bi-leaf-fill me-2"></i>HealthUp — Sống khoẻ mỗi ngày
@@ -32,23 +29,13 @@
     </div>
   </div>
 
-  <!-- Nút PREV -->
-  <button
-    class="banner-arrow banner-prev"
-    (click)="prevBanner()"
-    aria-label="Slide trước">
+  <button class="banner-arrow banner-prev" (click)="prevBanner()" aria-label="Slide trước">
     <i class="bi bi-chevron-left"></i>
   </button>
-
-  <!-- Nút NEXT -->
-  <button
-    class="banner-arrow banner-next"
-    (click)="nextBanner()"
-    aria-label="Slide sau">
+  <button class="banner-arrow banner-next" (click)="nextBanner()" aria-label="Slide sau">
     <i class="bi bi-chevron-right"></i>
   </button>
 
-  <!-- Dots + progress bar -->
   <div class="banner-footer">
     <div class="banner-dots">
       <button
@@ -59,7 +46,6 @@
         [attr.aria-label]="'Xem slide ' + (i + 1)">
       </button>
     </div>
-    <span class="banner-counter">{{ currentBanner + 1 }} / {{ banners.length }}</span>
   </div>
 
 </section>
@@ -156,6 +142,7 @@
             <span class="badge-label badge-new" *ngIf="p.badge === 'new'">Mới</span>
             <span class="badge-label badge-hot" *ngIf="p.badge === 'hot'">Hot</span>
             <span class="badge-label badge-sale" *ngIf="p.sale">{{ p.sale }}</span>
+
             <img
               [src]="p.image || PLACEHOLDER_PRODUCT"
               [alt]="p.name"
@@ -165,9 +152,12 @@
               [class.active]="isWishlisted(p._id)"
               (click)="toggleWishlist($event, p._id, p.name)"
               [attr.aria-label]="isWishlisted(p._id) ? 'Bỏ yêu thích' : 'Thêm yêu thích'">
-              <i class="bi" [class.bi-heart-fill]="isWishlisted(p._id)" [class.bi-heart]="!isWishlisted(p._id)"></i>
+              <i class="bi"
+                 [class.bi-heart-fill]="isWishlisted(p._id)"
+                 [class.bi-heart]="!isWishlisted(p._id)"></i>
             </button>
           </div>
+
           <div class="p-3">
             <div class="product-cat mb-1">{{ p.cat }}</div>
             <div class="product-name mb-1">{{ p.name }}</div>
@@ -183,7 +173,13 @@
                   <span class="ms-1">({{ p.reviewCount || p.reviews || 0 }})</span>
                 </div>
               </div>
-              <button class="btn-add" (click)="addToCart($event, p)" aria-label="Thêm vào giỏ">
+              <!-- FIX: Disabled khi hết hàng -->
+              <button
+                class="btn-add"
+                [disabled]="isOutOfStock(p)"
+                [title]="isOutOfStock(p) ? 'Sản phẩm đã hết hàng' : 'Thêm vào giỏ hàng'"
+                (click)="addToCart($event, p)"
+                aria-label="Thêm vào giỏ">
                 <i class="bi bi-plus"></i>
               </button>
             </div>
