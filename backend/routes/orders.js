@@ -1,6 +1,9 @@
 const express  = require('express');
 const mongoose = require('mongoose');
+const path     = require('path');
+const fs       = require('fs');
 const router   = express.Router();
+const multer   = require('multer');
 
 const Order   = require('../models/Order');
 const Product = require('../models/Product');
@@ -9,6 +12,36 @@ const User    = require('../models/User');
 const Promotion = require('../models/Promotion');
 const OrderAuditLog = require('../models/OrderAuditLog');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
+
+// ======================= MULTER CONFIG =======================
+// Lưu ảnh vào backend/public/uploads/returns/
+const returnStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = path.join(__dirname, '../public/images/returns');
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const ext  = path.extname(file.originalname).toLowerCase();
+    const name = `return_${Date.now()}_${Math.random().toString(36).slice(2, 8)}${ext}`;
+    cb(null, name);
+  }
+});
+
+const fileFilter = (req, file, cb) => {
+  const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+  if (allowed.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Chỉ chấp nhận file ảnh (jpg, png, webp, gif)'), false);
+  }
+};
+
+const uploadReturnImages = multer({
+  storage: returnStorage,
+  fileFilter,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB mỗi ảnh
+}).array('images', 5); // tối đa 5 ảnh
 
 // ======================= HELPER =======================
 
@@ -21,10 +54,6 @@ function calcShipping(subTotal, shippingMethod) {
   return subTotal > 500000 ? 0 : 20000;
 }
 
-/**
- * Tính discount từ DB theo type của promo.
- * Trả về { discountAmount, discountOnType }
- */
 async function calcDiscountFromDB(voucherCode, subTotal, shippingFee) {
   if (!voucherCode) return { discountAmount: 0, discountOnType: null };
 
@@ -43,11 +72,9 @@ async function calcDiscountFromDB(voucherCode, subTotal, shippingFee) {
   if (subTotal < promo.minOrder) return { discountAmount: 0, discountOnType: null };
 
   let discountAmount = 0;
-  // Dùng promo.type làm chuẩn phân loại (order | shipping)
   const discountOnType = (promo.type === 'shipping') ? 'shipping' : 'items';
 
   if (promo.type === 'shipping') {
-    // Mã giảm phí vận chuyển
     if (promo.discountType === 'percent') {
       discountAmount = Math.round(Number(shippingFee) * promo.discountValue / 100);
       if (promo.maxDiscount > 0 && discountAmount > promo.maxDiscount) {
@@ -56,11 +83,9 @@ async function calcDiscountFromDB(voucherCode, subTotal, shippingFee) {
     } else if (promo.discountType === 'fixed') {
       discountAmount = Math.min(promo.discountValue, Number(shippingFee));
     } else {
-      // freeship → giảm toàn bộ phí ship
       discountAmount = Number(shippingFee);
     }
   } else {
-    // Mã giảm tiền hàng (promo.type === 'order')
     if (promo.discountType === 'percent') {
       discountAmount = Math.round(subTotal * promo.discountValue / 100);
       if (promo.maxDiscount > 0 && discountAmount > promo.maxDiscount) {
@@ -89,7 +114,6 @@ function normalizePhone(phone) {
 const ORDER_STATUS = ['pending', 'confirmed', 'shipping', 'delivered', 'cancelled'];
 const RETURN_STATUS = ['none', 'requested', 'completed'];
 
-// Rule chuyển trạng thái đúng nghiệp vụ admin đã chốt.
 const NEXT_STATUS = {
   pending: ['confirmed', 'cancelled'],
   confirmed: ['shipping'],
@@ -177,16 +201,10 @@ async function generateNextOrderCode() {
 router.post('/', async (req, res) => {
   try {
     const {
-      customer,
-      items,
-      shippingMethod,
-      paymentMethod,
-      voucherCode,     // mã giảm tiền hàng
-      shipVoucherCode, // mã giảm phí vận chuyển
-      userId
+      customer, items, shippingMethod, paymentMethod,
+      voucherCode, shipVoucherCode, userId
     } = req.body;
 
-    // Validate customer
     if (!customer?.fullName || !customer?.phone || !customer?.address) {
       return res.status(400).json({ message: 'Thiếu thông tin khách hàng' });
     }
@@ -197,7 +215,6 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ message: 'Giỏ hàng trống' });
     }
 
-    // Validate items
     const normalizedIn = items.map(i => ({
       productId:    String(i.productId || '').trim(),
       variantId:    String(i.variantId || '').trim(),
@@ -208,7 +225,6 @@ router.post('/', async (req, res) => {
     const invalidIds = normalizedIn
       .filter(i => !mongoose.Types.ObjectId.isValid(i.productId))
       .map(i => i.productId);
-
     if (invalidIds.length) {
       return res.status(400).json({ message: 'productId không hợp lệ', invalidIds });
     }
@@ -216,7 +232,6 @@ router.post('/', async (req, res) => {
     const invalidVariantIds = normalizedIn
       .filter(i => i.variantId && !mongoose.Types.ObjectId.isValid(i.variantId))
       .map(i => i.variantId);
-
     if (invalidVariantIds.length) {
       return res.status(400).json({ message: 'variantId không hợp lệ', invalidVariantIds });
     }
@@ -225,15 +240,11 @@ router.post('/', async (req, res) => {
     const products = await Product.find({ _id: { $in: ids } }).lean();
     const map      = new Map(products.map(p => [String(p._id), p]));
 
-    const missing = normalizedIn
-      .filter(i => !map.has(i.productId))
-      .map(i => i.productId);
-
+    const missing = normalizedIn.filter(i => !map.has(i.productId)).map(i => i.productId);
     if (missing.length) {
       return res.status(400).json({ message: 'Có sản phẩm không tồn tại', missing });
     }
 
-    // Build order items
     let subTotal   = 0;
     const orderItems = [];
 
@@ -244,18 +255,14 @@ router.post('/', async (req, res) => {
       if (i.variantId && mongoose.Types.ObjectId.isValid(i.variantId)) {
         variant = (p.variants || []).find(v => String(v._id) === String(i.variantId));
         if (!variant) {
-          return res.status(400).json({
-            message: `Biến thể không tồn tại cho sản phẩm ${p.name}`
-          });
+          return res.status(400).json({ message: `Biến thể không tồn tại cho sản phẩm ${p.name}` });
         }
       }
 
       const qty       = i.quantity;
       const available = Number(variant?.stock ?? p.stock ?? 0);
       if (qty > available) {
-        return res.status(400).json({
-          message: `Sản phẩm "${p.name}" chỉ còn ${available} trong kho`
-        });
+        return res.status(400).json({ message: `Sản phẩm "${p.name}" chỉ còn ${available} trong kho` });
       }
 
       const price = Number(variant?.price ?? p.price ?? 0);
@@ -273,19 +280,11 @@ router.post('/', async (req, res) => {
     }
 
     const ship = calcShipping(subTotal, shippingMethod);
-
-    // Tính discount tiền hàng (voucherCode)
-    const { discountAmount: discOrder, discountOnType: typeOrder } =
-      await calcDiscountFromDB(voucherCode, subTotal, ship);
-
-    // Tính discount phí ship (shipVoucherCode)
-    const { discountAmount: discShip, discountOnType: typeShip } =
-      await calcDiscountFromDB(shipVoucherCode, subTotal, ship);
-
+    const { discountAmount: discOrder } = await calcDiscountFromDB(voucherCode, subTotal, ship);
+    const { discountAmount: discShip }  = await calcDiscountFromDB(shipVoucherCode, subTotal, ship);
     const totalDiscount = discOrder + discShip;
     const total = Math.max(0, subTotal - discOrder + ship - discShip);
 
-    // Build order data
     const orderData = {
       customer: {
         fullName: customer.fullName,
@@ -318,7 +317,6 @@ router.post('/', async (req, res) => {
 
     let order = null;
     let lastErr = null;
-    // Retry để tránh đụng unique orderCode khi tạo đơn đồng thời.
     for (let i = 0; i < 4; i += 1) {
       try {
         orderData.orderCode = await generateNextOrderCode();
@@ -332,27 +330,19 @@ router.post('/', async (req, res) => {
     }
     if (!order) throw lastErr || new Error('Không thể tạo mã đơn hàng');
 
-    // Tăng usedCount cho cả 2 voucher nếu có
     const voucherUpdates = [];
     if (voucherCode) {
-      voucherUpdates.push(
-        Promotion.updateOne(
-          { code: voucherCode.trim().toUpperCase() },
-          { $inc: { usedCount: 1 } }
-        )
-      );
+      voucherUpdates.push(Promotion.updateOne(
+        { code: voucherCode.trim().toUpperCase() }, { $inc: { usedCount: 1 } }
+      ));
     }
     if (shipVoucherCode) {
-      voucherUpdates.push(
-        Promotion.updateOne(
-          { code: shipVoucherCode.trim().toUpperCase() },
-          { $inc: { usedCount: 1 } }
-        )
-      );
+      voucherUpdates.push(Promotion.updateOne(
+        { code: shipVoucherCode.trim().toUpperCase() }, { $inc: { usedCount: 1 } }
+      ));
     }
     if (voucherUpdates.length) await Promise.all(voucherUpdates);
 
-    // Xóa sản phẩm đã mua khỏi cart trên DB
     if (order.userId) {
       const boughtIds = orderItems.map(i => String(i.productId));
       try {
@@ -364,36 +354,21 @@ router.post('/', async (req, res) => {
       } catch (e) { /* không chặn response nếu lỗi xóa cart */ }
     }
 
-    // Trừ kho + cộng sold sau khi tạo đơn thành công
     for (const item of orderItems) {
       const p = await Product.findById(item.productId);
       if (!p) continue;
-
       if (item.variantId) {
-        const idx = (p.variants || []).findIndex(
-          v => String(v._id) === String(item.variantId)
-        );
+        const idx = (p.variants || []).findIndex(v => String(v._id) === String(item.variantId));
         if (idx >= 0) {
-          p.variants[idx].stock = Math.max(
-            0,
-            Number(p.variants[idx].stock || 0) - Number(item.quantity || 0)
-          );
+          p.variants[idx].stock = Math.max(0, Number(p.variants[idx].stock || 0) - Number(item.quantity || 0));
         }
       } else {
-        p.stock = Math.max(
-          0,
-          Number(p.stock || 0) - Number(item.quantity || 0)
-        );
+        p.stock = Math.max(0, Number(p.stock || 0) - Number(item.quantity || 0));
       }
-
-      // Đồng bộ stock tổng từ variants
       if (Array.isArray(p.variants) && p.variants.length > 0) {
         p.stock = p.variants.reduce((sum, v) => sum + Number(v.stock || 0), 0);
       }
-
-      // FIX: Cộng số lượng đã bán
       p.sold = Number(p.sold || 0) + Number(item.quantity || 0);
-
       await p.save();
     }
 
@@ -441,44 +416,33 @@ router.get('/user/:userId', async (req, res) => {
 // ======================= ADMIN ORDER LIST =======================
 router.get('/admin/list', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const page = Math.max(1, Number(req.query.page || 1));
+    const page  = Math.max(1, Number(req.query.page  || 1));
     const limit = Math.min(100, Math.max(1, Number(req.query.limit || 50)));
-    const skip = (page - 1) * limit;
+    const skip  = (page - 1) * limit;
     const filter = buildAdminOrderFilter(req.query);
-    const sort = getAdminSort(req.query.sortBy, req.query.sortDir);
+    const sort   = getAdminSort(req.query.sortBy, req.query.sortDir);
 
     const [data, total, globalStats] = await Promise.all([
       Order.find(filter).sort(sort).skip(skip).limit(limit).lean(),
       Order.countDocuments(filter),
-      Order.aggregate([
-        {
-          $group: {
-            _id: null,
-            totalOrders: { $sum: 1 },
-            pendingCount: { $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] } },
-            shippingCount: { $sum: { $cond: [{ $eq: ['$status', 'shipping'] }, 1, 0] } },
-            returnRequestedCount: { $sum: { $cond: [{ $eq: ['$returnStatus', 'requested'] }, 1, 0] } },
-            returnCompletedCount: { $sum: { $cond: [{ $eq: ['$returnStatus', 'completed'] }, 1, 0] } }
-          }
+      Order.aggregate([{
+        $group: {
+          _id: null,
+          totalOrders:          { $sum: 1 },
+          pendingCount:         { $sum: { $cond: [{ $eq: ['$status', 'pending'] },           1, 0] } },
+          shippingCount:        { $sum: { $cond: [{ $eq: ['$status', 'shipping'] },          1, 0] } },
+          returnRequestedCount: { $sum: { $cond: [{ $eq: ['$returnStatus', 'requested'] },   1, 0] } },
+          returnCompletedCount: { $sum: { $cond: [{ $eq: ['$returnStatus', 'completed'] },   1, 0] } },
         }
-      ])
+      }])
     ]);
 
     const summary = globalStats?.[0] || {
-      totalOrders: 0,
-      pendingCount: 0,
-      shippingCount: 0,
-      returnRequestedCount: 0,
-      returnCompletedCount: 0
+      totalOrders: 0, pendingCount: 0, shippingCount: 0,
+      returnRequestedCount: 0, returnCompletedCount: 0
     };
 
-    return res.json({
-      data,
-      total,
-      page,
-      totalPages: Math.ceil(total / limit) || 1,
-      summary
-    });
+    return res.json({ data, total, page, totalPages: Math.ceil(total / limit) || 1, summary });
   } catch (err) {
     return res.status(400).json({ message: err.message || 'Không thể tải danh sách đơn hàng' });
   }
@@ -498,10 +462,8 @@ router.get('/admin/:id', authenticateToken, requireAdmin, async (req, res) => {
     if (order.userId && mongoose.Types.ObjectId.isValid(String(order.userId))) {
       user = await User.findById(order.userId).select('customerID username phone email').lean();
     } else if (order.customer?.phone) {
-      const digits = normalizePhone(order.customer.phone);
-      const candidates = await User.find({ role: 'user' })
-        .select('customerID username phone email')
-        .lean();
+      const digits     = normalizePhone(order.customer.phone);
+      const candidates = await User.find({ role: 'user' }).select('customerID username phone email').lean();
       user = candidates.find(u => normalizePhone(u.phone) === digits) || null;
     }
 
@@ -515,12 +477,12 @@ router.get('/admin/:id', authenticateToken, requireAdmin, async (req, res) => {
     ]);
 
     const totalOrders = Number(stats?.totalOrders || 0);
-    const totalSpent = Number(stats?.totalSpent || 0);
+    const totalSpent  = Number(stats?.totalSpent  || 0);
 
     return res.json({
       ...order,
       customerSummary: {
-        customerID: user?.customerID || '',
+        customerID:     user?.customerID || '',
         membershipTier: getMembershipTier(totalSpent),
         totalOrders,
         totalSpent
@@ -559,12 +521,12 @@ router.patch('/admin/:id/status', authenticateToken, requireAdmin, async (req, r
     await order.save();
 
     await OrderAuditLog.create({
-      orderId: order._id,
-      adminId: String(req.user?.userId || 'unknown-admin'),
-      action: 'status_change',
+      orderId:   order._id,
+      adminId:   String(req.user?.userId || 'unknown-admin'),
+      action:    'status_change',
       fromValue: current,
-      toValue: status,
-      note: String(note || '')
+      toValue:   status,
+      note:      String(note || '')
     });
 
     return res.json(order);
@@ -593,11 +555,7 @@ router.patch('/admin/:id/return-status', authenticateToken, requireAdmin, async 
       return res.status(400).json({ message: 'Đơn đã ở trạng thái trả hàng/hoàn tiền này' });
     }
 
-    const returnFlow = {
-      none: ['requested'],
-      requested: ['completed'],
-      completed: []
-    };
+    const returnFlow = { none: ['requested'], requested: ['completed'], completed: [] };
     if (!(returnFlow[current] || []).includes(returnStatus)) {
       return res.status(400).json({
         message: `Không thể chuyển returnStatus từ "${current}" sang "${returnStatus}"`,
@@ -616,12 +574,12 @@ router.patch('/admin/:id/return-status', authenticateToken, requireAdmin, async 
     await order.save();
 
     await OrderAuditLog.create({
-      orderId: order._id,
-      adminId: String(req.user?.userId || 'unknown-admin'),
-      action: 'return_status_change',
+      orderId:   order._id,
+      adminId:   String(req.user?.userId || 'unknown-admin'),
+      action:    'return_status_change',
       fromValue: current,
-      toValue: returnStatus,
-      note: String(note || '')
+      toValue:   returnStatus,
+      note:      String(note || '')
     });
 
     return res.json(order);
@@ -660,6 +618,94 @@ router.patch('/:id/status', async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
+});
+
+// ======================= USER REQUEST RETURN (có upload ảnh) =======================
+// POST multipart/form-data với fields: reason, note, items (JSON string), images (files)
+
+router.patch('/:id/request-return', authenticateToken, (req, res) => {
+  uploadReturnImages(req, res, async (uploadErr) => {
+    try {
+      if (uploadErr) {
+        return res.status(400).json({ message: uploadErr.message || 'Lỗi upload ảnh' });
+      }
+
+      const { reason, note, items } = req.body;
+
+      if (!reason) {
+        // Xóa ảnh vừa upload nếu validate fail
+        (req.files || []).forEach(f => fs.unlink(f.path, () => {}));
+        return res.status(400).json({ message: 'Vui lòng chọn lý do đổi trả' });
+      }
+
+      if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+        (req.files || []).forEach(f => fs.unlink(f.path, () => {}));
+        return res.status(400).json({ message: 'ID không hợp lệ' });
+      }
+
+      const order = await Order.findById(req.params.id);
+      if (!order) {
+        (req.files || []).forEach(f => fs.unlink(f.path, () => {}));
+        return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
+      }
+
+      if (order.status !== 'delivered') {
+        (req.files || []).forEach(f => fs.unlink(f.path, () => {}));
+        return res.status(400).json({ message: 'Chỉ có thể yêu cầu đổi trả cho đơn đã giao' });
+      }
+
+      if (order.returnStatus && order.returnStatus !== 'none') {
+        (req.files || []).forEach(f => fs.unlink(f.path, () => {}));
+        return res.status(400).json({ message: 'Đơn hàng này đã có yêu cầu đổi trả rồi' });
+      }
+
+      // Parse items nếu là JSON string (do FormData gửi lên)
+      let parsedItems = [];
+      if (items) {
+        try {
+          parsedItems = typeof items === 'string' ? JSON.parse(items) : items;
+        } catch { parsedItems = []; }
+      }
+
+      // Đường dẫn ảnh trả về dạng URL
+      const imageUrls = (req.files || []).map(
+        f => `/images/returns/${f.filename}`
+      );
+
+      order.returnStatus      = 'requested';
+      order.returnRequestedAt = new Date();
+      order.returnReason      = String(reason || '');
+      order.returnNote        = String(note   || '');
+      order.returnImages      = imageUrls;
+
+      if (Array.isArray(parsedItems) && parsedItems.length > 0) {
+        order.returnItems = parsedItems.map(i => ({
+          productId: i.productId,
+          name:      i.name,
+          imageUrl:  i.imageUrl || '',
+          price:     Number(i.price    || 0),
+          quantity:  Number(i.quantity || 0),
+          returnQty: Number(i.returnQty || 0),
+        }));
+      }
+
+      await order.save();
+
+      await OrderAuditLog.create({
+        orderId:   order._id,
+        adminId:   String(req.user?.userId || 'user'),
+        action:    'return_status_change',
+        fromValue: 'none',
+        toValue:   'requested',
+        note:      `User yêu cầu: ${reason}${note ? ' — ' + note : ''}`,
+      });
+
+      return res.json({ message: 'Yêu cầu đổi trả đã được gửi', order });
+    } catch (err) {
+      (req.files || []).forEach(f => fs.unlink(f.path, () => {}));
+      return res.status(500).json({ message: err?.message || 'Server error' });
+    }
+  });
 });
 
 // ======================= DELETE ORDER =======================

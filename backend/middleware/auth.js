@@ -14,7 +14,7 @@ exports.authenticateToken = (req, res, next) => {
       });
     }
 
-    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    jwt.verify(token, process.env.JWT_SECRET || 'secret_key', (err, decoded) => {
       if (err) {
         return res.status(403).json({ 
           message: 'Token không hợp lệ hoặc đã hết hạn' 

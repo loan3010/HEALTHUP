@@ -260,11 +260,7 @@ export class ApiService {
   }
 
   updateReview(reviewId: string, data: {
-    rating: number;
-    text: string;
-    tags?: string[];
-    variant?: string;
-    imgs?: string[];
+    rating: number; text: string; tags?: string[]; variant?: string; imgs?: string[];
   }): Observable<any> {
     return this.http.put<any>(`${API_BASE}/reviews/${reviewId}`, data);
   }
@@ -414,6 +410,31 @@ export class ApiService {
 
   deleteOrder(id: string): Observable<any> {
     return this.http.delete(`${API_BASE}/orders/${id}`);
+  }
+
+  // ── Return APIs ────────────────────────────────────────────────────────────
+
+  requestReturn(orderId: string, data: {
+    reason: string;
+    note?: string;
+    items?: any[];
+    images?: File[];
+  }): Observable<any> {
+    const formData = new FormData();
+    formData.append('reason', data.reason);
+    if (data.note) formData.append('note', data.note);
+    if (data.items && data.items.length > 0) {
+      formData.append('items', JSON.stringify(data.items));
+    }
+    if (data.images && data.images.length > 0) {
+      data.images.forEach(file => formData.append('images', file));
+    }
+    const headers = new HttpHeaders({ Authorization: `Bearer ${this.getToken()}` });
+    return this.http.patch<any>(
+      `${API_BASE}/orders/${orderId}/request-return`,
+      formData,
+      { headers }
+    );
   }
 
   // ════════════════════════════════════════════════════════════════════════════

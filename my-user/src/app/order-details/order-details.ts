@@ -111,6 +111,7 @@ export class OrderDetail implements OnInit {
     const map: Record<string, string> = {
       pending:         'Chờ xác nhận',
       confirmed:       'Chờ giao hàng',
+      shipping:        'Đang giao',
       delivered:       'Đã giao',
       cancelled:       'Đã hủy',
       pending_payment: 'Chờ thanh toán',
