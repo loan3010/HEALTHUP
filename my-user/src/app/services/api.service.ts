@@ -37,7 +37,7 @@ export class ApiService {
   toasts$ = this._toasts.asObservable();
   private _toastCounter = 0;
 
-  // ── Unread notification count ──────────────────────────────────────────────
+  // Stream unread count cho header badge
   private _unreadCount = new BehaviorSubject<number>(0);
   unreadCount$ = this._unreadCount.asObservable();
 
@@ -253,7 +253,7 @@ export class ApiService {
     return this.http.post<any>(`${API_BASE}/reviews`, data);
   }
 
-  uploadReviewImages(files: File[]): Observable<{ urls: string[] }> {
+  uploadReviewImages(files: File[]): Observable<{ urls: string [] }> {
     const formData = new FormData();
     files.forEach(file => formData.append('images', file));
     return this.http.post<{ urls: string[] }>(`${API_BASE}/reviews/upload-images`, formData);
@@ -289,22 +289,58 @@ export class ApiService {
   }
 
   // ════════════════════════════════════════════════════════════════════════════
-  //  Consulting APIs
+  //  Consulting APIs (Hỏi & Đáp)
   // ════════════════════════════════════════════════════════════════════════════
 
+  /**
+   * Lấy danh sách câu hỏi của một sản phẩm (Có phân trang & lọc)
+   */
   getConsultingQuestions(productId: string, filters: {
     filter?: string; page?: number; limit?: number;
   } = {}): Observable<any> {
     let params = new HttpParams();
-    params = params.set('productId', productId);
-    if (filters.filter && filters.filter !== 'all') params = params.set('status', filters.filter);
+    if (filters.filter && filters.filter !== 'all') params = params.set('filter', filters.filter);
     if (filters.page)  params = params.set('page',  filters.page.toString());
     if (filters.limit) params = params.set('limit', filters.limit.toString());
-    return this.http.get<any>(`${API_BASE}/consulting`, { params });
+    
+    return this.http.get<any>(`${API_BASE}/consulting/product/${productId}`, { params });
   }
 
-  submitConsultingQuestion(data: any): Observable<any> {
+  /**
+   * Khách hàng gửi câu hỏi mới
+   */
+  submitConsultingQuestion(data: { productId: string; content: string; user: string }): Observable<any> {
     return this.http.post<any>(`${API_BASE}/consulting`, data);
+  }
+
+  /**
+   * KHÁCH HÀNG: Đánh giá câu trả lời hữu ích hoặc không hữu ích (Like/Dislike)
+   */
+  voteConsultingQuestion(id: string, type: 'up' | 'down'): Observable<any> {
+    return this.http.put(`${API_BASE}/consulting/${id}/vote`, { type });
+  }
+
+  // --- ADMIN METHODS ---
+
+  /**
+   * ADMIN: Lấy tóm tắt câu hỏi của tất cả sản phẩm
+   */
+  getConsultingSummary(): Observable<any[]> {
+    return this.http.get<any[]>(`${API_BASE}/consulting/admin/summary`);
+  }
+
+  /**
+   * ADMIN: Trả lời câu hỏi (kèm tên Admin thực hiện)
+   */
+  replyConsultingQuestion(questionId: string, answer: string, answeredBy: string): Observable<any> {
+    return this.http.put(`${API_BASE}/consulting/${questionId}/reply`, { answer, answeredBy });
+  }
+
+  /**
+   * ADMIN: Xóa câu hỏi tư vấn
+   */
+  deleteConsultingQuestion(id: string): Observable<any> {
+    return this.http.delete(`${API_BASE}/consulting/${id}`);
   }
 
   // ════════════════════════════════════════════════════════════════════════════

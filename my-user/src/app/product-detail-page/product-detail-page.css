@@ -354,7 +354,6 @@
   color: #36873A;
 }
 
-/* Dùng lại toàn bộ .product-card, .product-img-wrap, .btn-add, ... từ homepage */
 .product-card {
   background: #fff;
   border-radius: 14px;
@@ -493,11 +492,17 @@
 
 /* =====================================================================
    TƯ VẤN SẢN PHẨM (USER SIDE)
-   Đồng bộ visual với admin consulting, dùng design system chung
    ===================================================================== */
 
 .consulting-section {
   background: #FAF6F0;
+}
+
+/* THU GỌN DIỆN TÍCH NGANG CỦA KHU VỰC TƯ VẤN (QUAN TRỌNG NHẤT) */
+.consulting-section > .container {
+  max-width: 850px !important;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* Header thống kê tư vấn */
@@ -545,13 +550,13 @@
 }
 
 .consulting-ask-title {
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 700;
   color: #36873A;
 }
 
 .consulting-ask-desc {
-  font-size: 14px;
+  font-size: 13px;
   color: #A2C37F;
 }
 
@@ -587,8 +592,8 @@
   color: #fff;
   border: none;
   border-radius: 16px;
-  padding: 12px 32px;
-  font-size: 14px;
+  padding: 10px 24px;
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.25s;
@@ -650,6 +655,7 @@
   box-shadow: 0 2px 16px rgba(54, 135, 58, 0.07);
   transition: box-shadow 0.2s, border-color 0.2s;
   position: relative;
+  overflow: hidden;
 }
 
 .question-card-user:hover {
@@ -688,13 +694,13 @@
 
 /* User info */
 .q-user-avatar {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   color: #fff;
   flex-shrink: 0;
@@ -707,7 +713,7 @@
 }
 
 .q-time {
-  font-size: 12px;
+  font-size: 11px;
   color: #A2C37F;
 }
 
@@ -720,7 +726,7 @@
 }
 
 .q-content-text {
-  font-size: 15px;
+  font-size: 14px;
   color: #1a1a1a;
   line-height: 1.65;
   font-weight: 500;
@@ -743,7 +749,7 @@
 }
 
 .q-answer-text {
-  font-size: 14px;
+  font-size: 13px;
   color: #36873A;
   line-height: 1.75;
 }
@@ -753,8 +759,8 @@
   color: #A2C37F;
 }
 
-/* Helpful buttons */
-.q-helpful-text { font-size: 13px; color: #A2C37F; }
+/* Nút đánh giá được tinh gọn lại */
+.q-helpful-text { font-size: 12px; color: #A2C37F; }
 
 .q-helpful-btn {
   display: inline-flex;
@@ -764,7 +770,7 @@
   border: 1.5px solid #F0F7F0;
   border-radius: 999px;
   background: #fff;
-  font-size: 13px;
+  font-size: 12px;
   color: #36873A;
   cursor: pointer;
   transition: all 0.2s;
@@ -783,7 +789,7 @@
 }
 
 .consulting-empty-title {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   color: #36873A;
 }
@@ -814,8 +820,8 @@
   color: #36873A;
   border: 2px solid #F0F7F0;
   border-radius: 16px;
-  padding: 12px 40px;
-  font-size: 14px;
+  padding: 10px 32px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
@@ -828,25 +834,25 @@
 
 .btn-load-more-q:disabled { opacity: 0.5; cursor: wait; }
 
-/* Success toast */
+/* Success message */
 .ask-success-msg {
   background: #F0F7F0;
   border: 1px solid rgba(162, 195, 127, 0.30);
   border-radius: 10px;
   padding: 12px 16px;
-  font-size: 14px;
+  font-size: 13px;
   color: #36873A;
   font-weight: 600;
   display: flex;
   align-items: center;
   gap: 8px;
 }
-/* ══════════════════════════════════════════════
+
+/* =====================================================================
    OVERLAY: TẠM HẾT HÀNG
    Dùng cho gallery ảnh chính + card liên quan
-   ══════════════════════════════════════════════ */
+   ===================================================================== */
 
-/* Overlay nền mờ phủ lên ảnh */
 .out-of-stock-overlay {
   position: absolute;
   inset: 0;
@@ -858,7 +864,6 @@
   border-radius: inherit;
 }
 
-/* Vòng tròn xám giữa */
 .out-of-stock-circle {
   width: 130px;
   height: 130px;
@@ -876,10 +881,7 @@
   padding: 12px;
 }
 
-.out-of-stock-circle i {
-  font-size: 1.6rem;
-  opacity: 0.9;
-}
+.out-of-stock-circle i { font-size: 1.6rem; opacity: 0.9; }
 
 .out-of-stock-circle span {
   font-size: 0.65rem;
@@ -889,13 +891,12 @@
   line-height: 1.3;
 }
 
-/* Phiên bản nhỏ cho card sản phẩm liên quan */
 .out-of-stock-circle.small {
   width: 84px;
   height: 84px;
   gap: 4px;
 }
-.out-of-stock-circle.small i    { font-size: 1.1rem; }
+.out-of-stock-circle.small i     { font-size: 1.1rem; }
 .out-of-stock-circle.small span { font-size: 0.55rem; }
 
 /* Nút bị disable khi hết hàng */

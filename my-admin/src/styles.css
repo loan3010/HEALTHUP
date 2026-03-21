@@ -15,12 +15,16 @@
   --text-gray: #6c757d;
 }
 
-body {
-  background-color: var(--bg-color);
-  color: var(--text-dark);
-  font-family: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+/* --- QUAN TRỌNG: KHÓA THANH CUỘN TRÌNH DUYỆT --- */
+/* Ép toàn bộ khung nhìn đứng im để các component tự cuộn bên trong */
+html, body {
+  height: 100% !important;
   margin: 0;
   padding: 0;
+  overflow: hidden !important; /* Triệt tiêu thanh cuộn lớn của trình duyệt */
+  font-family: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-dark);
 }
 
 button,
@@ -30,7 +34,7 @@ textarea {
   font-family: inherit;
 }
 
-/* Style cho Sidebar */
+/* --- STYLE CHO SIDEBAR --- */
 .admin-sidebar {
   width: 250px;
   height: 100vh;
@@ -56,17 +60,33 @@ textarea {
   color: var(--bg-color);
 }
 
-/* Đặt ở đây để nó không bị chặn bởi cơ chế đóng gói của Angular */
+/* --- HỆ THỐNG MODAL OVERLAY --- */
+/* Đặt ở đây để không bị chặn bởi cơ chế đóng gói (Encapsulation) của Angular */
 .modal-overlay {
-  position: fixed; /* Bắt buộc phải là fixed để thoát khỏi luồng hiển thị của bảng */
+  position: fixed; /* Cố định vị trí thoát khỏi luồng hiển thị thông thường */
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.4); /* Nền mờ */
-  backdrop-filter: blur(5px); /* Hiệu ứng blur bà thích */
+  background: rgba(0, 0, 0, 0.4); /* Nền tối mờ */
+  backdrop-filter: blur(8px); /* Hiệu ứng làm mờ nền chiều sâu */
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 99999 !important; /* Số cực lớn và dùng !important để đè bẹp mọi thứ khác */
+  z-index: 99999 !important; /* Đảm bảo luôn nằm trên cùng mọi thành phần khác */
+}
+
+/* --- CẤU TRÚC LAYOUT TỔNG (Gợi ý thêm nếu bà cần dùng class bọc) --- */
+.admin-wrapper {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.admin-main-panel {
+  flex: 1;
+  height: 100vh;
+  overflow: hidden; /* Đảm bảo panel chính cũng không tự sinh scrollbar lạ */
+  display: flex;
+  flex-direction: column;
 }
