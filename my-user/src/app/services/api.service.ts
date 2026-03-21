@@ -29,7 +29,7 @@ export class ApiService {
   private _cartCount = new BehaviorSubject<number>(0);
   cartCount$ = this._cartCount.asObservable();
 
-  // ── Wishlist stream (danh sách productId đã thích) ─────────────────────────
+  // ── Wishlist stream ────────────────────────────────────────────────────────
   private _wishlist = new BehaviorSubject<string[]>([]);
   wishlist$ = this._wishlist.asObservable();
 
@@ -40,7 +40,7 @@ export class ApiService {
 
   constructor(private http: HttpClient) {
     this.refreshCartCount();
-    this.refreshWishlist(); // load wishlist từ backend khi khởi động
+    this.refreshWishlist();
   }
 
   // ════════════════════════════════════════════════════════════════════════════
@@ -91,38 +91,30 @@ export class ApiService {
   }
 
   // ════════════════════════════════════════════════════════════════════════════
-  //  Wishlist API (đồng bộ với backend)
+  //  Wishlist API
   // ════════════════════════════════════════════════════════════════════════════
 
-  // Load danh sách wishlist từ backend, chỉ lấy mảng _id để so sánh nhanh
   refreshWishlist(): void {
     const userId = this.getUserId();
     if (!userId || !this.getToken()) return;
-
     this.http.get<any>(`${API_BASE}/users/${userId}/wishlist`, {
       headers: this.authHeaders()
     }).subscribe({
       next: (res) => {
         const items: any[] = res?.wishlist || [];
-        // Chỉ lưu mảng _id string để isWishlisted() check nhanh
         const ids = items.map((p: any) =>
           typeof p === 'string' ? p : String(p._id || p)
         );
         this._wishlist.next(ids);
       },
-      error: () => { /* silent — user chưa login */ }
+      error: () => {}
     });
   }
 
-  getWishlist(): string[] {
-    return this._wishlist.getValue();
-  }
+  getWishlist(): string[] { return this._wishlist.getValue(); }
 
-  isWishlisted(id: string): boolean {
-    return this._wishlist.getValue().includes(id);
-  }
+  isWishlisted(id: string): boolean { return this._wishlist.getValue().includes(id); }
 
-  // Toggle wishlist — optimistic: cập nhật UI + toast NGAY, gọi API sau
   toggleWishlist(productId: string, productName?: string): void {
     const userId  = this.getUserId();
     const current = this._wishlist.getValue();
@@ -134,28 +126,24 @@ export class ApiService {
     }
 
     if (isAdded) {
-      // Optimistic: xóa khỏi stream + toast NGAY
       this._wishlist.next(current.filter(id => id !== productId));
       this.showToast('Đã xóa khỏi danh sách yêu thích', 'info');
-      // Gọi API sau — nếu lỗi thì rollback
       this.http.delete(`${API_BASE}/users/${userId}/wishlist/${productId}`, {
         headers: this.authHeaders()
       }).subscribe({
         error: () => {
-          this._wishlist.next([...this._wishlist.getValue(), productId]); // rollback
+          this._wishlist.next([...this._wishlist.getValue(), productId]);
           this.showToast('Không thể xóa yêu thích. Thử lại!', 'error');
         }
       });
     } else {
-      // Optimistic: thêm vào stream + toast NGAY
       this._wishlist.next([...current, productId]);
       this.showToast(`Đã thêm "${productName || 'sản phẩm'}" vào yêu thích ❤️`, 'success');
-      // Gọi API sau — nếu lỗi thì rollback
       this.http.post(`${API_BASE}/users/${userId}/wishlist`, { productId }, {
         headers: this.authHeaders()
       }).subscribe({
         error: () => {
-          this._wishlist.next(this._wishlist.getValue().filter(id => id !== productId)); // rollback
+          this._wishlist.next(this._wishlist.getValue().filter(id => id !== productId));
           this.showToast('Không thể thêm yêu thích. Thử lại!', 'error');
         }
       });
@@ -174,7 +162,7 @@ export class ApiService {
         const count = items.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0);
         this._cartCount.next(count);
       },
-      error: () => { /* silent */ }
+      error: () => {}
     });
   }
 
@@ -248,6 +236,29 @@ export class ApiService {
     return this.http.post<any>(`${API_BASE}/reviews`, data);
   }
 
+  // FIX: Upload ảnh review — trả về mảng URL từ server
+  uploadReviewImages(files: File[]): Observable<{ urls: string[] }> {
+    const formData = new FormData();
+    files.forEach(file => formData.append('images', file));
+    return this.http.post<{ urls: string[] }>(`${API_BASE}/reviews/upload-images`, formData);
+  }
+
+  // FIX: Sửa đánh giá
+  updateReview(reviewId: string, data: {
+    rating: number;
+    text: string;
+    tags?: string[];
+    variant?: string;
+    imgs?: string[];
+  }): Observable<any> {
+    return this.http.put<any>(`${API_BASE}/reviews/${reviewId}`, data);
+  }
+
+  // FIX: Xóa đánh giá
+  deleteReview(reviewId: string): Observable<any> {
+    return this.http.delete<any>(`${API_BASE}/reviews/${reviewId}`);
+  }
+
   markHelpful(reviewId: string): Observable<any> {
     return this.http.patch<any>(`${API_BASE}/reviews/${reviewId}/helpful`, {});
   }
@@ -294,7 +305,6 @@ export class ApiService {
     productId: string, quantity: number, productName?: string,
     variantId?: string | null, variantLabel?: string
   ): Observable<any> {
-    // Hiện toast NGAY không chờ API
     this.showToast(
       productName ? `Đã thêm "${productName}" vào giỏ hàng 🛒` : 'Đã thêm vào giỏ hàng',
       'success'
@@ -303,9 +313,7 @@ export class ApiService {
       `${API_BASE}/carts/add`,
       { productId, quantity, variantId: variantId || null, variantLabel: variantLabel || '' },
       { headers: this.cartHeaders() }
-    ).pipe(
-      tap(() => this.refreshCartCount())
-    );
+    ).pipe(tap(() => this.refreshCartCount()));
   }
 
   getCart(): Observable<any> {

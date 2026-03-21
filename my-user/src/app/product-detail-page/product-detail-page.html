@@ -62,11 +62,13 @@
           <h1 class="detail-title mb-0">{{ product.name }}</h1>
         </div>
 
-        <!-- Đánh giá -->
+        <!-- Đánh giá — FIX: reviewCount và sold lấy từ product, tự cập nhật sau khi submit -->
         <div class="d-flex align-items-center gap-2 flex-wrap">
           <span class="rating-stars">{{ getStars(product.rating || 0) }}</span>
           <span class="rating-score">{{ product.rating || 0 }}</span>
-          <span class="rating-meta">· {{ product.reviewCount || 0 }} đánh giá · {{ product.sold || 0 }} đã bán</span>
+          <span class="rating-meta">
+            · {{ product.reviewCount || 0 }} đánh giá · {{ product.sold || 0 }} đã bán
+          </span>
           <a class="rating-link ms-1"
             [routerLink]="['/order-review']"
             [queryParams]="{productId: product._id}">Xem đánh giá</a>
@@ -83,7 +85,7 @@
           </span>
         </div>
 
-        <!-- PHÂN LOẠI — FIX: dùng selectVariant() để reset qty khi đổi -->
+        <!-- PHÂN LOẠI -->
         <div *ngIf="product.variants?.length">
           <div class="variant-label mb-2">Phân loại</div>
           <div class="d-flex gap-2 flex-wrap">
@@ -97,7 +99,6 @@
               <span *ngIf="(v.stock || 0) === 0" style="font-size:11px;opacity:0.75;"> (Hết)</span>
             </button>
           </div>
-          <!-- Thông báo khi variant đang chọn hết hàng nhưng còn variant khác -->
           <div class="mt-2" style="font-size:13px;font-weight:500;color:#C62828;"
                *ngIf="isCurrentVariantOutOfStock() && !isProductCompletelyOutOfStock()">
             <i class="bi bi-exclamation-circle me-1"></i>
@@ -147,14 +148,12 @@
               <i class="bi bi-plus"></i>
             </button>
           </div>
-          <!-- Còn hàng -->
           <span class="stock-info" *ngIf="!isCurrentVariantOutOfStock()" [class.low]="currentStock() < 10">
             <i class="bi me-1"
               [class.bi-check-circle]="currentStock() >= 10"
               [class.bi-exclamation-triangle]="currentStock() < 10"></i>
             Còn {{ currentStock() }} sản phẩm
           </span>
-          <!-- Hết hàng -->
           <span class="stock-info" *ngIf="isCurrentVariantOutOfStock()" style="color:#C62828;">
             <i class="bi bi-slash-circle me-1"></i>Hết hàng
           </span>
@@ -162,7 +161,6 @@
 
         <!-- CTA — FIX: disabled dựa trên isCurrentVariantOutOfStock() -->
         <div class="d-flex gap-3 mt-4">
-
           <button
             class="btn-cart flex-grow-1"
             [class.added]="addedToCart"
@@ -171,7 +169,6 @@
             <i class="bi bi-cart3"></i>
             {{ isCurrentVariantOutOfStock() ? 'Tạm hết hàng' : (addedToCart ? 'Đã thêm vào giỏ!' : 'Thêm vào giỏ hàng') }}
           </button>
-
           <button
             class="btn-buy flex-grow-1"
             [disabled]="isCurrentVariantOutOfStock()"
@@ -179,7 +176,6 @@
             <i class="bi bi-lightning-charge-fill me-1"></i>
             {{ isCurrentVariantOutOfStock() ? 'Tạm hết hàng' : 'Mua ngay' }}
           </button>
-
         </div>
 
         <!-- Yêu thích & Chia sẻ -->
@@ -211,11 +207,9 @@
             <button class="tab-btn" [class.active]="activeTab === 'policy'"   (click)="activeTab = 'policy'">Chính sách</button>
           </div>
           <div class="tab-content">
-
             <div *ngIf="activeTab === 'desc'">
               <div class="desc-text" [innerHTML]="product.description"></div>
             </div>
-
             <div *ngIf="activeTab === 'nutrition'">
               <p class="nutrition-note mb-3">Thông tin dinh dưỡng trên 100g sản phẩm</p>
               <div *ngIf="!product.nutrition?.length" class="text-secondary" style="font-size:14px;">
@@ -239,7 +233,6 @@
               </table>
               <p class="nutrition-disclaimer mt-2">* NDH = Nhu cầu dinh dưỡng hàng ngày dựa trên chế độ 2000 kcal.</p>
             </div>
-
             <div *ngIf="activeTab === 'policy'">
               <div class="policy-item" *ngFor="let item of policyItems">
                 <i class="policy-icon bi {{ item.icon }}"></i>
@@ -249,7 +242,6 @@
                 </div>
               </div>
             </div>
-
           </div>
         </div>
 
@@ -259,6 +251,7 @@
 </div>
 
 <!-- SẢN PHẨM LIÊN QUAN -->
+<!-- FIX: thêm style cursor:pointer trực tiếp trên card để đảm bảo click hoạt động -->
 <section class="py-5" style="background:#FAF6F0;" *ngIf="relatedProducts.length > 0">
   <div class="container">
     <div class="d-flex justify-content-between align-items-end mb-4">
@@ -274,42 +267,52 @@
 
     <div class="row g-4">
       <div class="col-12 col-sm-6 col-md-3" *ngFor="let p of relatedProducts">
-        <div class="product-card h-100" (click)="goToProduct(p._id)">
-          <div class="product-img-wrap">
-            <span class="badge-new" *ngIf="p.badge === 'new'">Mới</span>
-            <span class="badge-hot" *ngIf="p.badge === 'hot'">Hot</span>
-            <span class="badge-sale" *ngIf="p.sale">{{ p.sale }}</span>
-            <img
-              [src]="p.image || p.images?.[0] || 'assets/images/placeholder.png'"
-              [alt]="p.name"
-              onerror="this.src='assets/images/placeholder.png'" />
-            <div class="out-of-stock-overlay" *ngIf="p.stock === 0 || p.isOutOfStock">
-              <div class="out-of-stock-circle small">
-                <i class="bi bi-slash-circle"></i>
-                <span>TẠM HẾT HÀNG</span>
-              </div>
-            </div>
-          </div>
-          <div class="p-3">
-            <div class="product-cat mb-1">{{ p.cat }}</div>
-            <div class="product-name mb-1">{{ p.name }}</div>
-            <div class="product-weight mb-2">{{ p.weight || p.weights?.[0]?.label }}</div>
-            <div class="d-flex align-items-center justify-content-between pt-2 product-footer-row">
-              <div>
-                <span class="product-price">{{ p.price | currency:'VND':'symbol':'1.0-0' }}</span>
-                <span class="product-price-old ms-1" *ngIf="p.oldPrice">
-                  {{ p.oldPrice | currency:'VND':'symbol':'1.0-0' }}
-                </span>
-                <div class="product-rating">
-                  <span class="stars">{{ getStars(p.rating || 0) }}</span>
-                  <span class="ms-1">({{ p.reviewCount || p.reviews || 0 }})</span>
+
+        <!-- FIX: tách riêng vùng click xem chi tiết và vùng nút + -->
+        <div class="product-card h-100" style="cursor:pointer; position:relative;">
+
+          <!-- Toàn bộ card dẫn đến trang chi tiết, trừ nút + -->
+          <div (click)="goToProduct(p._id)" style="display:contents;">
+            <div class="product-img-wrap">
+              <span class="badge-new" *ngIf="p.badge === 'new'">Mới</span>
+              <span class="badge-hot" *ngIf="p.badge === 'hot'">Hot</span>
+              <span class="badge-sale" *ngIf="p.sale">{{ p.sale }}</span>
+              <img
+                [src]="p.image || p.images?.[0] || 'assets/images/placeholder.png'"
+                [alt]="p.name"
+                (error)="$any($event.target).src='assets/images/placeholder.png'" />
+              <div class="out-of-stock-overlay" *ngIf="p.stock === 0 || p.isOutOfStock">
+                <div class="out-of-stock-circle small">
+                  <i class="bi bi-slash-circle"></i>
+                  <span>TẠM HẾT HÀNG</span>
                 </div>
               </div>
-              <button class="btn-add" [disabled]="p.stock === 0 || p.isOutOfStock" (click)="addRelated($event, p)">
-                <i class="bi bi-plus"></i>
-              </button>
+            </div>
+            <div class="p-3">
+              <div class="product-cat mb-1">{{ p.cat }}</div>
+              <div class="product-name mb-1">{{ p.name }}</div>
+              <div class="product-weight mb-2">{{ p.weight || p.weights?.[0]?.label }}</div>
+              <div class="d-flex align-items-center justify-content-between pt-2 product-footer-row">
+                <div>
+                  <span class="product-price">{{ p.price | currency:'VND':'symbol':'1.0-0' }}</span>
+                  <span class="product-price-old ms-1" *ngIf="p.oldPrice">
+                    {{ p.oldPrice | currency:'VND':'symbol':'1.0-0' }}
+                  </span>
+                  <div class="product-rating">
+                    <span class="stars">{{ getStars(p.rating || 0) }}</span>
+                    <span class="ms-1">({{ p.reviewCount || p.reviews || 0 }})</span>
+                  </div>
+                </div>
+                <!-- FIX: stopPropagation để không trigger goToProduct khi bấm + -->
+                <button class="btn-add"
+                        [disabled]="p.stock === 0 || p.isOutOfStock"
+                        (click)="addRelated($event, p)">
+                  <i class="bi bi-plus"></i>
+                </button>
+              </div>
             </div>
           </div>
+
         </div>
       </div>
     </div>
@@ -440,8 +443,12 @@
                 <div class="q-time">{{ q.time }}</div>
               </div>
             </div>
-            <span class="q-status-badge" [class.pending]="q.status === 'pending'" [class.answered]="q.status === 'answered'">
-              <i class="bi" [class.bi-clock]="q.status === 'pending'" [class.bi-check-circle-fill]="q.status === 'answered'"></i>
+            <span class="q-status-badge"
+                  [class.pending]="q.status === 'pending'"
+                  [class.answered]="q.status === 'answered'">
+              <i class="bi"
+                 [class.bi-clock]="q.status === 'pending'"
+                 [class.bi-check-circle-fill]="q.status === 'answered'"></i>
               {{ q.status === 'pending' ? 'Chờ trả lời' : 'Đã trả lời' }}
             </span>
           </div>
@@ -459,7 +466,8 @@
             <p class="q-answer-text mb-0">{{ q.answer }}</p>
           </div>
 
-          <div class="d-flex align-items-center gap-2 flex-wrap pt-3 border-top" style="border-color:#F0F7F0 !important;">
+          <div class="d-flex align-items-center gap-2 flex-wrap pt-3 border-top"
+               style="border-color:#F0F7F0 !important;">
             <span class="q-helpful-text">Câu hỏi này có hữu ích không?</span>
             <button class="q-helpful-btn">
               <i class="bi bi-hand-thumbs-up"></i> Có ({{ q.helpful || 0 }})

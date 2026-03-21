@@ -28,7 +28,7 @@ router.get('/featured', async (req, res) => {
 
     const products = await Product.aggregate([
       { $match: { isHidden: { $ne: true } } },
-      { $sample: { size: limit } }           // random
+      { $sample: { size: limit } }
     ]);
 
     res.json(products);
@@ -80,7 +80,6 @@ function normalizeVariantsInput(rawVariants) {
     }))
     .filter(v => v.label && Number.isFinite(v.price) && v.price >= 0);
 
-  // Không cho trùng label (không phân biệt hoa thường)
   const seen = new Set();
   return cleaned.filter(v => {
     const key = v.label.toLowerCase();
@@ -92,8 +91,6 @@ function normalizeVariantsInput(rawVariants) {
 
 // ─────────────────────────────────────────────────────────────────
 // GET /api/products   — browse + search + filter
-//   isAdmin=true  →  admin xem tất cả kể cả sản phẩm đã ẩn
-//   (không có)    →  user chỉ thấy sản phẩm chưa ẩn
 // ─────────────────────────────────────────────────────────────────
 router.get('/', async (req, res) => {
   try {
@@ -105,7 +102,7 @@ router.get('/', async (req, res) => {
 
     const adminMode = isAdmin === 'true';
 
-    // ── SEARCH MODE: chỉ tìm theo tên sản phẩm ──
+    // ── SEARCH MODE ──
     if (search && search.trim() !== '') {
       const kwNorm   = normalizeVN(search.trim());
       const limitNum = Math.min(Number(limit) || 6, 20);
@@ -121,7 +118,6 @@ router.get('/', async (req, res) => {
         normalizeVN(p.name).includes(kwNorm)
       );
 
-      // Sắp xếp: tên bắt đầu bằng keyword lên đầu
       matched.sort((a, b) => {
         const aN = normalizeVN(a.name);
         const bN = normalizeVN(b.name);
@@ -141,7 +137,6 @@ router.get('/', async (req, res) => {
     // ── BROWSE / FILTER MODE ──
     let query = {};
 
-    // Admin thấy hết; user chỉ thấy sản phẩm chưa ẩn
     if (!adminMode) {
       query.isHidden = { $ne: true };
     }
@@ -204,7 +199,7 @@ router.post('/upload-image', upload.single('image'), (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────
-// PATCH /:id/toggle-hidden  — admin ẩn/hiện sản phẩm
+// PATCH /:id/toggle-hidden
 // ─────────────────────────────────────────────────────────────────
 router.patch('/:id/toggle-hidden', async (req, res) => {
   try {
@@ -254,17 +249,48 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// GET related products — user không thấy SP ẩn
+// ─────────────────────────────────────────────────────────────────
+// GET related products — FIX: random bằng $sample
+// Ưu tiên cùng danh mục, nếu không đủ thì bổ sung từ danh mục khác
+// ─────────────────────────────────────────────────────────────────
 router.get('/:id/related', async (req, res) => {
   try {
+    const limit = Math.max(1, Number(req.query.limit) || 4);
+
     const product = await Product.findById(req.params.id).lean();
     if (!product) return res.status(404).json({ error: 'Not found' });
-    const related = await Product.find({
-      cat:      product.cat,
-      _id:      { $ne: product._id },
-      isHidden: { $ne: true },
-    }).limit(4).lean();
-    res.json(related);
+
+    // Lấy random trong cùng danh mục trước
+    const sameCat = await Product.aggregate([
+      {
+        $match: {
+          cat:      product.cat,
+          _id:      { $ne: product._id },
+          isHidden: { $ne: true },
+        }
+      },
+      { $sample: { size: limit } }
+    ]);
+
+    // Nếu chưa đủ số lượng → bổ sung từ danh mục khác (cũng random)
+    if (sameCat.length < limit) {
+      const excludeIds = [product._id, ...sameCat.map(p => p._id)];
+      const remaining  = limit - sameCat.length;
+
+      const otherCat = await Product.aggregate([
+        {
+          $match: {
+            _id:      { $nin: excludeIds },
+            isHidden: { $ne: true },
+          }
+        },
+        { $sample: { size: remaining } }
+      ]);
+
+      return res.json([...sameCat, ...otherCat]);
+    }
+
+    res.json(sameCat);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
