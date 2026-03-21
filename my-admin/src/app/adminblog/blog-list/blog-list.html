@@ -3,7 +3,9 @@
   <div class="header-row">
     <div class="title-section">
       <h1>DANH SÁCH BÀI VIẾT</h1>
-      <p class="subtitle">Hiển thị <strong style="color:var(--color-primary)">{{posts.length}}</strong> bài viết</p>
+      <p class="subtitle">
+        Hiển thị <strong style="color:var(--color-primary)">{{filteredPosts.length}}</strong> / {{posts.length}} bài viết
+      </p>
     </div>
     <button class="btn-add" (click)="goAdd.emit()">
       <i class="bi bi-plus-circle"></i> Thêm bài viết
@@ -11,24 +13,43 @@
   </div>
 
   <div class="toolbar">
-    <div class="search-box">
-      <i class="bi bi-search"></i>
-      <input type="text" [(ngModel)]="searchText" placeholder="Tìm kiếm">
+    <div class="toolbar-left">
+      <div class="search-box">
+        <i class="bi bi-search"></i>
+        <input 
+          type="text" 
+          [(ngModel)]="searchText" 
+          (ngModelChange)="onSearchChange()" 
+          placeholder="Tìm theo tiêu đề, tác giả..."
+        >
+      </div>
+
+      <select class="select-filter" [(ngModel)]="selectedCategory" (change)="applyFiltersAndSort()">
+        <option *ngFor="let cat of categories" [value]="cat">{{cat}}</option>
+      </select>
+
+      <select class="select-filter" [(ngModel)]="sortBy" (change)="applyFiltersAndSort()">
+        <option value="newest">Mới đăng nhất</option>
+        <option value="oldest">Cũ nhất</option>
+        <option value="updated">Mới cập nhật nhất</option>
+        <option value="views-desc">Lượt xem (Cao nhất)</option>
+        <option value="views-asc">Lượt xem (Thấp nhất)</option>
+      </select>
     </div>
 
     <div class="action-group">
       <span class="count-label">{{selectedCount}} đã chọn</span>
       
+      <button class="btn-tool" [disabled]="selectedCount === 0" (click)="onToggleStatus()">
+        <i class="bi bi-eye-slash"></i> Ẩn/Hiện
+      </button>
+
       <button class="btn-tool" [disabled]="selectedCount !== 1" (click)="onEdit()">
         <i class="bi bi-pencil"></i> Chỉnh
       </button>
 
-      <button class="btn-tool btn-danger-soft" [disabled]="selectedCount === 0">
+      <button class="btn-tool btn-danger-soft" [disabled]="selectedCount === 0" (click)="onDelete()">
         <i class="bi bi-trash"></i> Xoá
-      </button>
-
-      <button class="btn-tool">
-        <i class="bi bi-arrow-down-up"></i> Sắp xếp <i class="bi bi-caret-down-fill ms-1" style="font-size: 0.7rem;"></i>
       </button>
     </div>
   </div>
@@ -40,23 +61,82 @@
           <th width="50"><input type="checkbox" (change)="toggleAll($event)"></th>
           <th>MÃ BÀI VIẾT</th>
           <th class="text-start">BÀI VIẾT</th>
+          <th>NGÀY ĐĂNG</th> 
           <th>NGÀY CẬP NHẬT</th>
-          <th>NGƯỜI VIẾT</th> <th>CATEGORY</th>
+          <th>CATEGORY</th>
           <th>LƯỢT XEM</th>
+          <th>TRẠNG THÁI</th> <th>NGƯỜI VIẾT</th> 
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let p of posts" [class.row-selected]="p.selected">
-          <td class="text-center"><input type="checkbox" [(ngModel)]="p.selected"></td>
-          <td class="col-id text-center">{{p.id}}</td>
-          <td class="col-title">{{p.title}}</td>
-          <td class="text-center">{{p.updatedAt}}</td>
-          <td class="text-center">{{p.author}}</td> <td class="text-center">
-            <span class="badge-category">{{p.category}}</span>
+        <tr *ngFor="let p of filteredPosts" 
+            [class.row-selected]="p.selected" 
+            [class.row-hidden]="p.isHidden"
+            (click)="goEdit.emit(p)" 
+            style="cursor: pointer;">
+          
+          <td class="text-center" (click)="$event.stopPropagation()">
+            <input type="checkbox" [(ngModel)]="p.selected">
           </td>
-          <td class="text-center"><strong>{{p.views}}</strong></td>
+          
+          <td class="col-id text-center">{{ p._id }}</td>
+          <td class="col-title">{{ p.title }}</td>
+          
+          <td class="text-center">{{ p.displayCreated }}</td>
+          <td class="text-center">{{ p.displayUpdated }}</td>
+          
+          <td class="text-center">
+            <span class="badge-category">{{ p.tag }}</span>
+          </td>
+          
+          <td class="text-center">
+            <strong style="color: #36873A;">{{ p.views || 0 }}</strong>
+          </td>
+
+          <td class="text-center">
+            <span class="status-badge" [ngClass]="p.isHidden ? 'status-hidden' : 'status-visible'">
+              <i class="bi" [ngClass]="p.isHidden ? 'bi-eye-slash-fill' : 'bi-eye-fill'"></i>
+              {{ p.isHidden ? 'Đang ẩn' : 'Hiển thị' }}
+            </span>
+          </td>
+
+          <td class="text-center">{{ p.author }}</td> 
+        </tr>
+
+        <tr *ngIf="filteredPosts.length === 0">
+          <td colspan="9" class="text-center" style="padding: 60px; color: #999;">
+            <i class="bi bi-search" style="font-size: 2.5rem; display: block; margin-bottom: 10px; opacity: 0.3;"></i>
+            Không tìm thấy bài viết nào phù hợp với yêu cầu.
+          </td>
         </tr>
       </tbody>
     </table>
   </div>
+
+  <div class="custom-modal-overlay" *ngIf="showNotifyModal">
+    <div class="custom-modal notify-modal" [ngClass]="notifyConfig.type">
+      <div class="notify-icon">
+        <i class="bi" [ngClass]="{
+          'bi-check-circle-fill': notifyConfig.type === 'success',
+          'bi-exclamation-triangle-fill': notifyConfig.type === 'confirm' || notifyConfig.type === 'warning',
+          'bi-x-circle-fill': notifyConfig.type === 'error'
+        }"></i>
+      </div>
+      
+      <div class="notify-content">
+        <h4>{{ notifyConfig.title }}</h4>
+        <p>{{ notifyConfig.message }}</p>
+      </div>
+
+      <div class="modal-footer">
+        <button *ngIf="notifyConfig.type === 'confirm'" class="btn-modal-cancel" (click)="closeNotify()">
+          Hủy
+        </button>
+        <button class="btn-modal-apply" (click)="handleNotifyAction()">
+          {{ notifyConfig.btnText }}
+        </button>
+      </div>
+    </div>
+  </div>
+
 </div>

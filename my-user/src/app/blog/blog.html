@@ -1,35 +1,40 @@
 <div class="blog-page">
 
-  <!-- LOADING -->
   <div *ngIf="loading" class="loading-wrap">
     <div class="spinner"></div>
   </div>
 
-  <!-- CONTENT -->
   <div *ngIf="!loading">
 
-<!-- CONTENT -->
-<div *ngIf="!loading">
-
-    <!-- FEATURED -->
     <section class="featured" *ngIf="featuredBlog">
       <div class="featured-inner">
-        <div class="featured-image">
-          <img [src]="getImageUrl(featuredBlog.coverImage)" [alt]="featuredBlog.title" />
+        <div class="featured-image" [routerLink]="['/blog', featuredBlog._id]">
+          <img [src]="getImageUrl(featuredBlog.coverImage)" [alt]="featuredBlog.title" 
+               onerror="this.src='assets/images/placeholder.jpg'" />
           <span class="featured-badge">Nổi bật</span>
         </div>
+
         <div class="featured-content">
           <span class="tag-chip">{{ featuredBlog.tag }}</span>
-          <h1 class="featured-title">{{ featuredBlog.title }}</h1>
+          
+          <h1 class="featured-title" [routerLink]="['/blog', featuredBlog._id]">
+            {{ featuredBlog.title }}
+          </h1>
+          
           <p class="featured-excerpt">{{ featuredBlog.excerpt }}</p>
+          
           <div class="featured-meta">
             <span class="meta-author">
               <i class="bi bi-person-circle"></i> {{ featuredBlog.author }}
             </span>
             <span class="meta-date">
-              <i class="bi bi-calendar3"></i> {{ formatDate(featuredBlog.date || featuredBlog.createdAt) }}
+              <i class="bi bi-send"></i> {{ formatDate(featuredBlog.createdAt) }}
+            </span>
+            <span class="meta-views">
+              <i class="bi bi-eye"></i> {{ featuredBlog.views || 0 }} lượt xem
             </span>
           </div>
+
           <a [routerLink]="['/blog', featuredBlog._id]" class="btn-read">
             Đọc thêm <i class="bi bi-arrow-right"></i>
           </a>
@@ -37,76 +42,117 @@
       </div>
     </section>
 
-    <!-- BLOG LIST -->
     <section class="blog-list-section">
 
-      <!-- TOOLBAR: search + filter -->
       <div class="toolbar">
-        <h2 class="section-title">Bài đăng mới nhất</h2>
+        <h2 class="section-title">Khám phá bài viết</h2>
 
-        <div class="toolbar-right">
-          <!-- Search -->
-          <div class="search-box">
-            <i class="bi bi-search"></i>
-            <input
-              type="text"
-              placeholder="Tìm kiếm bài viết..."
-              [(ngModel)]="searchQuery"
-              (input)="onSearch()"
-            />
-          </div>
+        <div class="search-box">
+          <i class="bi bi-search"></i>
+          <input
+            type="text"
+            placeholder="Tìm kiếm nội dung..."
+            [(ngModel)]="searchQuery"
+            (input)="onSearch()"
+          />
+        </div>
+      </div>
 
-          <!-- Tags -->
-          <div class="tag-filter">
-            <button
-              *ngFor="let tag of tags"
-              class="tag-btn"
-              [class.active]="selectedTag === tag"
-              (click)="selectTag(tag)"
-            >
-              {{ tag }}
-            </button>
+      <div class="tag-sort-row">
+        <div class="tag-filter-container">
+          <button
+            *ngFor="let tag of tags"
+            class="tag-btn"
+            [class.active]="selectedTag === tag"
+            (click)="selectTag(tag)"
+          >
+            {{ tag }}
+          </button>
+        </div>
+
+        <div class="sort-dropdown">
+          <button class="sort-btn" (click)="showSortMenu = !showSortMenu">
+            <i class="bi bi-sort-down"></i>
+            <span>{{ getSortLabel() }}</span>
+            <i class="bi bi-chevron-down ms-1" style="font-size: 0.7rem;"></i>
+          </button>
+          
+          <div class="sort-menu" [class.show]="showSortMenu">
+            <div class="sort-group">
+              <label>Thời gian đăng</label>
+              <button (click)="setSort('newest')" [class.active]="sortBy === 'newest'">
+                <i class="bi bi-clock-history"></i> Mới nhất
+              </button>
+              <button (click)="setSort('oldest')" [class.active]="sortBy === 'oldest'">
+                <i class="bi bi-calendar-event"></i> Cũ nhất
+              </button>
+            </div>
+
+            <div class="sort-group">
+              <label>Độ phổ biến</label>
+              <button (click)="setSort('views-desc')" [class.active]="sortBy === 'views-desc'">
+                <i class="bi bi-graph-up-arrow"></i> Lượt xem cao
+              </button>
+              <button (click)="setSort('views-asc')" [class.active]="sortBy === 'views-asc'">
+                <i class="bi bi-graph-down-arrow"></i> Lượt xem thấp
+              </button>
+            </div>
+
+            <div class="sort-group">
+              <label>Nội dung</label>
+              <button (click)="setSort('updated-newest')" [class.active]="sortBy === 'updated-newest'">
+                <i class="bi bi-pencil-square"></i> Vừa cập nhật
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- EMPTY STATE -->
       <div class="empty-state" *ngIf="filteredBlogs.length === 0">
         <i class="bi bi-journal-x"></i>
-        <p>Không tìm thấy bài viết nào.</p>
+        <p>Không tìm thấy bài viết nào phù hợp với yêu cầu của bà.</p>
       </div>
 
-      <!-- GRID -->
       <div class="blog-grid" *ngIf="filteredBlogs.length > 0">
         <div class="blog-card" *ngFor="let blog of displayedBlogs"
              [routerLink]="['/blog', blog._id]">
+          
           <div class="card-image">
-            <img [src]="getImageUrl(blog.coverImage)" [alt]="blog.title" />
+            <img [src]="getImageUrl(blog.coverImage)" [alt]="blog.title"
+                 onerror="this.src='assets/images/placeholder.jpg'" />
             <span class="tag-chip small">{{ blog.tag }}</span>
           </div>
+
           <div class="card-body">
-            <div class="card-meta">
-              <span><i class="bi bi-person"></i> {{ blog.author }}</span>
-              <span><i class="bi bi-calendar3"></i> {{ formatDate(blog.date || blog.createdAt) }}</span>
+            <div class="card-author-line">
+              <i class="bi bi-person-circle"></i>
+              <span>{{ blog.author }}</span>
             </div>
+            
             <h3 class="card-title">{{ blog.title }}</h3>
+            
             <p class="card-excerpt">{{ blog.excerpt }}</p>
-            <span class="card-read-more">
-              Đọc thêm <i class="bi bi-arrow-right-short"></i>
-            </span>
+            
+            <div class="card-footer">
+              <div class="card-stats">
+                <span><i class="bi bi-calendar3"></i> {{ formatDate(blog.createdAt) }}</span>
+                <span><i class="bi bi-eye"></i> {{ blog.views || 0 }}</span>
+              </div>
+              <span class="card-read-more">
+                Đọc thêm <i class="bi bi-arrow-right-short"></i>
+              </span>
+            </div>
           </div>
+
         </div>
       </div>
 
-      <!-- LOAD MORE -->
       <div class="load-more-wrap" *ngIf="hasMore">
         <button class="btn-load-more" (click)="loadMore()">
-          Xem thêm <i class="bi bi-chevron-down"></i>
+          Xem thêm bài viết <i class="bi bi-chevron-down"></i>
         </button>
       </div>
 
     </section>
-
-  <!-- </ng-container> -->
-</div>
+  </div>
 </div>
