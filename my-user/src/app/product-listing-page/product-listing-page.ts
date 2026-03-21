@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, NgZone, ChangeDetectorRef } from '@angular/core';
 import { CommonModule, CurrencyPipe } from '@angular/common';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -48,6 +48,8 @@ export class ProductListingPageComponent implements OnInit, OnDestroy {
     private router: Router,
     private route: ActivatedRoute,
     public api: ApiService,
+    private ngZone: NgZone,
+    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
@@ -68,7 +70,7 @@ export class ProductListingPageComponent implements OnInit, OnDestroy {
 
     this.wishlistSub = this.api.wishlist$.subscribe(list => {
       this.wishlist = list;
-      // không cần detectChanges — Default CD tự pick up
+      this.cdr.detectChanges();
     });
   }
 
@@ -80,6 +82,7 @@ export class ProductListingPageComponent implements OnInit, OnDestroy {
     this.api.getCategoryCounts().subscribe({
       next: (counts) => {
         this.categoryCounts = { ...counts };
+        this.cdr.detectChanges();
       },
       error: (err) => console.error('Lỗi tải category counts:', err),
     });
@@ -87,7 +90,7 @@ export class ProductListingPageComponent implements OnInit, OnDestroy {
 
   loadProducts(): void {
     this.isLoading = true;
-    // Giữ data cũ trong lúc fetch để tránh nhấp nháy trắng
+    this.cdr.detectChanges();
 
     const filters: any = {
       sort:  this.sortBy,
@@ -110,16 +113,22 @@ export class ProductListingPageComponent implements OnInit, OnDestroy {
 
     this.api.getProducts(filters).subscribe({
       next: (res) => {
-        this.displayedProducts = res.products || [];
-        this.totalProducts     = res.total    || 0;
-        this.totalPages        = res.totalPages || 1;
-        this.buildPageNumbers();
-        this.isLoading = false;
+        this.ngZone.run(() => {
+          this.displayedProducts = res.products || [];
+          this.totalProducts     = res.total    || 0;
+          this.totalPages        = res.totalPages || 1;
+          this.buildPageNumbers();
+          this.isLoading = false;
+          this.cdr.detectChanges();
+        });
       },
       error: (err) => {
         console.error('Lỗi tải sản phẩm:', err);
-        this.displayedProducts = [];
-        this.isLoading = false;
+        this.ngZone.run(() => {
+          this.displayedProducts = [];
+          this.isLoading = false;
+          this.cdr.detectChanges();
+        });
       }
     });
   }
@@ -201,7 +210,6 @@ export class ProductListingPageComponent implements OnInit, OnDestroy {
     });
   }
 
-  // FIX #6: trackBy giúp *ngFor không re-render toàn bộ list khi data thay đổi
   trackByProductId(_: number, product: any): string {
     return product._id;
   }

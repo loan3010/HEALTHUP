@@ -1,1 +1,262 @@
-<p>return-management works!</p>
+<div class="return-page">
+
+  <!-- ═══════════ HEADER ═══════════ -->
+  <div class="return-header">
+    <div>
+      <h2 class="return-title">Quản lý đổi trả</h2>
+      <p class="return-subtitle">Chỉ áp dụng cho đơn hàng có trạng thái <strong>Đã giao</strong></p>
+    </div>
+    <button class="btn-create" (click)="openCreateForm()"
+      *ngIf="view === 'list' && deliveredOrders.length > 0">
+      <i class="bi bi-plus-lg me-1"></i> Tạo yêu cầu mới
+    </button>
+  </div>
+
+  <!-- ═══════════ LOADING ═══════════ -->
+  <div *ngIf="isLoading && view === 'list'">
+    <div class="skeleton-line mb-3" style="width:100%;height:80px;border-radius:16px;"></div>
+    <div class="skeleton-line" style="width:100%;height:80px;border-radius:16px;"></div>
+  </div>
+
+  <!-- ═══════════ LIST VIEW ═══════════ -->
+  <ng-container *ngIf="view === 'list' && !isLoading">
+
+    <!-- Không có đơn đã giao nào -->
+    <div class="return-empty" *ngIf="returnOrders.length === 0 && deliveredOrders.length === 0">
+      <div class="return-empty-icon"><i class="bi bi-arrow-repeat"></i></div>
+      <h5>Chưa có đơn hàng đã giao</h5>
+      <p>Chức năng đổi trả chỉ áp dụng cho đơn hàng đã giao thành công.</p>
+      <button class="btn-create" (click)="goToOrders()">
+        <i class="bi bi-bag-check me-1"></i> Xem đơn hàng
+      </button>
+    </div>
+
+    <!-- Có đơn delivered nhưng chưa có request nào -->
+    <div class="return-empty" *ngIf="returnOrders.length === 0 && deliveredOrders.length > 0">
+      <div class="return-empty-icon"><i class="bi bi-arrow-repeat"></i></div>
+      <h5>Chưa có yêu cầu đổi trả nào</h5>
+      <p>Bạn có {{ deliveredOrders.length }} đơn đã giao có thể tạo yêu cầu đổi trả.</p>
+      <button class="btn-create" (click)="openCreateForm()">
+        <i class="bi bi-plus-lg me-1"></i> Tạo yêu cầu mới
+      </button>
+    </div>
+
+    <!-- DANH SÁCH YÊU CẦU -->
+    <div class="return-card" *ngFor="let order of returnOrders">
+
+      <div class="return-card-header">
+        <div class="return-card-meta">
+          <span class="return-order-code">
+            #{{ order.orderCode || order._id?.substring(0,8)?.toUpperCase() }}
+          </span>
+          <span class="return-date">{{ formatDate(order.returnRequestedAt) }}</span>
+        </div>
+        <span class="return-status-badge" [ngClass]="'status-' + order.returnStatus">
+          <i class="bi"
+            [class.bi-clock]="order.returnStatus === 'requested'"
+            [class.bi-check-circle-fill]="order.returnStatus === 'completed'"></i>
+          {{ getReturnStatusLabel(order.returnStatus) }}
+        </span>
+      </div>
+
+      <div class="return-card-reason">
+        <i class="bi bi-chat-left-text me-1"></i>
+        <strong>Lý do:</strong> {{ order.returnReason }}
+        <span *ngIf="order.returnNote" class="return-note"> — {{ order.returnNote }}</span>
+      </div>
+
+      <!-- Ảnh minh chứng (nếu có) -->
+      <div class="return-card-images" *ngIf="order.returnImages?.length > 0">
+        <div class="return-image-list">
+          <img *ngFor="let img of order.returnImages"
+            [src]="getImageUrl(img)"
+            class="return-evidence-img"
+            onerror="this.src='/assets/images/placeholder.png'"
+            alt="Ảnh minh chứng" />
+        </div>
+      </div>
+
+      <!-- Sản phẩm trả -->
+      <div class="return-card-items">
+        <ng-container *ngIf="order.returnItems?.length > 0; else allItems">
+          <div class="return-item" *ngFor="let item of order.returnItems">
+            <img [src]="getImageUrl(item.imageUrl)" [alt]="item.name"
+              onerror="this.src='/assets/images/placeholder.png'" />
+            <div class="return-item-info">
+              <div class="return-item-name">{{ item.name }}</div>
+              <div class="return-item-meta">{{ formatCurrency(item.price) }} × {{ item.returnQty }}</div>
+            </div>
+            <div class="return-item-total">{{ formatCurrency(item.price * item.returnQty) }}</div>
+          </div>
+        </ng-container>
+        <ng-template #allItems>
+          <div class="return-item" *ngFor="let item of order.items">
+            <img [src]="getImageUrl(item.imageUrl)" [alt]="item.name"
+              onerror="this.src='/assets/images/placeholder.png'" />
+            <div class="return-item-info">
+              <div class="return-item-name">{{ item.name }}</div>
+              <div class="return-item-meta">{{ formatCurrency(item.price) }} × {{ item.quantity }}</div>
+            </div>
+            <div class="return-item-total">{{ formatCurrency(item.price * item.quantity) }}</div>
+          </div>
+        </ng-template>
+      </div>
+
+      <div class="return-card-footer">
+        <span class="return-total">
+          Tổng tiền đơn: <strong>{{ formatCurrency(order.total) }}</strong>
+        </span>
+      </div>
+
+    </div>
+  </ng-container>
+
+  <!-- ═══════════ CREATE FORM ═══════════ -->
+  <div class="return-form-wrap" *ngIf="view === 'create'">
+
+    <button class="btn-back" (click)="cancelCreate()">
+      <i class="bi bi-arrow-left me-1"></i> Quay lại
+    </button>
+
+    <h3 class="form-section-title">Tạo yêu cầu đổi trả</h3>
+
+    <!-- CHỌN ĐƠN HÀNG -->
+    <div class="form-group">
+      <label class="form-label">
+        <i class="bi bi-bag-check me-1"></i> Chọn đơn hàng cần đổi trả
+        <span class="required">*</span>
+      </label>
+
+      <div class="no-orders-warn" *ngIf="deliveredOrders.length === 0">
+        <i class="bi bi-exclamation-circle me-1"></i>
+        Không còn đơn hàng nào có thể đổi trả.
+        <button class="btn-link ms-2" (click)="goToOrders()">Xem đơn hàng</button>
+      </div>
+
+      <select class="form-select"
+        *ngIf="deliveredOrders.length > 0"
+        (change)="onOrderSelect($event)"
+        [value]="selectedOrder?._id || ''">
+        <option value="" disabled selected>-- Chọn đơn hàng --</option>
+        <option *ngFor="let o of deliveredOrders" [value]="o._id">
+          #{{ o.orderCode || o._id?.substring(0,8)?.toUpperCase() }}
+          — {{ formatCurrency(o.total) }}
+          — {{ formatDate(o.createdAt) }}
+        </option>
+      </select>
+    </div>
+
+    <!-- SẢN PHẨM -->
+    <div class="form-group" *ngIf="selectedOrder && returnItems.length > 0">
+      <label class="form-label">
+        <i class="bi bi-box-seam me-1"></i> Sản phẩm muốn trả
+        <span class="required">*</span>
+      </label>
+      <div class="return-item-select" *ngFor="let item of returnItems">
+        <img [src]="getImageUrl(item.imageUrl)" [alt]="item.name"
+          onerror="this.src='/assets/images/placeholder.png'" />
+        <div class="return-item-info">
+          <div class="return-item-name">{{ item.name }}</div>
+          <div class="return-item-meta">{{ formatCurrency(item.price) }} / sản phẩm</div>
+        </div>
+        <div class="qty-control">
+          <button class="qty-btn" (click)="decreaseReturnQty(item)" [disabled]="item.returnQty <= 0">
+            <i class="bi bi-dash"></i>
+          </button>
+          <span class="qty-val">{{ item.returnQty }}</span>
+          <button class="qty-btn" (click)="increaseReturnQty(item)" [disabled]="item.returnQty >= item.quantity">
+            <i class="bi bi-plus"></i>
+          </button>
+          <span class="qty-max">/ {{ item.quantity }}</span>
+        </div>
+      </div>
+
+      <div class="return-summary" *ngIf="returnTotal > 0">
+        <span>Tổng tiền hoàn dự kiến:</span>
+        <strong>{{ formatCurrency(returnTotal) }}</strong>
+      </div>
+    </div>
+
+    <!-- LÝ DO -->
+    <div class="form-group">
+      <label class="form-label">
+        <i class="bi bi-chat-left-text me-1"></i> Lý do đổi trả
+        <span class="required">*</span>
+      </label>
+      <div class="reason-grid">
+        <button class="reason-btn"
+          *ngFor="let r of REASONS"
+          [class.active]="returnReason === r"
+          (click)="returnReason = r">
+          {{ r }}
+        </button>
+      </div>
+    </div>
+
+    <!-- GHI CHÚ -->
+    <div class="form-group">
+      <label class="form-label">
+        <i class="bi bi-pencil me-1"></i> Ghi chú thêm (tuỳ chọn)
+      </label>
+      <textarea class="form-textarea"
+        [(ngModel)]="returnNote"
+        placeholder="Mô tả chi tiết vấn đề bạn gặp phải..."
+        rows="4"
+        maxlength="500">
+      </textarea>
+      <div class="char-count">{{ returnNote.length }}/500</div>
+    </div>
+
+    <!-- ✅ MỚI: UPLOAD ẢNH MINH CHỨNG -->
+    <div class="form-group">
+      <label class="form-label">
+        <i class="bi bi-images me-1"></i> Ảnh minh chứng
+        <span class="optional">(tuỳ chọn, tối đa {{ MAX_IMAGES }} ảnh)</span>
+      </label>
+
+      <!-- Vùng upload -->
+      <div class="image-upload-area"
+        [class.disabled]="selectedImages.length >= MAX_IMAGES"
+        (click)="selectedImages.length < MAX_IMAGES && imgInput.click()">
+        <i class="bi bi-cloud-upload fs-2 text-muted"></i>
+        <p class="mb-1 text-muted">Nhấn để chọn ảnh</p>
+        <p class="small text-muted">JPG, PNG, WEBP — tối đa 5MB/ảnh</p>
+        <input #imgInput type="file" accept="image/*" multiple hidden
+          (change)="onImagesSelected($event)" />
+      </div>
+
+      <!-- Preview ảnh đã chọn -->
+      <div class="image-preview-list" *ngIf="imagePreviews.length > 0">
+        <div class="image-preview-item" *ngFor="let preview of imagePreviews; let i = index">
+          <img [src]="preview" alt="Ảnh {{ i + 1 }}" />
+          <button class="remove-image-btn" type="button" (click)="removeImage(i)">
+            <i class="bi bi-x"></i>
+          </button>
+        </div>
+        <!-- Nút thêm nếu chưa đủ MAX_IMAGES -->
+        <div class="image-preview-add"
+          *ngIf="selectedImages.length < MAX_IMAGES"
+          (click)="imgInput.click()">
+          <i class="bi bi-plus-lg"></i>
+        </div>
+      </div>
+
+      <div class="image-count-hint" *ngIf="selectedImages.length > 0">
+        {{ selectedImages.length }}/{{ MAX_IMAGES }} ảnh đã chọn
+      </div>
+    </div>
+
+    <!-- ACTIONS -->
+    <div class="form-actions">
+      <button class="btn-cancel-form" (click)="cancelCreate()">Hủy</button>
+      <button class="btn-submit"
+        [disabled]="!canSubmit || isSubmitting"
+        (click)="submitReturn()">
+        <i class="bi bi-send me-1"></i>
+        {{ isSubmitting ? 'Đang gửi...' : 'Gửi yêu cầu' }}
+      </button>
+    </div>
+
+  </div>
+
+</div>

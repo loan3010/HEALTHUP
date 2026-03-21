@@ -3,6 +3,25 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ApiService, STATIC_BASE } from '../services/api.service';
+import { forkJoin, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
+
+// ── Interface cho chế độ list ────────────────────────────────────
+interface ReviewableItem {
+  productId: string;
+  name: string;
+  imageUrl: string;
+  price: number;
+  quantity: number;
+  reviewed: boolean;
+}
+interface ReviewableOrder {
+  _id: string;
+  orderCode: string;
+  createdAt: string;
+  total: number;
+  items: ReviewableItem[];
+}
 
 @Component({
   selector: 'app-order-review',
@@ -13,6 +32,16 @@ import { ApiService, STATIC_BASE } from '../services/api.service';
 })
 export class OrderReviewComponent implements OnInit {
 
+  // ── Chế độ hiển thị ──────────────────────────────────────────
+  // 'list'   → hiện tất cả đơn đã giao (trang Đánh giá đơn hàng)
+  // 'detail' → hiện review của 1 sản phẩm cụ thể
+  mode: 'list' | 'detail' = 'list';
+
+  // ── Chế độ LIST ──────────────────────────────────────────────
+  isListLoading = false;
+  reviewableOrders: ReviewableOrder[] = [];
+
+  // ── Chế độ DETAIL ────────────────────────────────────────────
   productId    = '';
   productName  = '';
   isLoggedIn   = false;
@@ -20,6 +49,11 @@ export class OrderReviewComponent implements OnInit {
   isSubmitting = false;
 
   currentUserName = '';
+  currentUserId   = '';
+
+  hasPurchased    = false;
+  purchaseChecked = false;
+  alreadyReviewed = false;
 
   averageRating  = 0;
   starsDisplay   = '';
@@ -87,6 +121,7 @@ export class OrderReviewComponent implements OnInit {
     try {
       const u = JSON.parse(user || '{}');
       this.currentUserName = u?.username || u?.name || '';
+      this.currentUserId   = u?._id || u?.id || localStorage.getItem('userId') || '';
     } catch {}
 
     try {
@@ -98,8 +133,164 @@ export class OrderReviewComponent implements OnInit {
 
     this.route.queryParams.subscribe(params => {
       this.productId = params['productId'] || '';
-      if (this.productId) this.loadReviews();
+
+      if (this.productId) {
+        // ── Chế độ DETAIL: có productId ────────────────────────
+        this.mode = 'detail';
+        this.loadReviews();
+        if (this.isLoggedIn && this.currentUserId) {
+          this.checkPurchased();
+        } else {
+          this.purchaseChecked = true;
+        }
+      } else {
+        // ── Chế độ LIST: không có productId ────────────────────
+        this.mode = 'list';
+        if (this.isLoggedIn) {
+          this.loadReviewableOrders();
+        }
+      }
     });
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  //  CHẾ ĐỘ LIST
+  // ════════════════════════════════════════════════════════════════
+
+  loadReviewableOrders(): void {
+    this.isListLoading = true;
+    const userId = this.currentUserId;
+    if (!userId) { this.isListLoading = false; return; }
+
+    this.api.getOrders(userId).subscribe({
+      next: (orders: any[]) => {
+        // Lọc: đã giao + không trả hàng
+        const eligible = (orders || []).filter(o =>
+          o.status === 'delivered' &&
+          (!o.returnStatus || o.returnStatus === 'none')
+        );
+
+        if (eligible.length === 0) {
+          this.reviewableOrders = [];
+          this.isListLoading = false;
+          this.cdr.detectChanges();
+          return;
+        }
+
+        // Kiểm tra từng sản phẩm đã được review chưa
+        const checks$ = eligible.map(order => {
+          const itemChecks$ = (order.items || []).map((item: any) =>
+            this.api.getReviews(String(item.productId), { limit: 100 }).pipe(
+              map((res: any) => {
+                const reviews: any[] = res?.reviews || [];
+                const myReview = reviews.find((r: any) => r.name === this.currentUserName);
+                return {
+                  productId: String(item.productId),
+                  name:      item.name,
+                  imageUrl:  item.imageUrl || '',
+                  price:     item.price,
+                  quantity:  item.quantity,
+                  reviewed:  !!myReview,
+                } as ReviewableItem;
+              }),
+              catchError(() => of({
+                productId: String(item.productId),
+                name:      item.name,
+                imageUrl:  item.imageUrl || '',
+                price:     item.price,
+                quantity:  item.quantity,
+                reviewed:  false,
+              } as ReviewableItem))
+            )
+          );
+
+          return forkJoin(itemChecks$).pipe(
+            map(items => ({
+              _id:       order._id,
+              orderCode: order.orderCode || order._id?.substring(0, 8)?.toUpperCase(),
+              createdAt: order.createdAt,
+              total:     order.total,
+              items,
+            } as ReviewableOrder))
+          );
+        });
+
+        forkJoin(checks$).subscribe({
+          next: result => {
+            this.reviewableOrders = result;
+            this.isListLoading = false;
+            this.cdr.detectChanges();
+          },
+          error: () => { this.isListLoading = false; this.cdr.detectChanges(); }
+        });
+      },
+      error: () => { this.isListLoading = false; this.cdr.detectChanges(); }
+    });
+  }
+
+  goToReview(productId: string): void {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { productId },
+    });
+  }
+
+  hasUnreviewed(order: ReviewableOrder): boolean {
+    return order.items.some(i => !i.reviewed);
+  }
+
+  reviewedCount(order: ReviewableOrder): number {
+    return order.items.filter(i => i.reviewed).length;
+  }
+
+  getListImageUrl(url: string): string {
+    if (!url) return '/assets/images/placeholder.png';
+    return url.startsWith('http') ? url : `${STATIC_BASE}${url}`;
+  }
+
+  formatDate(iso: string): string {
+    if (!iso) return '';
+    return new Date(iso).toLocaleDateString('vi-VN', {
+      day: '2-digit', month: '2-digit', year: 'numeric'
+    });
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  //  CHẾ ĐỘ DETAIL
+  // ════════════════════════════════════════════════════════════════
+
+  private checkPurchased(): void {
+    this.purchaseChecked = false;
+    this.api.getOrders(this.currentUserId).subscribe({
+      next: (orders: any[]) => {
+        const deliveredOrders = (orders || []).filter(o => o.status === 'delivered');
+        this.hasPurchased = deliveredOrders.some(order =>
+          (order.items || []).some((item: any) =>
+            String(item.productId) === String(this.productId)
+          )
+        );
+        this.purchaseChecked = true;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.hasPurchased    = false;
+        this.purchaseChecked = true;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  private checkAlreadyReviewed(): void {
+    if (!this.currentUserName) return;
+    this.alreadyReviewed = this.allReviews.some(r => r.name === this.currentUserName);
+  }
+
+  get canWriteReview(): boolean {
+    return this.isLoggedIn
+      && this.purchaseChecked
+      && this.hasPurchased
+      && !this.alreadyReviewed
+      && !this.editingReviewId;
   }
 
   fixImgUrl(url: string): string {
@@ -147,13 +338,10 @@ export class OrderReviewComponent implements OnInit {
 
         this.hasMoreReviews = reviews.length === 10;
         this.isLoading = false;
+        this.checkAlreadyReviewed();
         this.cdr.detectChanges();
       },
-      error: (err) => {
-        console.error('Lỗi tải đánh giá:', err);
-        this.isLoading = false;
-        this.cdr.detectChanges();
-      }
+      error: () => { this.isLoading = false; this.cdr.detectChanges(); }
     });
   }
 
@@ -198,6 +386,11 @@ export class OrderReviewComponent implements OnInit {
 
   submitReview(): void {
     if (!this.canSubmit() || !this.productId) return;
+    if (!this.hasPurchased) {
+      this.api.showToast('Bạn chỉ có thể đánh giá sản phẩm đã mua.', 'error');
+      return;
+    }
+
     this.isSubmitting = true;
     this.cdr.detectChanges();
 
@@ -210,6 +403,7 @@ export class OrderReviewComponent implements OnInit {
     const doSubmit = (imgUrls: string[]) => {
       this.api.submitReview({
         productId: this.productId,
+        userId:    this.currentUserId,
         name:      userName,
         rating:    this.selectedStar,
         variant:   this.selectedVariant || undefined,
@@ -227,9 +421,9 @@ export class OrderReviewComponent implements OnInit {
           this.cdr.detectChanges();
         },
         error: (err) => {
-          console.error('Lỗi gửi đánh giá:', err);
           this.isSubmitting = false;
-          this.api.showToast('Không thể gửi đánh giá. Vui lòng thử lại.', 'error');
+          const msg = err?.error?.error || 'Không thể gửi đánh giá. Vui lòng thử lại.';
+          this.api.showToast(msg, 'error');
           this.cdr.detectChanges();
         }
       });
@@ -237,12 +431,8 @@ export class OrderReviewComponent implements OnInit {
 
     if (this.selectedImages.length > 0) {
       this.api.uploadReviewImages(this.selectedImages).subscribe({
-        next: (res) => {
-          const urls = (res.urls || []).map((u: string) => this.fixImgUrl(u));
-          doSubmit(urls);
-        },
-        error: (err) => {
-          console.error('Lỗi upload ảnh:', err);
+        next: (res) => { doSubmit((res.urls || []).map((u: string) => this.fixImgUrl(u))); },
+        error: () => {
           this.isSubmitting = false;
           this.api.showToast('Không thể upload ảnh. Vui lòng thử lại.', 'error');
           this.cdr.detectChanges();
@@ -266,7 +456,6 @@ export class OrderReviewComponent implements OnInit {
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (!input.files?.length) return;
-
     const toAdd = Array.from(input.files).slice(0, 5 - this.selectedImages.length);
     toAdd.forEach(file => {
       if (!file.type.startsWith('image/')) return;
@@ -276,10 +465,7 @@ export class OrderReviewComponent implements OnInit {
       }
       this.selectedImages.push(file);
       const reader = new FileReader();
-      reader.onload = (e) => {
-        this.imagePreviewUrls.push(e.target?.result as string);
-        this.cdr.detectChanges();
-      };
+      reader.onload = (e) => { this.imagePreviewUrls.push(e.target?.result as string); this.cdr.detectChanges(); };
       reader.readAsDataURL(file);
     });
     input.value = '';
@@ -290,10 +476,6 @@ export class OrderReviewComponent implements OnInit {
     this.imagePreviewUrls.splice(index, 1);
     this.cdr.detectChanges();
   }
-
-  // ════════════════════════════════════════════════════════════════════════════
-  //  EDIT REVIEW
-  // ════════════════════════════════════════════════════════════════════════════
 
   isMyReview(review: any): boolean {
     return !!this.currentUserName && review.name === this.currentUserName;
@@ -327,10 +509,7 @@ export class OrderReviewComponent implements OnInit {
   }
 
   isEditTagSelected(tag: string): boolean { return this.editTags.includes(tag); }
-
-  canEditSubmit(): boolean {
-    return this.editStar > 0 && this.editText.trim().length >= 10;
-  }
+  canEditSubmit(): boolean { return this.editStar > 0 && this.editText.trim().length >= 10; }
 
   removeEditExistingImg(index: number): void {
     this.editExistingImgs.splice(index, 1);
@@ -347,22 +526,14 @@ export class OrderReviewComponent implements OnInit {
   onEditFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (!input.files?.length) return;
-
     const totalExisting = this.editExistingImgs.length + this.editImages.length;
     const toAdd = Array.from(input.files).slice(0, 5 - totalExisting);
-
     toAdd.forEach(file => {
       if (!file.type.startsWith('image/')) return;
-      if (file.size > 5 * 1024 * 1024) {
-        this.api.showToast(`Ảnh "${file.name}" vượt quá 5MB, bỏ qua.`, 'error');
-        return;
-      }
+      if (file.size > 5 * 1024 * 1024) { this.api.showToast(`Ảnh "${file.name}" vượt quá 5MB, bỏ qua.`, 'error'); return; }
       this.editImages.push(file);
       const reader = new FileReader();
-      reader.onload = (e) => {
-        this.editPreviewUrls.push(e.target?.result as string);
-        this.cdr.detectChanges();
-      };
+      reader.onload = (e) => { this.editPreviewUrls.push(e.target?.result as string); this.cdr.detectChanges(); };
       reader.readAsDataURL(file);
     });
     input.value = '';
@@ -376,16 +547,10 @@ export class OrderReviewComponent implements OnInit {
     const doUpdate = (newImgUrls: string[]) => {
       const allImgs = [...this.editExistingImgs, ...newImgUrls];
       this.api.updateReview(this.editingReviewId!, {
-        rating:  this.editStar,
-        text:    this.editText,
-        tags:    this.editTags,
-        variant: this.editVariant || undefined,
-        imgs:    allImgs,
+        rating: this.editStar, text: this.editText,
+        tags: this.editTags, variant: this.editVariant || undefined, imgs: allImgs,
       }).subscribe({
-        next: (updated) => {
-          const idx = this.allReviews.findIndex(r => r._id === this.editingReviewId);
-          if (idx >= 0) this.allReviews[idx] = updated;
-          this.filteredReviews = [...this.allReviews];
+        next: () => {
           this.cancelEdit();
           this.isEditSubmitting = false;
           this.currentPage = 1;
@@ -394,8 +559,7 @@ export class OrderReviewComponent implements OnInit {
           this.api.showToast('Đã cập nhật đánh giá!', 'success');
           this.cdr.detectChanges();
         },
-        error: (err) => {
-          console.error('Lỗi sửa đánh giá:', err);
+        error: () => {
           this.isEditSubmitting = false;
           this.api.showToast('Không thể cập nhật đánh giá. Thử lại!', 'error');
           this.cdr.detectChanges();
@@ -405,53 +569,28 @@ export class OrderReviewComponent implements OnInit {
 
     if (this.editImages.length > 0) {
       this.api.uploadReviewImages(this.editImages).subscribe({
-        next: (res) => {
-          const urls = (res.urls || []).map((u: string) => this.fixImgUrl(u));
-          doUpdate(urls);
-        },
-        error: () => {
-          this.isEditSubmitting = false;
-          this.api.showToast('Không thể upload ảnh mới. Thử lại!', 'error');
-          this.cdr.detectChanges();
-        }
+        next: (res) => doUpdate((res.urls || []).map((u: string) => this.fixImgUrl(u))),
+        error: () => { this.isEditSubmitting = false; this.api.showToast('Không thể upload ảnh mới. Thử lại!', 'error'); this.cdr.detectChanges(); }
       });
-    } else {
-      doUpdate([]);
-    }
+    } else { doUpdate([]); }
   }
 
-  // ════════════════════════════════════════════════════════════════════════════
-  //  DELETE REVIEW
-  // ════════════════════════════════════════════════════════════════════════════
-
   confirmDelete(reviewId: any): void {
-    console.log('confirmDelete called, id:', reviewId);
-    this.ngZone.run(() => {
-      this.deletingReviewId = String(reviewId);
-      console.log('deletingReviewId set to:', this.deletingReviewId);
-      this.cdr.detectChanges();
-    });
+    this.ngZone.run(() => { this.deletingReviewId = String(reviewId); this.cdr.detectChanges(); });
   }
 
   cancelDelete(): void {
-    this.ngZone.run(() => {
-      this.deletingReviewId = null;
-      this.cdr.detectChanges();
-    });
+    this.ngZone.run(() => { this.deletingReviewId = null; this.cdr.detectChanges(); });
   }
 
   submitDelete(): void {
     if (!this.deletingReviewId) return;
     this.isDeleting = true;
     this.cdr.detectChanges();
-
     const idToDelete = String(this.deletingReviewId);
-
     this.api.deleteReview(idToDelete).subscribe({
       next: () => {
         this.ngZone.run(() => {
-          this.allReviews      = this.allReviews.filter(r => String(r._id) !== idToDelete);
-          this.filteredReviews = [...this.allReviews];
           this.deletingReviewId = null;
           this.isDeleting      = false;
           this.currentPage     = 1;
@@ -461,8 +600,7 @@ export class OrderReviewComponent implements OnInit {
           this.cdr.detectChanges();
         });
       },
-      error: (err) => {
-        console.error('Lỗi xóa đánh giá:', err);
+      error: () => {
         this.ngZone.run(() => {
           this.isDeleting = false;
           this.api.showToast('Không thể xóa đánh giá. Thử lại!', 'error');
@@ -472,44 +610,29 @@ export class OrderReviewComponent implements OnInit {
     });
   }
 
-  // ════════════════════════════════════════════════════════════════════════════
-  //  LIKE / NOT HELPFUL
-  // ════════════════════════════════════════════════════════════════════════════
-
   markHelpful(reviewId: string): void {
     if (this.likedReviewIds.has(reviewId)) {
       this.likedReviewIds.delete(reviewId);
       const r = this.allReviews.find(x => x._id === reviewId);
       if (r) r.helpful = Math.max(0, (r.helpful || 0) - 1);
-      this.saveLikeState();
-      this.cdr.detectChanges();
-      return;
+      this.saveLikeState(); this.cdr.detectChanges(); return;
     }
     if (this.dislikedReviewIds.has(reviewId)) this.dislikedReviewIds.delete(reviewId);
     this.likedReviewIds.add(reviewId);
     this.saveLikeState();
-
     this.api.markHelpful(reviewId).subscribe({
       next: (updated: any) => {
         const r = this.allReviews.find(x => x._id === reviewId);
         if (r) r.helpful = updated?.helpful ?? (r.helpful || 0) + 1;
         this.cdr.detectChanges();
       },
-      error: (err) => {
-        this.likedReviewIds.delete(reviewId);
-        this.saveLikeState();
-        console.error(err);
-        this.cdr.detectChanges();
-      }
+      error: () => { this.likedReviewIds.delete(reviewId); this.saveLikeState(); this.cdr.detectChanges(); }
     });
   }
 
   markNotHelpful(reviewId: string): void {
     if (this.dislikedReviewIds.has(reviewId)) {
-      this.dislikedReviewIds.delete(reviewId);
-      this.saveLikeState();
-      this.cdr.detectChanges();
-      return;
+      this.dislikedReviewIds.delete(reviewId); this.saveLikeState(); this.cdr.detectChanges(); return;
     }
     if (this.likedReviewIds.has(reviewId)) {
       this.likedReviewIds.delete(reviewId);
@@ -517,8 +640,7 @@ export class OrderReviewComponent implements OnInit {
       if (r) r.helpful = Math.max(0, (r.helpful || 0) - 1);
     }
     this.dislikedReviewIds.add(reviewId);
-    this.saveLikeState();
-    this.cdr.detectChanges();
+    this.saveLikeState(); this.cdr.detectChanges();
   }
 
   isLiked(reviewId: string):    boolean { return this.likedReviewIds.has(reviewId); }
@@ -538,5 +660,9 @@ export class OrderReviewComponent implements OnInit {
   getAvatarColor(index: number): string {
     const colors = ['#4A7C2F', '#3A6FD4', '#D4854A', '#2D5016', '#8B5CF6'];
     return colors[index % colors.length];
+  }
+
+  formatCurrency(price: number): string {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
   }
 }

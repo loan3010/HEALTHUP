@@ -162,9 +162,10 @@ export class HomepageComponent implements OnInit, OnDestroy {
   }
 
   private loadFeaturedProducts(): void {
-    this.api.getFeaturedProducts().subscribe({
-      next:  (data) => { this.featuredProducts = data; this.isLoading = false; this.cdr.detectChanges(); },
-      error: ()     => { this.isLoading = false; this.cdr.detectChanges(); },
+    // Dùng sort=popular (theo sold) thay vì /featured (theo badge) để đồng bộ với admin
+    this.api.getProducts({ sort: 'popular', limit: 8 }).subscribe({
+      next:  (res) => { this.featuredProducts = res.products || []; this.isLoading = false; this.cdr.detectChanges(); },
+      error: ()    => { this.isLoading = false; this.cdr.detectChanges(); },
     });
   }
 
