@@ -84,15 +84,42 @@
           </span>
         </div>
 
-        <div *ngIf="product.variants?.length">
+        <!-- Biến thể: 2 hàng (tên nhóm do admin đặt) hoặc 1 hàng theo label cũ. -->
+        <div *ngIf="product.variants?.length && hasSecondAttrDimension()">
+          <div class="variant-label mb-2">{{ variantLabel1() }}</div>
+          <div class="d-flex gap-2 flex-wrap">
+            <button
+              type="button"
+              class="variant-btn"
+              *ngFor="let a1 of variantAttr1Options()"
+              [class.active]="selectedAttr1 === a1"
+              (click)="onSelectVariantAttr1(a1)">
+              {{ a1 }}
+            </button>
+          </div>
+          <div class="variant-label mb-2 mt-3">{{ variantLabel2() }}</div>
+          <div class="d-flex gap-2 flex-wrap">
+            <button
+              type="button"
+              class="variant-btn"
+              *ngFor="let a2 of variantAttr2OptionsForSelection()"
+              [class.active]="selectedAttr2 === a2"
+              [class.out-of-stock]="variantStockForAttrs(selectedAttr1, a2) === 0"
+              (click)="onSelectVariantAttr2(a2)">
+              {{ a2 }}
+            </button>
+          </div>
+        </div>
+        <div *ngIf="product.variants?.length && !hasSecondAttrDimension()">
           <div class="variant-label mb-2">Phân loại</div>
           <div class="d-flex gap-2 flex-wrap">
             <button
+              type="button"
               class="variant-btn"
               *ngFor="let v of product.variants"
               [class.active]="selectedVariantId === v._id"
               [class.out-of-stock]="(v.stock || 0) === 0"
-              (click)="selectedVariantId = v._id">
+              (click)="selectVariant(v)">
               {{ v.label }}
             </button>
           </div>
@@ -102,7 +129,7 @@
         <p class="detail-desc mb-0">{{ product.shortDesc }}</p>
 
         <!-- Trọng lượng -->
-        <div *ngIf="product.weights?.length">
+        <div *ngIf="!product.variants?.length && product.weights?.length">
           <div class="variant-label mb-2">Trọng lượng</div>
           <div class="d-flex gap-2 flex-wrap">
             <button class="variant-btn"

@@ -6,7 +6,7 @@
     <span class="p-active">Quản lý sản phẩm</span>
   </nav>
 
-  <div class="promotion-main-content">
+  <div class="promotion-main-content" *ngIf="!isEditorPageOpen">
     <!-- Header -->
     <div class="hu-header">
       <div>
@@ -79,6 +79,22 @@
                   <option [ngValue]="4.5">⭐ 4.5+</option>
                   <option [ngValue]="4">⭐ 4.0+</option>
                   <option [ngValue]="3">⭐ 3.0+</option>
+                </select>
+              </div>
+              <div class="filter-row">
+                <label>Trạng thái bán</label>
+                <select [(ngModel)]="filterSaleStatus">
+                  <option value="">Tất cả</option>
+                  <option value="selling">Đang bán</option>
+                  <option value="out">Tạm hết hàng</option>
+                </select>
+              </div>
+              <div class="filter-row">
+                <label>Hiển thị</label>
+                <select [(ngModel)]="filterVisibility">
+                  <option value="">Tất cả</option>
+                  <option value="visible">Hiển thị</option>
+                  <option value="hidden">Ẩn</option>
                 </select>
               </div>
               <div class="filter-actions">
@@ -175,11 +191,13 @@
             <tr
               *ngFor="let p of filteredProducts"
               [class.selected-row]="selectedIds.has(p._id!)"
-              [class.row-hidden]="p.isHidden">
+              [class.row-hidden]="p.isHidden"
+              (click)="onRowClick(p)">
               <!-- Checkbox -->
               <td class="col-check">
                 <input type="checkbox"
                   [checked]="selectedIds.has(p._id!)"
+                  (click)="$event.stopPropagation()"
                   (change)="toggleOne(p._id!, $any($event.target).checked)" />
               </td>
 
@@ -192,7 +210,7 @@
                   <div class="thumb-wrap">
                     <img
                       *ngIf="p.images && p.images.length"
-                      [src]="'http://localhost:3000' + p.images[0]"
+                      [src]="staticBase + p.images[0]"
                       class="product-thumb" alt=""
                     />
                     <div class="product-thumb placeholder" *ngIf="!p.images || !p.images.length">
@@ -208,10 +226,10 @@
                     <span class="status-chip hidden-chip" *ngIf="p.isHidden">
                       <i class="bi bi-eye-slash-fill"></i> Đang ẩn
                     </span>
-                    <span class="status-chip oos-chip" *ngIf="!p.isHidden && (p.isOutOfStock || p.stock === 0)">
+                    <span class="status-chip oos-chip" *ngIf="!p.isHidden && isEffectiveOutOfStock(p)">
                       <i class="bi bi-slash-circle-fill"></i> Tạm hết hàng
                     </span>
-                    <span class="status-chip active-chip" *ngIf="!p.isHidden && !p.isOutOfStock && p.stock > 0">
+                    <span class="status-chip active-chip" *ngIf="!p.isHidden && !isEffectiveOutOfStock(p)">
                       <i class="bi bi-eye-fill"></i> Đang bán
                     </span>
                   </div>
@@ -230,10 +248,10 @@
               <!-- Tồn kho -->
               <td>
                 <span class="stock-badge"
-                  [class.low-stock]="p.stock > 0 && p.stock < 20"
-                  [class.out-stock]="p.stock === 0">
-                  {{ p.stock }}
-                  <small *ngIf="p.stock === 0"> · Hết</small>
+                  [class.low-stock]="stockOf(p) > 0 && stockOf(p) < 20"
+                  [class.out-stock]="stockOf(p) === 0">
+                  {{ stockOf(p) }}
+                  <small *ngIf="stockOf(p) === 0"> · Hết</small>
                 </span>
               </td>
 
@@ -252,42 +270,51 @@
               <!-- Trạng thái + hành động -->
               <td>
                 <div class="hu-actions" style="flex-wrap: wrap;">
-                  <!-- Hiển thị/Ẩn -->
-                  <span class="status-chip active-chip" *ngIf="!p.isHidden">
+                  <!-- Toggle hiển thị/ẩn ngay trên chip -->
+                  <button
+                    type="button"
+                    class="status-chip status-chip-btn active-chip"
+                    *ngIf="!p.isHidden"
+                    (click)="$event.stopPropagation(); toggleHidden(p)"
+                    title="Bấm để ẩn sản phẩm">
                     <i class="bi bi-eye-fill"></i> Hiển thị
-                  </span>
-                  <span class="status-chip hidden-chip" *ngIf="p.isHidden">
+                  </button>
+                  <button
+                    type="button"
+                    class="status-chip status-chip-btn hidden-chip"
+                    *ngIf="p.isHidden"
+                    (click)="$event.stopPropagation(); toggleHidden(p)"
+                    title="Bấm để hiện sản phẩm">
                     <i class="bi bi-eye-slash-fill"></i> Ẩn
-                  </span>
+                  </button>
 
-                  <!-- Tạm hết hàng -->
-                  <span class="status-chip oos-chip" *ngIf="!p.isHidden && (p.isOutOfStock || p.stock === 0)">
+                  <!-- Toggle tạm hết ngay trên chip -->
+                  <button
+                    type="button"
+                    class="status-chip status-chip-btn oos-chip"
+                    *ngIf="!p.isHidden && isEffectiveOutOfStock(p)"
+                    (click)="$event.stopPropagation(); toggleOutOfStock(p)"
+                    title="Bấm để bỏ tạm hết">
                     <i class="bi bi-slash-circle-fill"></i> Tạm hết
-                  </span>
+                  </button>
+                  <button
+                    type="button"
+                    class="status-chip status-chip-btn active-chip"
+                    *ngIf="!p.isHidden && !isEffectiveOutOfStock(p)"
+                    (click)="$event.stopPropagation(); toggleOutOfStock(p)"
+                    title="Bấm để bật tạm hết">
+                    <i class="bi bi-check-circle-fill"></i> Đang bán
+                  </button>
 
                   <!-- Hành động -->
                   <div style="display:flex;gap:6px;align-items:center;margin-left:auto;">
-                    <button class="hu-btn-icon" (click)="editProduct(p)" title="Sửa sản phẩm">
-                      <i class="bi bi-pencil"></i>
-                    </button>
-
-                    <!-- Soft delete: Xóa/Hiển thị (vẫn dùng toggle-hidden) -->
+                    <!-- Soft delete -->
                     <button
                       class="hu-btn-icon"
-                      [class.hu-btn-danger]="!p.isHidden"
-                      [class.hu-btn-success]="p.isHidden"
-                      (click)="toggleHidden(p)"
-                      [title]="p.isHidden ? 'Hiển thị sản phẩm' : 'Xóa sản phẩm'">
-                      <i class="bi" [ngClass]="p.isHidden ? 'bi-eye' : 'bi-trash'"></i>
-                    </button>
-
-                    <!-- Tạm hết hàng thủ công (giữ nguyên) -->
-                    <button
-                      class="hu-btn-icon"
-                      [disabled]="false"
-                      (click)="toggleOutOfStock(p)"
-                      [title]="p.isOutOfStock ? 'Bỏ tạm hết hàng' : 'Bật tạm hết hàng'">
-                      <i class="bi bi-slash-circle"></i>
+                      [class.hu-btn-danger]="true"
+                      (click)="$event.stopPropagation(); toggleHidden(p)"
+                      [title]="p.isHidden ? 'Hiển thị sản phẩm' : 'Ẩn sản phẩm'">
+                      <i class="bi bi-trash"></i>
                     </button>
                   </div>
                 </div>
@@ -314,13 +341,36 @@
     </div>
   </div>
 
-  <!-- Modal -->
-  <div class="modal-overlay" *ngIf="isModalOpen">
+  <!-- Form dạng trang -->
+  <div class="product-editor-page" *ngIf="isEditorPageOpen">
+    <div class="editor-header">
+      <button class="hu-toolbar-btn" (click)="onBackToList()">
+        <i class="bi bi-arrow-left"></i> Quay lại danh sách
+      </button>
+      <p class="editor-note">Đang chỉnh sửa chi tiết sản phẩm trên trang riêng.</p>
+    </div>
     <app-product-form
+      [embedded]="true"
       [product]="selectedProduct"
       [categories]="categories"
       (save)="onFormSave()"
       (cancel)="onFormCancel()">
     </app-product-form>
+  </div>
+
+  <div class="modal-overlay" *ngIf="showConfirmModal">
+    <div class="confirm-modal">
+      <div class="confirm-icon-wrap" [class.danger]="confirmDanger">
+        <i class="bi" [ngClass]="confirmDanger ? 'bi-exclamation-triangle-fill' : 'bi-question-circle-fill'"></i>
+      </div>
+      <h3 class="confirm-title">{{ confirmTitle }}</h3>
+      <p class="confirm-message" [innerText]="confirmMessage"></p>
+      <div class="confirm-actions">
+        <button class="confirm-btn cancel" (click)="closeConfirmModal()">Hủy</button>
+        <button class="confirm-btn submit" [class.danger]="confirmDanger" (click)="executeConfirmAction()">
+          {{ confirmDanger ? 'Xác nhận xóa' : 'Xác nhận' }}
+        </button>
+      </div>
+    </div>
   </div>
 </div>

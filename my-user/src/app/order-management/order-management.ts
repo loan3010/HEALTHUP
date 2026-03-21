@@ -96,6 +96,7 @@ export class OrderManagement implements OnInit {
     if (this.searchQuery.trim()) {
       const q = this.searchQuery.toLowerCase();
       data = data.filter(o =>
+        o.orderCode?.toLowerCase().includes(q) ||
         o._id?.toLowerCase().includes(q) ||
         o.customer?.fullName?.toLowerCase().includes(q) ||
         o.items?.some((i: any) => i.name?.toLowerCase().includes(q))
