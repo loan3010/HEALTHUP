@@ -15,6 +15,10 @@ const OrderItemSchema = new mongoose.Schema(
 
 const OrderSchema = new mongoose.Schema(
   {
+    // Mã đơn theo business format: ORD + 11 chữ số (ví dụ ORD00000000001).
+    // Dùng sparse để không phá dữ liệu cũ chưa backfill.
+    orderCode: { type: String, unique: true, sparse: true, index: true, trim: true },
+
     // ✅ FIX: thêm userId để lọc đơn theo user
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null, index: true },
 
@@ -44,7 +48,17 @@ const OrderSchema = new mongoose.Schema(
       type: String,
       enum: ['pending', 'confirmed', 'shipping', 'delivered', 'cancelled'],
       default: 'pending'
-    }
+    },
+
+    // Theo dõi quy trình trả hàng/hoàn tiền tách biệt với status giao hàng.
+    returnStatus: {
+      type: String,
+      enum: ['none', 'requested', 'completed'],
+      default: 'none'
+    },
+    returnReason: { type: String, default: '', trim: true },
+    returnRequestedAt: { type: Date, default: null },
+    returnCompletedAt: { type: Date, default: null }
   },
   { timestamps: true }
 );
