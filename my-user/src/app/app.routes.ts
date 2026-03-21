@@ -25,8 +25,8 @@ import { AddressBook } from './address-book/address-book';
 
 import { OrderManagement } from './order-management/order-management';
 import { OrderDetail } from './order-details/order-details';
-import { Notifications } from './notifications/notifications';
 import { ReturnManagement } from './return-management/return-management';
+import { Notification } from './notifications/notifications';
 
 export const routes: Routes = [
 
@@ -38,7 +38,7 @@ export const routes: Routes = [
   { path: 'product-listing-page', component: ProductListingPageComponent },
   { path: 'product-detail-page/:id', component: ProductDetailPageComponent },
 
-  // ===== ORDER REVIEW =====
+  // ===== ORDER REVIEW (standalone) =====
   { path: 'order-review', component: OrderReviewComponent },
 
   // ===== AUTH =====
@@ -64,15 +64,15 @@ export const routes: Routes = [
     path: 'profile',
     component: UserProfile,
     children: [
-      { path: '',                  redirectTo: 'overview', pathMatch: 'full' },
-      { path: 'overview',          component: ProfileOverview },
-      { path: 'address',           component: AddressBook },
-      { path: 'wishlist',          component: Wishlist },
-      { path: 'order-management',  component: OrderManagement },
-      { path: 'order-detail/:id',  component: OrderDetail },
-      { path: 'return-management', component: ReturnManagement },
-      { path: 'order-review', component: OrderReviewComponent },
-      { path: 'notifications',     component: Notifications },
+      { path: '',                   redirectTo: 'overview', pathMatch: 'full' },
+      { path: 'overview',           component: ProfileOverview },
+      { path: 'address',            component: AddressBook },
+      { path: 'wishlist',           component: Wishlist },
+      { path: 'order-management',   component: OrderManagement },
+      { path: 'order-detail/:id',   component: OrderDetail },
+      { path: 'return-management',  component: ReturnManagement },
+      { path: 'order-review',       component: OrderReviewComponent },
+      { path: 'notifications',      component: Notification },
     ]
   },
 

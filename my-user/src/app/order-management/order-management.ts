@@ -44,19 +44,43 @@ export class OrderManagement implements OnInit {
     } catch { return ''; }
   }
 
+  private getUserPhone(): string {
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      return user?.phone || '';
+    } catch { return ''; }
+  }
+
   loadOrders(): void {
-    const userId = this.getUserId();
-    if (!userId) {
-      this.orders = []; this.filteredOrders = [];
-      this.updateTabCounts(); this.cdr.detectChanges(); return;
+    const userId    = this.getUserId();
+    const userPhone = this.getUserPhone();
+
+    if (!userId && !userPhone) {
+      this.orders         = [];
+      this.filteredOrders = [];
+      this.updateTabCounts();
+      this.cdr.detectChanges();
+      return;
     }
+
     this.api.getOrders(userId).subscribe({
       next: (res: any) => {
-        this.orders         = Array.isArray(res) ? res : [];
+        const all = Array.isArray(res) ? res : [];
+
+        // Nếu có phone thì lọc thêm theo phone
+        this.orders = userPhone
+          ? all.filter((o: any) => o.customer?.phone === userPhone)
+          : all;
+
         this.filteredOrders = [...this.orders];
-        this.updateTabCounts(); this.cdr.detectChanges();
+        this.updateTabCounts();
+        this.cdr.detectChanges();
       },
-      error: () => { this.orders = []; this.filteredOrders = []; this.cdr.detectChanges(); }
+      error: () => {
+        this.orders         = [];
+        this.filteredOrders = [];
+        this.cdr.detectChanges();
+      }
     });
   }
 
@@ -82,14 +106,14 @@ export class OrderManagement implements OnInit {
         o.items?.some((i: any) => i.name?.toLowerCase().includes(q))
       );
     }
-    this.filteredOrders = data; this.cdr.detectChanges();
+    this.filteredOrders = data;
+    this.cdr.detectChanges();
   }
 
   goToDetail(orderId: string): void {
     this.router.navigate(['/profile/order-detail', orderId]);
   }
 
-  // ✅ Navigate đến order-review với productId của SP đầu tiên
   goToReview(order: any): void {
     const firstItem = order?.items?.[0];
     if (!firstItem?.productId) return;
@@ -104,10 +128,13 @@ export class OrderManagement implements OnInit {
 
   getStatusLabel(status: string): string {
     const map: Record<string, string> = {
-      pending: 'Chờ xác nhận', confirmed: 'Chờ giao hàng',
-      shipping: 'Đang giao',  // ✅ thêm dòng này
-      delivered: 'Đã giao', cancelled: 'Đã hủy',
-      pending_payment: 'Chờ thanh toán', paid: 'Đã thanh toán',
+      pending:         'Chờ xác nhận',
+      confirmed:       'Chờ giao hàng',
+      shipping:        'Đang giao',
+      delivered:       'Đã giao',
+      cancelled:       'Đã hủy',
+      pending_payment: 'Chờ thanh toán',
+      paid:            'Đã thanh toán',
     };
     return map[status] || status;
   }
@@ -118,8 +145,19 @@ export class OrderManagement implements OnInit {
     const total = order.items.length;
     order.items.forEach((item: any) => {
       this.api.addToCart(item.productId, item.quantity, item.name).subscribe({
-        next: () => { done++; if (done + fail === total) this.api.showToast(fail === 0 ? 'Đã thêm lại tất cả sản phẩm vào giỏ hàng!' : `Thêm được ${done}/${total} sản phẩm.`, fail === 0 ? 'success' : 'info'); },
-        error: () => { fail++; if (done + fail === total) this.api.showToast(`Thêm được ${done}/${total} sản phẩm.`, 'info'); }
+        next: () => {
+          done++;
+          if (done + fail === total)
+            this.api.showToast(
+              fail === 0 ? 'Đã thêm lại tất cả sản phẩm vào giỏ hàng!' : `Thêm được ${done}/${total} sản phẩm.`,
+              fail === 0 ? 'success' : 'info'
+            );
+        },
+        error: () => {
+          fail++;
+          if (done + fail === total)
+            this.api.showToast(`Thêm được ${done}/${total} sản phẩm.`, 'info');
+        }
       });
     });
   }
@@ -127,8 +165,13 @@ export class OrderManagement implements OnInit {
   cancelOrder(orderId: string): void {
     if (!confirm('Bạn có chắc muốn hủy đơn này?')) return;
     this.api.cancelOrder(orderId).subscribe({
-      next: () => { this.loadOrders(); this.api.showToast('Đơn hàng đã được hủy.', 'info'); },
-      error: () => { this.api.showToast('Không thể hủy đơn hàng. Vui lòng thử lại.', 'error'); }
+      next: () => {
+        this.loadOrders();
+        this.api.showToast('Đơn hàng đã được hủy.', 'info');
+      },
+      error: () => {
+        this.api.showToast('Không thể hủy đơn hàng. Vui lòng thử lại.', 'error');
+      }
     });
   }
 }
