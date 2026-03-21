@@ -7,19 +7,19 @@
   </div>
 
   <div class="summary-cards">
-    <div class="s-card">
+    <div class="s-card" (click)="filterByStatus('')" [class.active-filter]="filterStatus === ''">
       <span class="s-label">TỔNG KHUYẾN MÃI</span>
       <span class="s-value">{{ totalCount }}</span>
     </div>
-    <div class="s-card">
+    <div class="s-card" (click)="filterByStatus('expired')" [class.active-filter]="filterStatus === 'expired'">
       <span class="s-label text-danger">ĐÃ KẾT THÚC</span>
       <span class="s-value">{{ expiredCount }}</span>
     </div>
-    <div class="s-card">
+    <div class="s-card" (click)="filterByStatus('ongoing')" [class.active-filter]="filterStatus === 'ongoing'">
       <span class="s-label text-success">ĐANG DIỄN RA</span>
       <span class="s-value">{{ ongoingCount }}</span>
     </div>
-    <div class="s-card">
+    <div class="s-card" (click)="filterByStatus('upcoming')" [class.active-filter]="filterStatus === 'upcoming'">
       <span class="s-label text-warning">SẮP DIỄN RA</span>
       <span class="s-value">{{ upcomingCount }}</span>
     </div>
@@ -79,16 +79,6 @@
           <option value="">Toàn cửa hàng</option>
           <option value="category">Danh mục sản phẩm</option>
           <option value="product">Sản phẩm cụ thể</option>
-        </select>
-      </div>
-
-      <div class="filter-item">
-        <label><i class="bi bi-clock-history"></i> Trạng thái</label>
-        <select [(ngModel)]="filterStatus" (change)="organizeGroups()">
-          <option value="">Tất cả trạng thái</option>
-          <option value="upcoming">Sắp diễn ra</option>
-          <option value="ongoing">Đang diễn ra</option>
-          <option value="expired">Đã kết thúc</option>
         </select>
       </div>
     </div>
