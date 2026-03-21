@@ -15,7 +15,7 @@
       (click)="goToOrder(o._id)"
     >
       <div class="si-top">
-        <span class="si-id">#{{ o._id | slice:0:8 }}...</span>
+        <span class="si-id">#{{ o.orderCode || ((o._id | slice:0:8) + '...') }}</span>
         <span class="si-status" [ngClass]="'status-' + o.status">
           {{ getStatusLabel(o.status) }}
         </span>
@@ -45,7 +45,7 @@
       <div class="od-header">
         <div>
           <h2>Chi tiết đơn hàng</h2>
-          <p class="od-id">Mã đơn: <strong>{{ order._id }}</strong></p>
+          <p class="od-id">Mã đơn: <strong>{{ order.orderCode || order._id }}</strong></p>
         </div>
         <span class="status-badge" [ngClass]="'status-' + order.status">
           {{ getStatusLabel(order.status) }}

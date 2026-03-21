@@ -1,1 +1,274 @@
-<p>order works!</p>
+<div class="order-page">
+  <ng-container *ngIf="!selectedOrderId; else detailView">
+    <nav class="promo-breadcrumb-box">
+      <span class="p-crumb">Quản trị viên</span>
+      <span class="p-sep">/</span>
+      <span class="p-crumb">Quản lý đơn hàng</span>
+      <span class="p-sep">/</span>
+      <span class="p-active">Danh sách đơn hàng</span>
+    </nav>
+
+    <div class="header-row">
+      <h1 class="page-title">DANH SÁCH ĐƠN HÀNG</h1>
+      <button class="hu-btn-primary" (click)="toggleCreatePanel()">
+        <i class="bi bi-plus-lg"></i> Thêm đơn hàng
+      </button>
+    </div>
+
+    <div class="create-panel" *ngIf="showCreatePanel">
+      <h3>Tạo đơn hàng hotline</h3>
+      <div class="create-grid">
+        <div class="field">
+          <label>Họ tên khách</label>
+          <input [(ngModel)]="newOrder.customer.fullName" />
+        </div>
+        <div class="field">
+          <label>Số điện thoại</label>
+          <input [(ngModel)]="newOrder.customer.phone" />
+        </div>
+        <div class="field">
+          <label>Email</label>
+          <input [(ngModel)]="newOrder.customer.email" />
+        </div>
+        <div class="field">
+          <label>Địa chỉ</label>
+          <input [(ngModel)]="newOrder.customer.address" />
+        </div>
+        <div class="field">
+          <label>Tỉnh/Thành</label>
+          <input [(ngModel)]="newOrder.customer.province" />
+        </div>
+        <div class="field">
+          <label>Quận/Huyện</label>
+          <input [(ngModel)]="newOrder.customer.district" />
+        </div>
+        <div class="field">
+          <label>Phường/Xã</label>
+          <input [(ngModel)]="newOrder.customer.ward" />
+        </div>
+        <div class="field">
+          <label>Ghi chú</label>
+          <input [(ngModel)]="newOrder.customer.note" />
+        </div>
+        <div class="field">
+          <label>Giao hàng</label>
+          <select [(ngModel)]="newOrder.shippingMethod">
+            <option value="standard">Tiêu chuẩn</option>
+            <option value="express">Nhanh</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Thanh toán</label>
+          <select [(ngModel)]="newOrder.paymentMethod">
+            <option value="cod">COD</option>
+            <option value="momo">MoMo</option>
+            <option value="vnpay">VNPay</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="items-head">
+        <strong>Sản phẩm</strong>
+        <button class="hu-toolbar-btn" (click)="addItemRow()"><i class="bi bi-plus"></i> Thêm dòng</button>
+      </div>
+      <div class="item-row" *ngFor="let it of newOrder.items; let i = index">
+        <select [(ngModel)]="it.productId">
+          <option value="">-- Chọn sản phẩm --</option>
+          <option *ngFor="let p of productOptions" [value]="p._id">{{ p.name }}</option>
+        </select>
+        <input type="number" min="1" [(ngModel)]="it.quantity" />
+        <button class="hu-toolbar-btn" (click)="removeItemRow(i)" [disabled]="newOrder.items.length===1">
+          <i class="bi bi-trash"></i>
+        </button>
+      </div>
+      <div class="create-error" *ngIf="createError">{{ createError }}</div>
+      <div class="create-actions">
+        <button class="hu-toolbar-btn" (click)="toggleCreatePanel()">Hủy</button>
+        <button class="hu-btn-primary" [disabled]="createSubmitting" (click)="submitHotlineOrder()">
+          {{ createSubmitting ? 'Đang tạo...' : 'Tạo đơn hàng' }}
+        </button>
+      </div>
+    </div>
+
+    <div class="kpi-grid">
+      <button class="kpi-card kpi-btn" [class.active]="activeQuickCard==='all'" (click)="quickFilter('all')">
+        <div class="kpi-label">Tổng đơn hàng</div>
+        <div class="kpi-value">{{ totalOrders }}</div>
+      </button>
+      <button class="kpi-card kpi-btn" [class.active]="activeQuickCard==='pending'" (click)="quickFilter('pending')">
+        <div class="kpi-label">Yêu cầu xác nhận</div>
+        <div class="kpi-value">{{ pendingCount }}</div>
+      </button>
+      <button class="kpi-card kpi-btn" [class.active]="activeQuickCard==='shipping'" (click)="quickFilter('shipping')">
+        <div class="kpi-label">Đang giao</div>
+        <div class="kpi-value">{{ shippingCount }}</div>
+      </button>
+      <button class="kpi-card kpi-btn" [class.active]="activeQuickCard==='returnRequested'" (click)="quickFilter('returnRequested')">
+        <div class="kpi-label">Yêu cầu trả/hoàn</div>
+        <div class="kpi-value">{{ returnRequestedCount }}</div>
+      </button>
+      <button class="kpi-card kpi-btn" [class.active]="activeQuickCard==='returnCompleted'" (click)="quickFilter('returnCompleted')">
+        <div class="kpi-label">Đã trả/hoàn</div>
+        <div class="kpi-value">{{ returnCompletedCount }}</div>
+      </button>
+    </div>
+
+    <div class="toolbar">
+      <div class="hu-search-wrap">
+        <i class="bi bi-search"></i>
+        <input
+          type="text"
+          class="hu-search-input"
+          [(ngModel)]="searchText"
+          (ngModelChange)="onSearch()"
+          placeholder="Tìm mã đơn, tên, SĐT, email..."
+        />
+      </div>
+
+      <span class="hu-selected-count" *ngIf="selectedCount > 0">{{ selectedCount }} đã chọn</span>
+      <button class="hu-toolbar-btn" (click)="editSelected()" [disabled]="selectedCount !== 1">
+        <i class="bi bi-pencil"></i> Chỉnh
+      </button>
+
+      <div class="hu-toolbar-right">
+        <div class="hu-dropdown-wrap">
+          <button class="hu-toolbar-btn" (click)="showFilterPanel = !showFilterPanel; sortMenuOpen = false">
+            <i class="bi bi-funnel"></i> Lọc
+            <i class="bi bi-caret-down-fill" style="font-size:0.6rem"></i>
+            <span class="filter-pill">{{ filterLabelShort }}</span>
+          </button>
+          <div class="hu-dropdown-panel" *ngIf="showFilterPanel">
+            <div class="filter-row">
+              <label>Trạng thái đơn</label>
+              <select [(ngModel)]="statusFilter">
+                <option value="">Tất cả trạng thái</option>
+                <option value="pending">Chờ xác nhận</option>
+                <option value="confirmed">Chờ giao hàng</option>
+                <option value="shipping">Đang giao</option>
+                <option value="delivered">Đã giao</option>
+                <option value="cancelled">Đã hủy</option>
+              </select>
+            </div>
+            <div class="filter-row">
+              <label>Phương thức thanh toán</label>
+              <select [(ngModel)]="paymentMethodFilter">
+                <option value="">Tất cả</option>
+                <option value="cod">COD</option>
+                <option value="momo">MoMo</option>
+                <option value="vnpay">VNPay</option>
+              </select>
+            </div>
+            <div class="filter-row">
+              <label>Trả hàng/hoàn tiền</label>
+              <select [(ngModel)]="returnStatusFilter">
+                <option value="">Tất cả</option>
+                <option value="none">Không</option>
+                <option value="requested">Yêu cầu</option>
+                <option value="completed">Hoàn thành</option>
+              </select>
+            </div>
+            <div class="filter-row">
+              <label>Từ ngày</label>
+              <input type="date" [(ngModel)]="fromDate" />
+            </div>
+            <div class="filter-row">
+              <label>Đến ngày</label>
+              <input type="date" [(ngModel)]="toDate" />
+            </div>
+            <div class="filter-actions">
+              <button class="hu-btn-primary small" (click)="onApplyFilters()">Áp dụng</button>
+              <button class="hu-toolbar-btn" (click)="onResetFilters()">Đặt lại</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="sort-wrap">
+          <button type="button" class="hu-toolbar-btn sort-trigger" (click)="toggleSortMenu()"
+                  [class.sort-trigger-open]="sortMenuOpen" [attr.aria-expanded]="sortMenuOpen">
+            <i class="bi bi-arrow-down-up"></i> Sắp xếp
+            <span class="sort-pill">{{ sortLabelShort }}</span>
+            <i class="sort-chevron" [ngClass]="sortMenuOpen ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+          </button>
+          <div class="sort-menu" *ngIf="sortMenuOpen" role="menu" (click)="$event.stopPropagation()">
+            <div class="sort-menu-section">Ngày tạo</div>
+            <button type="button" class="sort-item" (click)="applySort('createdAt','desc')" [class.active]="isSortActive('createdAt','desc')">
+              Mới nhất <i *ngIf="isSortActive('createdAt','desc')" class="bi bi-check2 sort-check"></i>
+            </button>
+            <button type="button" class="sort-item" (click)="applySort('createdAt','asc')" [class.active]="isSortActive('createdAt','asc')">
+              Cũ nhất <i *ngIf="isSortActive('createdAt','asc')" class="bi bi-check2 sort-check"></i>
+            </button>
+            <div class="sort-menu-section">Tổng tiền</div>
+            <button type="button" class="sort-item" (click)="applySort('total','desc')" [class.active]="isSortActive('total','desc')">
+              Cao -> thấp <i *ngIf="isSortActive('total','desc')" class="bi bi-check2 sort-check"></i>
+            </button>
+            <button type="button" class="sort-item" (click)="applySort('total','asc')" [class.active]="isSortActive('total','asc')">
+              Thấp -> cao <i *ngIf="isSortActive('total','asc')" class="bi bi-check2 sort-check"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="isLoading" class="state-box">
+      <i class="bi bi-arrow-repeat spin"></i> Đang tải đơn hàng...
+    </div>
+
+    <div *ngIf="errorMsg && !isLoading" class="state-box error">
+      <i class="bi bi-exclamation-circle"></i> {{ errorMsg }}
+    </div>
+
+    <div class="table-card" *ngIf="!isLoading && !errorMsg">
+      <table class="order-table">
+        <thead>
+          <tr>
+            <th class="col-check">
+              <input type="checkbox" [checked]="allChecked" (change)="toggleAll($any($event.target).checked)" />
+            </th>
+            <th>MÃ ĐƠN</th>
+            <th>THỜI GIAN TẠO</th>
+            <th>KHÁCH HÀNG</th>
+            <th>TRẠNG THÁI</th>
+            <th>THANH TOÁN</th>
+            <th>TRẢ/HOÀN</th>
+            <th>TỔNG ĐƠN</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let order of orders" (click)="openDetail(order._id)">
+            <td class="col-check" (click)="$event.stopPropagation()">
+              <input type="checkbox" [checked]="selectedIds.has(order._id)" (change)="toggleOne(order._id, $any($event.target).checked)" />
+            </td>
+            <td class="mono">{{ order.orderCode || order._id.slice(-12).toUpperCase() }}</td>
+            <td>{{ order.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
+            <td>
+              <div class="name">{{ order.customer.fullName }}</div>
+              <div class="sub">{{ order.customer.phone }}</div>
+            </td>
+            <td>
+              <span class="status-badge" [ngClass]="'status-' + order.status">{{ statusLabel(order.status) }}</span>
+            </td>
+            <td>{{ paymentMethodLabel(order.paymentMethod) }}</td>
+            <td>{{ returnLabel(order.returnStatus) }}</td>
+            <td class="money">{{ formatMoney(order.total) }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="pagination">
+        <span>Hiển thị trang {{ currentPage }} / {{ totalPages }} • Tổng {{ totalItems }} đơn</span>
+        <div class="page-btns">
+          <button (click)="prevPage()" [disabled]="currentPage === 1">‹</button>
+          <button (click)="nextPage()" [disabled]="currentPage === totalPages">›</button>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
+  <ng-template #detailView>
+    <app-order-detail
+      [orderId]="selectedOrderId!"
+      (back)="closeDetail()"
+      (updated)="onOrderUpdated()"
+    ></app-order-detail>
+  </ng-template>
+</div>

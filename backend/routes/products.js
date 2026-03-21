@@ -68,20 +68,51 @@ function normalizeVN(str) {
     .trim();
 }
 
+/** Tách "A | B" từ label cũ → attr1 / attr2 (khi client chưa gửi attr). */
+function splitLabelToAttrs(label) {
+  const raw = String(label || '').trim();
+  if (!raw) return { a1: '', a2: '' };
+  const parts = raw.split('|').map((x) => x.trim()).filter(Boolean);
+  if (parts.length >= 2) return { a1: parts[0], a2: parts[1] };
+  return { a1: raw, a2: '' };
+}
+
+function normalizeVariantAttrName(v, fallback) {
+  const t = String(v ?? '').trim();
+  const max = 80;
+  return (t.length > max ? t.slice(0, max) : t) || fallback;
+}
+
 function normalizeVariantsInput(rawVariants) {
   if (!Array.isArray(rawVariants)) return [];
   const cleaned = rawVariants
-    .map(v => ({
-      label:    String(v?.label || '').trim(),
-      price:    Number(v?.price || 0),
-      stock:    Math.max(0, Number(v?.stock || 0)),
-      oldPrice: Math.max(0, Number(v?.oldPrice || 0)),
-      isActive: v?.isActive !== false
-    }))
-    .filter(v => v.label && Number.isFinite(v.price) && v.price >= 0);
+    .map((v) => {
+      let attr1 = String(v?.attr1Value ?? '').trim();
+      let attr2 = String(v?.attr2Value ?? '').trim();
+      let label = String(v?.label || '').trim();
+      if ((!attr1 || !attr2) && label) {
+        const p = splitLabelToAttrs(label);
+        if (!attr1) attr1 = p.a1;
+        if (!attr2) attr2 = p.a2;
+      }
+      if (attr1 && attr2) label = `${attr1} | ${attr2}`;
+      else if (!label && (attr1 || attr2)) label = attr1 && attr2 ? `${attr1} | ${attr2}` : (attr1 || attr2);
+
+      return {
+        label,
+        attr1Value: attr1,
+        attr2Value: attr2,
+        image: String(v?.image || '').trim(),
+        price: Number(v?.price || 0),
+        stock: Math.max(0, Number(v?.stock || 0)),
+        oldPrice: Math.max(0, Number(v?.oldPrice || 0)),
+        isActive: v?.isActive !== false
+      };
+    })
+    .filter((v) => v.label && Number.isFinite(v.price) && v.price >= 0);
 
   const seen = new Set();
-  return cleaned.filter(v => {
+  return cleaned.filter((v) => {
     const key = v.label.toLowerCase();
     if (seen.has(key)) return false;
     seen.add(key);
@@ -342,6 +373,8 @@ router.put('/:id', async (req, res) => {
         req.body.price    = variants[0].price;
         req.body.oldPrice = variants[0].oldPrice || req.body.oldPrice || 0;
         req.body.stock    = variants.reduce((sum, v) => sum + (v.stock || 0), 0);
+        req.body.variantAttr1Name = normalizeVariantAttrName(req.body.variantAttr1Name, 'Phân loại 1');
+        req.body.variantAttr2Name = normalizeVariantAttrName(req.body.variantAttr2Name, 'Phân loại 2');
       }
     }
 
