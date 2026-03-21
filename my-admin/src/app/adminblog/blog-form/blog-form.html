@@ -3,107 +3,282 @@
     <i class="bi bi-chevron-left"></i> Quay lại danh sách
   </a>
 
-  <h1 class="page-title">{{ mode === 'add' ? 'THÊM BÀI VIẾT MỚI' : 'CHI TIẾT BÀI VIẾT' }}</h1>
+  <h1 class="page-title">
+    {{ mode === 'add' ? 'THÊM BÀI VIẾT MỚI' : 'CHI TIẾT BÀI VIẾT' }}
+  </h1>
 
   <div class="info-card shadow-sm">
     <div class="info-left">
       <div class="avatar-section">
-        <div class="avatar-circle">
-          <i class="bi bi-person"></i>
+        <div class="cover-upload-box" (click)="fileInput.click()" title="Bấm để chọn ảnh bìa">
+          <img *ngIf="imagePreview" [src]="imagePreview" class="cover-img-preview" />
+          <div *ngIf="!imagePreview" class="cover-placeholder">
+            <i class="bi bi-camera"></i>
+            <span>Ảnh bìa</span>
+          </div>
+          <div class="cover-overlay">
+            <i class="bi bi-cloud-arrow-up"></i>
+            <span>Thay đổi</span>
+          </div>
         </div>
+        <input 
+          type="file" 
+          #fileInput 
+          (change)="onFileSelected($event)" 
+          hidden 
+          accept="image/*"
+        />
       </div>
 
       <div class="meta-section">
         <div class="title-edit-row">
-          <input type="text" class="input-main-title" [(ngModel)]="formData.title" placeholder="Chưa có tiêu đề">
-          <button class="btn-edit-title"><i class="bi bi-pencil-fill"></i></button>
+          <input 
+            type="text" 
+            class="input-main-title" 
+            [(ngModel)]="formData.title" 
+            placeholder="Nhập tiêu đề bài viết ở đây..."
+          />
+          <button type="button" class="btn-edit-title"><i class="bi bi-pencil-fill"></i></button>
         </div>
 
         <div class="fields-grid">
           <div class="field-item">
             <span class="field-label">Tác giả:</span>
-            <input type="text" class="field-input" [(ngModel)]="formData.author" placeholder="Chưa nhập">
+            <input type="text" class="field-input" [(ngModel)]="formData.author" placeholder="Tên người viết">
           </div>
+
           <div class="field-item">
-            <span class="field-label">Email:</span>
-            <input type="text" class="field-input" [(ngModel)]="formData.email" placeholder="Chưa nhập">
+            <span class="field-label">Danh mục:</span>
+            <select class="field-select" [(ngModel)]="formData.tag">
+              <option value="" disabled selected>-- Chọn danh mục bài viết --</option>
+              <option value="Sức khỏe">Sức khỏe</option>
+              <option value="Dinh dưỡng">Dinh dưỡng</option>
+              <option value="Công thức">Công thức</option>
+              <option value="Eat Clean">Eat Clean</option>
+              <option value="Gym & Thể thao">Gym & Thể thao</option>
+            </select>
           </div>
+
           <div class="field-item">
             <span class="field-label">Ngày cập nhật:</span>
             <span class="field-value">{{ formData.updatedAt }}</span>
           </div>
-          <div class="field-item">
-            <span class="field-label">Category:</span>
-            <select class="field-select" [(ngModel)]="formData.category">
-              <option value="Trái cây">Trái cây</option>
-              <option value="Sức khỏe">Sức khỏe</option>
-            </select>
+
+          <div class="field-item full-width">
+            <span class="field-label">Mô tả ngắn:</span>
+            <textarea 
+              class="field-input excerpt-area" 
+              [(ngModel)]="formData.excerpt" 
+              placeholder="Nhập tóm tắt ngắn gọn nội dung bài viết..."
+              rows="4"
+            ></textarea>
           </div>
         </div>
       </div>
     </div>
 
     <div class="info-right">
-      <button *ngIf="mode === 'edit'" class="btn-action btn-red">
+      <button 
+        *ngIf="mode === 'edit'" 
+        type="button"
+        class="btn-action btn-red" 
+        (mousedown)="onDelete($event)">
         <i class="bi bi-trash3"></i> Xóa bài viết
       </button>
-      <button class="btn-action btn-green" (click)="onSave()">
-        <i class="bi bi-pencil"></i> {{ mode === 'add' ? 'Thêm bài viết' : 'Lưu bài viết' }}
+
+      <button 
+        type="button"
+        class="btn-action btn-green" 
+        (mousedown)="onSave($event)">
+        <i class="bi bi-send-check" *ngIf="mode === 'add'"></i>
+        <i class="bi bi-save" *ngIf="mode === 'edit'"></i>
+        {{ mode === 'add' ? 'Đăng bài viết' : 'Lưu thay đổi' }}
       </button>
     </div>
   </div>
 
   <div class="editor-card shadow-sm">
-    <h3 class="editor-label">Nội dung bài viết</h3>
+    <div class="editor-sticky-header">
+      <h3 class="editor-label">Nội dung bài viết</h3>
 
-    <div class="full-toolbar">
-      <div class="toolbar-row">
-        <div class="t-group">
-          <button class="t-btn"><i class="bi bi-arrow-counterclockwise"></i></button>
-          <button class="t-btn"><i class="bi bi-arrow-clockwise"></i></button>
-        </div>
-        <div class="t-group">
-          <select class="t-select"><option>Đoạn văn</option></select>
-          <select class="t-select"><option>Mặc định</option></select>
-          <select class="t-select"><option>14pt</option></select>
-        </div>
-        <div class="t-group">
-          <button class="t-btn"><strong>B</strong></button>
-          <button class="t-btn"><em>I</em></button>
-          <button class="t-btn"><u>U</u></button>
-          <button class="t-btn"><del>S</del></button>
-        </div>
-        <div class="t-group">
-          <button class="t-btn"><i class="bi bi-fonts"></i></button>
-          <button class="t-btn"><i class="bi bi-paint-bucket"></i></button>
-        </div>
-        <div class="t-group no-border">
-          <button class="t-btn">x<sub>2</sub></button>
-          <button class="t-btn">x<sup>2</sup></button>
-        </div>
-        <div class="t-group">
-          <button class="t-btn"><i class="bi bi-text-left"></i></button>
-          <button class="t-btn"><i class="bi bi-text-center"></i></button>
-          <button class="t-btn"><i class="bi bi-text-right"></i></button>
-          <button class="t-btn"><i class="bi bi-justify"></i></button>
-        </div>
-        <div class="t-group">
-          <select class="t-select"><option>1.0</option></select>
-        </div>
-        <div class="t-group">
-          <button class="t-btn"><i class="bi bi-list-ul"></i></button>
-          <button class="t-btn"><i class="bi bi-list-ol"></i></button>
-        </div>
-        <div class="t-group no-border">
-          <button class="t-btn"><i class="bi bi-link-45deg"></i></button>
-          <button class="t-btn"><i class="bi bi-image"></i></button>
-          <button class="t-btn"><i class="bi bi-eraser"></i></button>
+      <div class="full-toolbar">
+        <div class="toolbar-row">
+          <div class="t-group">
+            <button type="button" class="t-btn" (click)="formatDoc('undo')" title="Hoàn tác"><i class="bi bi-arrow-counterclockwise"></i></button>
+            <button type="button" class="t-btn" (click)="formatDoc('redo')" title="Làm lại"><i class="bi bi-arrow-clockwise"></i></button>
+            
+            <button 
+              type="button"
+              class="t-btn btn-painter" 
+              [class.active-painter]="isFormatPainterActive"
+              (click)="toggleFormatPainter()" 
+              title="Cọ quét định dạng">
+              <i class="bi bi-brush-fill"></i>
+            </button>
+          </div>
+          
+          <div class="t-group">
+            <select class="t-select" (change)="formatDoc('fontSize', $any($event.target).value)">
+              <option value="3">Cỡ chữ chuẩn</option>
+              <option value="1">Rất nhỏ</option>
+              <option value="2">Nhỏ</option>
+              <option value="4">Hơi lớn</option>
+              <option value="5">Lớn</option>
+              <option value="6">Rất lớn</option>
+              <option value="7">Cực đại</option>
+            </select>
+          </div>
+
+          <div class="t-group">
+            <button type="button" class="t-btn" (click)="formatDoc('bold')" title="In đậm"><strong>B</strong></button>
+            <button type="button" class="t-btn" (click)="formatDoc('italic')" title="In nghiêng"><em>I</em></button>
+            <button type="button" class="t-btn" (click)="formatDoc('underline')" title="Gạch chân"><u>U</u></button>
+            <button type="button" class="t-btn" (click)="formatDoc('strikeThrough')" title="Gạch ngang"><del>S</del></button>
+          </div>
+
+          <div class="t-group">
+            <div class="dropdown-color">
+              <button type="button" class="t-btn" title="Màu chữ">
+                <i class="bi bi-fonts" [style.color]="currentColor"></i>
+                <i class="bi bi-caret-down-fill" style="font-size: 0.6rem; margin-left: 2px;"></i>
+              </button>
+              <div class="color-palette-dropdown">
+                <div class="palette-label">Màu cơ bản</div>
+                <div class="palette-grid">
+                  <div *ngFor="let color of presetColors" [style.background]="color" class="color-box" (mousedown)="$event.preventDefault()" (click)="formatDoc('foreColor', color)"></div>
+                </div>
+                <ng-container *ngIf="customRecentColors.length > 0">
+                  <div class="palette-divider"></div>
+                  <div class="palette-label">Màu tự chọn</div>
+                  <div class="palette-grid">
+                    <div *ngFor="let color of customRecentColors" [style.background]="color" class="color-box" (mousedown)="$event.preventDefault()" (click)="formatDoc('foreColor', color)"></div>
+                  </div>
+                </ng-container>
+                <div class="palette-divider"></div>
+                <input type="color" class="custom-color-picker" [value]="currentColor" (change)="onCustomColorPick('foreColor', $event)">
+              </div>
+            </div>
+
+            <div class="dropdown-color">
+              <button type="button" class="t-btn" title="Màu nền chữ">
+                <i class="bi bi-paint-bucket" [style.color]="currentBgColor"></i>
+                <i class="bi bi-caret-down-fill" style="font-size: 0.6rem; margin-left: 2px;"></i>
+              </button>
+              <div class="color-palette-dropdown">
+                <div class="palette-label">Màu nền</div>
+                <div class="palette-grid">
+                  <div *ngFor="let color of presetColors" [style.background]="color" class="color-box" (mousedown)="$event.preventDefault()" (click)="formatDoc('hiliteColor', color)"></div>
+                </div>
+                <ng-container *ngIf="customRecentColors.length > 0">
+                  <div class="palette-divider"></div>
+                  <div class="palette-label">Màu tự chọn</div>
+                  <div class="palette-grid">
+                    <div *ngFor="let color of customRecentColors" [style.background]="color" class="color-box" (mousedown)="$event.preventDefault()" (click)="formatDoc('hiliteColor', color)"></div>
+                  </div>
+                </ng-container>
+                <div class="palette-divider"></div>
+                <input type="color" class="custom-color-picker" [value]="currentBgColor" (change)="onCustomColorPick('hiliteColor', $event)">
+              </div>
+            </div>
+          </div>
+
+          <div class="t-group">
+            <button type="button" class="t-btn" (click)="formatDoc('justifyLeft')" title="Căn trái"><i class="bi bi-text-left"></i></button>
+            <button type="button" class="t-btn" (click)="formatDoc('justifyCenter')" title="Căn giữa"><i class="bi bi-text-center"></i></button>
+            <button type="button" class="t-btn" (click)="formatDoc('justifyRight')" title="Căn phải"><i class="bi bi-text-right"></i></button>
+            <button type="button" class="t-btn" (click)="formatDoc('justifyFull')" title="Căn đều"><i class="bi bi-justify"></i></button>
+          </div>
+
+          <div class="t-group">
+            <button type="button" class="t-btn" (click)="formatDoc('insertUnorderedList')" title="Danh sách chấm tròn"><i class="bi bi-list-ul"></i></button>
+            <button type="button" class="t-btn" (click)="formatDoc('insertOrderedList')" title="Danh sách số"><i class="bi bi-list-ol"></i></button>
+          </div>
+
+          <div class="t-group no-border">
+            <button type="button" class="t-btn" (click)="inlineImageInput.click()" title="Chèn ảnh từ máy tính"><i class="bi bi-image"></i></button>
+            
+            <ng-container *ngIf="selectedImage">
+              <button type="button" class="t-btn btn-img-tool" (click)="setImageAlignment('left')" title="Căn trái ảnh"><i class="bi bi-text-indent-left"></i></button>
+              <button type="button" class="t-btn btn-img-tool" (click)="setImageAlignment('center')" title="Căn giữa ảnh"><i class="bi bi-text-center"></i></button>
+              <button type="button" class="t-btn btn-img-tool" (click)="setImageAlignment('right')" title="Căn phải ảnh"><i class="bi bi-text-indent-right"></i></button>
+              <button type="button" class="t-btn btn-img-tool" (click)="openResizeModal()" title="Đổi kích thước ảnh"><i class="bi bi-aspect-ratio"></i></button>
+            </ng-container>
+
+            <button type="button" class="t-btn" (click)="insertLink()" title="Chèn liên kết"><i class="bi bi-link-45deg"></i></button>
+            <button type="button" class="t-btn" (click)="formatDoc('removeFormat')" title="Xóa hết định dạng"><i class="bi bi-eraser"></i></button>
+          </div>
         </div>
       </div>
     </div>
 
     <div class="editor-main">
-      <textarea class="editor-textarea" [(ngModel)]="formData.content" placeholder="Nhập nội dung bài viết ở đây..."></textarea>
+      <div 
+        #editor
+        class="editor-content-area" 
+        contenteditable="true" 
+        translate="no"
+        spellcheck="false"
+        (input)="onContentChange()"
+        (click)="handleEditorClick($event)"
+        (mouseup)="handleEditorMouseUp()"
+        [class.painter-mode]="isFormatPainterActive"
+        data-placeholder="Nhập nội dung tại đây...">
+      </div>
     </div>
   </div>
+
+  <div class="custom-modal-overlay" *ngIf="showResizeModal">
+    <div class="custom-modal">
+      <div class="modal-header">
+        <h4>Tùy chỉnh kích cỡ ảnh</h4>
+        <button type="button" class="btn-close-modal" (click)="showResizeModal = false"><i class="bi bi-x-lg"></i></button>
+      </div>
+      <div class="modal-body">
+        <label>Chiều rộng ảnh:</label>
+        <div class="input-group-custom">
+          <input type="text" [(ngModel)]="tempImageWidth" placeholder="Ví dụ: 50%" (keyup.enter)="applyImageResize()">
+        </div>
+        <p class="modal-hint">Mẹo: Dùng % để ảnh tự co giãn đẹp trên điện thoại.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-modal-cancel" (click)="showResizeModal = false">Hủy bỏ</button>
+        <button type="button" class="btn-modal-apply" (click)="applyImageResize()">Áp dụng</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="custom-modal-overlay" *ngIf="showNotifyModal">
+    <div class="custom-modal notify-modal" [ngClass]="notifyConfig.type">
+      <div class="notify-icon">
+        <i class="bi" [ngClass]="{
+          'bi-check-circle-fill': notifyConfig.type === 'success',
+          'bi-exclamation-triangle-fill': notifyConfig.type === 'confirm' || notifyConfig.type === 'warning',
+          'bi-x-circle-fill': notifyConfig.type === 'error'
+        }"></i>
+      </div>
+      
+      <div class="notify-content">
+        <h4>{{ notifyConfig.title }}</h4>
+        <p>{{ notifyConfig.message }}</p>
+      </div>
+
+      <div class="modal-footer">
+        <button *ngIf="notifyConfig.type === 'confirm'" type="button" class="btn-modal-cancel" (click)="closeNotify()">
+          Hủy
+        </button>
+        <button type="button" class="btn-modal-apply" (click)="handleNotifyAction()">
+          {{ notifyConfig.btnText }}
+        </button>
+      </div>
+    </div>
+  </div>
+
 </div>
+
+<input 
+  type="file" 
+  #inlineImageInput 
+  (change)="insertLocalImage($event)" 
+  hidden 
+  accept="image/*"
+/>

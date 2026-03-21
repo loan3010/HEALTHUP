@@ -6,6 +6,7 @@ export interface Blog {
   content: string;
   coverImage: string;
   author: string;
-  date: string;
-  createdAt: string;
+  date: string;       // Ngày cập nhật (định dạng chuỗi từ Admin)
+  createdAt: string;  // Ngày đăng gốc (định dạng ISO từ hệ thống)
+  views: number;      // Trường lượt xem mới thêm
 }
