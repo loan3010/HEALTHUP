@@ -6,20 +6,16 @@
 
   <div class="modal-body">
     <div class="form-grid">
-      <!-- SKU (read-only) -->
+      <!-- 1. Thông tin cơ bản -->
       <div class="form-group full-width">
         <label>SKU</label>
-        <input type="text" [(ngModel)]="formData.sku" disabled placeholder="SKU sẽ được tự sinh khi tạo sản phẩm">
+        <input type="text" [(ngModel)]="formData.sku" disabled placeholder="SKU tự sinh khi tạo mới">
       </div>
-
-      <!-- Tên sản phẩm -->
       <div class="form-group full-width">
         <label>Tên sản phẩm <span class="required">*</span></label>
         <input type="text" [(ngModel)]="formData.name" placeholder="Nhập tên sản phẩm...">
       </div>
-
-      <!-- Danh mục -->
-      <div class="form-group">
+      <div class="form-group full-width">
         <label>Danh mục <span class="required">*</span></label>
         <select [(ngModel)]="formData.cat" (ngModelChange)="onCategorySelectionChange()">
           <option value="">-- Chọn danh mục --</option>
@@ -27,232 +23,284 @@
           <option value="__new__">+ Thêm danh mục mới</option>
         </select>
         <div class="inline-row" *ngIf="showNewCategoryInput">
-          <input
-            type="text"
-            [(ngModel)]="newCategory"
-            placeholder="Nhập tên danh mục mới..."
-            (keydown.enter)="addNewCategory(); $event.preventDefault()"
-          >
+          <input type="text" [(ngModel)]="newCategory" placeholder="Tên danh mục mới"
+            (keydown.enter)="addNewCategory(); $event.preventDefault()">
           <button type="button" class="btn-inline-add" (click)="addNewCategory()">Thêm</button>
           <button type="button" class="btn-inline-cancel" (click)="cancelNewCategory()">Hủy</button>
         </div>
       </div>
 
-      <!--
-        Trạng thái: dùng đúng field backend (isHidden, isOutOfStock) — khớp bộ lọc danh sách.
-        (Trước đây dropdown "status" chỉ nằm ở admin, DB không lưu → dễ lệch với filter.)
-      -->
-      <div class="form-group">
-        <label>Hiển thị <span class="required">*</span></label>
-        <select [(ngModel)]="formData.isHidden">
-          <option [ngValue]="false">Hiển thị trên shop</option>
-          <option [ngValue]="true">Ẩn (không hiện cho khách)</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Tạm hết hàng (cờ admin)</label>
-        <select [(ngModel)]="formData.isOutOfStock">
-          <option [ngValue]="false">Không — để hệ thống theo tồn kho</option>
-          <option [ngValue]="true">Bật — luôn coi là tạm hết dù còn tồn</option>
-        </select>
-        <div class="form-helper">
-          Danh sách vẫn coi là “hết” nếu tổng tồn = 0 (hoặc từng biến thể). Cờ này để chặn bán khi vẫn còn số lượng.
-        </div>
-      </div>
-
-      <!-- Giá bán -->
-      <div class="form-group">
-        <label>Giá bán <span class="required">*</span></label>
-        <input type="number" [(ngModel)]="formData.price" placeholder="0" [disabled]="variants.length > 0">
-      </div>
-
-      <!-- Giá cũ -->
-      <div class="form-group">
-        <label>Giá cũ</label>
-        <input type="number" [(ngModel)]="formData.oldPrice" placeholder="0" [disabled]="variants.length > 0">
-      </div>
-
-      <!-- Tồn kho -->
-      <div class="form-group">
-        <label>Tồn kho <span class="required">*</span></label>
-        <input type="number" [(ngModel)]="formData.stock" placeholder="0" [disabled]="variants.length > 0">
-      </div>
-
-      <!-- Khối lượng -->
-      <div class="form-group">
-        <label>Khối lượng tổng quát</label>
-        <input type="text" [(ngModel)]="formData.weight" placeholder="Tự đồng bộ từ danh sách trọng lượng bên dưới" disabled>
-      </div>
-
-      <!-- Badge -->
-      <div class="form-group">
-        <label>Badge</label>
-        <select [(ngModel)]="formData.badge">
-          <option [ngValue]="null">Không có</option>
-          <option value="new">New</option>
-          <option value="hot">Hot</option>
-        </select>
-      </div>
-
-      <!-- Loại đóng gói (1 giá trị duy nhất) -->
-      <div class="form-group">
-        <label>Loại đóng gói</label>
-        <div class="inline-row">
-          <input
-            type="text"
-            [(ngModel)]="selectedPackagingType"
-            placeholder="VD: Túi zip, Hộp giấy..."
-          >
-        </div>
-      </div>
-
-      <!-- Tên 2 chiều phân loại (hiển thị bên trang khách) -->
-      <div class="form-group full-width">
-        <div class="variant-header wrap">
-          <label>Tên nhóm phân loại (tùy chỉnh)</label>
-        </div>
-        <div class="form-helper">Ví dụ đổi thành "Hương vị" và "Khối lượng" thay vì mặc định.</div>
-        <div class="inline-row variant-name-row">
-          <div class="flex-1">
-            <span class="sub-label">Phân loại 1</span>
-            <input type="text" [(ngModel)]="formData.variantAttr1Name" maxlength="80" placeholder="Phân loại 1">
+      <!-- 2. Tóm tắt nhanh (chỉ đọc) -->
+      <div class="form-group full-width admin-summary-bar">
+        <div class="admin-summary-title">Tóm tắt nhanh</div>
+        <div class="admin-summary-cols">
+          <div class="admin-summary-cell">
+            <div class="admin-summary-label">Giá bán</div>
+            <div class="admin-summary-value">{{ summaryPriceDisplay() }}</div>
+            <div class="admin-summary-sub" *ngIf="summaryOldPriceDisplay()">Cũ: {{ summaryOldPriceDisplay() }}</div>
           </div>
-          <div class="flex-1">
-            <span class="sub-label">Phân loại 2 </span>
-            <input type="text" [(ngModel)]="formData.variantAttr2Name" maxlength="80" placeholder="Phân loại 2">
+          <div class="admin-summary-cell">
+            <div class="admin-summary-label">Tồn kho</div>
+            <div class="admin-summary-value">{{ summaryStockTotal() }}</div>
+            <div class="admin-summary-sub text-success" *ngIf="summaryStockTotal() > 0">Còn hàng</div>
+          </div>
+          <div class="admin-summary-cell admin-summary-wide">
+            <div class="admin-summary-label">Phân loại</div>
+            <div class="admin-summary-value small">{{ summaryClassificationLine() }}</div>
+          </div>
+          <div class="admin-summary-cell">
+            <div class="admin-summary-label">Biến thể</div>
+            <div class="admin-summary-value-row">
+              <span class="admin-summary-value admin-summary-value-inline">{{ summaryVariantCountText() }}</span>
+              <span
+                class="variant-status-pill"
+                [class.ok]="summaryVariantOverallStatus() === 'ok'"
+                [class.miss]="summaryVariantOverallStatus() === 'miss'"
+              >{{ summaryVariantBadgeLabel() }}</span>
+            </div>
           </div>
         </div>
-      </div>
-
-      <!-- Giá trị chiều 1 / chiều 2 (tổ hợp giá + stock) -->
-      <div class="form-group full-width">
-        <div class="variant-header wrap">
-          <label>{{ formData.variantAttr1Name || 'Phân loại 1' }} (ví dụ: Dâu, Socola)</label>
-        </div>
-        <div class="inline-row">
-          <input
-            type="text"
-            [(ngModel)]="typeInput"
-            [placeholder]="'Nhập ' + (formData.variantAttr1Name || 'chiều 1') + '...'"
-            (keydown)="onTypeInputKeyDown($event)"
-          >
-          <button type="button" class="btn-inline-add" (click)="addTypeOption()">Thêm</button>
-        </div>
-        <div class="chip-wrap" *ngIf="typeOptions.length > 0">
-          <span class="chip" *ngFor="let t of typeOptions; let i = index">
-            {{ t }}
-            <button type="button" class="chip-remove" (click)="removeTypeOption(i)" aria-label="Xóa">×</button>
-          </span>
+        <div class="form-helper mt-1 mb-0">
+          Badge <strong>New / Hot</strong> do hệ thống tính (API), không chỉnh trên form.
         </div>
       </div>
 
-      <div class="form-group full-width">
+      <!-- 3. Phân loại + Bảng giá (một section liền) -->
+      <div class="form-group full-width admin-variant-section">
         <div class="variant-header wrap">
-          <label>{{ formData.variantAttr2Name || 'Phân loại 2' }} (ví dụ: 200g, 500g)</label>
-        </div>
-        <div class="inline-row">
-          <input
-            type="text"
-            [(ngModel)]="weightInput"
-            [placeholder]="'Nhập ' + (formData.variantAttr2Name || 'chiều 2') + '...'"
-            (keydown)="onWeightInputKeyDown($event)"
-          >
-          <button type="button" class="btn-inline-add" (click)="addWeightOption()">Thêm</button>
-        </div>
-        <div class="chip-wrap" *ngIf="weightOptions.length > 0">
-          <span class="chip" *ngFor="let w of weightOptions; let i = index">
-            {{ w }}
-            <button type="button" class="chip-remove" (click)="removeWeightOption(i)" aria-label="Xóa">×</button>
-          </span>
-        </div>
-      </div>
-
-      <!-- Tổ hợp bán hàng -->
-      <div class="form-group full-width">
-        <div class="variant-header wrap">
-          <label>Tổ hợp Loại + Trọng lượng (giá + tồn kho riêng)</label>
+          <label>Phân loại biến thể &amp; Giá / tồn theo biến thể</label>
         </div>
         <div class="form-helper">
-          Mỗi tổ hợp có giá, tồn kho và 1 ảnh riêng để bên client đổi ảnh khi chọn tổ hợp.
+          Bốn nhóm cố định (vai trò preset). Có thể <strong>đổi tên hiển thị</strong> từng nhóm.
+          Nhóm không có chip bỏ qua khi tính tổ hợp. Thêm chip → bảng cập nhật ngay; API khi <strong>Lưu</strong>.
         </div>
-        <div class="variant-empty" *ngIf="variants.length === 0">
-          Vui lòng thêm ít nhất 1 giá trị mỗi chiều. Hệ thống sẽ tự tạo tổ hợp.
+
+        <!-- 4 preset: list dọc, mỗi dòng = tên (sửa được) + chip + input. -->
+        <div class="preset-list">
+          <div class="preset-row" *ngFor="let slot of classificationSlots; let si = index">
+            <label class="preset-row-name preset-row-name-label">
+              <span class="visually-hidden">Tên nhóm {{ si + 1 }}</span>
+              <input
+                type="text"
+                class="preset-row-name-input"
+                [(ngModel)]="slot.name"
+                [name]="'slot_name_' + si"
+                maxlength="80"
+                [placeholder]="fixedPresets[si]?.name || 'Tên nhóm'"
+              />
+            </label>
+            <div class="preset-row-body">
+              <div class="chip-wrap preset-row-chips" *ngIf="slot.values.length > 0">
+                <span class="chip" *ngFor="let chip of slot.values; let ci = index">
+                  {{ chip }}
+                  <button type="button" class="chip-remove" (click)="removeChipFromSlot(si, ci)" aria-label="Xóa">×</button>
+                </span>
+              </div>
+              <div class="preset-row-inputs inline-row">
+                <input
+                  type="text"
+                  [(ngModel)]="slot.draftInput"
+                  [placeholder]="slotDraftPlaceholder(si)"
+                  (keydown)="onSlotDraftKeyDown(si, $event)"
+                  [name]="'cls_draft_' + si"
+                />
+                <button type="button" class="btn-inline-add" (click)="addChipToSlot(si)">Thêm</button>
+              </div>
+            </div>
+          </div>
         </div>
-        <!-- Cuộn ngang khi nhiều cột — tránh tràn khỏi khung form. -->
+
+        <div class="alert alert-warning py-2 px-3 mt-2 mb-2" *ngIf="variantFlashMessage" role="status">
+          {{ variantFlashMessage }}
+        </div>
+
+        <div class="variant-header wrap mt-3">
+          <label>Giá &amp; tồn kho theo biến thể</label>
+        </div>
+        <div class="form-helper">
+          Có chip: tự sinh tổ hợp (Descartes). Combo thực tế không bán (vd. 500g + túi zip) → tick <strong>Ẩn shop</strong>, không cần nhập giá.
+          Không chip: một dòng <strong>Mặc định</strong>.
+        </div>
         <div class="variant-combo-scroll" *ngIf="variants.length > 0">
-          <div class="variant-grid variant-grid-combo" *ngFor="let v of variants; let i = index">
-            <input type="text" [(ngModel)]="v.attr1Value" [attr.title]="formData.variantAttr1Name" disabled>
-            <input type="text" [(ngModel)]="v.attr2Value" [attr.title]="formData.variantAttr2Name" disabled>
+          <div
+            class="variant-grid variant-grid-combo variant-grid-header-row"
+            [class.variant-grid-combo-one]="activeVariantDimensions() === 1"
+            [class.variant-grid-combo-two]="activeVariantDimensions() === 2"
+            [class.variant-grid-combo-three]="activeVariantDimensions() === 3"
+            [class.variant-grid-combo-four]="activeVariantDimensions() >= 4"
+          >
+            <ng-container [ngSwitch]="activeVariantDimensions()">
+              <span *ngSwitchCase="1" class="variant-col-head">{{ formData.variantAttr1Name }}</span>
+              <ng-container *ngSwitchCase="2">
+                <span class="variant-col-head">{{ formData.variantAttr1Name }}</span>
+                <span class="variant-col-head">{{ formData.variantAttr2Name }}</span>
+              </ng-container>
+              <ng-container *ngSwitchCase="3">
+                <span class="variant-col-head">{{ formData.variantAttr1Name }}</span>
+                <span class="variant-col-head">{{ formData.variantAttr2Name }}</span>
+                <span class="variant-col-head">{{ formData.variantAttr3Name }}</span>
+              </ng-container>
+              <ng-container *ngSwitchCase="4">
+                <span class="variant-col-head">{{ formData.variantAttr1Name }}</span>
+                <span class="variant-col-head">{{ formData.variantAttr2Name }}</span>
+                <span class="variant-col-head">{{ formData.variantAttr3Name }}</span>
+                <span class="variant-col-head">{{ formData.variantAttr4Name }}</span>
+              </ng-container>
+              <span *ngSwitchDefault class="variant-col-head">Giá trị</span>
+            </ng-container>
+            <span class="variant-col-head">Ảnh</span>
+            <span class="variant-col-head">Giá bán</span>
+            <span class="variant-col-head">Giá cũ</span>
+            <span class="variant-col-head">Tồn</span>
+            <span class="variant-col-head">Trạng thái</span>
+            <span class="variant-col-head variant-col-head-action"></span>
+          </div>
+          <div
+            class="variant-grid variant-grid-combo variant-data-row"
+            [class.variant-grid-combo-one]="activeVariantDimensions() === 1"
+            [class.variant-grid-combo-two]="activeVariantDimensions() === 2"
+            [class.variant-grid-combo-three]="activeVariantDimensions() === 3"
+            [class.variant-grid-combo-four]="activeVariantDimensions() >= 4"
+            [class.variant-row-flash]="variantRowHighlight(i)"
+            *ngFor="let v of variants; let i = index"
+          >
+            <ng-container [ngSwitch]="activeVariantDimensions()">
+              <ng-container *ngSwitchCase="1">
+                <input type="text" [(ngModel)]="v.attr1Value" disabled>
+              </ng-container>
+              <ng-container *ngSwitchCase="2">
+                <input type="text" [(ngModel)]="v.attr1Value" disabled>
+                <input type="text" [(ngModel)]="v.attr2Value" disabled>
+              </ng-container>
+              <ng-container *ngSwitchCase="3">
+                <input type="text" [(ngModel)]="v.attr1Value" disabled>
+                <input type="text" [(ngModel)]="v.attr2Value" disabled>
+                <input type="text" [(ngModel)]="v.attr3Value" disabled>
+              </ng-container>
+              <ng-container *ngSwitchCase="4">
+                <input type="text" [(ngModel)]="v.attr1Value" disabled>
+                <input type="text" [(ngModel)]="v.attr2Value" disabled>
+                <input type="text" [(ngModel)]="v.attr3Value" disabled>
+                <input type="text" [(ngModel)]="v.attr4Value" disabled>
+              </ng-container>
+              <ng-container *ngSwitchDefault>
+                <input type="text" [(ngModel)]="v.attr1Value" disabled>
+              </ng-container>
+            </ng-container>
             <div class="variant-image-cell">
-              <img *ngIf="variantImagePreview(v)" [src]="variantImagePreview(v)" alt="variant">
-              <label class="variant-image-icon-btn" [attr.aria-label]="'Tải ảnh tổ hợp ' + (i + 1)">
-                <i class="bi bi-image" aria-hidden="true"></i>
+              <img *ngIf="variantImagePreview(v)" [src]="variantImagePreview(v)" alt="">
+              <label class="variant-image-icon-btn">
+                <i class="bi bi-image"></i>
                 <input type="file" accept="image/*" (change)="onVariantImageSelect(i, $event)" hidden />
               </label>
             </div>
-            <input type="number" [(ngModel)]="v.price" placeholder="Giá">
-            <input type="number" [(ngModel)]="v.oldPrice" placeholder="Giá cũ">
-            <input type="number" [(ngModel)]="v.stock" placeholder="Tồn kho">
-            <button type="button" class="btn-inline-cancel" (click)="removeVariant(i)">Xóa</button>
+            <input type="number" [(ngModel)]="v.price" [class.variant-input-warn]="variantRowNeedsAttention(i)">
+            <input type="number" [(ngModel)]="v.oldPrice">
+            <input type="number" [(ngModel)]="v.stock" [class.variant-input-warn]="variantRowNeedsAttention(i)">
+            <div class="variant-status-cell">
+              <span
+                class="variant-status-pill"
+                [class.ok]="variantRowStatus(i) === 'ok'"
+                [class.miss]="variantRowStatus(i) === 'missing'"
+                [class.inactive]="variantRowStatus(i) === 'inactive'"
+              >{{ variantRowStatusLabel(i) }}</span>
+              <!-- Combo do tích Descartes sinh ra nhưng thực tế không bán → ẩn khỏi shop, không bắt nhập giá. -->
+              <label class="variant-shop-hide">
+                <input
+                  type="checkbox"
+                  [checked]="v.isActive === false"
+                  (change)="onVariantShopHideToggle(i, $any($event.target).checked)"
+                />
+                <span>Ẩn shop</span>
+              </label>
+            </div>
+            <button type="button" class="btn-inline-cancel" *ngIf="canRemoveVariantRow()" (click)="removeVariant(i)">Xóa</button>
           </div>
         </div>
       </div>
 
-      <!-- Dinh dưỡng -->
+      <!-- 4. Dinh dưỡng -->
       <div class="form-group full-width">
         <div class="variant-header">
-          <label>Dinh dưỡng (name / value / percent)</label>
+          <label>Dinh dưỡng</label>
           <button type="button" class="btn-inline-add" (click)="addNutrition()">+ Thêm dòng</button>
         </div>
-        <div class="variant-empty" *ngIf="nutritions.length === 0">
-          Chưa có dữ liệu dinh dưỡng.
+        <div class="form-helper">name / giá trị / % DV</div>
+        <div class="nutrition-grid nutrition-grid-header muted-header">
+          <span>Tên chất</span>
+          <span>Giá trị</span>
+          <span>% DV</span>
+          <span></span>
         </div>
+        <div class="variant-empty" *ngIf="nutritions.length === 0">Chưa có dữ liệu.</div>
         <div class="nutrition-grid" *ngFor="let n of nutritions; let i = index">
-          <input type="text" [(ngModel)]="n.name" placeholder="Tên thành phần, ví dụ: Năng lượng">
-          <input type="text" [(ngModel)]="n.value" placeholder="Hàm lượng, ví dụ: 120 kcal">
-          <input type="number" [(ngModel)]="n.percent" placeholder="% NDH">
+          <input type="text" [(ngModel)]="n.name" placeholder="VD: Năng lượng">
+          <input type="text" [(ngModel)]="n.value" placeholder="VD: 120 kcal">
+          <input type="number" [(ngModel)]="n.percent" placeholder="%">
           <button type="button" class="btn-inline-cancel" (click)="removeNutrition(i)">Xóa</button>
         </div>
       </div>
-      <!-- Hình ảnh -->
-<div class="form-group full-width">
-  <label>Thư viện ảnh chung của sản phẩm (có thể nhiều ảnh)</label>
-  <div class="form-helper">Ảnh chung dùng cho gallery. Ảnh tổ hợp dùng cho lựa chọn biến thể.</div>
-  <div class="image-upload-area">
-    <!-- Ảnh đã upload -->
-    <div class="image-preview-list">
-      <div class="image-preview-item" *ngFor="let img of imagePreview; let i = index">
-        <img [src]="img" alt="preview" />
-        <button type="button" class="remove-img-btn" (click)="removeImage(i)">×</button>
-      </div>
-      <!-- Nút thêm ảnh -->
-      <label class="image-upload-btn">
-        <input type="file" accept="image/*" (change)="onImageSelect($event)" hidden />
-        <i class="bi bi-plus-lg"></i>
-        <span>Thêm ảnh</span>
-      </label>
-    </div>
-  </div>
-</div>
 
-      <!-- Mô tả ngắn -->
+      <!-- 5. Hình ảnh & mô tả -->
+      <div class="form-group full-width">
+        <label>Thư viện ảnh</label>
+        <div class="form-helper">Ảnh chung gallery; ảnh từng biến thể ở bảng trên.</div>
+        <div class="image-upload-area">
+          <div class="image-preview-list">
+            <div class="image-preview-item" *ngFor="let img of imagePreview; let i = index">
+              <img [src]="img" alt="preview" />
+              <button type="button" class="remove-img-btn" (click)="removeImage(i)">×</button>
+            </div>
+            <label class="image-upload-btn">
+              <input type="file" accept="image/*" (change)="onImageSelect($event)" hidden />
+              <i class="bi bi-plus-lg"></i>
+              <span>Thêm ảnh</span>
+            </label>
+          </div>
+        </div>
+      </div>
       <div class="form-group full-width">
         <label>Mô tả ngắn</label>
-        <textarea rows="2" [(ngModel)]="formData.shortDesc" placeholder="Mô tả ngắn về sản phẩm..."></textarea>
+        <textarea rows="2" [(ngModel)]="formData.shortDesc" placeholder="Mô tả ngắn..."></textarea>
+      </div>
+      <div class="form-group full-width">
+        <label>Mô tả đầy đủ (rich text)</label>
+        <app-description-quill-editor [value]="formData.description || ''"
+          (valueChange)="formData.description = $event"></app-description-quill-editor>
       </div>
 
-      <!-- Mô tả đầy đủ -->
-      <div class="form-group full-width">
-        <label>Mô tả đầy đủ</label>
-        <textarea rows="4" [(ngModel)]="formData.description" placeholder="Mô tả chi tiết sản phẩm..."></textarea>
+      <!-- 6. Cài đặt hiển thị -->
+      <div class="form-group full-width admin-display-settings">
+        <div class="admin-summary-title">Cài đặt hiển thị</div>
+        <div class="form-helper">Thay đổi trạng thái sản phẩm trên shop.</div>
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Hiển thị trên shop</div>
+            <div class="form-helper mb-0">Tắt để ẩn sản phẩm.</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" [checked]="!formData.isHidden" (change)="setShopVisible($any($event.target).checked)">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Tạm hết hàng (cờ admin)</div>
+            <div class="form-helper mb-0">Bật để chặn mua dù còn tồn.</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" [checked]="formData.isOutOfStock" (change)="setTempOutOfStock($any($event.target).checked)">
+            <span class="slider"></span>
+          </label>
+        </div>
       </div>
 
     </div>
   </div>
 
   <div class="modal-footer">
-    <button class="btn-huy" (click)="cancel.emit()">HỦY</button>
-    <button class="btn-luu" (click)="onSave()" [disabled]="isSaving">
+    <button class="btn-huy" type="button" (click)="cancel.emit()">HỦY</button>
+    <button class="btn-luu" type="button" (click)="onSave()" [disabled]="isSaving">
       {{ isSaving ? 'Đang lưu...' : (isEditMode ? 'LƯU THAY ĐỔI' : 'THÊM MỚI') }}
     </button>
   </div>

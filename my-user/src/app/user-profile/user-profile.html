@@ -7,7 +7,8 @@
     <div class="sidebar-avatar-block">
       <div class="avatar">{{ getInitials() }}</div>
       <p class="sidebar-username">{{ userName }}</p>
-      <span class="badge">Thành viên</span>
+      <!-- ✅ FIX: dùng memberRank thay vì hardcode "Thành viên" -->
+      <span class="badge badge-{{ memberRank | lowercase }}">{{ memberRank }}</span>
     </div>
 
     <!-- Menu -->
@@ -26,14 +27,13 @@
 
       <div class="menu-divider"></div>
 
-      <!-- ✅ Dùng route đúng /profile/order-management (theo app.routes.ts) -->
       <li routerLink="/profile/order-management" routerLinkActive="active">
         <i class="bi bi-bag-check"></i> Theo dõi đơn hàng
       </li>
-      <li>
+      <li routerLink="/profile/return-management" routerLinkActive="active">
         <i class="bi bi-arrow-repeat"></i> Quản lý đổi trả
       </li>
-      <li>
+      <li routerLink="/profile/order-review" routerLinkActive="active">
         <i class="bi bi-star"></i> Đánh giá đơn hàng
       </li>
 

@@ -148,9 +148,15 @@ export class BlogDetailComponent implements OnInit {
     });
   }
 
+  // goBack(): void {
+  //   this.router.navigate(['/blog']);
+  // }
   goBack(): void {
-    this.router.navigate(['/blog']);
-  }
+  window.scrollTo({ top: 0, behavior: 'instant' });
+  // giữ nguyên logic navigate cũ của bạn, ví dụ:
+  this.router.navigate(['/blog']);
+  // hoặc: this.location.back();
+}
 
   // Chức năng chia sẻ bài viết lên mạng xã hội
   share(platform: string): void {

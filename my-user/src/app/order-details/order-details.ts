@@ -91,7 +91,10 @@ export class OrderDetail implements OnInit {
   getFullAddress(): string {
     const c = this.order?.customer;
     if (!c) return '';
-    return [c.address, c.ward, c.district, c.province].filter(Boolean).join(', ');
+    const parts = [c.address, c.ward, c.district, c.province]
+      .map((p) => (p == null ? '' : String(p).trim()))
+      .filter((p) => p.length > 0 && !/^n\/a$/i.test(p));
+    return parts.join(', ');
   }
 
   fixImage(url: string): string {
@@ -111,6 +114,7 @@ export class OrderDetail implements OnInit {
     const map: Record<string, string> = {
       pending:         'Chờ xác nhận',
       confirmed:       'Chờ giao hàng',
+      shipping:        'Đang giao',
       delivered:       'Đã giao',
       cancelled:       'Đã hủy',
       pending_payment: 'Chờ thanh toán',
@@ -133,5 +137,37 @@ export class OrderDetail implements OnInit {
       express:  'Giao hàng nhanh',
     };
     return map[method] || method;
+  }
+
+  /** Danh sách URL ảnh hoàn hàng từ API (mảng returnImages trên đơn). */
+  getReturnImages(order: any): string[] {
+    const arr = order?.returnImages;
+    if (!Array.isArray(arr)) return [];
+    return arr.map((u: any) => String(u || '').trim()).filter(Boolean);
+  }
+
+  /** Các dòng có returnQty > 0 (khách chỉ trả một phần đơn). */
+  getReturnLines(order: any): any[] {
+    const rows = order?.returnItems;
+    if (!Array.isArray(rows)) return [];
+    return rows.filter((r: any) => Number(r?.returnQty ?? 0) > 0);
+  }
+
+  returnRequestGoodsTotal(order: any): number {
+    return this.getReturnLines(order).reduce(
+      (s: number, r: any) => s + Number(r.price || 0) * Number(r.returnQty || 0),
+      0
+    );
+  }
+
+  /** Nhãn trạng thái quy trình hoàn (tách với trạng thái giao hàng). */
+  getReturnStatusLabel(rs: string): string {
+    const map: Record<string, string> = {
+      requested: 'Đang chờ shop xử lý',
+      approved: 'Shop đã chấp nhận hoàn',
+      rejected: 'Yêu cầu bị từ chối',
+      completed: 'Đã hoàn tiền / trả xong',
+    };
+    return map[rs] || rs;
   }
 }

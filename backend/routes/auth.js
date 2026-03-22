@@ -175,6 +175,15 @@ router.post('/login', async (req, res) => {
       });
     }
 
+    // Khách bị khóa: không cấp token; trả lý do để hiển thị trên app user
+    const userIsActive = typeof user.isActive === 'boolean' ? user.isActive : true;
+    if (user.role === 'user' && !userIsActive) {
+      return res.status(403).json({
+        message: 'Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ hỗ trợ nếu cần.',
+        deactivationReason: String(user.deactivationReason || '').trim(),
+      });
+    }
+
     const token = jwt.sign(
       { userId: String(user._id), role: user.role },
       process.env.JWT_SECRET || 'secret_key',

@@ -1,102 +1,170 @@
 <div class="consulting-detail-container fadeIn">
   <a href="javascript:void(0)" class="back-link-consult" (click)="goBack.emit()">
-    <i class="bi bi-chevron-left"></i> Quay lại trang quản lý tư vấn
+    <i class="bi bi-arrow-left"></i> Quay lại danh sách quản lý
   </a>
 
-  <div class="detail-header-consult">
+  <div class="detail-header-consult" *ngIf="product">
     <div class="header-left">
-      <h1 class="detail-title">{{product.name}}</h1>
+      <h1 class="detail-title">{{ product.name }}</h1>
     </div>
     <div class="header-right">
-      <span class="detail-sku">SKU: {{product.sku}}</span>
+      <span class="detail-sku">Mã sản phẩm: {{ product.sku || 'N/A' }}</span>
     </div>
   </div>
 
   <div class="summary-cards">
     <div class="s-card">
       <span class="s-label">TỔNG CÂU HỎI</span>
-      <span class="s-value text-total">1</span>
+      <span class="s-value text-total">{{ stats.total }}</span>
     </div>
     <div class="s-card">
-      <span class="s-label">CHỜ TRẢ LỜI</span>
-      <span class="s-value text-warning">1</span>
+      <span class="s-label">CHỜ PHẢN HỒI</span>
+      <span class="s-value text-warning">{{ stats.pending }}</span>
     </div>
     <div class="s-card">
-      <span class="s-label">ĐÃ TRẢ LỜI</span>
-      <span class="s-value text-success">0</span>
+      <span class="s-label">ĐÃ HOÀN TẤT</span>
+      <span class="s-value text-success">{{ stats.answered }}</span>
     </div>
   </div>
 
-  <div class="toolbar-consult">
-     <div class="search-box">
-      <input type="text" placeholder="Tìm kiếm theo câu hỏi, khách hàng...">
+  <div class="toolbar-consult-detail">
+    <div class="search-box">
+      <input type="text" 
+             [(ngModel)]="searchText" 
+             (input)="applyFilters()" 
+             (keyup.enter)="applyFilters()"
+             placeholder="Tìm kiếm nội dung câu hỏi hoặc khách hàng...">
       <i class="bi bi-search"></i>
     </div>
-    <button class="btn-filter-consult">
-      <i class="bi bi-funnel"></i> <span>Tất cả</span> <i class="bi bi-chevron-down"></i>
-    </button>
+
+    <div class="custom-dropdown-container">
+      <div class="dropdown-trigger sort-active" (click)="showSortDropdown = !showSortDropdown">
+        <i class="bi bi-clock-history"></i>
+        <span class="sort-pill">{{ sortBy === 'newest' ? 'Mới nhất' : 'Cũ nhất' }}</span>
+        <i class="bi bi-chevron-down ms-2"></i>
+      </div>
+      
+      <div class="dropdown-menu-custom shadow sort-menu" *ngIf="showSortDropdown">
+        <div class="menu-header">SẮP XẾP THEO THỜI GIAN</div>
+        <div class="menu-item" [class.active]="sortBy === 'newest'" (click)="selectSort('newest')">
+          Mới nhất lên đầu <i class="bi bi-check" *ngIf="sortBy === 'newest'"></i>
+        </div>
+        <div class="menu-item" [class.active]="sortBy === 'oldest'" (click)="selectSort('oldest')">
+          Cũ nhất lên đầu <i class="bi bi-check" *ngIf="sortBy === 'oldest'"></i>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div class="question-list">
-    <div class="question-card shadow-sm" *ngFor="let q of questions" [ngClass]="q.status">
+  <div *ngIf="isLoading" class="text-center py-5">
+    <div class="spinner-border text-success" role="status"></div>
+    <p class="mt-2 text-secondary">Đang truy xuất dữ liệu câu hỏi...</p>
+  </div>
+
+  <div class="question-list" *ngIf="!isLoading">
+    <div class="question-card shadow-sm fadeIn" *ngFor="let q of filteredQuestions" [class.pending]="q.status === 'pending'">
       <div class="q-header">
-        <span class="q-label">CÂU HỎI:</span>
+        <span class="q-label">NỘI DUNG CÂU HỎI:</span>
         <span class="status-badge-consult" [ngClass]="q.status">
-          {{ q.status === 'pending' ? 'CHỜ TRẢ LỜI' : 'ĐÃ TRẢ LỜI' }}
+          {{ q.status === 'pending' ? 'ĐANG CHỜ' : 'ĐÃ PHẢN HỒI' }}
         </span>
       </div>
       
-      <p class="q-content">{{q.content}}</p>
-      <div class="q-meta">{{q.user}} <span class="q-time">{{q.time}}</span></div>
+      <p class="q-content">{{ q.content }}</p>
+      <div class="q-meta">{{ q.user }} <span class="q-time">{{ q.time }}</span></div>
 
       <div class="answer-box mt-4" *ngIf="q.status === 'answered'">
-        <span class="q-label">TRẢ LỜI:</span>
-        <p class="a-content">{{q.answer}}</p>
-        <div class="q-meta text-success">Admin <span class="q-time">Vừa xong</span></div>
+        <span class="q-label">NỘI DUNG PHẢN HỒI:</span>
+        <p class="a-content">{{ q.answer }}</p>
+        <div class="a-meta mt-3 pt-3 border-top d-flex justify-content-between align-items-center">
+          <div>
+            <i class="bi bi-check-circle-fill text-success"></i> 
+            <span class="fw-bold text-dark ms-1">{{ q.answeredBy || 'Hệ thống (Admin)' }}</span>
+            <span class="q-time ms-1" *ngIf="q.answerTime">— {{ q.answerTime }}</span>
+          </div>
+          
+          <div class="d-flex gap-2">
+            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1" title="Lượt thích">
+              <i class="bi bi-hand-thumbs-up-fill me-1"></i> {{ q.helpfulCount || 0 }}
+            </span>
+            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1" title="Lượt không thích">
+              <i class="bi bi-hand-thumbs-down-fill me-1"></i> {{ q.unhelpfulCount || 0 }}
+            </span>
+          </div>
+        </div>
       </div>
 
       <div class="q-actions mt-4">
         <div class="btn-group">
           <button class="btn-reply" (click)="openModal(q)">
-            {{ q.status === 'pending' ? 'Trả lời' : 'Sửa trả lời' }}
+            <i class="bi" [ngClass]="q.status === 'pending' ? 'bi-chat-left-text' : 'bi-pencil-square'"></i>
+            {{ q.status === 'pending' ? 'Gửi phản hồi' : 'Chỉnh sửa phản hồi' }}
           </button>
-          <button class="btn-delete-q">Xóa</button>
+          <button class="btn-delete-q" (click)="openDeleteModal(q._id)">
+            <i class="bi bi-trash"></i> Xóa bỏ
+          </button>
         </div>
-        <i class="bi bi-chevron-right arrow-icon"></i>
       </div>
+    </div>
+
+    <div class="text-center py-5 bg-white rounded-3 shadow-sm" *ngIf="filteredQuestions.length === 0">
+      <i class="bi bi-chat-square-dots fs-1 text-light"></i>
+      <p class="text-secondary mt-2">Không tìm thấy dữ liệu phù hợp với yêu cầu tìm kiếm.</p>
     </div>
   </div>
 
   <div class="modal-overlay-consult" *ngIf="isModalOpen">
     <div class="modal-reply shadow-lg fadeInScale">
       <div class="modal-header">
-        <h2 class="modal-title">Trả lời câu hỏi</h2>
-        <button class="btn-close-modal" (click)="isModalOpen = false">&times;</button>
+        <h2 class="modal-title">Cập nhật nội dung tư vấn</h2>
+        <button class="btn-close-modal" (click)="closeAllModals()">&times;</button>
       </div>
       <div class="modal-body">
         <div class="q-preview-box">
-          <span class="q-label-mini">CÂU HỎI:</span>
-          <p class="mb-1">{{activeQuestion?.content}}</p>
-          <span class="q-meta-mini">Khách hàng: {{activeQuestion?.user}}</span>
+          <span class="q-label-mini">CÂU HỎI TỪ KHÁCH HÀNG:</span>
+          <p class="mb-1 fw-bold text-dark">{{ activeQuestion?.content }}</p>
+          <small class="text-secondary">Người gửi: {{ activeQuestion?.user }}</small>
         </div>
         <div class="reply-input-group mt-3">
-          <label>Câu trả lời:</label>
-          <textarea rows="5" placeholder="Nhập câu trả lời..."></textarea>
+          <label class="fw-bold mb-2">Nội dung phản hồi chi tiết:</label>
+          <textarea rows="6" 
+                    [(ngModel)]="replyText" 
+                    placeholder="Nhập nội dung phản hồi chuyên môn cho khách hàng tại đây..."
+                    class="form-control"></textarea>
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn-cancel" (click)="isModalOpen = false">Hủy</button>
-        <button class="btn-send" (click)="showSuccess()">Gửi trả lời</button>
+        <button class="btn-cancel" (click)="closeAllModals()">HỦY BỎ</button>
+        <button class="btn-send" [disabled]="!replyText.trim()" (click)="confirmReply()">
+          XÁC NHẬN GỬI
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay-consult" *ngIf="isDeleteModalOpen">
+    <div class="modal-reply delete-modal shadow-lg fadeInScale">
+      <div class="modal-body text-center py-5">
+        <i class="bi bi-exclamation-circle text-danger d-block mb-3" style="font-size: 3.5rem;"></i>
+        <h3 class="fw-bold">Xác nhận xóa dữ liệu</h3>
+        <p class="text-secondary mb-0 px-3">
+          Hành động này sẽ xóa vĩnh viễn câu hỏi khỏi hệ thống và không thể khôi phục. 
+          Bạn có chắc chắn muốn thực hiện thao tác này?
+        </p>
+        <div class="d-flex justify-content-center gap-3 mt-4">
+          <button class="btn-cancel px-4" (click)="closeAllModals()">QUAY LẠI</button>
+          <button class="btn-danger-confirm px-4" (click)="confirmDelete()">XÁC NHẬN XÓA</button>
+        </div>
       </div>
     </div>
   </div>
 
   <div class="modal-overlay-consult" *ngIf="isSuccessModalOpen">
     <div class="modal-success shadow-lg">
-      <div class="success-icon"><i class="bi bi-check-circle-fill"></i></div>
-      <h3 class="mt-3">Thành công!</h3>
-      <p>Câu trả lời đã được cập nhật thành công.</p>
-      <button class="btn-ok" (click)="closeAllModals()">ĐỒNG Ý</button>
+      <div class="success-icon"><i class="bi bi-check-lg"></i></div>
+      <h3 class="fw-bold">Xử lý thành công</h3>
+      <p class="text-secondary">Dữ liệu đã được cập nhật chính xác trên hệ thống quản trị.</p>
+      <button class="btn-ok" (click)="closeAllModals()">ĐÓNG</button>
     </div>
   </div>
 </div>

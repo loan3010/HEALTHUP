@@ -99,6 +99,9 @@ export class Checkout implements OnInit {
   availableVouchers    = signal<VoucherInfo[]>([]);
   isLoadingVouchers    = false;
 
+  // ✅ MỚI: Lưu code voucher tốt nhất (giảm nhiều tiền nhất)
+  bestVoucherCode = signal<string>('');
+
   // ── Address ──
   savedAddresses = signal<SavedAddress[]>([]);
   selectedAddrId = signal<string>('');
@@ -399,7 +402,7 @@ export class Checkout implements OnInit {
     this.loadingWards = true;
     this.http.get<any>(`${this.GEO_API}/d/${code}?depth=2`).subscribe({
       next: (d) => { this.wards = d.wards || []; this.loadingWards = false; this.cdr.detectChanges(); },
-      error: () => { this.loadingWards = false; }
+      error: () => { this.loadingWards; }
     });
   }
 
@@ -428,6 +431,28 @@ export class Checkout implements OnInit {
       return `Cần thêm ${this.vnd(min - this.subTotal())} để dùng mã này`;
     }
     return '';
+  }
+
+  // ✅ MỚI: Tính số tiền tiết kiệm thực tế của 1 voucher (từ nhánh main)
+  calcVoucherSaving(v: VoucherInfo): number {
+    if (!this.isVoucherEligible(v)) return 0;
+
+    if (v.discountType === 'freeship') {
+      return this.shippingFee();
+    }
+
+    const base = v.type === 'shipping' ? this.shippingFee() : this.subTotal();
+
+    if (v.discountType === 'percent') {
+      const saving = Math.round(base * v.discountValue / 100);
+      return v.maxDiscount ? Math.min(saving, v.maxDiscount) : saving;
+    }
+
+    if (v.discountType === 'fixed') {
+      return Math.min(v.discountValue, base);
+    }
+
+    return 0;
   }
 
   onVoucherInput(v: string, forType: 'order' | 'shipping'): void {
@@ -524,19 +549,43 @@ export class Checkout implements OnInit {
     this.cdr.detectChanges();
   }
 
+  // ✅ CẬP NHẬT: Mở modal — sort voucher theo saving giảm dần, đánh dấu tốt nhất (từ nhánh main)
   openVoucherModal(forType: 'order' | 'shipping'): void {
     this.voucherModalFor   = forType;
     this.showVoucherModal  = true;
     this.isLoadingVouchers = true;
+    this.bestVoucherCode.set('');
     this.cdr.detectChanges();
 
     this.http.get<VoucherInfo[]>(`${this.API_BASE}/promotions/available`).subscribe({
       next: (list) => {
+        // Lọc đúng loại
         const filtered = (list || []).filter(v =>
           forType === 'shipping' ? v.type === 'shipping' : v.type === 'order'
         );
-        const eligible   = filtered.filter(v => this.isVoucherEligible(v));
-        const ineligible = filtered.filter(v => !this.isVoucherEligible(v));
+
+        // Tính saving thực tế rồi sort
+        const withSaving = filtered.map(v => ({
+          ...v,
+          _saving:   this.calcVoucherSaving(v),
+          _eligible: this.isVoucherEligible(v),
+        }));
+
+        // Eligible: sort theo tiết kiệm nhiều nhất lên đầu
+        const eligible = withSaving
+          .filter(v => v._eligible)
+          .sort((a, b) => b._saving - a._saving);
+
+        // Ineligible: sort theo minOrder tăng dần (gần đủ điều kiện lên đầu)
+        const ineligible = withSaving
+          .filter(v => !v._eligible)
+          .sort((a, b) => (a.minOrder ?? 0) - (b.minOrder ?? 0));
+
+        // Đánh dấu voucher tốt nhất
+        if (eligible.length > 0) {
+          this.bestVoucherCode.set(eligible[0].code);
+        }
+
         this.availableVouchers.set([...eligible, ...ineligible]);
         this.isLoadingVouchers = false;
         this.cdr.detectChanges();
@@ -604,9 +653,10 @@ export class Checkout implements OnInit {
     const addr = this.selectedAddr!;
     const note = this.checkoutForm.value.note || '';
 
+    // Sổ địa chỉ lưu 1 chuỗi đầy đủ trong `address`; không gửi N/A (sẽ bị nối thừa trên màn chi tiết đơn).
     const customer: any = {
       fullName: addr.name, phone: addr.phone, email: '',
-      address: addr.address, province: 'N/A', district: 'N/A', ward: 'N/A', note,
+      address: addr.address, province: '', district: '', ward: '', note,
     };
 
     const payload: any = {

@@ -1,5 +1,5 @@
 <div class="order-page">
-  <ng-container *ngIf="!selectedOrderId; else detailView">
+  <ng-container *ngIf="!selectedOrderId && !isCreateFormOpen; else detailOrCreateView">
     <nav class="promo-breadcrumb-box">
       <span class="p-crumb">Quản trị viên</span>
       <span class="p-sep">/</span>
@@ -10,84 +10,9 @@
 
     <div class="header-row">
       <h1 class="page-title">DANH SÁCH ĐƠN HÀNG</h1>
-      <button class="hu-btn-primary" (click)="toggleCreatePanel()">
+      <button class="hu-btn-primary" (click)="openCreateForm()">
         <i class="bi bi-plus-lg"></i> Thêm đơn hàng
       </button>
-    </div>
-
-    <div class="create-panel" *ngIf="showCreatePanel">
-      <h3>Tạo đơn hàng hotline</h3>
-      <div class="create-grid">
-        <div class="field">
-          <label>Họ tên khách</label>
-          <input [(ngModel)]="newOrder.customer.fullName" />
-        </div>
-        <div class="field">
-          <label>Số điện thoại</label>
-          <input [(ngModel)]="newOrder.customer.phone" />
-        </div>
-        <div class="field">
-          <label>Email</label>
-          <input [(ngModel)]="newOrder.customer.email" />
-        </div>
-        <div class="field">
-          <label>Địa chỉ</label>
-          <input [(ngModel)]="newOrder.customer.address" />
-        </div>
-        <div class="field">
-          <label>Tỉnh/Thành</label>
-          <input [(ngModel)]="newOrder.customer.province" />
-        </div>
-        <div class="field">
-          <label>Quận/Huyện</label>
-          <input [(ngModel)]="newOrder.customer.district" />
-        </div>
-        <div class="field">
-          <label>Phường/Xã</label>
-          <input [(ngModel)]="newOrder.customer.ward" />
-        </div>
-        <div class="field">
-          <label>Ghi chú</label>
-          <input [(ngModel)]="newOrder.customer.note" />
-        </div>
-        <div class="field">
-          <label>Giao hàng</label>
-          <select [(ngModel)]="newOrder.shippingMethod">
-            <option value="standard">Tiêu chuẩn</option>
-            <option value="express">Nhanh</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>Thanh toán</label>
-          <select [(ngModel)]="newOrder.paymentMethod">
-            <option value="cod">COD</option>
-            <option value="momo">MoMo</option>
-            <option value="vnpay">VNPay</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="items-head">
-        <strong>Sản phẩm</strong>
-        <button class="hu-toolbar-btn" (click)="addItemRow()"><i class="bi bi-plus"></i> Thêm dòng</button>
-      </div>
-      <div class="item-row" *ngFor="let it of newOrder.items; let i = index">
-        <select [(ngModel)]="it.productId">
-          <option value="">-- Chọn sản phẩm --</option>
-          <option *ngFor="let p of productOptions" [value]="p._id">{{ p.name }}</option>
-        </select>
-        <input type="number" min="1" [(ngModel)]="it.quantity" />
-        <button class="hu-toolbar-btn" (click)="removeItemRow(i)" [disabled]="newOrder.items.length===1">
-          <i class="bi bi-trash"></i>
-        </button>
-      </div>
-      <div class="create-error" *ngIf="createError">{{ createError }}</div>
-      <div class="create-actions">
-        <button class="hu-toolbar-btn" (click)="toggleCreatePanel()">Hủy</button>
-        <button class="hu-btn-primary" [disabled]="createSubmitting" (click)="submitHotlineOrder()">
-          {{ createSubmitting ? 'Đang tạo...' : 'Tạo đơn hàng' }}
-        </button>
-      </div>
     </div>
 
     <div class="kpi-grid">
@@ -163,8 +88,10 @@
               <select [(ngModel)]="returnStatusFilter">
                 <option value="">Tất cả</option>
                 <option value="none">Không</option>
-                <option value="requested">Yêu cầu</option>
-                <option value="completed">Hoàn thành</option>
+                <option value="requested">Yêu cầu hoàn</option>
+                <option value="approved">Đã chấp nhận hoàn</option>
+                <option value="rejected">Từ chối hoàn</option>
+                <option value="completed">Đã hoàn xong</option>
               </select>
             </div>
             <div class="filter-row">
@@ -264,8 +191,14 @@
     </div>
   </ng-container>
 
-  <ng-template #detailView>
+  <ng-template #detailOrCreateView>
+    <app-order-form
+      *ngIf="isCreateFormOpen"
+      (cancelled)="closeCreateForm()"
+      (created)="onHotlineCreated($event)"
+    ></app-order-form>
     <app-order-detail
+      *ngIf="!isCreateFormOpen && selectedOrderId"
       [orderId]="selectedOrderId!"
       (back)="closeDetail()"
       (updated)="onOrderUpdated()"

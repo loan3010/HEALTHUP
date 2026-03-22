@@ -25,12 +25,12 @@ export class Header implements OnInit, OnDestroy {
   showDropdown = false;
   menuOpen = false;
   showTrackOrderModal = false;
+  showLogoutConfirm = false;
 
-  // ── CART COUNT ──
   cartCount = 0;
   private cartCountSub!: Subscription;
 
-  // ✅ UNREAD NOTIFICATION COUNT
+  // ✅ UNREAD NOTIFICATION COUNT (từ THnew)
   unreadCount = 0;
   private unreadCountSub!: Subscription;
 
@@ -78,7 +78,7 @@ export class Header implements OnInit, OnDestroy {
 
   initSearch(): void {
     this.searchSub = this.searchSubject.pipe(
-      debounceTime(250),
+      debounceTime(250), // giữ 250ms từ THnew (phản hồi người dùng tốt hơn 150ms)
       distinctUntilChanged(),
       switchMap(keyword => {
         if (!keyword.trim()) {
@@ -97,18 +97,14 @@ export class Header implements OnInit, OnDestroy {
       next: (results: SearchProduct[]) => {
         this.searchResults = results;
         this.isSearching = false;
-        if (this.searchQuery.trim()) {
-          this.showSearchDropdown = true;
-        }
+        if (this.searchQuery.trim()) this.showSearchDropdown = true;
         this.activeIndex = -1;
         this.cdr.detectChanges();
       },
       error: () => {
         this.isSearching = false;
         this.searchResults = [];
-        if (this.searchQuery.trim()) {
-          this.showSearchDropdown = true;
-        }
+        if (this.searchQuery.trim()) this.showSearchDropdown = true;
         this.cdr.detectChanges();
       }
     });
@@ -177,19 +173,31 @@ export class Header implements OnInit, OnDestroy {
 
   selectProduct(product: SearchProduct): void {
     this.closeSearchDropdown();
-    this.searchQuery = '';
-    this.cdr.detectChanges();
-    this.router.navigate(['/product-detail-page', product._id]);
+    this.router.navigate(['/product-detail-page', product._id]).then(() => {
+      this.searchQuery = '';
+      this.searchResults = [];
+      this.cdr.detectChanges();
+    });
   }
 
   submitSearch(): void {
-    if (!this.searchQuery.trim()) return;
+    const keyword = this.searchQuery.trim();
+    if (!keyword) return;
+
     this.closeSearchDropdown();
+    this.searchInputRef?.nativeElement?.blur();
+
+    // ✅ Nếu đang ở /products rồi: chỉ update queryParams, không recreate component
+    const isOnProductPage = this.router.url.split('?')[0] === '/products';
+
     this.router.navigate(['/products'], {
-      queryParams: { search: this.searchQuery.trim() }
+      queryParams: { search: keyword },
+      replaceUrl: isOnProductPage,
+    }).then(() => {
+      this.searchQuery = '';
+      this.searchResults = [];
+      this.cdr.detectChanges();
     });
-    this.searchQuery = '';
-    this.cdr.detectChanges();
   }
 
   closeSearchDropdown(): void {
@@ -237,7 +245,7 @@ export class Header implements OnInit, OnDestroy {
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
     const target = event.target as HTMLElement;
-    if (!target.closest('.user-menu')) {
+    if (!target.closest('.user-menu') && !target.closest('.logout-confirm-modal')) {
       this.showDropdown = false;
       this.cdr.detectChanges();
     }
@@ -246,14 +254,27 @@ export class Header implements OnInit, OnDestroy {
   openTrackOrder()       { this.showTrackOrderModal = true;  this.cdr.detectChanges(); }
   closeTrackOrderModal() { this.showTrackOrderModal = false; this.cdr.detectChanges(); }
 
-  logout() {
+  logout(): void {
+    this.showDropdown = false;
+    this.showLogoutConfirm = true;
+    this.cdr.detectChanges();
+  }
+
+  confirmLogout(): void {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    this.isLoggedIn   = false;
-    this.userName     = '';
-    this.showDropdown = false;
-    this.unreadCount  = 0; // ✅ Reset badge khi logout
+    localStorage.removeItem('userId'); // từ main
+    this.isLoggedIn        = false;
+    this.userName          = '';
+    this.showDropdown      = false;
+    this.showLogoutConfirm = false; // từ main
+    this.unreadCount       = 0; //
     this.cdr.detectChanges();
     this.router.navigate(['/']);
+  }
+
+  cancelLogout(): void {
+    this.showLogoutConfirm = false;
+    this.cdr.detectChanges();
   }
 }

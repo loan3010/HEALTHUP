@@ -39,7 +39,6 @@
   z-index: 0;
 }
 
-/* overlay tint xanh nhẹ phủ lên bg */
 .auth-page::after {
   content: '';
   position: absolute;
@@ -55,12 +54,12 @@
 .box {
   position: relative;
   z-index: 1;
-  width: min(460px, 94vw);
+  width: min(540px, 94vw); /* ✅ tăng từ 460px lên 540px */
   background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-radius: 24px;
-  padding: 40px 40px 32px;
+  padding: 40px 48px 32px; /* ✅ tăng padding ngang */
   box-shadow:
     0 32px 64px rgba(0, 0, 0, 0.3),
     0 0 0 1px rgba(255,255,255,0.6) inset,
@@ -153,7 +152,6 @@
   box-shadow: 0 0 0 3px rgba(47, 107, 56, 0.12);
 }
 
-/* icon bên trái input */
 .inp-icon {
   position: absolute;
   left: 14px;
@@ -166,7 +164,6 @@
   align-items: center;
 }
 
-/* nút clear */
 .clear {
   position: absolute;
   right: 14px;
@@ -190,66 +187,26 @@
 }
 .clear:hover { background: #f0f0f0; color: #374151; }
 
-/* nút eye */
-.eye-btn {
-  position: absolute;
-  right: 40px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: transparent;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  width: 24px;
-  height: 24px;
+/* ── ERROR INLINE ── */
+.err-msg {
   display: flex;
   align-items: center;
-  justify-content: center;
-  color: #9ca3af;
-  transition: color 0.15s;
-}
-.eye-btn:hover { color: var(--primary); }
-
-/* vẽ mắt bằng CSS */
-.eye {
-  position: relative;
-  width: 20px;
-  height: 13px;
-}
-.eye::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border: 2px solid currentColor;
-  border-radius: 999px;
-}
-.eye::after {
-  content: "";
-  position: absolute;
-  left: 50%; top: 50%;
-  width: 5px; height: 5px;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  background: currentColor;
-}
-.eye.hide::after {
-  content: "";
-  width: 24px; height: 2px;
-  background: currentColor;
-  left: -2px; top: 5px;
-  transform: rotate(-45deg);
-  border-radius: 2px;
-}
-
-/* ── ERROR ── */
-.err {
-  margin-top: 5px;
-  font-size: 12px;
-  color: var(--danger);
+  gap: 6px;
+  background: #fff1f1;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
   font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  color: var(--danger);
+  margin-bottom: 14px;
+  animation: shake 0.3s ease;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%       { transform: translateX(-5px); }
+  60%       { transform: translateX(5px); }
 }
 
 /* ── FORGOT ── */
@@ -322,10 +279,7 @@
 }
 
 /* ── SOCIAL ── */
-.social {
-  display: flex;
-  gap: 10px;
-}
+.social { display: flex; gap: 10px; }
 
 .social-btn {
   flex: 1;
@@ -363,18 +317,6 @@
 .ico-g { background: #fff; border: 1px solid #e5e7eb; color: #ea4335; }
 .ico-f { background: #1877f2; color: #fff; }
 
-/* ── SYSTEM MESSAGE ── */
-.sys {
-  margin-top: 12px;
-  font-size: 13px;
-  font-weight: 600;
-  text-align: center;
-  padding: 10px 14px;
-  border-radius: 10px;
-}
-.sys.ok  { color: var(--success); background: #f0fdf4; border: 1px solid #bbf7d0; }
-.sys.bad { color: var(--danger);  background: #fff1f1; border: 1px solid #fecaca; }
-
 /* ── BOTTOM ── */
 .bottom {
   margin-top: 22px;
@@ -392,6 +334,155 @@
   transition: color 0.2s;
 }
 .bottom a:hover { color: var(--primary-dark); text-decoration: underline; }
+
+/* ── TÀI KHOẢN BỊ VÔ HIỆU HÓA (403 + lý do từ admin) ── */
+.login-ban-banner {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #fff7ed;
+  border: 1px solid #fdba74;
+  color: #9a3412;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.login-ban-title {
+  font-weight: 700;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.login-ban-title .bi { flex-shrink: 0; margin-top: 2px; }
+.login-ban-reason-label {
+  margin-top: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #c2410c;
+}
+.login-ban-reason-text {
+  margin-top: 4px;
+  white-space: pre-wrap;
+  font-weight: 600;
+  color: #7c2d12;
+}
+
+/* ════════════════════════════════════
+   POPUP ĐĂNG NHẬP THÀNH CÔNG
+   ════════════════════════════════════ */
+.success-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fade-in 0.25s ease;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.success-modal {
+  background: #fff;
+  border-radius: 24px;
+  padding: 44px 40px 36px;
+  width: min(380px, 90vw);
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  animation: pop-in 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes pop-in {
+  from { opacity: 0; transform: scale(0.85) translateY(20px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0); }
+}
+
+/* Vòng tròn check SVG animation */
+.success-icon {
+  width: 80px;
+  height: 80px;
+  margin-bottom: 6px;
+}
+
+.success-circle {
+  stroke: #36873A;
+  stroke-width: 2;
+  stroke-dasharray: 166;
+  stroke-dashoffset: 166;
+  animation: draw-circle 0.5s ease forwards;
+}
+
+.success-check {
+  stroke: #36873A;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  animation: draw-check 0.35s 0.45s ease forwards;
+}
+
+@keyframes draw-circle {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes draw-check {
+  to { stroke-dashoffset: 0; }
+}
+
+.success-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #1a1a1a;
+  margin: 0;
+  font-family: 'Be Vietnam Pro', sans-serif;
+}
+
+.success-sub {
+  font-size: 15px;
+  color: #555;
+  margin: 0;
+  font-family: 'Be Vietnam Pro', sans-serif;
+}
+
+.success-sub strong {
+  color: #36873A;
+  font-weight: 700;
+}
+
+.success-redirect {
+  font-size: 13px;
+  color: #aaa;
+  margin: 4px 0 0;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.success-redirect::after {
+  content: '';
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid #A2C37F;
+  border-top-color: #36873A;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
 
 /* ── RESPONSIVE ── */
 @media (max-width: 480px) {

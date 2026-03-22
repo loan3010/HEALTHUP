@@ -1,0 +1,234 @@
+<div class="order-form-page">
+  <nav class="promo-breadcrumb-box">
+    <span class="p-crumb">Quản trị viên</span>
+    <span class="p-sep">/</span>
+    <span class="p-crumb">Quản lý đơn hàng</span>
+    <span class="p-sep">/</span>
+    <span class="p-active">Tạo đơn hotline</span>
+  </nav>
+
+  <div class="of-header">
+    <h1 class="page-title">TẠO ĐƠN HOTLINE</h1>
+    <div class="of-header-actions">
+      <button type="button" class="hu-toolbar-btn" (click)="back()">
+        <i class="bi bi-arrow-left"></i> Quay lại danh sách
+      </button>
+    </div>
+  </div>
+
+  <div class="of-grid">
+    <div class="of-main">
+      <!-- Khách hàng -->
+      <section class="of-card">
+        <h3>Khách hàng</h3>
+        <p class="of-hint">Gõ SĐT để tìm tài khoản đã có (không bắt buộc).</p>
+        <div class="of-cust-suggest of-field-full">
+          <label>Số điện thoại / tìm khách</label>
+          <input
+            [(ngModel)]="customerPhoneSearch"
+            (ngModelChange)="onCustomerPhoneInput()"
+            placeholder="Ví dụ: 0912345678"
+            autocomplete="off"
+          />
+          <ul class="of-suggest-list" *ngIf="showCustomerHits">
+            <li *ngFor="let c of customerHits" (click)="pickCustomer(c)">
+              <strong>{{ c.username }}</strong> · {{ c.phone }}
+              <span class="of-sub" *ngIf="c.email">{{ c.email }}</span>
+            </li>
+          </ul>
+        </div>
+        <div class="of-chip-row" *ngIf="linkedUserId">
+          <span class="of-chip">Đã liên kết userId</span>
+          <button type="button" class="hu-toolbar-btn small" (click)="clearLinkedCustomer()">Bỏ liên kết</button>
+        </div>
+        <div class="of-row">
+          <div class="of-field">
+            <label>Họ tên nhận hàng *</label>
+            <input [(ngModel)]="fullName" (ngModelChange)="schedulePreview()" />
+          </div>
+          <div class="of-field">
+            <label>SĐT *</label>
+            <input [(ngModel)]="phone" (ngModelChange)="schedulePreview()" maxlength="10" />
+          </div>
+          <div class="of-field">
+            <label>Email</label>
+            <input [(ngModel)]="email" (ngModelChange)="schedulePreview()" />
+          </div>
+        </div>
+      </section>
+
+      <!-- Địa chỉ -->
+      <section class="of-card">
+        <h3>Địa chỉ giao hàng</h3>
+        <div class="of-row">
+          <div class="of-field">
+            <label>Tỉnh / Thành *</label>
+            <select [(ngModel)]="provinceCode" (ngModelChange)="onProvinceChange()">
+              <option value="">— Chọn —</option>
+              <option *ngFor="let p of provinces" [value]="p.code">{{ p.name }}</option>
+            </select>
+          </div>
+          <div class="of-field">
+            <label>Quận / Huyện *</label>
+            <select [(ngModel)]="districtCode" (ngModelChange)="onDistrictChange()" [disabled]="!provinceCode">
+              <option value="">— Chọn —</option>
+              <option *ngFor="let d of districts" [value]="d.code">{{ d.name }}</option>
+            </select>
+          </div>
+          <div class="of-field">
+            <label>Phường / Xã *</label>
+            <select [(ngModel)]="wardCode" (ngModelChange)="onWardChange()" [disabled]="!districtCode">
+              <option value="">— Chọn —</option>
+              <option *ngFor="let w of wards" [value]="w.code">{{ w.name }}</option>
+            </select>
+          </div>
+        </div>
+        <div class="of-field-full">
+          <label>Số nhà, tên đường *</label>
+          <input [(ngModel)]="streetAddress" (ngModelChange)="schedulePreview()" placeholder="Ví dụ: 12 Nguyễn Huệ" />
+        </div>
+        <div class="of-field-full">
+          <label>Ghi chú đơn</label>
+          <input [(ngModel)]="note" (ngModelChange)="schedulePreview()" />
+        </div>
+      </section>
+
+      <!-- Vận chuyển & thanh toán -->
+      <section class="of-card">
+        <h3>Giao hàng & thanh toán</h3>
+        <div class="of-row">
+          <div class="of-field">
+            <label>Phương thức giao</label>
+            <select [(ngModel)]="shippingMethod" (ngModelChange)="schedulePreview()">
+              <option value="standard">Tiêu chuẩn</option>
+              <option value="express">Nhanh</option>
+            </select>
+          </div>
+          <div class="of-field">
+            <label>Thanh toán</label>
+            <select [(ngModel)]="paymentMethod" (ngModelChange)="schedulePreview()">
+              <option value="cod">COD</option>
+              <option value="momo">MoMo</option>
+              <option value="vnpay">VNPay</option>
+            </select>
+          </div>
+        </div>
+        <div class="of-row">
+          <div class="of-field">
+            <label>Mã giảm tiền hàng</label>
+            <input [(ngModel)]="voucherCode" (ngModelChange)="schedulePreview()" placeholder="Tùy chọn" />
+          </div>
+          <div class="of-field">
+            <label>Mã giảm phí ship</label>
+            <input [(ngModel)]="shipVoucherCode" (ngModelChange)="schedulePreview()" placeholder="Tùy chọn" />
+          </div>
+        </div>
+      </section>
+
+      <!-- Sản phẩm -->
+      <section class="of-card">
+        <div class="of-card-head">
+          <h3>Sản phẩm</h3>
+          <button type="button" class="hu-toolbar-btn" (click)="addLine()"><i class="bi bi-plus-lg"></i> Thêm dòng</button>
+        </div>
+
+        <div class="of-line" *ngFor="let line of lines; let i = index">
+          <div class="of-line-top">
+            <span class="of-line-idx">#{{ i + 1 }}</span>
+            <button type="button" class="hu-toolbar-btn" (click)="removeLine(i)" [disabled]="lines.length === 1">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+          <div class="of-suggest-wrap of-field-full">
+            <label>Tìm sản phẩm</label>
+            <input
+              [(ngModel)]="line.search"
+              (ngModelChange)="onLineSearchInput(i)"
+              (focus)="line.showSuggest = line.suggestions.length > 0"
+              placeholder="Gõ tên SP (≥2 ký tự)"
+              autocomplete="off"
+            />
+            <ul class="of-suggest-list" *ngIf="line.showSuggest && line.suggestions.length">
+              <li *ngFor="let p of line.suggestions" (click)="pickProduct(i, p)">
+                {{ p.name }}
+                <span class="of-sub" *ngIf="p.sku">SKU: {{ p.sku }}</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="of-meta" *ngIf="line.productId">
+            <span>Đã chọn: <strong>{{ line.productName }}</strong></span>
+            <span *ngIf="line.sku" class="of-sub">SKU SP: {{ line.sku }}</span>
+          </div>
+
+          <div class="of-row" *ngIf="line.productId && line.variants.length">
+            <div class="of-field">
+              <label>Biến thể</label>
+              <select [(ngModel)]="line.variantId" (ngModelChange)="onVariantOrQtyChange()">
+                <option *ngFor="let v of line.variants" [value]="v._id">
+                  {{ v.label }} — {{ formatMoney(v.price) }} · tồn {{ v.stock }}
+                </option>
+              </select>
+            </div>
+            <div class="of-field">
+              <label>Số lượng</label>
+              <input type="number" min="1" [(ngModel)]="line.quantity" (ngModelChange)="onVariantOrQtyChange()" />
+            </div>
+            <div class="of-field of-readonly">
+              <label>Giá / tồn dòng</label>
+              <div>{{ formatMoney(lineUnitPrice(line)) }} · còn {{ lineStock(line) }}</div>
+            </div>
+          </div>
+
+          <div class="of-row" *ngIf="line.productId && !line.variants.length">
+            <div class="of-field">
+              <label>Số lượng</label>
+              <input type="number" min="1" [(ngModel)]="line.quantity" (ngModelChange)="onVariantOrQtyChange()" />
+            </div>
+            <div class="of-field of-readonly">
+              <label>Giá / tồn</label>
+              <div>{{ formatMoney(lineUnitPrice(line)) }} · còn {{ lineStock(line) }}</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="of-submit-error" *ngIf="submitError">{{ submitError }}</div>
+      <div class="of-actions">
+        <button type="button" class="hu-toolbar-btn" (click)="back()">Hủy</button>
+        <button type="button" class="hu-btn-primary" [disabled]="submitting" (click)="submit()">
+          {{ submitting ? 'Đang tạo...' : 'Tạo đơn hàng' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Cột tóm tắt -->
+    <aside class="of-side">
+      <div class="of-side-card">
+        <h3>Tóm tắt đơn</h3>
+        <p class="of-hint">Cập nhật theo dữ liệu bạn nhập (cùng logic backend).</p>
+        <div class="of-preview-loading" *ngIf="previewLoading"><i class="bi bi-arrow-repeat spin"></i> Đang tính...</div>
+        <div class="of-preview-err" *ngIf="previewError && !previewLoading">{{ previewError }}</div>
+        <ng-container *ngIf="preview && !previewLoading">
+          <ul class="of-preview-lines">
+            <li *ngFor="let it of preview.items">
+              <span>{{ it.name }}<em *ngIf="it.variantLabel"> — {{ it.variantLabel }}</em></span>
+              <span>{{ it.quantity }} × {{ formatMoney(it.price) }} = {{ formatMoney(it.lineTotal) }}</span>
+            </li>
+          </ul>
+          <dl class="of-preview-totals">
+            <dt>Tạm tính</dt>
+            <dd>{{ formatMoney(preview.subTotal) }}</dd>
+            <dt>Phí ship</dt>
+            <dd>{{ formatMoney(preview.shippingFee) }}</dd>
+            <dt>Giảm giá</dt>
+            <dd>−{{ formatMoney(preview.discount) }}</dd>
+            <dt class="of-total">Tổng thanh toán</dt>
+            <dd class="of-total">{{ formatMoney(preview.total) }}</dd>
+          </dl>
+        </ng-container>
+        <p class="of-preview-empty" *ngIf="!preview && !previewLoading && !previewError">Nhập khách, địa chỉ và ít nhất một SP để xem tóm tắt.</p>
+      </div>
+    </aside>
+  </div>
+</div>

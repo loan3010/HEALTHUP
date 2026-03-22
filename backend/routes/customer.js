@@ -1,30 +1,7 @@
 const router = require('express').Router();
 const User   = require('../models/User');
 const Order  = require('../models/Order');
-
-// Helper: tính thống kê mua hàng theo phone cho danh sách phone
-async function buildStatsByPhone() {
-  // Gom đơn hàng theo số điện thoại để tính tổng đơn và tổng tiền
-  const agg = await Order.aggregate([
-    {
-      $group: {
-        _id: '$customer.phone',
-        totalOrders: { $sum: 1 },
-        totalSpent:  { $sum: '$total' },
-      },
-    },
-  ]);
-
-  const map = new Map();
-  for (const row of agg) {
-    if (!row._id) continue;
-    map.set(row._id, {
-      totalOrders: row.totalOrders || 0,
-      totalSpent:  row.totalSpent  || 0,
-    });
-  }
-  return map;
-}
+const { buildCustomerListStatsMaps, statsForUser } = require('../helpers/customerOrderStats');
 
 // Helper: xếp hạng thành viên dựa trên tổng chi tiêu
 function getMembershipTier(totalSpent) {
@@ -78,11 +55,12 @@ router.get('/', async (req, res) => {
 
     const users = await User.find(filter).lean();
 
-    const statsMap = await buildStatsByPhone();
+    // Gộp đơn theo userId + đơn không userId theo SĐT chuẩn hóa (tránh 0 đơn khi SĐT trên đơn ≠ SĐT profile).
+    const statsMaps = await buildCustomerListStatsMaps(Order);
 
     /** @type {Array<Record<string, unknown>>} */
     let data = users.map(u => {
-      const stats = statsMap.get(u.phone) || { totalOrders: 0, totalSpent: 0 };
+      const stats = statsForUser(u, statsMaps);
       const membershipTier = getMembershipTier(stats.totalSpent);
 
       return {
@@ -94,9 +72,13 @@ router.get('/', async (req, res) => {
         address:      u.address || '',
         membershipTier,
         isActive:     typeof u.isActive === 'boolean' ? u.isActive : true,
+        // Chỉ có nội dung khi tài khoản đang khóa — để admin xem lại lý do đã gửi cho khách
+        deactivationReason: (!u.isActive && u.deactivationReason) ? String(u.deactivationReason) : '',
         createdAt:    u.createdAt,
         totalOrders:  stats.totalOrders,
         totalSpent:   stats.totalSpent,
+        /** true khi có đơn delivered đang requested|approved — tiền/hạng vẫn cộng nhưng đang chờ kết quả hoàn. */
+        hasProvisionalSpend: !!stats.hasProvisionalSpend,
       };
     });
 
@@ -167,8 +149,8 @@ router.get('/:id', async (req, res) => {
     const user = await User.findOne({ _id: req.params.id, role: 'user' }).lean();
     if (!user) return res.status(404).json({ message: 'Không tìm thấy khách hàng' });
 
-    const statsMap = await buildStatsByPhone();
-    const stats = statsMap.get(user.phone) || { totalOrders: 0, totalSpent: 0 };
+    const statsMaps = await buildCustomerListStatsMaps(Order);
+    const stats = statsForUser(user, statsMaps);
     const membershipTier = getMembershipTier(stats.totalSpent);
 
     res.json({
@@ -180,9 +162,11 @@ router.get('/:id', async (req, res) => {
       address:      user.address || '',
       membershipTier,
       isActive:     typeof user.isActive === 'boolean' ? user.isActive : true,
+      deactivationReason: (!user.isActive && user.deactivationReason) ? String(user.deactivationReason) : '',
       createdAt:    user.createdAt,
       totalOrders:  stats.totalOrders,
       totalSpent:   stats.totalSpent,
+      hasProvisionalSpend: !!stats.hasProvisionalSpend,
     });
   } catch (err) {
     console.error('GET /api/admin/customers/:id error:', err);
@@ -203,6 +187,11 @@ router.put('/:id', async (req, res) => {
       }
     }
 
+    // Bật lại qua PUT: xóa lý do khóa (cùng hành vi với toggle-active)
+    if (update.isActive === true) {
+      update.deactivationReason = '';
+    }
+
     const user = await User.findOneAndUpdate(
       { _id: req.params.id, role: 'user' },
       { $set: update },
@@ -211,8 +200,8 @@ router.put('/:id', async (req, res) => {
 
     if (!user) return res.status(404).json({ message: 'Không tìm thấy khách hàng' });
 
-    const statsMap = await buildStatsByPhone();
-    const stats = statsMap.get(user.phone) || { totalOrders: 0, totalSpent: 0 };
+    const statsMaps = await buildCustomerListStatsMaps(Order);
+    const stats = statsForUser(user, statsMaps);
     const membershipTier = getMembershipTier(stats.totalSpent);
 
     res.json({
@@ -226,9 +215,11 @@ router.put('/:id', async (req, res) => {
         address:      user.address || '',
         membershipTier,
         isActive:     typeof user.isActive === 'boolean' ? user.isActive : true,
+        deactivationReason: (!user.isActive && user.deactivationReason) ? String(user.deactivationReason) : '',
         createdAt:    user.createdAt,
         totalOrders:  stats.totalOrders,
         totalSpent:   stats.totalSpent,
+        hasProvisionalSpend: !!stats.hasProvisionalSpend,
       }
     });
   } catch (err) {
@@ -241,18 +232,36 @@ router.put('/:id', async (req, res) => {
 });
 
 // PATCH /api/admin/customers/:id/toggle-active
+// Khi chuyển sang khóa: body { reason } bắt buộc (khách sẽ thấy khi đăng nhập).
+// Khi mở khóa: xóa deactivationReason.
 router.patch('/:id/toggle-active', async (req, res) => {
   try {
     const user = await User.findOne({ _id: req.params.id, role: 'user' });
     if (!user) return res.status(404).json({ message: 'Không tìm thấy khách hàng' });
 
-    const newStatus = !Boolean(user.isActive);
-    user.isActive = newStatus;
+    const currentlyActive = typeof user.isActive === 'boolean' ? user.isActive : true;
+    const newStatus = !currentlyActive;
+
+    if (newStatus === false) {
+      const reason = String(req.body?.reason ?? '').trim();
+      if (reason.length < 5) {
+        return res.status(400).json({
+          message: 'Vui lòng nhập lý do vô hiệu hóa (tối thiểu 5 ký tự) để khách hàng được thông báo rõ ràng.',
+        });
+      }
+      user.isActive = false;
+      user.deactivationReason = reason.slice(0, 2000);
+    } else {
+      user.isActive = true;
+      user.deactivationReason = '';
+    }
+
     await user.save();
 
     res.json({
       message:  newStatus ? 'Đã kích hoạt tài khoản' : 'Đã khóa tài khoản',
       isActive: newStatus,
+      deactivationReason: newStatus ? '' : String(user.deactivationReason || ''),
     });
   } catch (err) {
     console.error('PATCH /api/admin/customers/:id/toggle-active error:', err);

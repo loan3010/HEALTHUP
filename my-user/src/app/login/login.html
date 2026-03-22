@@ -16,54 +16,42 @@
       <p class="title-sub">Đăng nhập để tiếp tục hành trình sức khoẻ</p>
     </div>
 
-    <!-- autocomplete="off" + fake inputs chống autofill (từ nhánh kia) -->
     <form (ngSubmit)="onLogin()" autocomplete="off">
       <input type="text" style="display:none">
       <input type="password" style="display:none">
 
+      <!-- Tài khoản bị khóa: hiện lý do admin đã nhập -->
+      <div *ngIf="loginBanMessage" class="login-ban-banner" role="alert">
+        <div class="login-ban-title"><i class="bi bi-exclamation-octagon-fill"></i> {{ loginBanMessage }}</div>
+        <div *ngIf="loginBanReason" class="login-ban-reason-label">Lý do từ cửa hàng:</div>
+        <div *ngIf="loginBanReason" class="login-ban-reason-text">{{ loginBanReason }}</div>
+      </div>
+
       <!-- USERNAME / EMAIL / PHONE -->
       <div class="field">
-        <label class="label">
-          Tên tài khoản <span class="req">*</span>
-        </label>
+        <label class="label">Tên tài khoản <span class="req">*</span></label>
         <div class="control">
-          <span class="inp-icon">
-            <i class="bi bi-person"></i>
-          </span>
-          <input
-            type="text"
-            class="inp"
-            placeholder="Email hoặc số điện thoại"
-            name="emailOrPhone"
-            [(ngModel)]="emailOrPhone"
-            autocomplete="off"
-            required
-          />
+          <span class="inp-icon"><i class="bi bi-person"></i></span>
+          <input type="text" class="inp" placeholder="Email hoặc số điện thoại"
+            name="emailOrPhone" [(ngModel)]="emailOrPhone" autocomplete="off" required />
           <button type="button" class="clear" (click)="emailOrPhone=''">×</button>
         </div>
       </div>
 
       <!-- PASSWORD -->
       <div class="field">
-        <label class="label">
-          Mật khẩu <span class="req">*</span>
-        </label>
+        <label class="label">Mật khẩu <span class="req">*</span></label>
         <div class="control">
-          <span class="inp-icon">
-            <i class="bi bi-lock"></i>
-          </span>
-          <input
-            type="password"
-            class="inp has-two"
-            placeholder="Tối thiểu 6 ký tự"
-            name="password"
-            [(ngModel)]="password"
-            autocomplete="new-password"
-            minlength="6"
-            required
-          />
+          <span class="inp-icon"><i class="bi bi-lock"></i></span>
+          <input type="password" class="inp has-two" placeholder="Tối thiểu 6 ký tự"
+            name="password" [(ngModel)]="password" autocomplete="new-password" minlength="6" required />
           <button type="button" class="clear" (click)="password=''">×</button>
         </div>
+      </div>
+
+      <!-- ✅ Hiện lỗi inline thay vì alert -->
+      <div class="err-msg" *ngIf="errorMsg">
+        <i class="bi bi-exclamation-circle-fill"></i> {{ errorMsg }}
       </div>
 
       <!-- FORGOT -->
@@ -96,5 +84,20 @@
       </div>
 
     </form>
+  </div>
+</div>
+
+<!-- ✅ POPUP ĐĂNG NHẬP THÀNH CÔNG -->
+<div class="success-backdrop" *ngIf="showSuccessPopup">
+  <div class="success-modal">
+    <div class="success-icon">
+      <svg viewBox="0 0 52 52">
+        <circle class="success-circle" cx="26" cy="26" r="25" fill="none"/>
+        <path class="success-check" fill="none" d="M14 27 l8 8 l16-16"/>
+      </svg>
+    </div>
+    <h3 class="success-title">Đăng nhập thành công!</h3>
+    <p class="success-sub">Xin chào, <strong>{{ loggedInName }}</strong> 👋</p>
+    <p class="success-redirect">Đang chuyển hướng...</p>
   </div>
 </div>

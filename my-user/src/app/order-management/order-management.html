@@ -4,36 +4,24 @@
   <div class="orders-header">
     <h2 class="orders-title">Theo dõi đơn hàng</h2>
     <div class="search-wrap">
-      <!-- Search icon -->
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
       </svg>
-      <input
-        type="text"
-        [(ngModel)]="searchQuery"
-        (ngModelChange)="filterOrders()"
-        placeholder="Tìm kiếm đơn hàng của bạn"
-        class="search-input"
-      />
+      <input type="text" [(ngModel)]="searchQuery" (ngModelChange)="filterOrders()"
+        placeholder="Tìm kiếm đơn hàng của bạn" class="search-input" />
     </div>
   </div>
 
   <!-- TABS -->
   <div class="order-tabs">
-    <button
-      *ngFor="let tab of tabs"
-      (click)="onTabClick(tab.id)"
-      [class.active]="activeTab === tab.id"
-    >
-      {{ tab.label }}
-      <span class="tab-badge">{{ tab.count }}</span>
+    <button *ngFor="let tab of tabs" (click)="onTabClick(tab.id)" [class.active]="activeTab === tab.id">
+      {{ tab.label }}<span class="tab-badge">{{ tab.count }}</span>
     </button>
   </div>
 
   <!-- EMPTY STATE -->
   <div class="orders-empty" *ngIf="filteredOrders.length === 0">
     <div class="empty-icon">
-      <!-- Shopping bag icon -->
       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
         <line x1="3" y1="6" x2="21" y2="6"/>
@@ -45,11 +33,7 @@
   </div>
 
   <!-- ORDER CARDS -->
-  <div
-    *ngFor="let order of filteredOrders"
-    class="order-card"
-    (click)="goToDetail(order._id)"
-  >
+  <div *ngFor="let order of filteredOrders" class="order-card" (click)="goToDetail(order._id)">
 
     <!-- STATUS BAR -->
     <div class="order-status" [ngClass]="'status-' + order.status">
@@ -60,12 +44,8 @@
 
     <!-- PRODUCTS -->
     <div *ngFor="let item of order.items" class="order-product">
-      <img
-        [src]="item.imageUrl ? 'http://localhost:3000' + item.imageUrl : '/assets/no-image.png'"
-        class="product-img"
-        onerror="this.src='/assets/no-image.png'"
-        [alt]="item.name"
-      />
+      <img [src]="item.imageUrl ? 'http://localhost:3000' + item.imageUrl : '/assets/no-image.png'"
+        class="product-img" onerror="this.src='/assets/no-image.png'" [alt]="item.name" />
       <div class="product-info">
         <div class="product-name">{{ item.name }}</div>
         <div class="product-price">{{ formatCurrency(item.price) }} / sản phẩm</div>
@@ -78,32 +58,31 @@
 
     <!-- FOOTER -->
     <div class="order-footer" (click)="$event.stopPropagation()">
-
-      <div class="order-total">
-        Tổng tiền: <strong>{{ formatCurrency(order.total) }}</strong>
-      </div>
+      <div class="order-total">Tổng tiền: <strong>{{ formatCurrency(order.total) }}</strong></div>
 
       <div class="order-actions">
 
-        <!-- CHỜ XÁC NHẬN -->
         <ng-container *ngIf="order.status === 'pending'">
           <button class="btn-outline">Liên hệ người bán</button>
           <button class="btn-danger" (click)="cancelOrder(order._id)">Hủy đơn hàng</button>
         </ng-container>
 
-        <!-- CHỜ THANH TOÁN -->
         <ng-container *ngIf="order.status === 'pending_payment'">
           <button class="btn-primary">Thanh toán ngay</button>
         </ng-container>
 
-        <!-- ĐÃ GIAO / ĐÃ THANH TOÁN -->
+        <!-- ĐÃ GIAO -->
         <ng-container *ngIf="order.status === 'delivered' || order.status === 'paid'">
-          <button class="btn-outline" [routerLink]="['/return-management', order._id]">Trả hàng</button>
-          <button class="btn-primary" [routerLink]="['/review-order', order._id]">Đánh giá</button>
+          <button class="btn-outline"
+            [routerLink]="['/profile/return-management']"
+            [queryParams]="{orderId: order._id}">
+            Trả hàng
+          </button>
+          <!-- ✅ Gọi goToReview(order) — navigate đến order-review?productId=... -->
+          <button class="btn-primary" (click)="goToReview(order)">Đánh giá</button>
           <button class="btn-outline" (click)="reorder(order)">Mua lại</button>
         </ng-container>
 
-        <!-- ĐÃ HỦY -->
         <ng-container *ngIf="order.status === 'cancelled'">
           <button class="btn-outline" (click)="reorder(order)">Mua lại</button>
         </ng-container>
@@ -116,7 +95,6 @@
           <polyline points="9 18 15 12 9 6"/>
         </svg>
       </button>
-
     </div>
 
   </div>

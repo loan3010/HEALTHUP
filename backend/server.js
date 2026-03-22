@@ -42,6 +42,7 @@ app.use('/api/reviews',         require('./routes/reviews'));
 app.use('/api/blogs',           require('./routes/blogs'));
 app.use('/api/auth',            require('./routes/auth'));
 app.use('/api/orders',          require('./routes/orders'));
+app.use('/api/vn-address',      require('./routes/vnAddress'));
 app.use('/api/carts',           require('./routes/carts'));
 app.use('/api/users',           require('./routes/users'));
 app.use('/api/chatbot',         require('./routes/chatbot.routes'));
@@ -51,6 +52,7 @@ app.use('/api/admin/customers', require('./routes/customer'));
 app.use('/api/admin/dashboard', require('./routes/admin-dashboard'));
 app.use('/api/about-images', require('./routes/about-images'));
 app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/consulting', require('./routes/consulting.routes'));
 
 // Health check
 app.get('/api/health', (req, res) => {

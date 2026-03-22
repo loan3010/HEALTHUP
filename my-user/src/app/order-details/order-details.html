@@ -103,6 +103,48 @@
         </div>
       </div>
 
+      <!-- Trả hàng / hoàn tiền: hiện ảnh lỗi khách đã gửi khi có yêu cầu -->
+      <div class="od-return" *ngIf="order.returnStatus && order.returnStatus !== 'none'">
+        <h3>Trả hàng / hoàn tiền</h3>
+        <p><span>Trạng thái</span><strong>{{ getReturnStatusLabel(order.returnStatus) }}</strong></p>
+        <p *ngIf="order.returnReason"><span>Lý do</span><strong>{{ order.returnReason }}</strong></p>
+        <p *ngIf="order.returnNote"><span>Ghi chú</span><strong>{{ order.returnNote }}</strong></p>
+        <p *ngIf="order.returnRejectionReason"><span>Lý do từ chối</span><strong>{{ order.returnRejectionReason }}</strong></p>
+
+        <!-- Dòng SP khách chọn trả: đã mua vs số lượng trả -->
+        <div class="od-return-lines" *ngIf="getReturnLines(order).length">
+          <div class="od-return-lines-title">Sản phẩm yêu cầu trả</div>
+          <div class="od-return-line" *ngFor="let r of getReturnLines(order)">
+            <img [src]="fixImage(r.imageUrl)" alt="" onerror="this.src='assets/placeholder.png'" />
+            <div class="od-return-line-info">
+              <div class="od-return-line-name">{{ r.name || '—' }}</div>
+              <div class="od-return-line-meta">
+                Đã mua <strong>{{ r.quantity ?? '—' }}</strong>
+                · Trả <strong class="od-return-qty">{{ r.returnQty }}</strong>
+                · {{ r.price | number }} đ / SP
+              </div>
+            </div>
+            <div class="od-return-line-money">{{ (r.price * r.returnQty) | number }} đ</div>
+          </div>
+          <div class="od-return-lines-subtotal">
+            Tạm tính tiền hàng trả: <strong>{{ returnRequestGoodsTotal(order) | number }} đ</strong>
+          </div>
+        </div>
+
+        <div class="od-return-images" *ngIf="getReturnImages(order).length">
+          <div class="od-return-images-title">Ảnh minh chứng sản phẩm lỗi</div>
+          <div class="od-return-img-grid">
+            <a *ngFor="let u of getReturnImages(order)"
+              [href]="fixImage(u)"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="od-return-img-wrap">
+              <img [src]="fixImage(u)" alt="Ảnh minh chứng đổi trả" onerror="this.src='assets/placeholder.png'" />
+            </a>
+          </div>
+        </div>
+      </div>
+
       <!-- Tổng kết -->
       <div class="od-summary">
         <div class="summary-row">

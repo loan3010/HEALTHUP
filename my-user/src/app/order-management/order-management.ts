@@ -22,6 +22,7 @@ export class OrderManagement implements OnInit {
     { id: 'all',       label: 'Tất cả',        count: 0 },
     { id: 'pending',   label: 'Chờ xác nhận',  count: 0 },
     { id: 'confirmed', label: 'Chờ giao hàng', count: 0 },
+    { id: 'shipping',  label: 'Đang giao',      count: 0 },
     { id: 'delivered', label: 'Đã giao',        count: 0 },
     { id: 'cancelled', label: 'Đã hủy',         count: 0 },
   ];
@@ -32,11 +33,8 @@ export class OrderManagement implements OnInit {
     private cdr: ChangeDetectorRef
   ) {}
 
-  ngOnInit(): void {
-    this.loadOrders();
-  }
+  ngOnInit(): void { this.loadOrders(); }
 
-  // ✅ Lấy userId từ localStorage — ưu tiên 'userId', fallback về user._id hoặc user.id
   private getUserId(): string {
     const direct = localStorage.getItem('userId');
     if (direct) return direct;
@@ -46,45 +44,19 @@ export class OrderManagement implements OnInit {
     } catch { return ''; }
   }
 
-  // ✅ Lấy phone từ localStorage (giữ lại từ feature/backup-code)
-  private getUserPhone(): string {
-    try {
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      return user?.phone || '';
-    } catch { return ''; }
-  }
-
   loadOrders(): void {
-    const userId    = this.getUserId();
-    const userPhone = this.getUserPhone();
-
-    // ✅ Không gọi API nếu chưa đăng nhập
-    if (!userId && !userPhone) {
-      this.orders         = [];
-      this.filteredOrders = [];
-      this.updateTabCounts();
-      this.cdr.detectChanges();
-      return;
+    const userId = this.getUserId();
+    if (!userId) {
+      this.orders = []; this.filteredOrders = [];
+      this.updateTabCounts(); this.cdr.detectChanges(); return;
     }
-
     this.api.getOrders(userId).subscribe({
       next: (res: any) => {
-        const all = Array.isArray(res) ? res : [];
-
-        // ✅ Nếu có phone thì lọc thêm theo phone (logic từ feature/backup-code)
-        this.orders = userPhone
-          ? all.filter((o: any) => o.customer?.phone === userPhone)
-          : all;
-
+        this.orders         = Array.isArray(res) ? res : [];
         this.filteredOrders = [...this.orders];
-        this.updateTabCounts();
-        this.cdr.detectChanges();
+        this.updateTabCounts(); this.cdr.detectChanges();
       },
-      error: () => {
-        this.orders         = [];
-        this.filteredOrders = [];
-        this.cdr.detectChanges();
-      }
+      error: () => { this.orders = []; this.filteredOrders = []; this.cdr.detectChanges(); }
     });
   }
 
@@ -96,18 +68,11 @@ export class OrderManagement implements OnInit {
     });
   }
 
-  onTabClick(tab: string): void {
-    this.activeTab = tab;
-    this.filterOrders();
-  }
+  onTabClick(tab: string): void { this.activeTab = tab; this.filterOrders(); }
 
   filterOrders(): void {
     let data = [...this.orders];
-
-    if (this.activeTab !== 'all') {
-      data = data.filter(o => o.status === this.activeTab);
-    }
-
+    if (this.activeTab !== 'all') data = data.filter(o => o.status === this.activeTab);
     if (this.searchQuery.trim()) {
       const q = this.searchQuery.toLowerCase();
       data = data.filter(o =>
@@ -117,30 +82,32 @@ export class OrderManagement implements OnInit {
         o.items?.some((i: any) => i.name?.toLowerCase().includes(q))
       );
     }
-
-    this.filteredOrders = data;
-    this.cdr.detectChanges();
+    this.filteredOrders = data; this.cdr.detectChanges();
   }
 
-  // ✅ Click vào đơn → sang trang detail
   goToDetail(orderId: string): void {
     this.router.navigate(['/profile/order-detail', orderId]);
   }
 
+  // ✅ Navigate đến order-review với productId của SP đầu tiên
+  goToReview(order: any): void {
+    const firstItem = order?.items?.[0];
+    if (!firstItem?.productId) return;
+    this.router.navigate(['/profile/order-review'], {
+      queryParams: { productId: String(firstItem.productId) }
+    });
+  }
+
   formatCurrency(price: number): string {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency', currency: 'VND'
-    }).format(price);
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
   }
 
   getStatusLabel(status: string): string {
     const map: Record<string, string> = {
-      pending:         'Chờ xác nhận',
-      confirmed:       'Chờ giao hàng',
-      delivered:       'Đã giao',
-      cancelled:       'Đã hủy',
-      pending_payment: 'Chờ thanh toán',
-      paid:            'Đã thanh toán',
+      pending: 'Chờ xác nhận', confirmed: 'Chờ giao hàng',
+      shipping: 'Đang giao',
+      delivered: 'Đã giao', cancelled: 'Đã hủy',
+      pending_payment: 'Chờ thanh toán', paid: 'Đã thanh toán',
     };
     return map[status] || status;
   }

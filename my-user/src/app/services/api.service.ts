@@ -1,6 +1,5 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
-// ✅ Giữ cả hai: 'of' từ main, các import còn lại từ feature/backup-code
 import { BehaviorSubject, Observable, tap, of } from 'rxjs';
 import { map } from 'rxjs/operators';
 
@@ -31,7 +30,6 @@ export class ApiService {
   cartCount$ = this._cartCount.asObservable();
 
   // ── Wishlist stream ────────────────────────────────────────────────────────
-  // ✅ Khởi tạo từ localStorage (feature/backup-code), sẽ được sync với API (main)
   private _wishlist = new BehaviorSubject<string[]>(this.loadWishlistFromStorage());
   wishlist$ = this._wishlist.asObservable();
 
@@ -39,13 +37,16 @@ export class ApiService {
   toasts$ = this._toasts.asObservable();
   private _toastCounter = 0;
 
-  // ✅ Stream unread count cho header badge
+  // ✅ Cache cho getProducts: key = JSON.stringify(filters), TTL 20s
+  private _productsCache = new Map<string, { data: any; ts: number }>();
+  private readonly _PRODUCTS_TTL = 20_000;
+
+  // Stream unread count cho header badge
   private _unreadCount = new BehaviorSubject<number>(0);
   unreadCount$ = this._unreadCount.asObservable();
 
   constructor(private http: HttpClient) {
     this.refreshCartCount();
-    // ✅ Giữ cả hai: refreshUnreadCount (feature) + refreshWishlist (main)
     this.refreshUnreadCount();
     this.refreshWishlist();
 
@@ -67,12 +68,10 @@ export class ApiService {
     if (direct) return direct;
     try {
       const user = JSON.parse(localStorage.getItem('user') || '{}');
-      // ✅ Giữ cả hai fallback: user._id (main) và user.id (feature/backup-code)
       return user?._id || user?.id || '';
     } catch { return ''; }
   }
 
-  // ✅ Giữ getToken() từ main
   private getToken(): string {
     return localStorage.getItem('token') || '';
   }
@@ -93,7 +92,6 @@ export class ApiService {
     return { ...p, _id: id, images: fixedImages, image: fixedImages[0] || '' };
   }
 
-  // ✅ Giữ localStorage helpers từ feature/backup-code (dùng làm cache offline)
   private loadWishlistFromStorage(): string[] {
     try {
       return JSON.parse(localStorage.getItem('healthup_wishlist') || '[]');
@@ -122,7 +120,6 @@ export class ApiService {
   //  Wishlist API
   // ════════════════════════════════════════════════════════════════════════════
 
-  // ✅ Giữ refreshWishlist() từ main — sync với server, cập nhật cả localStorage cache
   refreshWishlist(): void {
     const userId = this.getUserId();
     if (!userId || !this.getToken()) return;
@@ -135,7 +132,7 @@ export class ApiService {
           typeof p === 'string' ? p : String(p._id || p)
         );
         this._wishlist.next(ids);
-        this.saveWishlistToStorage(ids); // ✅ Giữ cache localStorage từ feature/backup-code
+        this.saveWishlistToStorage(ids);
       },
       error: () => {}
     });
@@ -150,7 +147,6 @@ export class ApiService {
     const current = this._wishlist.getValue();
     const isAdded = current.includes(productId);
 
-    // ✅ Giữ guard đăng nhập từ main
     if (!userId || !this.getToken()) {
       this.showToast('Vui lòng đăng nhập để thêm yêu thích', 'info');
       return;
@@ -159,7 +155,7 @@ export class ApiService {
     if (isAdded) {
       const next = current.filter(id => id !== productId);
       this._wishlist.next(next);
-      this.saveWishlistToStorage(next); // ✅ Giữ cache localStorage từ feature/backup-code
+      this.saveWishlistToStorage(next);
       this.showToast('Đã xóa khỏi danh sách yêu thích', 'info');
       this.http.delete(`${API_BASE}/users/${userId}/wishlist/${productId}`, {
         headers: this.authHeaders()
@@ -173,7 +169,7 @@ export class ApiService {
     } else {
       const next = [...current, productId];
       this._wishlist.next(next);
-      this.saveWishlistToStorage(next); // ✅ Giữ cache localStorage từ feature/backup-code
+      this.saveWishlistToStorage(next);
       this.showToast(`Đã thêm "${productName || 'sản phẩm'}" vào yêu thích ❤️`, 'success');
       this.http.post(`${API_BASE}/users/${userId}/wishlist`, { productId }, {
         headers: this.authHeaders()
@@ -218,6 +214,14 @@ export class ApiService {
     cat?: string; minPrice?: number; maxPrice?: number; badge?: string;
     minRating?: number; sort?: string; page?: number; limit?: number; search?: string;
   } = {}): Observable<{ products: any[]; total: number; totalPages: number }> {
+
+    // ✅ Cache: trả ngay nếu cùng filters trong vòng 20 giây
+    const cacheKey = JSON.stringify(filters);
+    const cached = this._productsCache.get(cacheKey);
+    if (cached && Date.now() - cached.ts < this._PRODUCTS_TTL) {
+      return of(cached.data);
+    }
+
     let params = new HttpParams();
     if (filters.cat)                     params = params.set('cat',       filters.cat);
     if (filters.minPrice !== undefined)  params = params.set('minPrice',  filters.minPrice.toString());
@@ -229,15 +233,22 @@ export class ApiService {
     if (filters.limit)                   params = params.set('limit',     filters.limit.toString());
     if (filters.search)                  params = params.set('search',    filters.search);
     return this.http.get<any>(`${API_BASE}/products`, { params }).pipe(
-      map(res => ({ ...res, products: (res.products || []).map((p: any) => this.fixImages(p)) }))
+      map(res => ({ ...res, products: (res.products || []).map((p: any) => this.fixImages(p)) })),
+      tap(result => {
+        this._productsCache.set(cacheKey, { data: result, ts: Date.now() });
+      })
     );
+  }
+
+  // ✅ Gọi khi thêm/sửa/xóa sản phẩm để cache không stale
+  clearProductsCache(): void {
+    this._productsCache.clear();
   }
 
   getCategoryCounts(): Observable<Record<string, number>> {
     return this.http.get<Record<string, number>>(`${API_BASE}/products/category-counts`);
   }
 
-  // ✅ Giữ isAdmin param từ main, giữ signature đơn giản từ feature/backup-code tương thích
   getProductById(id: string, isAdmin = false): Observable<any> {
     const params = isAdmin ? new HttpParams().set('isAdmin', 'true') : new HttpParams();
     return this.http.get<any>(`${API_BASE}/products/${id}`, { params }).pipe(
@@ -270,18 +281,14 @@ export class ApiService {
     return this.http.post<any>(`${API_BASE}/reviews`, data);
   }
 
-  uploadReviewImages(files: File[]): Observable<{ urls: string[] }> {
+  uploadReviewImages(files: File[]): Observable<{ urls: string [] }> {
     const formData = new FormData();
     files.forEach(file => formData.append('images', file));
     return this.http.post<{ urls: string[] }>(`${API_BASE}/reviews/upload-images`, formData);
   }
 
   updateReview(reviewId: string, data: {
-    rating: number;
-    text: string;
-    tags?: string[];
-    variant?: string;
-    imgs?: string[];
+    rating: number; text: string; tags?: string[]; variant?: string; imgs?: string[];
   }): Observable<any> {
     return this.http.put<any>(`${API_BASE}/reviews/${reviewId}`, data);
   }
@@ -310,30 +317,64 @@ export class ApiService {
   }
 
   // ════════════════════════════════════════════════════════════════════════════
-  //  Consulting APIs
+  //  Consulting APIs (Hỏi & Đáp)
   // ════════════════════════════════════════════════════════════════════════════
 
+  /**
+   * Lấy danh sách câu hỏi của một sản phẩm (Có phân trang & lọc)
+   */
   getConsultingQuestions(productId: string, filters: {
     filter?: string; page?: number; limit?: number;
   } = {}): Observable<any> {
     let params = new HttpParams();
-    params = params.set('productId', productId);
-    if (filters.filter && filters.filter !== 'all') params = params.set('status', filters.filter);
+    if (filters.filter && filters.filter !== 'all') params = params.set('filter', filters.filter);
     if (filters.page)  params = params.set('page',  filters.page.toString());
     if (filters.limit) params = params.set('limit', filters.limit.toString());
-    return this.http.get<any>(`${API_BASE}/consulting`, { params });
+    
+    return this.http.get<any>(`${API_BASE}/consulting/product/${productId}`, { params });
   }
 
-  submitConsultingQuestion(data: any): Observable<any> {
+  /**
+   * Khách hàng gửi câu hỏi mới
+   */
+  submitConsultingQuestion(data: { productId: string; content: string; user: string }): Observable<any> {
     return this.http.post<any>(`${API_BASE}/consulting`, data);
+  }
+
+  /**
+   * KHÁCH HÀNG: Đánh giá câu trả lời hữu ích hoặc không hữu ích (Like/Dislike)
+   */
+  voteConsultingQuestion(id: string, type: 'up' | 'down'): Observable<any> {
+    return this.http.put(`${API_BASE}/consulting/${id}/vote`, { type });
+  }
+
+  // --- ADMIN METHODS ---
+
+  /**
+   * ADMIN: Lấy tóm tắt câu hỏi của tất cả sản phẩm
+   */
+  getConsultingSummary(): Observable<any[]> {
+    return this.http.get<any[]>(`${API_BASE}/consulting/admin/summary`);
+  }
+
+  /**
+   * ADMIN: Trả lời câu hỏi (kèm tên Admin thực hiện)
+   */
+  replyConsultingQuestion(questionId: string, answer: string, answeredBy: string): Observable<any> {
+    return this.http.put(`${API_BASE}/consulting/${questionId}/reply`, { answer, answeredBy });
+  }
+
+  /**
+   * ADMIN: Xóa câu hỏi tư vấn
+   */
+  deleteConsultingQuestion(id: string): Observable<any> {
+    return this.http.delete(`${API_BASE}/consulting/${id}`);
   }
 
   // ════════════════════════════════════════════════════════════════════════════
   //  Cart APIs
   // ════════════════════════════════════════════════════════════════════════════
 
-  // ✅ Giữ variantId/variantLabel params từ main
-  // ✅ Giữ toast hiện SAU khi API thành công (pipe tap) từ feature/backup-code — đáng tin hơn
   addToCart(
     productId: string, quantity: number, productName?: string,
     variantId?: string | null, variantLabel?: string
@@ -377,8 +418,6 @@ export class ApiService {
   //  Order APIs
   // ════════════════════════════════════════════════════════════════════════════
 
-  // ✅ Giữ early return of([]) từ main khi không có userId
-  // ✅ Giữ userId optional từ feature/backup-code để tương thích ngược
   getOrders(userId?: string): Observable<any[]> {
     if (!userId) return of([]);
     const params = new HttpParams().set('userId', userId);
@@ -399,6 +438,31 @@ export class ApiService {
 
   deleteOrder(id: string): Observable<any> {
     return this.http.delete(`${API_BASE}/orders/${id}`);
+  }
+
+  // ── Return APIs ────────────────────────────────────────────────────────────
+
+  requestReturn(orderId: string, data: {
+    reason: string;
+    note?: string;
+    items?: any[];
+    images?: File[];
+  }): Observable<any> {
+    const formData = new FormData();
+    formData.append('reason', data.reason);
+    if (data.note) formData.append('note', data.note);
+    if (data.items && data.items.length > 0) {
+      formData.append('items', JSON.stringify(data.items));
+    }
+    if (data.images && data.images.length > 0) {
+      data.images.forEach(file => formData.append('images', file));
+    }
+    const headers = new HttpHeaders({ Authorization: `Bearer ${this.getToken()}` });
+    return this.http.patch<any>(
+      `${API_BASE}/orders/${orderId}/request-return`,
+      formData,
+      { headers }
+    );
   }
 
   // ════════════════════════════════════════════════════════════════════════════
