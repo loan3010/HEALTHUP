@@ -52,6 +52,14 @@ export class ApiService {
     this.refreshCartCount();
     this.refreshUnreadCount();
     this.refreshWishlist();
+
+    // ✅ Tự động refresh unread count mỗi 30 giây
+    // để badge cập nhật khi admin đổi trạng thái đơn hàng
+    setInterval(() => {
+      if (this.getUserId() && this.getToken()) {
+        this.refreshUnreadCount();
+      }
+    }, 30000);
   }
 
   // ════════════════════════════════════════════════════════════════════════════
@@ -535,7 +543,7 @@ export class ApiService {
   // ════════════════════════════════════════════════════════════════════════════
 
   refreshUnreadCount(): void {
-    if (!this.getUserId()) return;
+    if (!this.getUserId() || !this.getToken()) return;
     this.getNotifications().subscribe({
       next: (res) => this._unreadCount.next(res.unreadCount || 0),
       error: () => {}
@@ -543,7 +551,7 @@ export class ApiService {
   }
 
   getNotifications(): Observable<{ notifications: any[]; unreadCount: number }> {
-    return this.http.get<any>(`${API_BASE}/notifications`, { headers: this.cartHeaders() });
+    return this.http.get<any>(`${API_BASE}/notifications`, { headers: this.authHeaders() });
   }
 
   markNotificationRead(id: string): Observable<any> {
@@ -555,7 +563,7 @@ export class ApiService {
   markAllNotificationsRead(): Observable<any> {
     return this.http.patch(
       `${API_BASE}/notifications/read-all`, {},
-      { headers: this.cartHeaders() }
+      { headers: this.authHeaders() }
     ).pipe(tap(() => this._unreadCount.next(0)));
   }
 
@@ -569,5 +577,13 @@ export class ApiService {
     return this.http.post(`${API_BASE}/notifications`, data).pipe(
       tap(() => this.refreshUnreadCount())
     );
+  }
+
+  deleteNotification(id: string): Observable<any> {
+    return this.http.delete(`${API_BASE}/notifications/${id}`, { headers: this.authHeaders() });
+  }
+
+  deleteAllNotifications(): Observable<any> {
+    return this.http.delete(`${API_BASE}/notifications`, { headers: this.authHeaders() });
   }
 }
