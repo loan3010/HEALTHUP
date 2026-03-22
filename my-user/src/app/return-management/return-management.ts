@@ -2,7 +2,7 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
-import { ApiService } from '../services/api.service';
+import { ApiService, STATIC_BASE } from '../services/api.service';
 
 export interface ReturnItem {
   productId: string;
@@ -41,6 +41,19 @@ export class ReturnManagement implements OnInit {
   selectedImages: File[] = [];
   imagePreviews: string[] = [];
   readonly MAX_IMAGES = 5;
+
+  /**
+   * SVG inline: không phụ thuộc file /assets (trước đây dùng placeholder.png không tồn tại → ô trắng).
+   */
+  readonly imgFallback =
+    'data:image/svg+xml,' +
+    encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80">' +
+        '<rect fill="#EAF4DF" width="80" height="80" rx="12"/>' +
+        '<path fill="#9AB882" d="M22 54l9-11 7 9 13-16 9 18H22z"/>' +
+        '<circle fill="#9AB882" cx="29" cy="28" r="4.5"/>' +
+      '</svg>'
+    );
 
   readonly REASONS = [
     'Sản phẩm bị lỗi / hư hỏng',
@@ -111,9 +124,9 @@ export class ReturnManagement implements OnInit {
     this.imagePreviews  = [];
     this.returnItems = order
       ? (order.items || []).map((item: any) => ({
-          productId: item.productId,
+          productId: this.lineProductId(item),
           name:      item.name,
-          imageUrl:  item.imageUrl || '',
+          imageUrl:  this.orderLineImageRaw(item),
           price:     item.price,
           quantity:  item.quantity,
           returnQty: item.quantity,
@@ -129,9 +142,9 @@ export class ReturnManagement implements OnInit {
     if (!order) return;
     this.selectedOrder = order;
     this.returnItems = (order.items || []).map((item: any) => ({
-      productId: item.productId,
+      productId: this.lineProductId(item),
       name:      item.name,
-      imageUrl:  item.imageUrl || '',
+      imageUrl:  this.orderLineImageRaw(item),
       price:     item.price,
       quantity:  item.quantity,
       returnQty: item.quantity,
@@ -229,12 +242,20 @@ export class ReturnManagement implements OnInit {
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
+  /**
+   * Đồng bộ tiếng Việt cho mọi returnStatus (tránh hiện raw: approved, rejected…).
+   * none = đơn chưa có yêu cầu trả/hoàn (thường không lọt vào danh sách thẻ đổi trả).
+   */
   getReturnStatusLabel(status: string): string {
     const map: Record<string, string> = {
+      none:      'Chưa yêu cầu hoàn',
       requested: 'Chờ xử lý',
+      approved:  'Đã chấp nhận hoàn',
+      rejected:  'Từ chối hoàn',
       completed: 'Hoàn thành',
     };
-    return map[status] || status;
+    const key = String(status || '').trim();
+    return map[key] || key || '—';
   }
 
   formatCurrency(price: number): string {
@@ -248,9 +269,59 @@ export class ReturnManagement implements OnInit {
     });
   }
 
-  getImageUrl(url: string): string {
-    if (!url) return '/assets/images/placeholder.png';
-    return url.startsWith('http') ? url : `http://localhost:3000${url}`;
+  /**
+   * Chuỗi URL ảnh đầy đủ: hỗ trợ path tương đối từ API, tránh double-slash.
+   */
+  getImageUrl(url: string | null | undefined): string {
+    if (url == null || !String(url).trim()) return this.imgFallback;
+    const u = String(url).trim();
+    if (u.startsWith('http://') || u.startsWith('https://') || u.startsWith('data:')) return u;
+    const path = u.startsWith('/') ? u : `/${u}`;
+    return `${STATIC_BASE}${path}`;
+  }
+
+  /** id sản phẩm trên dòng đơn (populate hoặc ObjectId). */
+  lineProductId(item: any): string {
+    const p = item?.productId;
+    if (p && typeof p === 'object' && p._id != null) return String(p._id);
+    return String(p ?? '');
+  }
+
+  /** Ảnh gốc trên dòng đơn: imageUrl lưu trong đơn hoặc ảnh đầu từ Product populate. */
+  orderLineImageRaw(item: any): string {
+    const direct = item?.imageUrl;
+    if (direct != null && String(direct).trim()) return String(direct).trim();
+    const pop = item?.productId;
+    if (pop && typeof pop === 'object' && Array.isArray(pop.images) && pop.images[0]) {
+      return String(pop.images[0]).trim();
+    }
+    return '';
+  }
+
+  /**
+   * Ảnh dòng trong thẻ yêu cầu trả: returnItems có thể thiếu imageUrl — lấy từ đơn gốc.
+   */
+  returnItemImageUrl(order: any, retItem: any): string {
+    const fromRet = retItem?.imageUrl;
+    if (fromRet != null && String(fromRet).trim()) return String(fromRet).trim();
+    const pid = String(retItem?.productId ?? '');
+    const lines = order?.items || [];
+    const line = lines.find((i: any) => this.lineProductId(i) === pid);
+    return line ? this.orderLineImageRaw(line) : '';
+  }
+
+  /** Lọc URL rỗng để không render <img src="">. */
+  visibleReturnImages(order: any): string[] {
+    return (order?.returnImages || []).filter((u: any) => u != null && String(u).trim());
+  }
+
+  /** Khi ảnh remote lỗi — tránh lặp onerror. */
+  onImgError(ev: Event): void {
+    const el = ev.target as HTMLImageElement;
+    if (el && el.src !== this.imgFallback) {
+      el.src = this.imgFallback;
+      el.onerror = null;
+    }
   }
 
   goToOrders(): void { this.router.navigate(['/profile/order-management']); }

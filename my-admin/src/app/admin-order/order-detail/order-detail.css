@@ -35,6 +35,54 @@
 .badge.gray { background: #f2f2f2; color: #555; }
 .badge.warn { background: #fff0e6; color: #c2410c; }
 .sub-hint { font-size: 0.75rem; color: #666; margin-top: 6px; max-width: 280px; line-height: 1.35; }
+
+/* Ảnh minh chứng đổi trả từ khách */
+.return-proof-block { margin-top: 10px; max-width: 100%; }
+.return-proof-label { margin-bottom: 6px !important; }
+.return-proof-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.return-proof-link {
+  display: block;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #ececec;
+  flex: 0 0 auto;
+}
+.return-proof-link img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  display: block;
+  vertical-align: middle;
+}
+.return-proof-link:hover { border-color: #2f8f33; }
+
+/* Bảng dòng trả (mua vs trả) */
+.return-lines-card h3 { color: #b45309; }
+.return-lines-table .return-qty-em { color: #c2410c; }
+.return-lines-foot {
+  margin-top: 12px;
+  font-size: 0.88rem;
+  color: #444;
+}
+.return-lines-foot strong { color: #1a1a1a; }
+.return-lines-note {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.75rem;
+  color: #888;
+  font-weight: 500;
+}
+.return-lines-missing {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #666;
+  line-height: 1.45;
+}
 .tier-provisional { font-size: 0.72rem; color: #b45309; font-weight: 600; margin-left: 6px; }
 .btn-danger.outline {
   background: #fff;

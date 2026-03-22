@@ -112,6 +112,16 @@ function normalizePhone(phone) {
   return String(phone || '').replace(/\D/g, '');
 }
 
+/**
+ * Chuẩn hoá từng phần tỉnh/huyện/xã khi lưu đơn.
+ * Trước đây dùng chữ "N/A" khi checkout không tách cấp hành chính → hiển thị rối; để rỗng thay vì N/A.
+ */
+function normalizeShippingPart(v) {
+  const s = String(v ?? '').trim();
+  if (!s || /^n\/a$/i.test(s)) return '';
+  return s;
+}
+
 const ORDER_STATUS = ['pending', 'confirmed', 'shipping', 'delivered', 'cancelled'];
 const RETURN_STATUS = ['none', 'requested', 'approved', 'rejected', 'completed'];
 
@@ -316,9 +326,9 @@ async function prepareOrderFromRequestBody(body) {
       phone:    customer.phone,
       email:    customer.email || '',
       address:  customer.address,
-      province: customer.province || 'N/A',
-      district: customer.district || 'N/A',
-      ward:     customer.ward     || 'N/A',
+      province: normalizeShippingPart(customer.province),
+      district: normalizeShippingPart(customer.district),
+      ward:     normalizeShippingPart(customer.ward),
       note:     customer.note     || '',
     },
     items:           orderItems,
@@ -465,7 +475,10 @@ router.get('/', async (req, res) => {
     const filter = userId && mongoose.Types.ObjectId.isValid(userId)
       ? { userId: new mongoose.Types.ObjectId(userId) }
       : {};
-    const orders = await Order.find(filter).sort({ createdAt: -1 });
+    // Populate ảnh SP: nhiều đơn thiếu imageUrl trên dòng hàng — cần cho trang đổi trả.
+    const orders = await Order.find(filter)
+      .populate({ path: 'items.productId', select: 'images name' })
+      .sort({ createdAt: -1 });
     res.json(orders);
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
@@ -480,7 +493,9 @@ router.get('/user/:userId', async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(userId)) {
       return res.status(400).json({ message: 'userId không hợp lệ' });
     }
-    const orders = await Order.find({ userId }).sort({ createdAt: -1 });
+    const orders = await Order.find({ userId })
+      .populate({ path: 'items.productId', select: 'images name' })
+      .sort({ createdAt: -1 });
     res.json(orders);
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
@@ -693,10 +708,11 @@ router.patch('/admin/:id/return-status', authenticateToken, requireAdmin, async 
       return res.status(400).json({ message: 'Đơn đã ở trạng thái trả hàng/hoàn tiền này' });
     }
 
-    // Luồng: none → requested → (approved | rejected | completed) ; approved → completed.
+    // Luồng admin (khớp nghiệp vụ): chỉ user gọi PATCH /:id/request-return mới tạo requested.
+    // Admin: requested → approved | rejected; approved → completed (sau khi nhận hàng trả & hoàn tiền).
     const returnFlow = {
-      none: ['requested'],
-      requested: ['approved', 'rejected', 'completed'],
+      none: [],
+      requested: ['approved', 'rejected'],
       approved: ['completed'],
       rejected: [],
       completed: []
@@ -807,6 +823,16 @@ router.patch('/:id/request-return', authenticateToken, (req, res) => {
       if (order.status !== 'delivered') {
         (req.files || []).forEach(f => fs.unlink(f.path, () => {}));
         return res.status(400).json({ message: 'Chỉ có thể yêu cầu đổi trả cho đơn đã giao' });
+      }
+
+      // Chỉ chủ đơn (user đăng nhập) được gửi yêu cầu — khớp flow, tránh lạm dụng ID đơn.
+      const tokenUserId = req.user?.userId && String(req.user.userId);
+      const orderUserId = order.userId && String(order.userId);
+      if (!tokenUserId || !orderUserId || tokenUserId !== orderUserId) {
+        (req.files || []).forEach(f => fs.unlink(f.path, () => {}));
+        return res.status(403).json({
+          message: 'Bạn chỉ có thể yêu cầu trả hàng cho đơn hàng của tài khoản mình',
+        });
       }
 
       if (order.returnStatus && order.returnStatus !== 'none') {
