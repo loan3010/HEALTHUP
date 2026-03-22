@@ -494,3 +494,68 @@
 .btn-wishlist.active i {
   color: #e53935;
 }
+
+/* ══════════════════════════════════════════════════════
+   THÊM VÀO CUỐI product-listing-page.css
+   CSS cho trạng thái hết hàng — đồng bộ với homepage.css
+══════════════════════════════════════════════════════ */
+
+/* Overlay "Tạm hết hàng" trên ảnh — grid view */
+.product-img-wrap {
+  position: relative;
+}
+
+/* ✅ Giống homepage: nền rgba(0,0,0,0.38), border-radius inherit */
+.oos-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.38);
+  border-radius: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* ✅ Giống homepage: nền trắng, chữ đỏ #C62828 */
+.oos-label {
+  background: rgba(255, 255, 255, 0.92);
+  color: #C62828;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 14px;
+  border-radius: 20px;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+/* Badge inline "Tạm hết hàng" trong list view (bên cạnh tên sản phẩm) */
+.oos-badge-inline {
+  display: inline-block;
+  background: #fee2e2;
+  color: #C62828;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 10px;
+  margin-left: 6px;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+/* Nút "Hết hàng" trong list view */
+.btn-add-list.btn-oos,
+.btn-add-list[disabled] {
+  background: #e5e7eb;
+  color: #9ca3af;
+  cursor: not-allowed;
+  border-color: #e5e7eb;
+}
+
+/* ✅ Giống homepage: nút + disable opacity 0.35 */
+.btn-add:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}

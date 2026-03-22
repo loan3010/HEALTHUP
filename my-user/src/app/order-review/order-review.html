@@ -41,9 +41,7 @@
 
       <div class="return-card-header">
         <div class="return-card-meta">
-          <span class="return-order-code">
-            #{{ order.orderCode }}
-          </span>
+          <span class="return-order-code">#{{ order.orderCode }}</span>
           <span class="return-date">{{ formatDate(order.createdAt) }}</span>
         </div>
         <span class="return-status-badge status-requested">
@@ -60,19 +58,16 @@
           <div class="return-item-meta">
             {{ formatCurrency(item.price) }} × {{ item.quantity }}
           </div>
-          <!-- Badge đã đánh giá -->
           <div *ngIf="item.reviewed" style="margin-top:4px;font-size:12px;color:#3D7A2F;font-weight:600;">
             <i class="bi bi-star-fill" style="color:#F59E0B;"></i> Đã đánh giá
           </div>
         </div>
         <div style="flex-shrink:0;">
-          <!-- Chưa đánh giá -->
           <button class="btn-create" *ngIf="!item.reviewed"
             style="font-size:13px;padding:8px 16px;"
             (click)="goToReview(item.productId)">
             <i class="bi bi-star me-1"></i> Đánh giá
           </button>
-          <!-- Đã đánh giá -->
           <button class="btn-back" *ngIf="item.reviewed"
             style="font-size:13px;padding:8px 16px;"
             (click)="goToReview(item.productId)">
@@ -369,41 +364,71 @@
 
             <!-- HIỂN THỊ BÌNH THƯỜNG -->
             <ng-container *ngIf="editingReviewId !== review._id">
+
+              <!-- ✅ FIX LAYOUT: Header chia 3 vùng rõ ràng -->
               <div class="d-flex align-items-start justify-content-between mb-3">
+
+                <!-- Trái: Avatar + Tên + Badge đã mua hàng -->
                 <div class="d-flex align-items-center gap-3">
-                  <div class="reviewer-avatar" [style.background]="getAvatarColor(i)">{{ getAvatarInitial(review.name) }}</div>
+                  <div class="reviewer-avatar" [style.background]="getAvatarColor(i)">
+                    {{ getAvatarInitial(review.name) }}
+                  </div>
                   <div>
                     <div class="reviewer-name">{{ review.name }}</div>
+                    <!-- ✅ Badge "Đã mua hàng" luôn hiển thị nếu verified -->
                     <div class="reviewer-verified" *ngIf="review.verified">
                       <i class="bi bi-patch-check-fill me-1"></i>Đã mua hàng
                     </div>
                   </div>
                 </div>
-                <div class="d-flex align-items-center gap-2">
+
+                <!-- Phải: Sao + Ngày + Nút Sửa/Xóa (nếu là review của mình) -->
+                <div class="d-flex align-items-start gap-3">
+
+                  <!-- Sao + Ngày xếp dọc -->
                   <div class="text-end">
                     <div class="review-stars">{{ getStarStr(review.rating) }}</div>
                     <div class="review-date">{{ review.createdAt | date:'dd/MM/yyyy' }}</div>
                   </div>
-                  <div class="d-flex flex-column gap-1 ms-2" *ngIf="isMyReview(review)">
+
+                  <!-- Nút Sửa / Xóa (chỉ review của mình) -->
+                  <div class="d-flex gap-1" *ngIf="isMyReview(review)">
                     <button class="helpful-btn" style="font-size:12px;padding:4px 10px;"
-                      (click)="openEditForm(review)"><i class="bi bi-pencil me-1"></i>Sửa</button>
-                    <button class="helpful-btn" style="font-size:12px;padding:4px 10px;color:#C62828;border-color:#C62828;"
-                      (click)="confirmDelete(review._id)"><i class="bi bi-trash3 me-1"></i>Xóa</button>
+                      (click)="openEditForm(review)">
+                      <i class="bi bi-pencil me-1"></i>Sửa
+                    </button>
+                    <button class="helpful-btn"
+                      style="font-size:12px;padding:4px 10px;color:#C62828;border-color:#C62828;"
+                      (click)="confirmDelete(review._id)">
+                      <i class="bi bi-trash3 me-1"></i>Xóa
+                    </button>
                   </div>
+
                 </div>
               </div>
+
+              <!-- Biến thể đã mua -->
               <div class="mb-2" *ngIf="review.variant">
                 <span class="review-variant">Đã mua: <strong>{{ review.variant }}</strong></span>
               </div>
+
+              <!-- Tags -->
               <div class="d-flex flex-wrap gap-2 mb-2" *ngIf="review.tags?.length">
                 <span class="review-tag" *ngFor="let tag of review.tags">{{ tag }}</span>
               </div>
+
+              <!-- Nội dung đánh giá -->
               <p class="review-text mb-3">{{ review.text }}</p>
+
+              <!-- Ảnh đính kèm -->
               <div class="d-flex gap-2 flex-wrap mb-3" *ngIf="review.imgs?.length">
-                <div class="review-img" *ngFor="let img of review.imgs" (click)="openImageViewer(fixImgUrl(img))">
+                <div class="review-img" *ngFor="let img of review.imgs"
+                  (click)="openImageViewer(fixImgUrl(img))">
                   <img [src]="fixImgUrl(img)" alt="Ảnh đánh giá" />
                 </div>
               </div>
+
+              <!-- Phản hồi từ Admin -->
               <div class="admin-reply p-3 mb-3" *ngIf="review.adminReply">
                 <div class="d-flex align-items-center gap-2 mb-2">
                   <span class="admin-badge">HealthUp phản hồi</span>
@@ -411,22 +436,31 @@
                 </div>
                 <p class="admin-reply-text mb-0">{{ review.adminReply }}</p>
               </div>
-              <div class="d-flex align-items-center gap-2 flex-wrap pt-3 border-top" style="border-color:#F0F7F0 !important;">
+
+              <!-- Hữu ích / Báo cáo -->
+              <div class="d-flex align-items-center gap-2 flex-wrap pt-3 border-top"
+                style="border-color:#F0F7F0 !important;">
                 <span class="helpful-text">Đánh giá này có hữu ích không?</span>
-                <button class="helpful-btn" [class.active]="isLiked(review._id)" (click)="markHelpful(review._id)">
-                  <i class="bi" [class.bi-hand-thumbs-up-fill]="isLiked(review._id)" [class.bi-hand-thumbs-up]="!isLiked(review._id)"></i>
+                <button class="helpful-btn" [class.active]="isLiked(review._id)"
+                  (click)="markHelpful(review._id)">
+                  <i class="bi"
+                    [class.bi-hand-thumbs-up-fill]="isLiked(review._id)"
+                    [class.bi-hand-thumbs-up]="!isLiked(review._id)"></i>
                   Có ({{ review.helpful || 0 }})
                 </button>
-                <button class="helpful-btn" [class.active]="isDisliked(review._id)" (click)="markNotHelpful(review._id)">
-                  <i class="bi" [class.bi-hand-thumbs-down-fill]="isDisliked(review._id)" [class.bi-hand-thumbs-down]="!isDisliked(review._id)"></i>
+                <button class="helpful-btn" [class.active]="isDisliked(review._id)"
+                  (click)="markNotHelpful(review._id)">
+                  <i class="bi"
+                    [class.bi-hand-thumbs-down-fill]="isDisliked(review._id)"
+                    [class.bi-hand-thumbs-down]="!isDisliked(review._id)"></i>
                   Không
                 </button>
                 <button class="report-btn ms-auto" (click)="reportReview(review._id)">
                   <i class="bi bi-flag me-1"></i>Báo cáo
                 </button>
               </div>
-            </ng-container>
 
+            </ng-container>
           </div>
 
           <!-- SKELETON -->
@@ -440,10 +474,13 @@
           </ng-container>
 
           <!-- TRỐNG -->
-          <div class="no-reviews-card text-center py-5 px-3" *ngIf="filteredReviews.length === 0 && !isLoading">
+          <div class="no-reviews-card text-center py-5 px-3"
+            *ngIf="filteredReviews.length === 0 && !isLoading">
             <i class="bi bi-chat-square-text fs-1 text-secondary d-block mb-3"></i>
             <div class="no-reviews-title mb-1">Chưa có đánh giá nào</div>
-            <p class="text-secondary mb-0" style="font-size:14px;">Hãy là người đầu tiên chia sẻ cảm nhận về sản phẩm này.</p>
+            <p class="text-secondary mb-0" style="font-size:14px;">
+              Hãy là người đầu tiên chia sẻ cảm nhận về sản phẩm này.
+            </p>
           </div>
 
           <!-- TẢI THÊM -->

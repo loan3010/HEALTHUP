@@ -145,6 +145,7 @@
         <div class="co-voucher-card"
              *ngFor="let v of availableVouchers()"
              [class.is-applied]="(voucherModalFor === 'order' ? orderVoucherCode() : shipVoucherCode()) === v.code"
+             [class.is-best]="bestVoucherCode() === v.code"
              [class.is-eligible]="isVoucherEligible(v)"
              [class.is-ineligible]="!isVoucherEligible(v)"
              [title]="!isVoucherEligible(v) ? voucherDisabledReason(v) : ''"
@@ -159,6 +160,11 @@
           <!-- Card content -->
           <div class="co-voucher-card-inner">
 
+            <!-- ✅ MỚI: Badge "Tốt nhất" -->
+            <div class="co-voucher-best-badge" *ngIf="bestVoucherCode() === v.code">
+              <i class="bi bi-trophy-fill"></i> Tốt nhất
+            </div>
+
             <!-- Icon -->
             <div class="co-voucher-card-icon"
                  [class.icon-percent]="v.discountType === 'percent'"
@@ -171,6 +177,12 @@
             <div class="co-voucher-card-body">
               <div class="co-voucher-card-label">{{ voucherTypeLabel(v) }}</div>
               <div class="co-voucher-card-desc" *ngIf="v.description">{{ v.description }}</div>
+
+              <!-- ✅ MỚI: Số tiền tiết kiệm thực tế -->
+              <div class="co-voucher-saving" *ngIf="isVoucherEligible(v) && calcVoucherSaving(v) > 0">
+                <i class="bi bi-piggy-bank-fill"></i>
+                Tiết kiệm <strong>{{ vnd(calcVoucherSaving(v)) }}</strong>
+              </div>
 
               <!-- Điều kiện -->
               <div class="co-voucher-card-cond">
@@ -208,6 +220,7 @@
               </span>
               <button *ngIf="(voucherModalFor === 'order' ? orderVoucherCode() : shipVoucherCode()) !== v.code && isVoucherEligible(v)"
                       class="co-voucher-select-btn"
+                      [class.btn-best]="bestVoucherCode() === v.code"
                       (click)="$event.stopPropagation(); selectVoucher(v.code, true)">
                 Dùng ngay
               </button>
