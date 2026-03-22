@@ -651,9 +651,10 @@ export class Checkout implements OnInit {
     const addr = this.selectedAddr!;
     const note = this.checkoutForm.value.note || '';
 
+    // Sổ địa chỉ lưu 1 chuỗi đầy đủ trong `address`; không gửi N/A (sẽ bị nối thừa trên màn chi tiết đơn).
     const customer: any = {
       fullName: addr.name, phone: addr.phone, email: '',
-      address: addr.address, province: 'N/A', district: 'N/A', ward: 'N/A', note,
+      address: addr.address, province: '', district: '', ward: '', note,
     };
 
     const payload: any = {

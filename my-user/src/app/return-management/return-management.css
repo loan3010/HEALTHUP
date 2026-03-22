@@ -190,7 +190,9 @@
   font-size: 12px;
   font-weight: 700;
 }
+.return-status-badge.status-none      { background: #F3F4F6; color: #4B5563; }
 .return-status-badge.status-pending   { background: #FFFBEB; color: #B45309; }
+.return-status-badge.status-requested { background: #FFFBEB; color: #B45309; }
 .return-status-badge.status-approved  { background: #F0FDF4; color: #15803D; }
 .return-status-badge.status-completed { background: #EFF6FF; color: #1D4ED8; }
 .return-status-badge.status-rejected  { background: #FFF5F5; color: #DC2626; }
@@ -237,6 +239,7 @@
   text-overflow: ellipsis;
 }
 .return-item-meta { font-size: 12.5px; color: #7A9A65; }
+.return-buy-qty { color: #6b7c64; font-weight: 500; }
 .return-item-total {
   font-weight: 800;
   font-size: 15px;

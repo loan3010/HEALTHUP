@@ -26,13 +26,75 @@
               <div class="label">Phương thức thanh toán</div>
               <span class="badge gray">{{ paymentLabel(order.paymentMethod) }}</span>
             </div>
+            <!-- Đã giao nhưng khách chưa gửi yêu cầu trên app — admin không tự tạo requested -->
+            <div *ngIf="order.status === 'delivered' && (!order.returnStatus || order.returnStatus === 'none')">
+              <div class="label">Trả hàng / hoàn tiền</div>
+              <span class="badge gray">Chưa có yêu cầu — khách gửi trên website/app</span>
+            </div>
             <div *ngIf="order.returnStatus && order.returnStatus !== 'none'">
               <div class="label">Trả hàng / hoàn tiền</div>
               <span class="badge warn">{{ returnFlowLabel(order.returnStatus) }}</span>
               <div class="sub-hint" *ngIf="order.returnReason">Lý do yêu cầu: {{ order.returnReason }}</div>
+              <div class="sub-hint" *ngIf="order.returnNote">Ghi chú từ khách: {{ order.returnNote }}</div>
               <div class="sub-hint" *ngIf="order.returnRejectionReason">Lý do từ chối: {{ order.returnRejectionReason }}</div>
+              <!-- Ảnh lỗi / minh chứng khách upload khi yêu cầu hoàn -->
+              <div class="return-proof-block" *ngIf="returnProofImages(order).length">
+                <div class="label return-proof-label">Ảnh minh chứng (khách gửi)</div>
+                <div class="return-proof-row">
+                  <a *ngFor="let img of returnProofImages(order)"
+                    [href]="returnProofUrl(img)"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="return-proof-link">
+                    <img [src]="returnProofUrl(img)" alt="Ảnh minh chứng đổi trả"
+                      (error)="onReturnProofImgError($event)" />
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
+        </div>
+
+        <!-- Phần trả: tách biệt danh sách đơn gốc — hiện SL mua vs SL trả -->
+        <div class="card return-lines-card" *ngIf="order.returnStatus && order.returnStatus !== 'none'">
+          <h3>Sản phẩm khách yêu cầu trả</h3>
+          <ng-container *ngIf="returnLinesWithQty(order).length > 0; else noReturnLinesDetail">
+            <table class="items-table return-lines-table">
+              <thead>
+                <tr>
+                  <th>TÊN SẢN PHẨM</th>
+                  <th>ĐÃ MUA</th>
+                  <th>TRẢ</th>
+                  <th>GIÁ</th>
+                  <th>TIỀN HÀNG TRẢ</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let r of returnLinesWithQty(order)">
+                  <td class="product">
+                    <img [src]="returnProofUrl(r.imageUrl || '')" alt=""
+                      (error)="onReturnProofImgError($event)" />
+                    <div>
+                      <div class="name">{{ r.name || '—' }}</div>
+                    </div>
+                  </td>
+                  <td>{{ r.quantity != null ? r.quantity : '—' }}</td>
+                  <td><strong class="return-qty-em">{{ r.returnQty }}</strong></td>
+                  <td>{{ formatMoney(r.price || 0) }}</td>
+                  <td class="money">{{ formatMoney((r.price || 0) * (r.returnQty || 0)) }}</td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="return-lines-foot">
+              Tạm tính tiền hàng trả: <strong>{{ formatMoney(returnRequestGoodsTotal(order)) }}</strong>
+              <span class="return-lines-note">(chưa gồm phí ship; tổng đơn gốc vẫn ở cột phải)</span>
+            </div>
+          </ng-container>
+          <ng-template #noReturnLinesDetail>
+            <p class="return-lines-missing">
+              Chưa có dữ liệu chi tiết từng mặt hàng trả (đơn cũ hoặc gửi thiếu). Xem bảng toàn bộ sản phẩm đơn bên dưới.
+            </p>
+          </ng-template>
         </div>
 
         <div class="card">
@@ -85,7 +147,7 @@
           <div class="line"><label>Người nhận</label><strong>{{ order.customer.fullName }}</strong></div>
           <div class="line"><label>SĐT nhận hàng</label><strong>{{ order.customer.phone }}</strong></div>
           <div class="line"><label>Phương thức giao</label><strong>{{ order.shippingMethod === 'express' ? 'Giao nhanh' : 'Giao tiêu chuẩn' }}</strong></div>
-          <div class="line"><label>Địa chỉ giao</label><strong>{{ order.customer.address }}, {{ order.customer.ward }}, {{ order.customer.district }}, {{ order.customer.province }}</strong></div>
+          <div class="line"><label>Địa chỉ giao</label><strong>{{ formatShipmentAddress(order.customer) }}</strong></div>
           <div class="line" *ngIf="order.customer.note"><label>Ghi chú giao hàng</label><strong>{{ order.customer.note }}</strong></div>
         </div>
 
@@ -113,9 +175,6 @@
             Hủy đơn hàng
           </button>
 
-          <button class="btn-sub" *ngIf="canRequestReturn()" [disabled]="actionLoading" (click)="setReturnStatus('requested')">
-            Ghi nhận yêu cầu trả/hoàn
-          </button>
           <button class="btn-sub" *ngIf="canApproveReturn()" [disabled]="actionLoading" (click)="setReturnStatus('approved')">
             Chấp nhận hoàn hàng
           </button>

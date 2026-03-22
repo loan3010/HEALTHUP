@@ -15,6 +15,16 @@ export interface AdminOrderItem {
   variantLabel: string;
 }
 
+/** Một dòng trong yêu cầu trả: quantity = SL đã mua trên đơn, returnQty = SL khách xin trả. */
+export interface AdminReturnLine {
+  productId?: string;
+  name?: string;
+  imageUrl?: string | null;
+  price?: number;
+  quantity?: number;
+  returnQty?: number;
+}
+
 export interface AdminOrder {
   _id: string;
   orderCode?: string;
@@ -36,6 +46,12 @@ export interface AdminOrder {
   returnStatus: AdminReturnStatus;
   returnReason?: string;
   returnRejectionReason?: string;
+  /** Ghi chú khách khi gửi yêu cầu hoàn. */
+  returnNote?: string;
+  /** Đường dẫn ảnh minh chứng (vd: /images/returns/...) */
+  returnImages?: string[];
+  /** Chỉ các dòng khách chọn trả (thường returnQty > 0). */
+  returnItems?: AdminReturnLine[];
   subTotal: number;
   shippingFee: number;
   discount: number;
