@@ -3,6 +3,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { Router, RouterModule } from '@angular/router';
 import { HttpClient, HttpClientModule, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
+import { ApiService } from '../services/api.service'; // ✅ Thêm import
 
 type ShippingMethod = 'standard' | 'express';
 type PaymentMethod  = 'cod' | 'momo' | 'vnpay';
@@ -34,7 +35,7 @@ export interface VoucherInfo {
   code: string;
   name: string;
   description?: string;
-  type?: 'order' | 'shipping';       // phân loại từ backend
+  type?: 'order' | 'shipping';
   discountType: 'percent' | 'fixed' | 'freeship';
   discountValue: number;
   minOrder?: number;
@@ -46,7 +47,7 @@ interface ApplyVoucherResult {
   code?: string;
   name?: string;
   description?: string;
-  type?: 'order' | 'shipping';       // phân loại từ backend
+  type?: 'order' | 'shipping';
   discountType?: string;
   discountValue?: number;
   discountOnType?: 'items' | 'shipping';
@@ -92,7 +93,7 @@ export class Checkout implements OnInit {
   shipVoucherResult     = signal<ApplyVoucherResult | null>(null);
   isApplyingShipVoucher = false;
 
-  // ── Modal voucher (dùng chung, phân loại bởi voucherModalFor) ──
+  // ── Modal voucher ──
   showVoucherModal     = false;
   voucherModalFor: 'order' | 'shipping' = 'order';
   availableVouchers    = signal<VoucherInfo[]>([]);
@@ -190,7 +191,8 @@ export class Checkout implements OnInit {
     private fb:     FormBuilder,
     private router: Router,
     private http:   HttpClient,
-    private cdr:    ChangeDetectorRef
+    private cdr:    ChangeDetectorRef,
+    private api:    ApiService  // ✅ Inject ApiService
   ) {}
 
   ngOnInit(): void {
@@ -428,9 +430,6 @@ export class Checkout implements OnInit {
     return '';
   }
 
-  /**
-   * Xử lý nhập mã voucher — tự động chuyển hoa, reset kết quả khi xóa
-   */
   onVoucherInput(v: string, forType: 'order' | 'shipping'): void {
     const upper = v.trim().toUpperCase();
     if (forType === 'order') {
@@ -445,9 +444,6 @@ export class Checkout implements OnInit {
     this.cdr.detectChanges();
   }
 
-  /**
-   * Áp dụng voucher — kiểm tra đúng loại sau khi nhận response
-   */
   applyVoucher(forType: 'order' | 'shipping'): void {
     const code = forType === 'order' ? this.orderVoucherCode() : this.shipVoucherCode();
 
@@ -475,7 +471,6 @@ export class Checkout implements OnInit {
       shippingFee: this.shippingFee(),
     }).subscribe({
       next: (res) => {
-        // Kiểm tra đúng loại không — báo lỗi nếu nhầm ô
         if (forType === 'order' && res.discountOnType !== 'items') {
           this.isApplyingOrderVoucher = false;
           this.orderVoucherResult.set({ valid: false, message: '' });
@@ -529,9 +524,6 @@ export class Checkout implements OnInit {
     this.cdr.detectChanges();
   }
 
-  /**
-   * Mở modal — lọc voucher đúng loại (order/shipping)
-   */
   openVoucherModal(forType: 'order' | 'shipping'): void {
     this.voucherModalFor   = forType;
     this.showVoucherModal  = true;
@@ -540,11 +532,8 @@ export class Checkout implements OnInit {
 
     this.http.get<VoucherInfo[]>(`${this.API_BASE}/promotions/available`).subscribe({
       next: (list) => {
-        // Lọc đúng loại theo type từ backend
         const filtered = (list || []).filter(v =>
-          forType === 'shipping'
-            ? v.type === 'shipping'
-            : v.type === 'order'
+          forType === 'shipping' ? v.type === 'shipping' : v.type === 'order'
         );
         const eligible   = filtered.filter(v => this.isVoucherEligible(v));
         const ineligible = filtered.filter(v => !this.isVoucherEligible(v));
@@ -587,7 +576,6 @@ export class Checkout implements OnInit {
     return 'bi-tag';
   }
 
-  // ── Tiêu đề modal theo loại ──
   get voucherModalTitle(): string {
     return this.voucherModalFor === 'shipping'
       ? 'Mã giảm phí vận chuyển'
@@ -631,7 +619,6 @@ export class Checkout implements OnInit {
       })),
       shippingMethod: this.shippingMethod(),
       paymentMethod:  this.paymentMethod(),
-      // Gửi cả 2 mã voucher lên backend
       voucherCode:     this.isOrderVoucherApplied ? this.orderVoucherCode() : null,
       shipVoucherCode: this.isShipVoucherApplied  ? this.shipVoucherCode()  : null,
     };
@@ -647,6 +634,12 @@ export class Checkout implements OnInit {
         this.isPlacing.set(false);
         this.successOrderId.set(String(orderId));
         this.showSuccess.set(true);
+
+        // ✅ FIX: Refresh unread count để badge thông báo cập nhật ngay
+        // và refresh cart count sau khi đặt hàng thành công
+        this.api.refreshUnreadCount();
+        this.api.refreshCartCount();
+
         this.cdr.detectChanges();
       },
       error: (err) => {

@@ -30,6 +30,10 @@ export class Header implements OnInit, OnDestroy {
   cartCount = 0;
   private cartCountSub!: Subscription;
 
+  // ✅ UNREAD NOTIFICATION COUNT
+  unreadCount = 0;
+  private unreadCountSub!: Subscription;
+
   // ── SEARCH STATE ──
   searchQuery = '';
   searchResults: SearchProduct[] = [];
@@ -53,9 +57,15 @@ export class Header implements OnInit, OnDestroy {
     this.checkLoginStatus();
     this.initSearch();
 
-    // ✅ Subscribe cart count — tự động cập nhật badge khi thêm/xóa sản phẩm
+    // ✅ Subscribe cart count
     this.cartCountSub = this.api.cartCount$.subscribe(count => {
       this.cartCount = count;
+      this.cdr.detectChanges();
+    });
+
+    // ✅ Subscribe unread notification count — badge chuông tự cập nhật
+    this.unreadCountSub = this.api.unreadCount$.subscribe(count => {
+      this.unreadCount = count;
       this.cdr.detectChanges();
     });
   }
@@ -63,23 +73,24 @@ export class Header implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.searchSub?.unsubscribe();
     this.cartCountSub?.unsubscribe();
+    this.unreadCountSub?.unsubscribe(); // ✅ Unsubscribe tránh memory leak
   }
 
   initSearch(): void {
     this.searchSub = this.searchSubject.pipe(
-      debounceTime(250),              // giảm từ 300 → 250ms cho nhanh hơn
+      debounceTime(250),
       distinctUntilChanged(),
       switchMap(keyword => {
         if (!keyword.trim()) {
           this.isSearching = false;
           this.searchResults = [];
           this.showSearchDropdown = false;
-          this.cdr.detectChanges();   // ✅
+          this.cdr.detectChanges();
           return of([] as SearchProduct[]);
         }
         this.isSearching = true;
         this.showSearchDropdown = true;
-        this.cdr.detectChanges();     // ✅ hiện loading spinner ngay
+        this.cdr.detectChanges();
         return this.searchService.search(keyword);
       })
     ).subscribe({
@@ -90,7 +101,7 @@ export class Header implements OnInit, OnDestroy {
           this.showSearchDropdown = true;
         }
         this.activeIndex = -1;
-        this.cdr.detectChanges();     // ✅ hiện kết quả ngay, không cần click
+        this.cdr.detectChanges();
       },
       error: () => {
         this.isSearching = false;
@@ -98,7 +109,7 @@ export class Header implements OnInit, OnDestroy {
         if (this.searchQuery.trim()) {
           this.showSearchDropdown = true;
         }
-        this.cdr.detectChanges();     // ✅ hiện trạng thái lỗi ngay
+        this.cdr.detectChanges();
       }
     });
   }
@@ -109,12 +120,12 @@ export class Header implements OnInit, OnDestroy {
       this.searchResults = [];
       this.showSearchDropdown = false;
       this.isSearching = false;
-      this.cdr.detectChanges();       // ✅
+      this.cdr.detectChanges();
       return;
     }
     this.showSearchDropdown = true;
     this.isSearching = true;
-    this.cdr.detectChanges();         // ✅ hiện dropdown + spinner ngay khi gõ
+    this.cdr.detectChanges();
     this.searchSubject.next(value.trim());
   }
 
@@ -123,7 +134,7 @@ export class Header implements OnInit, OnDestroy {
       this.showSearchDropdown = true;
       if (this.searchResults.length === 0 && !this.isSearching) {
         this.isSearching = true;
-        this.cdr.detectChanges();     // ✅
+        this.cdr.detectChanges();
         this.searchSubject.next(this.searchQuery.trim());
       }
     }
@@ -132,7 +143,7 @@ export class Header implements OnInit, OnDestroy {
   onSearchBlur(): void {
     setTimeout(() => {
       this.closeSearchDropdown();
-      this.cdr.detectChanges();       // ✅
+      this.cdr.detectChanges();
     }, 200);
   }
 
@@ -241,6 +252,7 @@ export class Header implements OnInit, OnDestroy {
     this.isLoggedIn   = false;
     this.userName     = '';
     this.showDropdown = false;
+    this.unreadCount  = 0; // ✅ Reset badge khi logout
     this.cdr.detectChanges();
     this.router.navigate(['/']);
   }

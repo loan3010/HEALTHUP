@@ -51,7 +51,7 @@
       "category_id": 5,
       "question": "Ship hàng bao lâu?",
       "answer": "Thời gian giao hàng của HealthUp:\n\n🚚 Nội thành TP.HCM: 1-2 ngày làm việc\n🚚 Các tỉnh thành khác: 2-4 ngày làm việc\n\nChúng tôi hỗ trợ:\n- Giao hàng nhanh trong ngày (với đơn đặt trước 10h sáng tại TP.HCM)\n- Miễn phí ship cho đơn hàng từ 300.000đ\n- Đóng gói cẩn thận, đảm bảo sản phẩm nguyên vẹn\n\nBạn sẽ nhận được mã tracking để theo dõi đơn hàng qua SMS/Email nhé!",
-      "view_count": 4,
+      "view_count": 5,
       "created_at": "2026-03-17T17:24:08.412Z",
       "updated_at": "2026-03-17T17:24:08.412Z"
     },
@@ -244,6 +244,20 @@
       "user_message": "Trái cây sấy có tốt hơn trái cây tươi không?",
       "bot_response": "Trái cây sấy và trái cây tươi đều có giá trị dinh dưỡng riêng:\n\n🍎 TRÁI CÂY TƯƠI:\n+ Nhiều nước\n+ Vitamin C cao hơn\n+ Ít calo hơn\n- Dễ hỏng, khó bảo quản\n\n🍊 TRÁI CÂY SẤY:\n+ Bảo quản lâu (6-12 tháng)\n+ Dễ mang theo\n+ Chất xơ cô đặc\n+ Khoáng chất cao hơn\n- Calo tập trung hơn\n\n💡 Lời khuyên:\n- Kết hợp cả hai loại\n- Chọn trái cây sấy không đường của HealthUp\n- Khẩu phần: 30-40g/ngày\n- Uống nhiều nước khi ăn trái cây sấy",
       "created_at": "2026-03-19T04:57:31.524Z"
+    },
+    {
+      "id": 24,
+      "session_id": "session_1774154902244_u3anjcy4h",
+      "user_message": "Tôi muốn biết về Chính sách chung",
+      "bot_response": "Showed category FAQs",
+      "created_at": "2026-03-22T04:48:51.439Z"
+    },
+    {
+      "id": 25,
+      "session_id": "session_1774154902244_u3anjcy4h",
+      "user_message": "Ship hàng bao lâu?",
+      "bot_response": "Thời gian giao hàng của HealthUp:\n\n🚚 Nội thành TP.HCM: 1-2 ngày làm việc\n🚚 Các tỉnh thành khác: 2-4 ngày làm việc\n\nChúng tôi hỗ trợ:\n- Giao hàng nhanh trong ngày (với đơn đặt trước 10h sáng tại TP.HCM)\n- Miễn phí ship cho đơn hàng từ 300.000đ\n- Đóng gói cẩn thận, đảm bảo sản phẩm nguyên vẹn\n\nBạn sẽ nhận được mã tracking để theo dõi đơn hàng qua SMS/Email nhé!",
+      "created_at": "2026-03-22T04:48:57.117Z"
     }
   ],
   "analytics": [
@@ -384,12 +398,24 @@
       "event_type": "chat_message",
       "data": "{\"query\":\"Trái cây sấy có tốt hơn trái cây tươi không?\"}",
       "created_at": "2026-03-19T04:57:31.525Z"
+    },
+    {
+      "id": 24,
+      "event_type": "chat_message",
+      "data": "{\"query\":\"Tôi muốn biết về Chính sách chung\"}",
+      "created_at": "2026-03-22T04:48:51.446Z"
+    },
+    {
+      "id": 25,
+      "event_type": "chat_message",
+      "data": "{\"query\":\"Ship hàng bao lâu?\"}",
+      "created_at": "2026-03-22T04:48:57.118Z"
     }
   ],
   "nextId": {
     "category": 6,
     "faq": 6,
-    "conversation": 24,
-    "analytics": 24
+    "conversation": 26,
+    "analytics": 26
   }
 }

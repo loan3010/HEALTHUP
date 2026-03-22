@@ -45,13 +45,11 @@
         <!-- ── AUTOCOMPLETE DROPDOWN ── -->
         <div class="search-dropdown" *ngIf="showSearchDropdown && searchQuery.trim()">
 
-          <!-- Đang tìm kiếm -->
           <div class="search-dropdown-loading" *ngIf="isSearching">
             <span class="search-spinner"></span>
             Đang tìm kiếm...
           </div>
 
-          <!-- Có kết quả -->
           <ng-container *ngIf="!isSearching && searchResults.length > 0">
             <div class="search-dropdown-header">
               Gợi ý sản phẩm
@@ -63,19 +61,16 @@
               (click)="selectProduct(product)"
               (mouseenter)="activeIndex = i">
 
-              <!-- Thumbnail -->
               <div class="search-result-thumb">
                 <img
                   [src]="product.images?.[0] || '/assets/images/placeholder.png'"
                   [alt]="product.name"
                   onerror="this.src='/assets/images/placeholder.png'"
                 />
-                <!-- Badge -->
                 <span class="search-badge search-badge-new" *ngIf="product.badge === 'new'">Mới</span>
                 <span class="search-badge search-badge-hot" *ngIf="product.badge === 'hot'">Hot</span>
               </div>
 
-              <!-- Info -->
               <div class="search-result-info">
                 <p class="search-result-name">{{ product.name }}</p>
                 <p class="search-result-cat">{{ product.cat }}</p>
@@ -87,18 +82,15 @@
                 </div>
               </div>
 
-              <!-- Arrow icon -->
               <i class="bi bi-arrow-right-short search-result-arrow"></i>
             </div>
 
-            <!-- Xem tất cả kết quả -->
             <div class="search-dropdown-footer" (click)="submitSearch()">
               <i class="bi bi-search"></i>
               Xem tất cả kết quả cho "<strong>{{ searchQuery }}</strong>"
             </div>
           </ng-container>
 
-          <!-- Không có kết quả -->
           <div class="search-no-result" *ngIf="!isSearching && searchResults.length === 0">
             <i class="bi bi-emoji-frown"></i>
             <p>Không tìm thấy sản phẩm nào</p>
@@ -131,9 +123,16 @@
 
         <!-- Đã đăng nhập -->
         <ng-container *ngIf="isLoggedIn">
-          <i class="bi bi-bell icon" title="Thông báo"></i>
 
-          <!-- ✅ Cart icon với badge đếm số lượng -->
+          <!-- ✅ Chuông thông báo với badge unread count -->
+          <div class="cart-icon-wrap" routerLink="/profile/notifications" title="Thông báo">
+            <i class="bi bi-bell icon"></i>
+            <span class="cart-badge" *ngIf="unreadCount > 0">
+              {{ unreadCount > 99 ? '99+' : unreadCount }}
+            </span>
+          </div>
+
+          <!-- Cart icon với badge -->
           <div class="cart-icon-wrap" routerLink="/cart" title="Giỏ hàng">
             <i class="bi bi-cart icon"></i>
             <span class="cart-badge" *ngIf="cartCount > 0">{{ cartCount > 99 ? '99+' : cartCount }}</span>
@@ -150,9 +149,6 @@
               <a routerLink="/profile/overview" (click)="closeDropdown()">
                 <i class="bi bi-person"></i> Tài khoản của tôi
               </a>
-              <!-- <a routerLink="/orders" (click)="closeDropdown()">
-                <i class="bi bi-box-seam"></i> Đơn hàng
-              </a> -->
               <a routerLink="/profile/wishlist" (click)="closeDropdown()">
                 <i class="bi bi-heart"></i> Yêu thích
               </a>
@@ -161,6 +157,11 @@
               </a>
               <a routerLink="/profile/order-management" (click)="closeDropdown()">
                 <i class="bi-box-seam"></i> Theo dõi đơn hàng
+              </a>
+              <!-- ✅ Thêm link thông báo vào dropdown -->
+              <a routerLink="/profile/notifications" (click)="closeDropdown()">
+                <i class="bi bi-bell"></i> Thông báo
+                <span class="dropdown-badge" *ngIf="unreadCount > 0">{{ unreadCount }}</span>
               </a>
               <div class="dropdown-divider"></div>
               <a class="logout-link" (click)="logout()">

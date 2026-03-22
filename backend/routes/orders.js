@@ -8,6 +8,7 @@ const Cart    = require('../models/Cart');
 const User    = require('../models/User');
 const Promotion = require('../models/Promotion');
 const OrderAuditLog = require('../models/OrderAuditLog');
+const Notification = require('../models/Notification'); // ✅ Thêm model Notification
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
 // ======================= HELPER =======================
@@ -21,10 +22,6 @@ function calcShipping(subTotal, shippingMethod) {
   return subTotal > 500000 ? 0 : 20000;
 }
 
-/**
- * Tính discount từ DB theo type của promo.
- * Trả về { discountAmount, discountOnType }
- */
 async function calcDiscountFromDB(voucherCode, subTotal, shippingFee) {
   if (!voucherCode) return { discountAmount: 0, discountOnType: null };
 
@@ -43,11 +40,9 @@ async function calcDiscountFromDB(voucherCode, subTotal, shippingFee) {
   if (subTotal < promo.minOrder) return { discountAmount: 0, discountOnType: null };
 
   let discountAmount = 0;
-  // Dùng promo.type làm chuẩn phân loại (order | shipping)
   const discountOnType = (promo.type === 'shipping') ? 'shipping' : 'items';
 
   if (promo.type === 'shipping') {
-    // Mã giảm phí vận chuyển
     if (promo.discountType === 'percent') {
       discountAmount = Math.round(Number(shippingFee) * promo.discountValue / 100);
       if (promo.maxDiscount > 0 && discountAmount > promo.maxDiscount) {
@@ -56,11 +51,9 @@ async function calcDiscountFromDB(voucherCode, subTotal, shippingFee) {
     } else if (promo.discountType === 'fixed') {
       discountAmount = Math.min(promo.discountValue, Number(shippingFee));
     } else {
-      // freeship → giảm toàn bộ phí ship
       discountAmount = Number(shippingFee);
     }
   } else {
-    // Mã giảm tiền hàng (promo.type === 'order')
     if (promo.discountType === 'percent') {
       discountAmount = Math.round(subTotal * promo.discountValue / 100);
       if (promo.maxDiscount > 0 && discountAmount > promo.maxDiscount) {
@@ -86,10 +79,16 @@ function normalizePhone(phone) {
   return String(phone || '').replace(/\D/g, '');
 }
 
+// ✅ Helper format tiền VND
+function formatVND(amount) {
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency', currency: 'VND'
+  }).format(amount);
+}
+
 const ORDER_STATUS = ['pending', 'confirmed', 'shipping', 'delivered', 'cancelled'];
 const RETURN_STATUS = ['none', 'requested', 'completed'];
 
-// Rule chuyển trạng thái đúng nghiệp vụ admin đã chốt.
 const NEXT_STATUS = {
   pending: ['confirmed', 'cancelled'],
   confirmed: ['shipping'],
@@ -181,8 +180,8 @@ router.post('/', async (req, res) => {
       items,
       shippingMethod,
       paymentMethod,
-      voucherCode,     // mã giảm tiền hàng
-      shipVoucherCode, // mã giảm phí vận chuyển
+      voucherCode,
+      shipVoucherCode,
       userId
     } = req.body;
 
@@ -274,18 +273,14 @@ router.post('/', async (req, res) => {
 
     const ship = calcShipping(subTotal, shippingMethod);
 
-    // Tính discount tiền hàng (voucherCode)
-    const { discountAmount: discOrder, discountOnType: typeOrder } =
+    const { discountAmount: discOrder } =
       await calcDiscountFromDB(voucherCode, subTotal, ship);
-
-    // Tính discount phí ship (shipVoucherCode)
-    const { discountAmount: discShip, discountOnType: typeShip } =
+    const { discountAmount: discShip } =
       await calcDiscountFromDB(shipVoucherCode, subTotal, ship);
 
     const totalDiscount = discOrder + discShip;
     const total = Math.max(0, subTotal - discOrder + ship - discShip);
 
-    // Build order data
     const orderData = {
       customer: {
         fullName: customer.fullName,
@@ -318,7 +313,6 @@ router.post('/', async (req, res) => {
 
     let order = null;
     let lastErr = null;
-    // Retry để tránh đụng unique orderCode khi tạo đơn đồng thời.
     for (let i = 0; i < 4; i += 1) {
       try {
         orderData.orderCode = await generateNextOrderCode();
@@ -332,7 +326,7 @@ router.post('/', async (req, res) => {
     }
     if (!order) throw lastErr || new Error('Không thể tạo mã đơn hàng');
 
-    // Tăng usedCount cho cả 2 voucher nếu có
+    // Tăng usedCount cho voucher
     const voucherUpdates = [];
     if (voucherCode) {
       voucherUpdates.push(
@@ -352,7 +346,7 @@ router.post('/', async (req, res) => {
     }
     if (voucherUpdates.length) await Promise.all(voucherUpdates);
 
-    // Xóa sản phẩm đã mua khỏi cart trên DB
+    // Xóa sản phẩm đã mua khỏi cart
     if (order.userId) {
       const boughtIds = orderItems.map(i => String(i.productId));
       try {
@@ -361,10 +355,10 @@ router.post('/', async (req, res) => {
           cart.items = cart.items.filter(i => !boughtIds.includes(String(i.productId)));
           await cart.save();
         }
-      } catch (e) { /* không chặn response nếu lỗi xóa cart */ }
+      } catch (e) {}
     }
 
-    // Trừ kho + cộng sold sau khi tạo đơn thành công
+    // Trừ kho + cộng sold
     for (const item of orderItems) {
       const p = await Product.findById(item.productId);
       if (!p) continue;
@@ -386,15 +380,34 @@ router.post('/', async (req, res) => {
         );
       }
 
-      // Đồng bộ stock tổng từ variants
       if (Array.isArray(p.variants) && p.variants.length > 0) {
         p.stock = p.variants.reduce((sum, v) => sum + Number(v.stock || 0), 0);
       }
 
-      // FIX: Cộng số lượng đã bán
       p.sold = Number(p.sold || 0) + Number(item.quantity || 0);
-
       await p.save();
+    }
+
+    // ✅ Tạo notification cho user sau khi đặt hàng thành công
+    if (order.userId) {
+      try {
+        const firstItem = orderItems[0];
+        const extraCount = orderItems.length - 1;
+        const productSummary = extraCount > 0
+          ? `${firstItem.name} và ${extraCount} sản phẩm khác`
+          : firstItem.name;
+
+        await Notification.create({
+          userId:  order.userId,
+          title:   `Đặt hàng thành công 🎉`,
+          message: `Đơn hàng ${order.orderCode}: ${productSummary} — Tổng tiền ${formatVND(order.total)}`,
+          type:    'order',
+          orderId: order._id,
+          isRead:  false,
+        });
+      } catch (e) {
+        console.error('Tạo notification thất bại:', e);
+      }
     }
 
     return res.status(201).json({ orderId: order._id, orderCode: order.orderCode });
@@ -473,9 +486,7 @@ router.get('/admin/list', authenticateToken, requireAdmin, async (req, res) => {
     };
 
     return res.json({
-      data,
-      total,
-      page,
+      data, total, page,
       totalPages: Math.ceil(total / limit) || 1,
       summary
     });
@@ -567,6 +578,29 @@ router.patch('/admin/:id/status', authenticateToken, requireAdmin, async (req, r
       note: String(note || '')
     });
 
+    // ✅ Gửi notification khi admin cập nhật trạng thái đơn hàng
+    if (order.userId) {
+      try {
+        const statusLabel = {
+          confirmed: 'đã được xác nhận ✅',
+          shipping:  'đang được giao 🚚',
+          delivered: 'đã giao thành công 🎉',
+          cancelled: 'đã bị hủy ❌',
+        }[status] || status;
+
+        await Notification.create({
+          userId:  order.userId,
+          title:   `Cập nhật đơn hàng`,
+          message: `Đơn hàng ${order.orderCode} ${statusLabel}`,
+          type:    'order',
+          orderId: order._id,
+          isRead:  false,
+        });
+      } catch (e) {
+        console.error('Tạo notification thất bại:', e);
+      }
+    }
+
     return res.json(order);
   } catch (err) {
     return res.status(500).json({ message: 'Server error' });
@@ -634,10 +668,17 @@ router.patch('/admin/:id/return-status', authenticateToken, requireAdmin, async 
 
 router.get('/:id', async (req, res) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      return res.status(400).json({ message: 'ID không hợp lệ' });
+    const { id } = req.params;
+    let order;
+
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      order = await Order.findById(id).populate('items.productId');
     }
-    const order = await Order.findById(req.params.id).populate('items.productId');
+
+    if (!order) {
+      order = await Order.findOne({ orderCode: id }).populate('items.productId');
+    }
+
     if (!order) return res.status(404).json({ message: 'Order not found' });
     return res.json(order);
   } catch (err) {
@@ -654,8 +695,26 @@ router.patch('/:id/status', async (req, res) => {
     if (!allowed.includes(status)) {
       return res.status(400).json({ message: 'Status không hợp lệ' });
     }
-    const order = await Order.findByIdAndUpdate(req.params.id, { status }, { new: true });
+
+    const order = await Order.findByIdAndUpdate(
+      req.params.id, { status }, { new: true }
+    );
     if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    // ✅ Tạo notification khi user tự hủy đơn
+    if (status === 'cancelled' && order.userId) {
+      try {
+        await Notification.create({
+          userId:  order.userId,
+          title:   '❌ Đơn hàng đã bị hủy',
+          message: `Đơn hàng ${order.orderCode} đã được hủy thành công`,
+          type:    'order',
+          orderId: order._id,
+          isRead:  false,
+        });
+      } catch (e) {}
+    }
+
     res.json(order);
   } catch (err) {
     res.status(500).json({ message: 'Server error' });

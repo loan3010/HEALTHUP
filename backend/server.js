@@ -50,6 +50,7 @@ app.use('/api/categories',      require('./routes/categories'));
 app.use('/api/admin/customers', require('./routes/customer'));
 app.use('/api/admin/dashboard', require('./routes/admin-dashboard'));
 app.use('/api/about-images', require('./routes/about-images'));
+app.use('/api/notifications', require('./routes/notifications'));
 
 // Health check
 app.get('/api/health', (req, res) => {
