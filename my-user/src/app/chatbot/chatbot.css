@@ -1,7 +1,7 @@
 /* ============================================
-   HEALTHUP CHATBOT - Isolated CSS
-   Tất cả class đều có prefix "hu-" để tránh
-   conflict với CSS của website chính
+    HEALTHUP CHATBOT - Isolated CSS
+    Tất cả class đều có prefix "hu-" để tránh
+    conflict với CSS của website chính
    ============================================ */
 
 /* Reset cứng cho widget - không bị ảnh hưởng bởi CSS ngoài */
@@ -13,57 +13,85 @@
 }
 
 /* ============================================
-   FLOATING BUTTON
+    FLOATING BUTTON (ĐÃ CẬP NHẬT THEO STYLE ADMIN)
    ============================================ */
 
 .hu-chat-button {
   position: fixed !important;
-  bottom: 24px !important;
-  right: 24px !important;
-  width: 60px !important;
-  height: 60px !important;
+  bottom: 35px !important; 
+  right: 35px !important;
+  width: 65px !important;  
+  height: 65px !important;
   border-radius: 50% !important;
-  background: linear-gradient(135deg, #36873A 0%, #2A6B2E 100%) !important;
+  background: #36873A !important; 
   border: none !important;
-  cursor: pointer !important;
-  box-shadow: 0 8px 32px rgba(54, 135, 58, 0.4) !important;
+  cursor: grab !important; 
+  box-shadow: 0 8px 32px rgba(54, 135, 58, 0.3) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  transition: all 0.3s ease !important;
+  transition: transform 0.3s ease, background 0.3s ease !important;
   z-index: 999998 !important;
   color: white !important;
   padding: 0 !important;
 }
 
-.hu-chat-button:hover {
-  transform: scale(1.1) !important;
-  box-shadow: 0 12px 40px rgba(54, 135, 58, 0.5) !important;
-}
-
 .hu-chat-button:active {
-  transform: scale(0.95) !important;
+  cursor: grabbing !important;
 }
 
-.hu-chat-icon { display: block !important; }
-.hu-close-icon { display: none !important; }
-.hu-chat-button.active .hu-chat-icon { display: none !important; }
-.hu-chat-button.active .hu-close-icon { display: block !important; }
+.hu-chat-button:hover {
+  transform: scale(1.08) !important;
+}
 
-/* Badge xanh nhấp nháy */
+/* --- SỬA LỖI MẤT SÓNG --- */
+.hu-pulse-ring {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 50% !important;
+  border: 3px solid #36873A !important;
+  /* TUYỆT ĐỐI KHÔNG dùng !important ở opacity để Animation có thể chạy */
+  opacity: 0; 
+  z-index: -1 !important; /* Đẩy ra sau để không che icon */
+  pointer-events: none !important;
+}
+
+.hu-chat-button:hover .hu-pulse-ring {
+  animation: hu-rippleSmooth 1.5s infinite ease-out !important;
+}
+
+@keyframes hu-rippleSmooth {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+/* --- SỬA LỖI CHỒNG 2 ICON --- */
+/* Căn chỉnh lại bằng thẻ i kèm class để tăng độ ưu tiên */
+.hu-chat-button i.hu-chat-icon { display: block !important; line-height: 0 !important; }
+.hu-chat-button i.hu-close-icon { display: none !important; line-height: 0 !important; }
+
+/* Toggling trạng thái Active */
+.hu-chat-button.active i.hu-chat-icon { display: none !important; }
+.hu-chat-button.active i.hu-close-icon { display: block !important; }
+
+/* Badge chấm đỏ nhấp nháy báo hiệu tin nhắn mới */
 .hu-chat-button::after {
   content: '' !important;
   position: absolute !important;
-  top: 0 !important;
-  right: 0 !important;
+  top: 2px !important; /* Chỉnh lại một chút để chấm đỏ ôm sát viền tròn */
+  right: 2px !important; 
   width: 14px !important;
   height: 14px !important;
-  background: #C62828 !important;
+  background: #C62828 !important; 
   border-radius: 50% !important;
-  border: 2px solid white !important;
+  border: 2px solid white !important; 
   animation: hu-pulse 2s infinite !important;
 }
 
+/* Ẩn chấm đỏ khi đã mở khung chat */
 .hu-chat-button.active::after {
   display: none !important;
 }
@@ -74,22 +102,20 @@
 }
 
 /* ============================================
-   WIDGET CONTAINER
-   FIX: display: none mặc định, flex khi .active
+    WIDGET CONTAINER
    ============================================ */
 
 .hu-chat-widget {
   position: fixed !important;
-  bottom: 96px !important;
-  right: 24px !important;
+  bottom: 110px !important; 
+  right: 35px !important;
   width: 380px !important;
   max-width: calc(100vw - 32px) !important;
   height: 580px !important;
-  max-height: calc(100vh - 120px) !important;
+  max-height: calc(100vh - 150px) !important;
   background: #FFFFFF !important;
   border-radius: 20px !important;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2) !important;
-  /* Ẩn mặc định */
   display: none !important;
   flex-direction: column !important;
   overflow: hidden !important;
@@ -99,7 +125,6 @@
   transition: transform 0.25s ease, opacity 0.25s ease !important;
 }
 
-/* Hiện khi active */
 .hu-chat-widget.active {
   display: flex !important;
   transform: scale(1) translateY(0) !important;
@@ -107,7 +132,7 @@
 }
 
 /* ============================================
-   HEADER
+    HEADER
    ============================================ */
 
 .hu-chat-header {
@@ -195,7 +220,7 @@
 }
 
 /* ============================================
-   WELCOME SCREEN
+    WELCOME SCREEN
    ============================================ */
 
 .hu-welcome {
@@ -277,7 +302,7 @@
 }
 
 /* ============================================
-   MESSAGES AREA
+    MESSAGES AREA
    ============================================ */
 
 .hu-chat-messages {
@@ -351,7 +376,7 @@
   font-size: 13.5px !important;
   line-height: 1.55 !important;
   word-break: break-word !important;
-  white-space: normal !important;
+  white-space: pre-wrap !important;
 }
 
 .hu-bot .hu-msg-bubble {
@@ -437,7 +462,107 @@
 }
 
 /* ============================================
-   QUICK REPLIES
+    THẺ SẢN PHẨM (PRODUCT CARDS)
+   ============================================ */
+
+.hu-product-cards-wrapper {
+  width: calc(100% + 20px) !important; 
+  margin-left: -5px !important; 
+  margin-top: 10px !important;
+  overflow: visible !important; 
+}
+
+.hu-product-cards-container {
+  display: flex !important;
+  gap: 12px !important;
+  overflow-x: auto !important; 
+  padding: 10px 25px 15px 5px !important; 
+  scrollbar-width: none !important; 
+  -ms-overflow-style: none !important;
+}
+
+.hu-product-cards-container::-webkit-scrollbar {
+  display: none !important; 
+}
+
+.hu-product-card {
+  min-width: 155px !important;
+  max-width: 155px !important;
+  background: white !important;
+  border-radius: 14px !important;
+  overflow: hidden !important;
+  border: 1px solid #f0f0f0 !important;
+  transition: all 0.3s ease !important;
+  display: flex !important;
+  flex-direction: column !important;
+  flex-shrink: 0 !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05) !important;
+}
+
+.hu-product-card:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1) !important;
+  border-color: #36873A !important;
+}
+
+.hu-card-img {
+  width: 100% !important;
+  height: 95px !important;
+  background: #f8f9fa !important;
+  overflow: hidden !important;
+}
+
+.hu-card-img img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+.hu-card-body {
+  padding: 12px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+}
+
+.hu-prod-name {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: #333 !important;
+  margin: 0 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.hu-prod-price {
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  color: #36873A !important;
+  margin-bottom: 5px !important;
+}
+
+.hu-btn-detail {
+  width: 100% !important;
+  padding: 7px 0 !important;
+  background: #f1f3f5 !important;
+  color: #555 !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  text-align: center !important;
+  transition: all 0.2s !important;
+}
+
+.hu-btn-detail:hover {
+  background: #36873A !important;
+  color: white !important;
+}
+
+/* ============================================
+    QUICK REPLIES
    ============================================ */
 
 .hu-quick-replies {
@@ -482,7 +607,7 @@
 }
 
 /* ============================================
-   INPUT
+    INPUT
    ============================================ */
 
 .hu-input-wrapper {
@@ -565,7 +690,7 @@
 }
 
 /* ============================================
-   RESPONSIVE
+    RESPONSIVE
    ============================================ */
 
 @media (max-width: 480px) {

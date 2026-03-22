@@ -3,46 +3,103 @@
     <div class="header-title-group">
       <i class="bi bi-robot primary-text me-2"></i>
       <h2 class="modal-title primary-text">
-        {{ data ? 'CHỈNH SỬA CÂU HỎI' : 'THÊM CÂU HỎI MỚI' }}
+        {{ editData?._id ? 'CHỈNH SỬA CÂU HỎI' : 'THÊM CÂU HỎI MỚI' }}
       </h2>
     </div>
-    <button class="btn-close-modal-custom" (click)="close.emit()">&times;</button>
+    <button class="btn-close-modal-custom" (click)="close.emit()" title="Đóng">&times;</button>
   </div>
 
-  <div class="modal-body-custom">
+  <div class="modal-body-custom custom-scroll">
+    
     <div class="form-section mb-4">
       <label class="field-label">DANH MỤC SẢN PHẨM</label>
-      <select class="form-control-custom" [value]="data?.category || 'Granola'">
-        <option *ngFor="let cat of categories">{{cat}}</option>
-      </select>
+      <div class="select-wrapper">
+        <select class="form-control-custom" [(ngModel)]="editData.category">
+          <option value="" disabled selected>-- Chọn danh mục để phân loại câu hỏi --</option>
+          <option *ngFor="let cat of categories" [value]="cat">
+            {{ cat }}
+          </option>
+        </select>
+        <i class="bi bi-chevron-down select-icon"></i>
+      </div>
     </div>
 
     <div class="form-section mb-4">
       <label class="field-label">CÂU HỎI CHÍNH</label>
-      <input type="text" class="form-control-custom" 
-             [value]="data?.question || ''" 
-             placeholder="Nhập câu hỏi khách thường hỏi...">
+      <input type="text" 
+             class="form-control-custom" 
+             [(ngModel)]="editData.question" 
+             placeholder="Ví dụ: Granola của HealthUp có hỗ trợ giảm cân không?">
     </div>
 
     <div class="form-section mb-4">
-      <label class="field-label">BIẾN THỂ (VARIATIONS)</label>
-      <div class="tag-input-container">
-        <div class="tag-pill" *ngIf="data">granola giảm cân ko <i class="bi bi-x"></i></div>
-        <input type="text" placeholder="Thêm biến thể...">
+      <label class="field-label">BIẾN THỂ (VARIATIONS) - <small><i>Nhấn Enter để thêm các cách hỏi khác</i></small></label>
+      <div class="tag-input-container custom-scroll-style">
+        <div class="tag-pill" *ngFor="let variant of editData.variations; let i = index">
+          <span class="tag-text">{{ variant }}</span>
+          <i class="bi bi-x-circle-fill ms-2 delete-tag" (click)="removeVariation(i)"></i>
+        </div>
+        
+        <input type="text" 
+               class="inline-tag-input"
+               [(ngModel)]="newVariationInput" 
+               (keyup.enter)="addVariation()" 
+               placeholder="Thêm các cách đặt câu hỏi tương tự...">
       </div>
+      <p class="field-help-text mt-1">Gợi ý: Bổ sung nhiều biến thể giúp Trợ lý ảo nhận diện ý định của khách hàng chính xác hơn.</p>
     </div>
 
-    <div class="form-section">
-      <label class="field-label">BOT TRẢ LỜI</label>
-      <textarea rows="5" class="form-control-custom no-resize" 
-                placeholder="Nội dung bot phản hồi...">{{data?.answer || ''}}</textarea>
+    <div class="form-section mb-4">
+      <label class="field-label">NỘI DUNG PHẢN HỒI CỦA TRỢ LÝ ẢO</label>
+      <textarea rows="5" 
+                class="form-control-custom no-resize custom-scroll" 
+                [(ngModel)]="editData.answer"
+                placeholder="Nhập nội dung tư vấn chuyên nghiệp mà bạn muốn gửi đến khách hàng..."></textarea>
     </div>
-  </div>
+
+    <div class="form-section" *ngIf="editData.category !== 'Chính sách chung'">
+      <label class="field-label">
+        SẢN PHẨM GỢI Ý {{ editData.category ? 'THUỘC NHÓM "' + editData.category + '"' : '' }}
+      </label>
+
+      <div class="product-selection-list custom-scroll-style">
+        <div class="empty-selection-msg" *ngIf="!editData.category">
+          <i class="bi bi-arrow-up-circle me-2"></i> Vui lòng chọn Danh mục sản phẩm ở phía trên để hiển thị danh sách gợi ý phù hợp.
+        </div>
+
+        <div class="empty-selection-msg" *ngIf="editData.category && filteredProducts.length === 0">
+          <i class="bi bi-exclamation-triangle me-2"></i> Không tìm thấy sản phẩm nào trong kho thuộc danh mục này.
+        </div>
+
+        <div class="product-tick-item" 
+             *ngFor="let prod of filteredProducts" 
+             (click)="toggleProduct(prod)"
+             [class.selected]="isProductSelected(prod._id)">
+          <div class="tick-checkbox">
+            <i class="bi" [ngClass]="isProductSelected(prod._id) ? 'bi-check-square-fill' : 'bi-square'"></i>
+          </div>
+          <div class="tick-info">
+            <span class="p-name">{{ prod.name }}</span>
+            <span class="p-price">{{ prod.price | number }}đ</span>
+          </div>
+        </div>
+      </div>
+
+      <p class="field-help-text mt-2" *ngIf="editData.category && filteredProducts.length > 0">
+        <i class="bi bi-info-circle me-1"></i> Các sản phẩm được chọn sẽ hiển thị dưới dạng thẻ (Card) có thể cuộn ngang trong khung chat.
+      </p>
+    </div>
+    </div>
 
   <div class="modal-footer-custom">
-    <button class="btn-secondary-custom" (click)="close.emit()">HỦY BỎ</button>
-    <button class="btn-primary-custom">
-      <i class="bi bi-cpu-fill"></i> LƯU & HUẤN LUYỆN BOT
+    <button class="btn-secondary-custom" (click)="close.emit()">
+      HỦY BỎ
+    </button>
+    
+    <button class="btn-primary-custom" 
+            (click)="submitForm()" 
+            [disabled]="!editData.question || !editData.answer || !editData.category">
+      <i class="bi bi-cpu-fill me-2"></i> LƯU & HUẤN LUYỆN BOT
     </button>
   </div>
 </div>

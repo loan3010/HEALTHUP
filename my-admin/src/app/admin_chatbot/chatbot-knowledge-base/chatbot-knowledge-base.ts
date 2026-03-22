@@ -1,4 +1,4 @@
-import { Component, Output, EventEmitter } from '@angular/core';
+import { Component, Output, EventEmitter, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
@@ -9,21 +9,59 @@ import { CommonModule } from '@angular/common';
   styleUrl: './chatbot-knowledge-base.css'
 })
 export class ChatbotKnowledgeBase {
-  // 1. KHAI BÁO CÁC BIẾN ĐỂ HẾT LỖI
-  selectedCat: string = 'All'; // Biến lưu danh mục đang chọn
-  categories: string[] = ['Granola', 'Trà thảo mộc', 'Trái cây sấy', 'Chính sách chung']; // Danh sách các chip
+  // --- NHẬN DỮ LIỆU TỪ COMPONENT CHA (AdminChatbot) ---
+  
+  // Danh sách toàn bộ câu hỏi lấy từ Database
+  @Input() faqs: any[] = []; 
+  
+  // Danh sách các danh mục sản phẩm + Chính sách chung
+  @Input() categories: string[] = []; 
 
-  // 2. PHÁT TÍN HIỆU SỬA CHO THẰNG CHA
+  // --- PHÁT TÍN HIỆU RA BÊN NGOÀI ---
+  
+  // Tín hiệu yêu cầu chỉnh sửa câu hỏi
   @Output() editRequest = new EventEmitter<any>();
+  
+  // Tín hiệu yêu cầu xóa câu hỏi (gửi kèm _id)
+  @Output() deleteRequest = new EventEmitter<string>();
 
-  // Dữ liệu mẫu để hiển thị bảng
-  faqList = [
-    { question: 'Granola có giảm cân không?', category: 'Granola', variations: 4, answer: 'Chào bạn, Granola rất tốt cho sức khỏe...' },
-    { question: 'Ship hàng bao lâu?', category: 'Chính sách chung', variations: 2, answer: 'Nội thành 1-2 ngày, ngoại thành 3-5 ngày ạ.' },
-    { question: 'Trà thảo mộc có dễ ngủ không?', category: 'Trà thảo mộc', variations: 5, answer: 'Sản phẩm giúp an thần, ngủ ngon sâu giấc.' }
-  ];
+  // --- LOGIC XỬ LÝ NỘI BỘ ---
 
+  // Biến lưu trữ danh mục đang được chọn để lọc (Mặc định là 'All')
+  selectedCat: string = 'All';
+
+  /**
+   * Getter này tự động tính toán và trả về danh sách câu hỏi đã được lọc.
+   * Giúp giao diện Admin cập nhật ngay lập tức khi bà bấm vào các Chip danh mục.
+   */
+  get filteredFaqs() {
+    if (this.selectedCat === 'All') {
+      return this.faqs;
+    }
+    // Lọc những câu hỏi có trường category trùng với danh mục đang chọn
+    return this.faqs.filter(faq => faq.category === this.selectedCat);
+  }
+
+  /**
+   * Khi bấm nút Sửa: Gửi object câu hỏi lên cha để mở Modal Form
+   */
   onEdit(item: any) {
-    this.editRequest.emit(item); // Gửi dữ liệu câu hỏi lên thằng cha để mở Modal
+    this.editRequest.emit(item);
+  }
+
+  /**
+   * Khi bấm nút Xóa: Gửi ID của câu hỏi lên cha để thực hiện lệnh DELETE API
+   */
+  onDelete(id: string) {
+    if (id) {
+      this.deleteRequest.emit(id);
+    }
+  }
+
+  /**
+   * Thay đổi danh mục lọc khi Admin bấm vào các Chip
+   */
+  selectCategory(cat: string) {
+    this.selectedCat = cat;
   }
 }

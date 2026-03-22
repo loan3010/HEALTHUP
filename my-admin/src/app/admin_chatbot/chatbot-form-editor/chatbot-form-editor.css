@@ -27,7 +27,7 @@
 }
 
 .primary-text {
-  color: var(--color-primary) !important; /* Xanh lá thương hiệu */
+  color: var(--color-primary) !important; /* Xanh lá thương hiệu HealthUp */
   font-weight: 800 !important;
   margin: 0;
   letter-spacing: -0.5px;
@@ -59,11 +59,18 @@
   padding: 35px;
   max-height: 70vh;
   overflow-y: auto;
-  scrollbar-width: none; /* Ẩn thanh cuộn dọc cho sạch */
+  scrollbar-width: thin;
+  scrollbar-color: #e9ecef transparent;
 }
 
+/* Tùy chỉnh thanh cuộn cho Chrome/Safari */
 .modal-body-custom::-webkit-scrollbar {
-  display: none;
+  width: 6px;
+}
+
+.modal-body-custom::-webkit-scrollbar-thumb {
+  background-color: #e9ecef;
+  border-radius: 10px;
 }
 
 .field-label {
@@ -73,6 +80,7 @@
   color: #9ca3af;
   letter-spacing: 1.2px;
   margin-bottom: 10px;
+  text-transform: uppercase;
 }
 
 /* --- CUSTOM INPUTS & SELECTS --- */
@@ -91,24 +99,39 @@
 .form-control-custom:focus {
   border-color: var(--color-primary);
   background: white;
-  box-shadow: 0 0 0 4px rgba(54, 135, 58, 0.08);
+  box-shadow: 0 0 0 4px rgba(76, 175, 80, 0.08);
   outline: none;
 }
 
+/* --- FIX LỖI CHỒNG 2 MŨI TÊN Ở Ô CHỌN DANH MỤC --- */
 .select-wrapper {
   position: relative;
+  width: 100%;
 }
 
-.select-wrapper i {
+.select-wrapper select.form-control-custom {
+  appearance: none; 
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  cursor: pointer;
+  padding-right: 40px; /* Chừa chỗ cho icon không bị đè lên chữ */
+  position: relative;
+  z-index: 2;
+  background-color: transparent; 
+}
+
+.select-wrapper .select-icon {
   position: absolute;
   right: 18px;
   top: 50%;
   transform: translateY(-50%);
   color: #adb5bd;
-  pointer-events: none;
+  pointer-events: none; /* Rất quan trọng để click xuyên qua trúng vào select */
+  font-size: 1.1rem;
+  z-index: 1;
 }
 
-/* --- TAGS (BIẾN THỂ) --- */
+/* --- TAGS (BIẾN THỂ CÂU HỎI) --- */
 .tag-input-container {
   border: 1.5px solid #f1f3f5;
   border-radius: 12px;
@@ -122,7 +145,7 @@
 }
 
 .tag-pill {
-  background: #eef7ee; /* Xanh lá cực nhạt */
+  background: #eef7ee; 
   color: var(--color-primary);
   padding: 6px 14px;
   border-radius: 8px;
@@ -131,66 +154,108 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  border: 1px solid rgba(54, 135, 58, 0.1);
+  border: 1px solid rgba(76, 175, 80, 0.1);
 }
 
-.tag-pill i {
+.delete-tag {
   cursor: pointer;
   font-size: 0.9rem;
-  transition: color 0.2s;
+  opacity: 0.6;
+  transition: all 0.2s;
 }
 
-.tag-pill i:hover {
+.delete-tag:hover {
+  opacity: 1;
   color: #d9534f;
 }
 
-.tag-input-container input {
-  border: none;
-  outline: none;
-  background: transparent;
+.inline-tag-input {
+  border: none !important;
+  outline: none !important;
+  background: transparent !important;
   flex: 1;
   min-width: 150px;
   padding: 5px;
+  font-size: 0.9rem;
 }
 
-.field-help {
-  display: block;
-  margin-top: 8px;
+.field-help-text {
   color: #adb5bd;
   font-size: 0.8rem;
   font-style: italic;
 }
 
-/* --- TEXTAREA & TOOLBAR --- */
-.no-resize {
-  resize: none;
-}
-
-.mini-toolbar {
-  display: flex;
-  gap: 15px;
-  padding: 12px 20px;
-  background: #ffffff;
+/* --- KHU VỰC CHỌN SẢN PHẨM GỢI Ý (MỚI CẬP NHẬT) --- */
+.product-selection-list {
+  background: #f8f9fa;
   border: 1.5px solid #f1f3f5;
-  border-top: none;
-  border-radius: 0 0 12px 12px;
+  border-radius: 12px;
+  max-height: 250px;
+  overflow-y: auto;
+  padding: 10px;
 }
 
-.btn-mini-tool {
-  background: none;
-  border: none;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #6c757d;
-  cursor: pointer;
+.empty-selection-msg {
+  padding: 30px;
+  text-align: center;
+  color: #adb5bd;
+  font-size: 0.9rem;
+}
+
+.product-tick-item {
   display: flex;
   align-items: center;
-  gap: 5px;
-  transition: color 0.2s;
+  padding: 12px 15px;
+  background: white;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid transparent;
 }
 
-.btn-mini-tool:hover {
+.product-tick-item:hover {
+  background: #f0f9f0;
+  border-color: var(--color-primary);
+}
+
+.product-tick-item.selected {
+  background: #eef7ee;
+  border-color: var(--color-primary);
+}
+
+.tick-checkbox {
+  font-size: 1.2rem;
+  margin-right: 15px;
+  color: #adb5bd;
+  display: flex;
+  align-items: center;
+}
+
+.selected .tick-checkbox {
   color: var(--color-primary);
+}
+
+.tick-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.p-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #343a40;
+}
+
+.p-price {
+  font-size: 0.8rem;
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* --- TEXTAREA VÀ THANH CÔNG CỤ --- */
+.no-resize {
+  resize: none;
 }
 
 /* --- FOOTER --- */
@@ -221,7 +286,7 @@
 
 .btn-primary-custom {
   padding: 12px 30px;
-  background: #4CAF50; /* Xanh lá rực rỡ huấn luyện */
+  background: #4CAF50; /* Xanh lá rực rỡ cho nút huấn luyện */
   color: white;
   border: none;
   border-radius: 12px;
@@ -234,8 +299,15 @@
   transition: all 0.3s ease;
 }
 
-.btn-primary-custom:hover {
+.btn-primary-custom:hover:not(:disabled) {
   transform: translateY(-3px);
   box-shadow: 0 12px 25px rgba(76, 175, 80, 0.35);
   filter: brightness(1.05);
+}
+
+.btn-primary-custom:disabled {
+  background: #c8e6c9;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
 }
