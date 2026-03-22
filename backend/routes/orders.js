@@ -11,6 +11,7 @@ const Cart    = require('../models/Cart');
 const User    = require('../models/User');
 const Promotion = require('../models/Promotion');
 const OrderAuditLog = require('../models/OrderAuditLog');
+const Notification = require('../models/Notification');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const { buildCustomerListStatsMaps, statsForUser } = require('../helpers/customerOrderStats');
 
@@ -112,9 +113,17 @@ function normalizePhone(phone) {
   return String(phone || '').replace(/\D/g, '');
 }
 
+// ✅ Helper format tiền VND (từ nhánh THnew)
+function formatVND(amount) {
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency', currency: 'VND'
+  }).format(amount);
+}
+
 /**
  * Chuẩn hoá từng phần tỉnh/huyện/xã khi lưu đơn.
  * Trước đây dùng chữ "N/A" khi checkout không tách cấp hành chính → hiển thị rối; để rỗng thay vì N/A.
+ * (từ nhánh main)
  */
 function normalizeShippingPart(v) {
   const s = String(v ?? '').trim();
@@ -457,6 +466,28 @@ router.post('/', async (req, res) => {
       prep.shipVoucherCodeRaw
     );
 
+    // ✅ Tạo notification cho user sau khi đặt hàng thành công (từ nhánh THnew)
+    if (order.userId) {
+      try {
+        const firstItem = prep.orderItems[0];
+        const extraCount = prep.orderItems.length - 1;
+        const productSummary = extraCount > 0
+          ? `${firstItem.name} và ${extraCount} sản phẩm khác`
+          : firstItem.name;
+
+        await Notification.create({
+          userId:  order.userId,
+          title:   `Đặt hàng thành công 🎉`,
+          message: `Đơn hàng ${order.orderCode}: ${productSummary} — Tổng tiền ${formatVND(order.total)}`,
+          type:    'order',
+          orderId: order._id,
+          isRead:  false,
+        });
+      } catch (e) {
+        console.error('Tạo notification thất bại:', e);
+      }
+    }
+
     return res.status(201).json({ orderId: order._id, orderCode: order.orderCode });
   } catch (err) {
     console.error(err);
@@ -682,6 +713,29 @@ router.patch('/admin/:id/status', authenticateToken, requireAdmin, async (req, r
       note:      String(note || '')
     });
 
+    // ✅ Gửi notification khi admin cập nhật trạng thái đơn hàng (từ nhánh THnew)
+    if (order.userId) {
+      try {
+        const statusLabel = {
+          confirmed: 'đã được xác nhận ✅',
+          shipping:  'đang được giao 🚚',
+          delivered: 'đã giao thành công 🎉',
+          cancelled: 'đã bị hủy ❌',
+        }[status] || status;
+
+        await Notification.create({
+          userId:  order.userId,
+          title:   `Cập nhật đơn hàng`,
+          message: `Đơn hàng ${order.orderCode} ${statusLabel}`,
+          type:    'order',
+          orderId: order._id,
+          isRead:  false,
+        });
+      } catch (e) {
+        console.error('Tạo notification thất bại:', e);
+      }
+    }
+
     return res.json(order);
   } catch (err) {
     return res.status(500).json({ message: 'Server error' });
@@ -763,10 +817,17 @@ router.patch('/admin/:id/return-status', authenticateToken, requireAdmin, async 
 
 router.get('/:id', async (req, res) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      return res.status(400).json({ message: 'ID không hợp lệ' });
+    const { id } = req.params;
+    let order;
+
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      order = await Order.findById(id).populate('items.productId');
     }
-    const order = await Order.findById(req.params.id).populate('items.productId');
+
+    if (!order) {
+      order = await Order.findOne({ orderCode: id }).populate('items.productId');
+    }
+
     if (!order) return res.status(404).json({ message: 'Order not found' });
     return res.json(order);
   } catch (err) {
@@ -783,8 +844,26 @@ router.patch('/:id/status', async (req, res) => {
     if (!allowed.includes(status)) {
       return res.status(400).json({ message: 'Status không hợp lệ' });
     }
-    const order = await Order.findByIdAndUpdate(req.params.id, { status }, { new: true });
+
+    const order = await Order.findByIdAndUpdate(
+      req.params.id, { status }, { new: true }
+    );
     if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    // ✅ Tạo notification khi user tự hủy đơn (từ nhánh THnew)
+    if (status === 'cancelled' && order.userId) {
+      try {
+        await Notification.create({
+          userId:  order.userId,
+          title:   '❌ Đơn hàng đã bị hủy',
+          message: `Đơn hàng ${order.orderCode} đã được hủy thành công`,
+          type:    'order',
+          orderId: order._id,
+          isRead:  false,
+        });
+      } catch (e) {}
+    }
+
     res.json(order);
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
