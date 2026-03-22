@@ -1,0 +1,302 @@
+.gol-page {
+  min-height: 60vh;
+  padding: 32px 16px 48px;
+  background: #f6faf6;
+  font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+}
+
+.gol-inner {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.gol-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #36873a;
+  margin: 0 0 8px;
+}
+
+.gol-sub {
+  color: #4a6b4c;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 0 0 16px;
+}
+
+.gol-sub a {
+  color: #36873a;
+  font-weight: 700;
+}
+
+.gol-policy {
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  color: #78350f;
+  margin-bottom: 20px;
+}
+
+.gol-policy i {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.gol-policy a {
+  color: #b45309;
+  font-weight: 700;
+}
+
+.gol-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid #e2ebe2;
+  box-shadow: 0 2px 12px rgba(54, 135, 58, 0.06);
+}
+
+.gol-row {
+  margin-bottom: 14px;
+}
+
+.gol-row label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #36873a;
+  margin-bottom: 6px;
+}
+
+.gol-inp {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d4e6d4;
+  border-radius: 10px;
+  font-size: 0.95rem;
+}
+
+.gol-btn {
+  margin-top: 8px;
+  padding: 10px 20px;
+  background: #36873a;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.gol-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.gol-btn-primary {
+  width: 100%;
+  margin-top: 16px;
+}
+
+.gol-err {
+  color: #c62828;
+  font-size: 0.88rem;
+  margin-top: 10px;
+}
+
+.gol-result {
+  margin-top: 28px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid #e2ebe2;
+}
+
+.gol-result h2 {
+  margin: 0 0 8px;
+  font-size: 1.15rem;
+  color: #1a2e1b;
+}
+
+.gol-meta {
+  color: #4a6b4c;
+  font-size: 0.9rem;
+}
+
+.gol-cust {
+  font-size: 0.9rem;
+  margin: 12px 0;
+  color: #333;
+}
+
+.gol-addr {
+  color: #666;
+  font-size: 0.85rem;
+}
+
+.gol-items {
+  border-top: 1px solid #eef5ee;
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
+.gol-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.gol-item img {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.gol-iname {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.gol-itot {
+  margin-left: auto;
+  font-weight: 700;
+  color: #36873a;
+}
+
+.gol-total {
+  text-align: right;
+  margin-top: 12px;
+  font-size: 1rem;
+}
+
+.gol-return {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 2px dashed #e2ebe2;
+}
+
+.gol-return h3 {
+  font-size: 1rem;
+  color: #b45309;
+  margin: 0 0 12px;
+}
+
+.gol-reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.gol-chip {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid #d4e6d4;
+  background: #fafdf9;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.gol-chip.on {
+  background: #e8f5e9;
+  border-color: #36873a;
+  font-weight: 700;
+}
+
+.gol-ta {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid #d4e6d4;
+  padding: 8px;
+  font-family: inherit;
+}
+
+.gol-ret-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 0;
+  font-size: 0.88rem;
+}
+
+.gol-rname {
+  flex: 1;
+  min-width: 120px;
+}
+
+.gol-qty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gol-qty button {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background: #fff;
+  cursor: pointer;
+}
+
+.gol-img-block {
+  margin: 14px 0;
+  font-size: 0.85rem;
+}
+
+.gol-previews {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.gol-pr {
+  position: relative;
+  width: 64px;
+  height: 64px;
+}
+
+.gol-pr img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.gol-pr button {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: #c62828;
+  color: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.gol-hint {
+  color: #888;
+  font-size: 0.85rem;
+  margin-top: 12px;
+}
+
+.gol-ok {
+  padding: 10px;
+  background: #e8f5e9;
+  color: #2e7d32;
+  border-radius: 10px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}

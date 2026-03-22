@@ -3,7 +3,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { Router, RouterModule } from '@angular/router';
 import { HttpClient, HttpClientModule, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
-import { ApiService } from '../services/api.service'; // ✅ Thêm import
+import { ApiService, GUEST_CART_STORAGE_KEY } from '../services/api.service';
 
 type ShippingMethod = 'standard' | 'express';
 type PaymentMethod  = 'cod' | 'momo' | 'vnpay';
@@ -77,6 +77,11 @@ export class Checkout implements OnInit {
 
   showSuccess    = signal(false);
   successOrderId = signal('');
+  /** Mã ORD... hiển thị cho khách không đăng nhập (tra cứu đơn). */
+  successOrderCode = signal('');
+
+  /** Form địa chỉ khi không đăng nhập (không có sổ địa chỉ). */
+  guestAddrForm!: FormGroup;
 
   shippingMethod = signal<ShippingMethod>('standard');
   paymentMethod  = signal<PaymentMethod>('cod');
@@ -156,6 +161,28 @@ export class Checkout implements OnInit {
     return this.savedAddresses().find(a => this.getId(a) === this.selectedAddrId());
   }
 
+  /** Chỉ user đã đăng nhập thật mới dùng được mã khuyến mãi (server cũng chặn guest). */
+  get canUseVouchers(): boolean {
+    return !!(this.token && this.userId);
+  }
+
+  /**
+   * Địa chỉ giao: user chọn từ sổ, hoặc khách nhập tay.
+   */
+  get shippingAddr(): SavedAddress | null {
+    if (this.userId) {
+      const a = this.selectedAddr;
+      return a || null;
+    }
+    const v = this.guestAddrForm?.value;
+    if (!v) return null;
+    const name = String(v.name || '').trim();
+    const phone = String(v.phone || '').trim();
+    const address = String(v.address || '').trim();
+    if (!name || !phone || !address) return null;
+    return { name, phone, address, isDefault: false };
+  }
+
   get isOrderVoucherApplied(): boolean {
     return this.orderVoucherResult()?.valid === true;
   }
@@ -200,6 +227,11 @@ export class Checkout implements OnInit {
 
   ngOnInit(): void {
     this.checkoutForm = this.fb.group({ note: [''] });
+    this.guestAddrForm = this.fb.group({
+      name:    ['', [Validators.required, Validators.minLength(2)]],
+      phone:   ['', [Validators.required, Validators.pattern(/^0\d{9}$/)]],
+      address: ['', [Validators.required, Validators.minLength(8)]],
+    });
     this.buildAddrForm();
     this.loadCheckoutItems();
     if (!this.items().length) { this.router.navigateByUrl('/cart'); return; }
@@ -209,6 +241,12 @@ export class Checkout implements OnInit {
       this.token  = localStorage.getItem('token') || '';
       this.userId = u.id || u._id || '';
     } catch {}
+
+    // Khách không đăng nhập: không gửi/không giữ voucher (backend guest không áp KM).
+    if (!this.canUseVouchers) {
+      this.removeVoucher('order');
+      this.removeVoucher('shipping');
+    }
 
     this.loadProvinces();
     if (this.userId && this.token) this.loadSavedAddresses();
@@ -470,6 +508,8 @@ export class Checkout implements OnInit {
   }
 
   applyVoucher(forType: 'order' | 'shipping'): void {
+    if (!this.canUseVouchers) return;
+
     const code = forType === 'order' ? this.orderVoucherCode() : this.shipVoucherCode();
 
     if (!code) {
@@ -551,6 +591,7 @@ export class Checkout implements OnInit {
 
   // ✅ CẬP NHẬT: Mở modal — sort voucher theo saving giảm dần, đánh dấu tốt nhất (từ nhánh main)
   openVoucherModal(forType: 'order' | 'shipping'): void {
+    if (!this.canUseVouchers) return;
     this.voucherModalFor   = forType;
     this.showVoucherModal  = true;
     this.isLoadingVouchers = true;
@@ -639,9 +680,16 @@ export class Checkout implements OnInit {
     if (this.isPlacing()) return;
     if (!this.items().length) { this.router.navigateByUrl('/cart'); return; }
 
-    if (!this.selectedAddr) {
-      this.errorMsg.set('Vui lòng chọn hoặc thêm địa chỉ nhận hàng');
-      this.cdr.detectChanges(); return;
+    // User đăng nhập: chọn từ sổ địa chỉ. Khách: form guestAddrForm → shippingAddr.
+    const addr = this.shippingAddr;
+    if (!addr) {
+      this.errorMsg.set(
+        this.userId
+          ? 'Vui lòng chọn hoặc thêm địa chỉ nhận hàng'
+          : 'Vui lòng nhập đầy đủ họ tên, SĐT (10 số bắt đầu 0) và địa chỉ nhận hàng'
+      );
+      this.cdr.detectChanges();
+      return;
     }
 
     const badIds = this.items().filter(i => !/^[a-fA-F0-9]{24}$/.test(String(i.productId || '').trim()));
@@ -650,7 +698,6 @@ export class Checkout implements OnInit {
       this.cdr.detectChanges(); return;
     }
 
-    const addr = this.selectedAddr!;
     const note = this.checkoutForm.value.note || '';
 
     // Sổ địa chỉ lưu 1 chuỗi đầy đủ trong `address`; không gửi N/A (sẽ bị nối thừa trên màn chi tiết đơn).
@@ -659,6 +706,7 @@ export class Checkout implements OnInit {
       address: addr.address, province: '', district: '', ward: '', note,
     };
 
+    const useVoucher = this.canUseVouchers;
     const payload: any = {
       customer,
       items: this.items().map(i => ({
@@ -669,20 +717,36 @@ export class Checkout implements OnInit {
       })),
       shippingMethod: this.shippingMethod(),
       paymentMethod:  this.paymentMethod(),
-      voucherCode:     this.isOrderVoucherApplied ? this.orderVoucherCode() : null,
-      shipVoucherCode: this.isShipVoucherApplied  ? this.shipVoucherCode()  : null,
+      voucherCode:     useVoucher && this.isOrderVoucherApplied ? this.orderVoucherCode() : null,
+      shipVoucherCode: useVoucher && this.isShipVoucherApplied  ? this.shipVoucherCode()  : null,
     };
     if (this.userId) payload.userId = this.userId;
+
+    // Gỡ sản phẩm đã mua khỏi giỏ phiên khách (MongoDB) — backend persistNewOrder cũng xử lý.
+    if (!this.token) {
+      try {
+        const gid = localStorage.getItem(GUEST_CART_STORAGE_KEY);
+        if (gid && /^[0-9a-f-]{36}$/i.test(gid)) {
+          payload.guestCartSessionId = gid;
+        }
+      } catch { /* ignore */ }
+    }
+
+    let headers = new HttpHeaders();
+    if (this.token) {
+      headers = headers.set('Authorization', `Bearer ${this.token}`);
+    }
 
     this.isPlacing.set(true);
     this.cdr.detectChanges();
 
-    this.http.post<any>(`${this.API_BASE}/orders`, payload).subscribe({
+    this.http.post<any>(`${this.API_BASE}/orders`, payload, { headers }).subscribe({
       next: (res) => {
         const orderId = res?.orderId ?? res?.id ?? res?._id ?? '';
         this.clearAfterSuccess();
         this.isPlacing.set(false);
         this.successOrderId.set(String(orderId));
+        this.successOrderCode.set(String(res?.orderCode || ''));
         this.showSuccess.set(true);
 
         // ✅ FIX: Refresh unread count để badge thông báo cập nhật ngay
@@ -701,7 +765,17 @@ export class Checkout implements OnInit {
     });
   }
 
-  goToOrderDetail(): void { this.showSuccess.set(false); this.router.navigate(['/profile/order-detail', this.successOrderId()]); }
+  goToOrderDetail(): void {
+    this.showSuccess.set(false);
+    const id = this.successOrderId();
+    if (this.token && this.userId) {
+      this.router.navigate(['/profile/order-detail', id]);
+    } else {
+      this.router.navigate(['/tra-cuu-don'], {
+        queryParams: { code: this.successOrderCode() || undefined },
+      });
+    }
+  }
   goToHome():        void { this.showSuccess.set(false); this.router.navigateByUrl('/'); }
 
   setShipping(m: ShippingMethod) { this.shippingMethod.set(m); }
@@ -730,10 +804,24 @@ export class Checkout implements OnInit {
     } catch {}
 
     const userId = this.userId;
-    if (userId) {
-      const headers = new HttpHeaders({ 'x-user-id': userId });
-      boughtIds.forEach(productId => {
-        this.http.delete(`${this.API_BASE}/carts/remove/${productId}`, { headers })
+    let cartHeaders: HttpHeaders | null = null;
+    if (userId && /^[a-f0-9]{24}$/i.test(String(userId).trim())) {
+      cartHeaders = new HttpHeaders({ 'x-user-id': String(userId).trim() });
+    } else {
+      try {
+        const gid = localStorage.getItem(GUEST_CART_STORAGE_KEY);
+        if (gid && /^[0-9a-f-]{36}$/i.test(gid)) {
+          cartHeaders = new HttpHeaders({ 'x-guest-cart-id': gid });
+        }
+      } catch { /* ignore */ }
+    }
+    if (cartHeaders) {
+      this.items().forEach((i) => {
+        const q = i.variantId
+          ? `?variantId=${encodeURIComponent(String(i.variantId))}`
+          : '';
+        this.http
+          .delete(`${this.API_BASE}/carts/remove/${i.productId}${q}`, { headers: cartHeaders! })
           .subscribe({ error: () => {} });
       });
     }

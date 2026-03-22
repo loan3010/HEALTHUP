@@ -1,0 +1,102 @@
+<div class="gol-page">
+  <div class="gol-inner">
+    <h1 class="gol-title">Tra cứu đơn hàng</h1>
+    <p class="gol-sub">
+      Nhập <strong>số điện thoại đặt hàng</strong> và <strong>mã đơn</strong> (VD: ORD00000000001).
+      <a routerLink="/login">Đăng nhập</a> để xem đơn trong tài khoản và dùng mã khuyến mãi khi mua.
+    </p>
+
+    <div class="gol-policy">
+      <i class="bi bi-info-circle"></i>
+      <div>
+        <strong>Chính sách đổi trả (gợi ý):</strong> chỉ áp dụng khi đơn <strong>đã giao</strong>, trong vòng
+        <strong>7 ngày</strong> kể từ khi nhận hàng (chi tiết xem trang
+        <a routerLink="/policies">Chính sách</a>). Vui lòng gửi ảnh minh chứng nếu sản phẩm lỗi.
+      </div>
+    </div>
+
+    <div class="gol-card">
+      <div class="gol-row">
+        <label>Số điện thoại</label>
+        <input class="gol-inp" type="tel" [(ngModel)]="phone" placeholder="0xxxxxxxxx" maxlength="10" />
+      </div>
+      <div class="gol-row">
+        <label>Mã đơn hàng</label>
+        <input class="gol-inp" type="text" [(ngModel)]="orderCode" placeholder="ORD00000000001" />
+      </div>
+      <button class="gol-btn" type="button" [disabled]="loading" (click)="lookup()">
+        {{ loading ? 'Đang tìm...' : 'Tra cứu' }}
+      </button>
+      <p class="gol-err" *ngIf="errorMsg && !order">{{ errorMsg }}</p>
+    </div>
+
+    <div class="gol-result" *ngIf="order">
+      <h2>Đơn #{{ order.orderCode || order._id }}</h2>
+      <p class="gol-meta">
+        Trạng thái: <strong>{{ statusLabel(order.status) }}</strong>
+        <span *ngIf="order.returnStatus && order.returnStatus !== 'none'">
+          · Hoàn/trả: <strong>{{ order.returnStatus }}</strong>
+        </span>
+      </p>
+      <p class="gol-cust">
+        {{ order.customer?.fullName }} — {{ order.customer?.phone }}<br />
+        <span class="gol-addr">{{ order.customer?.address }}</span>
+      </p>
+
+      <div class="gol-items">
+        <div class="gol-item" *ngFor="let it of order.items">
+          <img [src]="getImageUrl(it.imageUrl || orderLineImageRaw(it))" alt="" onerror="this.src='/assets/images/placeholder.png'" />
+          <div>
+            <div class="gol-iname">{{ it.name }}</div>
+            <div>{{ formatMoney(it.price) }} × {{ it.quantity }}</div>
+          </div>
+          <div class="gol-itot">{{ formatMoney(it.price * it.quantity) }}</div>
+        </div>
+      </div>
+      <p class="gol-total">Tổng: <strong>{{ formatMoney(order.total) }}</strong></p>
+
+      <div class="gol-ok" *ngIf="submitOkMsg">{{ submitOkMsg }}</div>
+      <p class="gol-err" *ngIf="errorMsg && order">{{ errorMsg }}</p>
+
+      <div class="gol-return" *ngIf="canShowReturnForm() && !submitOkMsg">
+        <h3>Yêu cầu đổi / trả hàng</h3>
+        <div class="gol-reasons">
+          <button type="button" class="gol-chip" *ngFor="let r of REASONS"
+            [class.on]="returnReason === r" (click)="returnReason = r">{{ r }}</button>
+        </div>
+        <textarea class="gol-ta" [(ngModel)]="returnNote" rows="3" maxlength="500" placeholder="Ghi chú thêm (tuỳ chọn)"></textarea>
+
+        <div class="gol-ret-lines">
+          <div class="gol-ret-row" *ngFor="let line of returnLines">
+            <span class="gol-rname">{{ line.name }}</span>
+            <div class="gol-qty">
+              <button type="button" (click)="decRet(line)" [disabled]="line.returnQty <= 0">−</button>
+              <span>Trả {{ line.returnQty }} / {{ line.quantity }}</span>
+              <button type="button" (click)="incRet(line)" [disabled]="line.returnQty >= line.quantity">+</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="gol-img-block">
+          <label>Ảnh minh chứng (tuỳ chọn, tối đa {{ MAX_IMAGES }})</label>
+          <input type="file" accept="image/*" multiple (change)="onImagesSelected($event)" />
+          <div class="gol-previews">
+            <div class="gol-pr" *ngFor="let pr of imagePreviews; let i = index">
+              <img [src]="pr" alt="" />
+              <button type="button" (click)="removeImg(i)">×</button>
+            </div>
+          </div>
+        </div>
+
+        <button class="gol-btn gol-btn-primary" type="button"
+          [disabled]="!canSubmitReturn()" (click)="submitReturn()">
+          {{ isSubmitting ? 'Đang gửi...' : 'Gửi yêu cầu đổi trả' }}
+        </button>
+      </div>
+
+      <p class="gol-hint" *ngIf="order.status !== 'delivered'">
+        Chỉ có thể yêu cầu đổi trả khi đơn ở trạng thái <strong>Đã giao</strong>.
+      </p>
+    </div>
+  </div>
+</div>

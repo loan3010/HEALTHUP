@@ -1,84 +1,54 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 
+/**
+ * Modal tra cứu (nút xanh header) — nhập SĐT + mã đơn, chuyển sang /tra-cuu-don (một lần gọi API).
+ */
 @Component({
   selector: 'app-track-order-modal',
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './track-order-modal.html',
-  styleUrls: ['./track-order-modal.css']
+  styleUrls: ['./track-order-modal.css'],
 })
 export class TrackOrderModal {
-  
   @Input() isOpen = false;
   @Output() closeModal = new EventEmitter<void>();
 
   phoneNumber = '';
-  isLoading = false;
+  orderCode = '';
   errorMessage = '';
-  successMessage = '';
 
-  private API = 'http://localhost:3000/api';
-
-  constructor(
-    private http: HttpClient,
-    private router: Router
-  ) {}
+  constructor(private router: Router) {}
 
   close() {
     this.isOpen = false;
     this.phoneNumber = '';
+    this.orderCode = '';
     this.errorMessage = '';
-    this.successMessage = '';
     this.closeModal.emit();
   }
 
   onSubmit() {
     this.errorMessage = '';
-    this.successMessage = '';
 
-    // Validate số điện thoại
-    if (!this.phoneNumber) {
-      this.errorMessage = 'Vui lòng nhập số điện thoại!';
+    const p = String(this.phoneNumber || '').trim();
+    const c = String(this.orderCode || '').trim().toUpperCase();
+
+    if (!/^0\d{9}$/.test(p)) {
+      this.errorMessage = 'Số điện thoại không hợp lệ (10 số, bắt đầu 0).';
+      return;
+    }
+    if (!/^ORD\d{11}$/i.test(c)) {
+      this.errorMessage = 'Mã đơn không hợp lệ (VD: ORD00000000001).';
       return;
     }
 
-    const phonePattern = /^[0-9]{9,11}$/;
-    if (!phonePattern.test(this.phoneNumber)) {
-      this.errorMessage = 'Số điện thoại không hợp lệ (9-11 chữ số)!';
-      return;
-    }
-
-    this.isLoading = true;
-
-    // Gọi API tra cứu đơn hàng (bạn cần tạo endpoint này ở backend)
-    this.http
-      .get(`${this.API}/orders/track?phone=${this.phoneNumber}`)
-      .subscribe({
-        next: (res: any) => {
-          this.isLoading = false;
-          
-          if (res.orders && res.orders.length > 0) {
-            this.successMessage = `Tìm thấy ${res.orders.length} đơn hàng!`;
-            
-            // Chuyển đến trang kết quả tra cứu
-            setTimeout(() => {
-              this.router.navigate(['/order-tracking'], {
-                queryParams: { phone: this.phoneNumber }
-              });
-              this.close();
-            }, 1000);
-          } else {
-            this.errorMessage = 'Không tìm thấy đơn hàng nào với số điện thoại này!';
-          }
-        },
-        error: (err: HttpErrorResponse) => {
-          this.isLoading = false;
-          this.errorMessage = err?.error?.message || 'Có lỗi xảy ra, vui lòng thử lại!';
-        }
-      });
+    this.router.navigate(['/tra-cuu-don'], {
+      queryParams: { phone: p, code: c },
+    });
+    this.close();
   }
 }
