@@ -2,12 +2,14 @@ const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema(
   {
-    customerID:   { type: String, unique: true },
+    // sparse: nhiều guest chưa có customerID — unique không sparse khiến mọi "thiếu field" trùng khóa null → chỉ tạo được 1 guest.
+    customerID:   { type: String, unique: true, sparse: true },
     username:     { type: String, required: true, unique: true, trim: true },
     phone:        { type: String, required: true, unique: true, trim: true },
     email:        { type: String, unique: true, sparse: true, lowercase: true, trim: true },
     passwordHash: { type: String, required: true },
-    role:         { type: String, enum: ['user', 'admin'], default: 'user' },
+    /** guest = tự tạo khi checkout không đăng nhập; không đăng nhập được, đăng ký sẽ nâng cấp lên user */
+    role:         { type: String, enum: ['user', 'admin', 'guest'], default: 'user' },
 
     // Trạng thái hoạt động của tài khoản (dùng cho admin-customer)
     // Mặc định user mới tạo sẽ đang hoạt động

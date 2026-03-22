@@ -467,7 +467,15 @@
   position: relative;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   cursor: pointer;
+  flex-shrink: 0; /* Không bị co mất trên header chật */
+}
+
+/* Khách: vùng bấm rõ, icon cùng cỡ .icon như user đã đăng nhập */
+.cart-icon-wrap.cart-icon-guest {
+  min-width: 40px;
+  min-height: 40px;
 }
 
 .cart-badge {
@@ -676,6 +684,11 @@
   .search-box input:focus { width: 160px; }
 
   .search-dropdown { min-width: 280px; right: auto; }
+
+  /* Tra cứu nhanh trong menu mobile — tránh chen chúc, giỏ hàng luôn còn chỗ */
+  .header-actions .guest-track-in-header {
+    display: none;
+  }
 }
 
 @media (max-width: 480px) {
