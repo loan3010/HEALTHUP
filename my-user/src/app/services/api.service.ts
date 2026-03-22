@@ -37,6 +37,10 @@ export class ApiService {
   toasts$ = this._toasts.asObservable();
   private _toastCounter = 0;
 
+  // ✅ Cache cho getProducts: key = JSON.stringify(filters), TTL 20s
+  private _productsCache = new Map<string, { data: any; ts: number }>();
+  private readonly _PRODUCTS_TTL = 20_000;
+
   // Stream unread count cho header badge
   private _unreadCount = new BehaviorSubject<number>(0);
   unreadCount$ = this._unreadCount.asObservable();
@@ -202,6 +206,14 @@ export class ApiService {
     cat?: string; minPrice?: number; maxPrice?: number; badge?: string;
     minRating?: number; sort?: string; page?: number; limit?: number; search?: string;
   } = {}): Observable<{ products: any[]; total: number; totalPages: number }> {
+
+    // ✅ Cache: trả ngay nếu cùng filters trong vòng 20 giây
+    const cacheKey = JSON.stringify(filters);
+    const cached = this._productsCache.get(cacheKey);
+    if (cached && Date.now() - cached.ts < this._PRODUCTS_TTL) {
+      return of(cached.data);
+    }
+
     let params = new HttpParams();
     if (filters.cat)                     params = params.set('cat',       filters.cat);
     if (filters.minPrice !== undefined)  params = params.set('minPrice',  filters.minPrice.toString());
@@ -213,8 +225,16 @@ export class ApiService {
     if (filters.limit)                   params = params.set('limit',     filters.limit.toString());
     if (filters.search)                  params = params.set('search',    filters.search);
     return this.http.get<any>(`${API_BASE}/products`, { params }).pipe(
-      map(res => ({ ...res, products: (res.products || []).map((p: any) => this.fixImages(p)) }))
+      map(res => ({ ...res, products: (res.products || []).map((p: any) => this.fixImages(p)) })),
+      tap(result => {
+        this._productsCache.set(cacheKey, { data: result, ts: Date.now() });
+      })
     );
+  }
+
+  // ✅ Gọi khi thêm/sửa/xóa sản phẩm để cache không stale
+  clearProductsCache(): void {
+    this._productsCache.clear();
   }
 
   getCategoryCounts(): Observable<Record<string, number>> {
