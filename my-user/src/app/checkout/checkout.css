@@ -592,3 +592,66 @@
   .co-voucher-card-inner { padding: 10px 10px 10px 10px; gap: 10px; }
   .co-voucher-card-action { min-width: 60px; }
 }
+/* ══════════════════════════════════════════════════════
+   THÊM VÀO CUỐI checkout.css
+   CSS cho tính năng voucher tốt nhất
+══════════════════════════════════════════════════════ */
+
+/* Card tốt nhất — viền vàng nổi bật */
+.co-voucher-card.is-best {
+  border: 2px solid #f59e0b;
+  background: linear-gradient(135deg, #fffbeb 0%, #fff 100%);
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.18);
+  position: relative;
+  padding-top: 22px; /* chỗ cho badge phía trên */
+}
+
+/* Badge "Tốt nhất" nằm trên đầu card */
+.co-voucher-best-badge {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, #f59e0b, #ef4444);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 12px;
+  border-radius: 0 0 8px 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  z-index: 2;
+  letter-spacing: 0.02em;
+}
+
+/* Dòng tiết kiệm bao nhiêu tiền */
+.co-voucher-saving {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.8rem;
+  color: #16a34a;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  padding: 2px 8px;
+  border-radius: 20px;
+  margin-bottom: 4px;
+}
+
+.co-voucher-saving strong {
+  color: #15803d;
+  font-weight: 700;
+}
+
+/* Nút "Dùng ngay" của voucher tốt nhất — màu gradient nổi bật */
+.co-voucher-select-btn.btn-best {
+  background: linear-gradient(90deg, #f59e0b, #ef4444);
+  border-color: transparent;
+  color: #fff;
+}
+
+.co-voucher-select-btn.btn-best:hover {
+  opacity: 0.9;
+}

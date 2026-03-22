@@ -61,23 +61,4 @@
     </div>
   </div>
 
-  <!-- ✅ ĐÁNH GIÁ (rating filter - section mới) -->
-  <div class="filter-card">
-    <div class="filter-section-title px-3 py-3 d-flex justify-content-between align-items-center"
-      (click)="toggleSection('rating')">
-      <span>Đánh giá</span>
-      <i class="bi" [class.bi-chevron-up]="openSections['rating']" [class.bi-chevron-down]="!openSections['rating']"></i>
-    </div>
-    <div class="filter-body px-3" [class.collapsed]="!openSections['rating']" style="padding-top:8px;padding-bottom:12px;">
-      <div class="star-row"
-        *ngFor="let opt of ratingOptions"
-        [class.active]="selectedRating === opt.value"
-        (click)="selectRating(opt.value)">
-        <span class="star-display">{{ '★'.repeat(opt.value) }}{{ '☆'.repeat(5 - opt.value) }}</span>
-        <span class="star-label">{{ opt.label }}</span>
-        <i class="bi bi-check-circle-fill" style="color:#36873A;font-size:13px;" *ngIf="selectedRating === opt.value"></i>
-      </div>
-    </div>
-  </div>
-
 </div>
