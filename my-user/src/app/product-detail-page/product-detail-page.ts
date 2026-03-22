@@ -19,7 +19,9 @@ export interface ConsultingQuestion {
   answer?: string;
   answerTime?: string;
   time: string;
-  helpful?: number;
+  helpfulCount?: number;
+  unhelpfulCount?: number;
+  voted?: boolean;
 }
 
 export interface ConsultingStats {
@@ -64,13 +66,16 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
   }
 
   policyItems: PolicyItem[] = [
-    { icon: 'bi-arrow-repeat', title: 'Đổi trả trong 7 ngày',  desc: 'Áp dụng khi sản phẩm lỗi hoặc không đúng đơn hàng.' },
-    { icon: 'bi-truck',        title: 'Giao hàng toàn quốc',   desc: 'Từ 2-5 ngày làm việc.' },
-    { icon: 'bi-credit-card',  title: 'Thanh toán an toàn',    desc: 'Hỗ trợ COD, VNPay, Momo.' },
-    { icon: 'bi-patch-check',  title: 'Chất lượng kiểm định',  desc: 'Sản phẩm đạt chứng nhận VSATTP.' }
+    { icon: 'bi-arrow-repeat', title: 'Đổi trả trong 7 ngày',   desc: 'Áp dụng khi sản phẩm lỗi hoặc không đúng đơn hàng.' },
+    { icon: 'bi-truck',        title: 'Giao hàng toàn quốc',    desc: 'Từ 2-5 ngày làm việc.' },
+    { icon: 'bi-credit-card',  title: 'Thanh toán an toàn',     desc: 'Hỗ trợ COD, VNPay, Momo.' },
+    { icon: 'bi-patch-check',  title: 'Chất lượng kiểm định',   desc: 'Sản phẩm đạt chứng nhận VSATTP.' }
   ];
 
-  isLoggedIn = true;
+  // --- LOGIC TƯ VẤN (CONSULTING) ---
+  get isLoggedIn(): boolean {
+    return !!localStorage.getItem('token'); // Kiểm tra trạng thái đăng nhập thật
+  }
   askText = '';
   isAskSubmitting = false;
   askSubmitSuccess = false;
@@ -110,6 +115,7 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
         this.consultingQuestions = [];
         this.consultingPage = 1;
         this.cdr.detectChanges();
+
         this.loadProduct(id);
         this.loadRelated(id);
         this.loadConsultingQuestions(id);
@@ -133,6 +139,7 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
         const vis = (data.variants || []).filter((v: any) => v?.isActive !== false);
         const firstInStock = vis.find((v: any) => Number(v.stock || 0) > 0);
         const v0 = firstInStock || vis[0];
+
         if (v0) {
           this.selectVariant(v0);
         } else {
@@ -170,6 +177,8 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
     });
   }
 
+  // --- HÀM XỬ LÝ TƯ VẤN (CONSULTING) DỮ LIỆU THẬT ---
+
   loadConsultingQuestions(productId?: string, append = false): void {
     const id = productId || this.product?._id;
     if (!id) return;
@@ -183,17 +192,28 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
       limit:  5,
     }).subscribe({
       next: (res) => {
-        const questions: ConsultingQuestion[] = res.questions || [];
+        // Map lại dữ liệu từ Backend để hiển thị thời gian thân thiện nếu cần
+        const questions: ConsultingQuestion[] = (res.questions || []).map((q: any) => ({
+          ...q,
+          time: q.createdAt ? new Date(q.createdAt).toLocaleDateString('vi-VN') : 'Vừa xong',
+          answerTime: q.answerAt ? new Date(q.answerAt).toLocaleDateString('vi-VN') : '',
+          helpfulCount: q.helpfulCount || 0,
+          unhelpfulCount: q.unhelpfulCount || 0,
+          voted: false
+        }));
+
         if (!append) {
           this.consultingQuestions = questions;
         } else {
           this.consultingQuestions = [...this.consultingQuestions, ...questions];
         }
+
         this.consultingStats = {
-          total:    res.stats?.total    || res.total || 0,
+          total:    res.stats?.total    || 0,
           pending:  res.stats?.pending  || 0,
           answered: res.stats?.answered || 0,
         };
+
         this.applyConsultingFilter();
         this.hasMoreQuestions    = questions.length === 5;
         this.isConsultingLoading = false;
@@ -233,9 +253,17 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
     if (this.askText.trim().length < 10 || !this.product?._id) return;
     this.isAskSubmitting = true;
 
+    // Lấy tên người dùng từ localStorage
+    let userName = 'Khách hàng';
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      userName = user.name || user.username || 'Khách hàng';
+    } catch (e) {}
+
     this.api.submitConsultingQuestion({
       productId: this.product._id,
       content:   this.askText.trim(),
+      user: userName
     }).subscribe({
       next: () => {
         this.askText          = '';
@@ -243,8 +271,9 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
         this.askSubmitSuccess = true;
         this.consultingPage      = 1;
         this.consultingQuestions = [];
-        this.loadConsultingQuestions();
+        this.loadConsultingQuestions(); // Tải lại để hiện câu hỏi mới gửi
         this.api.showToast('Câu hỏi của bạn đã được gửi! Chúng tôi sẽ phản hồi sớm nhất.', 'success');
+
         setTimeout(() => {
           this.askSubmitSuccess = false;
           this.cdr.detectChanges();
@@ -259,6 +288,55 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
       }
     });
   }
+
+  /**
+   * Khách hàng đánh giá câu trả lời (Like / Dislike) - Bản fix cứng lỗi không nhảy số
+   */
+  voteQuestion(q: any, type: 'up' | 'down'): void {
+    if (q.voted || !q._id) return;
+
+    this.api.voteConsultingQuestion(q._id, type).subscribe({
+      next: (res: any) => {
+        // 1. Cập nhật dữ liệu vào mảng filtered (mảng đang hiển thị trên HTML)
+        this.filteredConsultingQuestions = this.filteredConsultingQuestions.map(item => {
+          if (item._id === q._id) {
+            return {
+              ...item,
+              helpfulCount: res.helpfulCount,
+              unhelpfulCount: res.unhelpfulCount,
+              voted: true // Đánh dấu đã vote để disable nút
+            };
+          }
+          return item;
+        });
+
+        // 2. Đồng bộ luôn qua mảng gốc để khi lọc không bị mất số
+        this.consultingQuestions = this.consultingQuestions.map(item => {
+          if (item._id === q._id) {
+            return {
+              ...item,
+              helpfulCount: res.helpfulCount,
+              unhelpfulCount: res.unhelpfulCount,
+              voted: true
+            };
+          }
+          return item;
+        });
+
+        this.api.showToast('Cảm ơn bạn đã gửi đánh giá!', 'success');
+
+        // 3. Ép Angular render lại ngay lập tức
+        this.cdr.markForCheck();
+        this.cdr.detectChanges();
+      },
+      error: (err: any) => {
+        console.error('Lỗi khi đánh giá:', err);
+        this.api.showToast('Không thể gửi đánh giá lúc này.', 'error');
+      }
+    });
+  }
+
+  // --- CÁC HÀM TIỆN ÍCH KHÁC ---
 
   getStars(rating: number): string {
     const full = Math.round(rating);
@@ -286,8 +364,8 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Chọn variant theo object (từ TN).
-   * Đồng bộ selectedVariantId, selectedAttr1, selectedAttr2 và ảnh biến thể nếu có.
+   * Chọn variant theo object.
+   * Đồng bộ selectedVariantId, selectedAttr1–4 và ảnh biến thể nếu có.
    */
   selectVariant(v: any): void {
     this.selectedVariantId = v?._id || '';
@@ -395,7 +473,6 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
     return Array.from(set);
   }
 
-  /** Giá trị chiều 2 khả dụng sau khi đã chọn chiều 1. */
   variantAttr2OptionsForSelection(): string[] {
     const set = new Set<string>();
     const a1 = String(this.selectedAttr1 || '').trim();
@@ -588,8 +665,7 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
 
   /**
    * `packagingTypes` là field riêng (một vài chuỗi). Biến thể có thể đã có chiều "Loại đóng gói".
-   * Trước đây chỉ loại khi chuỗi packaging === cả `label` biến thể → "Hộp" vẫn hiện dù đã có "500g | Hộp".
-   * Nay: ẩn mỗi giá trị packaging nếu đã xuất hiện (khớp đúng, không phân biệt hoa thường) trong attr1/2/3 của bất kỳ biến thể nào.
+   * Ẩn mỗi giá trị packaging nếu đã xuất hiện trong attr1/2/3 của bất kỳ biến thể nào.
    */
   visiblePackagingTypes(productLike?: any): string[] {
     const p = productLike || this.product;
@@ -644,7 +720,6 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
     ).subscribe({
       next: () => {
         this.addedToCart = true;
-        this.api.showToast(`Đã thêm ${this.qty} sản phẩm vào giỏ hàng!`, 'success');
         setTimeout(() => {
           this.addedToCart = false;
           this.cdr.detectChanges();
@@ -675,7 +750,7 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
       productId:    this.product._id,
       variantId:    v?._id || null,
       variantLabel: v?.label || '',
-      name:         this.product.name,
+      name:          this.product.name,
       price:        this.currentPrice(),
       quantity:     this.qty,
       imageUrl:     this.product.images?.[0] || this.product.image || null,
@@ -719,7 +794,7 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
     }
     this.api.addToCart(product._id, 1, product.name).subscribe({
       next: () => {
-        this.api.showToast(`Đã thêm "${product.name}" vào giỏ hàng!`, 'success');
+        // Success toast đã được handle trong Service
       },
       error: (err) => {
         console.error('Lỗi thêm SP liên quan:', err);
@@ -728,7 +803,6 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Cuộn về đầu trang trước khi navigate sang sản phẩm khác
   goToProduct(id: string): void {
     if (!id) return;
     window.scrollTo({ top: 0, behavior: 'instant' });

@@ -5,21 +5,31 @@ const OrderItemSchema = new mongoose.Schema(
     productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
     variantId: { type: mongoose.Schema.Types.ObjectId, default: null },
     variantLabel: { type: String, default: '' },
-    name: { type: String, required: true },     // snapshot tên lúc mua
-    price: { type: Number, required: true },    // snapshot giá lúc mua
+    name: { type: String, required: true },
+    price: { type: Number, required: true },
     quantity: { type: Number, required: true, min: 1 },
-    imageUrl: { type: String, default: null },  // snapshot ảnh
+    imageUrl: { type: String, default: null },
+  },
+  { _id: false }
+);
+
+// Schema cho từng sản phẩm trả
+const ReturnItemSchema = new mongoose.Schema(
+  {
+    productId: { type: String, default: '' },
+    name:      { type: String, default: '' },
+    imageUrl:  { type: String, default: '' },
+    price:     { type: Number, default: 0 },
+    quantity:  { type: Number, default: 0 },
+    returnQty: { type: Number, default: 0 },
   },
   { _id: false }
 );
 
 const OrderSchema = new mongoose.Schema(
   {
-    // Mã đơn theo business format: ORD + 11 chữ số (ví dụ ORD00000000001).
-    // Dùng sparse để không phá dữ liệu cũ chưa backfill.
     orderCode: { type: String, unique: true, sparse: true, index: true, trim: true },
 
-    // ✅ FIX: thêm userId để lọc đơn theo user
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null, index: true },
 
     customer: {
@@ -60,8 +70,15 @@ const OrderSchema = new mongoose.Schema(
     returnReason: { type: String, default: '', trim: true },
     /** Ghi nhận khi admin từ chối yêu cầu hoàn (hiển thị nội bộ / có thể đưa cho khách sau). */
     returnRejectionReason: { type: String, default: '', trim: true, maxlength: 2000 },
+    returnNote:        { type: String, default: '', trim: true },
     returnRequestedAt: { type: Date, default: null },
-    returnCompletedAt: { type: Date, default: null }
+    returnCompletedAt: { type: Date, default: null },
+
+    // Danh sách sản phẩm trả
+    returnItems: { type: [ReturnItemSchema], default: [] },
+
+    // ✅ MỚI: Ảnh minh chứng đổi trả (tối đa 5 ảnh)
+    returnImages: { type: [String], default: [] },
   },
   { timestamps: true }
 );

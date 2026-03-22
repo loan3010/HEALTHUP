@@ -30,16 +30,24 @@ export class ApiService {
   cartCount$ = this._cartCount.asObservable();
 
   // ── Wishlist stream ────────────────────────────────────────────────────────
-  private _wishlist = new BehaviorSubject<string[]>([]);
+  private _wishlist = new BehaviorSubject<string[]>(this.loadWishlistFromStorage());
   wishlist$ = this._wishlist.asObservable();
 
-  // ── Toast stream ───────────────────────────────────────────────────────────
   private _toasts = new BehaviorSubject<Toast[]>([]);
   toasts$ = this._toasts.asObservable();
   private _toastCounter = 0;
 
+  // ✅ Cache cho getProducts: key = JSON.stringify(filters), TTL 20s
+  private _productsCache = new Map<string, { data: any; ts: number }>();
+  private readonly _PRODUCTS_TTL = 20_000;
+
+  // Stream unread count cho header badge
+  private _unreadCount = new BehaviorSubject<number>(0);
+  unreadCount$ = this._unreadCount.asObservable();
+
   constructor(private http: HttpClient) {
     this.refreshCartCount();
+    this.refreshUnreadCount();
     this.refreshWishlist();
   }
 
@@ -76,6 +84,16 @@ export class ApiService {
     return { ...p, _id: id, images: fixedImages, image: fixedImages[0] || '' };
   }
 
+  private loadWishlistFromStorage(): string[] {
+    try {
+      return JSON.parse(localStorage.getItem('healthup_wishlist') || '[]');
+    } catch { return []; }
+  }
+
+  private saveWishlistToStorage(list: string[]): void {
+    localStorage.setItem('healthup_wishlist', JSON.stringify(list));
+  }
+
   // ════════════════════════════════════════════════════════════════════════════
   //  Toast helpers
   // ════════════════════════════════════════════════════════════════════════════
@@ -106,6 +124,7 @@ export class ApiService {
           typeof p === 'string' ? p : String(p._id || p)
         );
         this._wishlist.next(ids);
+        this.saveWishlistToStorage(ids);
       },
       error: () => {}
     });
@@ -126,24 +145,31 @@ export class ApiService {
     }
 
     if (isAdded) {
-      this._wishlist.next(current.filter(id => id !== productId));
+      const next = current.filter(id => id !== productId);
+      this._wishlist.next(next);
+      this.saveWishlistToStorage(next);
       this.showToast('Đã xóa khỏi danh sách yêu thích', 'info');
       this.http.delete(`${API_BASE}/users/${userId}/wishlist/${productId}`, {
         headers: this.authHeaders()
       }).subscribe({
         error: () => {
           this._wishlist.next([...this._wishlist.getValue(), productId]);
+          this.saveWishlistToStorage([...this._wishlist.getValue(), productId]);
           this.showToast('Không thể xóa yêu thích. Thử lại!', 'error');
         }
       });
     } else {
-      this._wishlist.next([...current, productId]);
+      const next = [...current, productId];
+      this._wishlist.next(next);
+      this.saveWishlistToStorage(next);
       this.showToast(`Đã thêm "${productName || 'sản phẩm'}" vào yêu thích ❤️`, 'success');
       this.http.post(`${API_BASE}/users/${userId}/wishlist`, { productId }, {
         headers: this.authHeaders()
       }).subscribe({
         error: () => {
-          this._wishlist.next(this._wishlist.getValue().filter(id => id !== productId));
+          const rollback = this._wishlist.getValue().filter(id => id !== productId);
+          this._wishlist.next(rollback);
+          this.saveWishlistToStorage(rollback);
           this.showToast('Không thể thêm yêu thích. Thử lại!', 'error');
         }
       });
@@ -177,27 +203,38 @@ export class ApiService {
   }
 
   getProducts(filters: {
-    cat?: string; minPrice?: number; maxPrice?: number;
-    badge?: string; minRating?: number; sort?: string;
-    page?: number; limit?: number; search?: string;
+    cat?: string; minPrice?: number; maxPrice?: number; badge?: string;
+    minRating?: number; sort?: string; page?: number; limit?: number; search?: string;
   } = {}): Observable<{ products: any[]; total: number; totalPages: number }> {
-    let params = new HttpParams();
-    if (filters.cat)                     params = params.set('cat', filters.cat);
-    if (filters.minPrice !== undefined)  params = params.set('minPrice', filters.minPrice.toString());
-    if (filters.maxPrice !== undefined)  params = params.set('maxPrice', filters.maxPrice.toString());
-    if (filters.badge)                   params = params.set('badge', filters.badge);
-    if (filters.minRating !== undefined) params = params.set('minRating', filters.minRating.toString());
-    if (filters.sort)                    params = params.set('sort', filters.sort);
-    if (filters.page)                    params = params.set('page', filters.page.toString());
-    if (filters.limit)                   params = params.set('limit', filters.limit.toString());
-    if (filters.search)                  params = params.set('search', filters.search);
 
+    // ✅ Cache: trả ngay nếu cùng filters trong vòng 20 giây
+    const cacheKey = JSON.stringify(filters);
+    const cached = this._productsCache.get(cacheKey);
+    if (cached && Date.now() - cached.ts < this._PRODUCTS_TTL) {
+      return of(cached.data);
+    }
+
+    let params = new HttpParams();
+    if (filters.cat)                     params = params.set('cat',       filters.cat);
+    if (filters.minPrice !== undefined)  params = params.set('minPrice',  filters.minPrice.toString());
+    if (filters.maxPrice !== undefined)  params = params.set('maxPrice',  filters.maxPrice.toString());
+    if (filters.badge)                   params = params.set('badge',     filters.badge);
+    if (filters.minRating !== undefined) params = params.set('minRating', filters.minRating.toString());
+    if (filters.sort)                    params = params.set('sort',      filters.sort);
+    if (filters.page)                    params = params.set('page',      filters.page.toString());
+    if (filters.limit)                   params = params.set('limit',     filters.limit.toString());
+    if (filters.search)                  params = params.set('search',    filters.search);
     return this.http.get<any>(`${API_BASE}/products`, { params }).pipe(
-      map(res => ({
-        ...res,
-        products: (res.products || []).map((p: any) => this.fixImages(p))
-      }))
+      map(res => ({ ...res, products: (res.products || []).map((p: any) => this.fixImages(p)) })),
+      tap(result => {
+        this._productsCache.set(cacheKey, { data: result, ts: Date.now() });
+      })
     );
+  }
+
+  // ✅ Gọi khi thêm/sửa/xóa sản phẩm để cache không stale
+  clearProductsCache(): void {
+    this._productsCache.clear();
   }
 
   getCategoryCounts(): Observable<Record<string, number>> {
@@ -226,9 +263,9 @@ export class ApiService {
   } = {}): Observable<any> {
     let params = new HttpParams();
     if (filters.filter) params = params.set('filter', filters.filter);
-    if (filters.sort)   params = params.set('sort', filters.sort);
-    if (filters.page)   params = params.set('page', filters.page.toString());
-    if (filters.limit)  params = params.set('limit', filters.limit.toString());
+    if (filters.sort)   params = params.set('sort',   filters.sort);
+    if (filters.page)   params = params.set('page',   filters.page.toString());
+    if (filters.limit)  params = params.set('limit',  filters.limit.toString());
     return this.http.get<any>(`${API_BASE}/reviews/product/${productId}`, { params });
   }
 
@@ -236,25 +273,18 @@ export class ApiService {
     return this.http.post<any>(`${API_BASE}/reviews`, data);
   }
 
-  // FIX: Upload ảnh review — trả về mảng URL từ server
-  uploadReviewImages(files: File[]): Observable<{ urls: string[] }> {
+  uploadReviewImages(files: File[]): Observable<{ urls: string [] }> {
     const formData = new FormData();
     files.forEach(file => formData.append('images', file));
     return this.http.post<{ urls: string[] }>(`${API_BASE}/reviews/upload-images`, formData);
   }
 
-  // FIX: Sửa đánh giá
   updateReview(reviewId: string, data: {
-    rating: number;
-    text: string;
-    tags?: string[];
-    variant?: string;
-    imgs?: string[];
+    rating: number; text: string; tags?: string[]; variant?: string; imgs?: string[];
   }): Observable<any> {
     return this.http.put<any>(`${API_BASE}/reviews/${reviewId}`, data);
   }
 
-  // FIX: Xóa đánh giá
   deleteReview(reviewId: string): Observable<any> {
     return this.http.delete<any>(`${API_BASE}/reviews/${reviewId}`);
   }
@@ -270,7 +300,7 @@ export class ApiService {
   getBlogs(limit?: number, tag?: string): Observable<any[]> {
     let params = new HttpParams();
     if (limit) params = params.set('limit', limit.toString());
-    if (tag)   params = params.set('tag', tag);
+    if (tag)   params = params.set('tag',   tag);
     return this.http.get<any[]>(`${API_BASE}/blogs`, { params });
   }
 
@@ -279,22 +309,58 @@ export class ApiService {
   }
 
   // ════════════════════════════════════════════════════════════════════════════
-  //  Consulting APIs
+  //  Consulting APIs (Hỏi & Đáp)
   // ════════════════════════════════════════════════════════════════════════════
 
+  /**
+   * Lấy danh sách câu hỏi của một sản phẩm (Có phân trang & lọc)
+   */
   getConsultingQuestions(productId: string, filters: {
     filter?: string; page?: number; limit?: number;
   } = {}): Observable<any> {
     let params = new HttpParams();
-    params = params.set('productId', productId);
-    if (filters.filter && filters.filter !== 'all') params = params.set('status', filters.filter);
-    if (filters.page)  params = params.set('page', filters.page.toString());
+    if (filters.filter && filters.filter !== 'all') params = params.set('filter', filters.filter);
+    if (filters.page)  params = params.set('page',  filters.page.toString());
     if (filters.limit) params = params.set('limit', filters.limit.toString());
-    return this.http.get<any>(`${API_BASE}/consulting`, { params });
+    
+    return this.http.get<any>(`${API_BASE}/consulting/product/${productId}`, { params });
   }
 
-  submitConsultingQuestion(data: any): Observable<any> {
+  /**
+   * Khách hàng gửi câu hỏi mới
+   */
+  submitConsultingQuestion(data: { productId: string; content: string; user: string }): Observable<any> {
     return this.http.post<any>(`${API_BASE}/consulting`, data);
+  }
+
+  /**
+   * KHÁCH HÀNG: Đánh giá câu trả lời hữu ích hoặc không hữu ích (Like/Dislike)
+   */
+  voteConsultingQuestion(id: string, type: 'up' | 'down'): Observable<any> {
+    return this.http.put(`${API_BASE}/consulting/${id}/vote`, { type });
+  }
+
+  // --- ADMIN METHODS ---
+
+  /**
+   * ADMIN: Lấy tóm tắt câu hỏi của tất cả sản phẩm
+   */
+  getConsultingSummary(): Observable<any[]> {
+    return this.http.get<any[]>(`${API_BASE}/consulting/admin/summary`);
+  }
+
+  /**
+   * ADMIN: Trả lời câu hỏi (kèm tên Admin thực hiện)
+   */
+  replyConsultingQuestion(questionId: string, answer: string, answeredBy: string): Observable<any> {
+    return this.http.put(`${API_BASE}/consulting/${questionId}/reply`, { answer, answeredBy });
+  }
+
+  /**
+   * ADMIN: Xóa câu hỏi tư vấn
+   */
+  deleteConsultingQuestion(id: string): Observable<any> {
+    return this.http.delete(`${API_BASE}/consulting/${id}`);
   }
 
   // ════════════════════════════════════════════════════════════════════════════
@@ -305,15 +371,19 @@ export class ApiService {
     productId: string, quantity: number, productName?: string,
     variantId?: string | null, variantLabel?: string
   ): Observable<any> {
-    this.showToast(
-      productName ? `Đã thêm "${productName}" vào giỏ hàng 🛒` : 'Đã thêm vào giỏ hàng',
-      'success'
-    );
     return this.http.post<any>(
       `${API_BASE}/carts/add`,
       { productId, quantity, variantId: variantId || null, variantLabel: variantLabel || '' },
       { headers: this.cartHeaders() }
-    ).pipe(tap(() => this.refreshCartCount()));
+    ).pipe(
+      tap(() => {
+        this.refreshCartCount();
+        this.showToast(
+          productName ? `Đã thêm "${productName}" vào giỏ hàng 🛒` : 'Đã thêm vào giỏ hàng',
+          'success'
+        );
+      })
+    );
   }
 
   getCart(): Observable<any> {
@@ -340,7 +410,7 @@ export class ApiService {
   //  Order APIs
   // ════════════════════════════════════════════════════════════════════════════
 
-  getOrders(userId: string): Observable<any[]> {
+  getOrders(userId?: string): Observable<any[]> {
     if (!userId) return of([]);
     const params = new HttpParams().set('userId', userId);
     return this.http.get<any[]>(`${API_BASE}/orders`, { params });
@@ -360,5 +430,71 @@ export class ApiService {
 
   deleteOrder(id: string): Observable<any> {
     return this.http.delete(`${API_BASE}/orders/${id}`);
+  }
+
+  // ── Return APIs ────────────────────────────────────────────────────────────
+
+  requestReturn(orderId: string, data: {
+    reason: string;
+    note?: string;
+    items?: any[];
+    images?: File[];
+  }): Observable<any> {
+    const formData = new FormData();
+    formData.append('reason', data.reason);
+    if (data.note) formData.append('note', data.note);
+    if (data.items && data.items.length > 0) {
+      formData.append('items', JSON.stringify(data.items));
+    }
+    if (data.images && data.images.length > 0) {
+      data.images.forEach(file => formData.append('images', file));
+    }
+    const headers = new HttpHeaders({ Authorization: `Bearer ${this.getToken()}` });
+    return this.http.patch<any>(
+      `${API_BASE}/orders/${orderId}/request-return`,
+      formData,
+      { headers }
+    );
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════
+  //  Notification APIs
+  // ════════════════════════════════════════════════════════════════════════════
+
+  refreshUnreadCount(): void {
+    if (!this.getUserId()) return;
+    this.getNotifications().subscribe({
+      next: (res) => this._unreadCount.next(res.unreadCount || 0),
+      error: () => {}
+    });
+  }
+
+  getNotifications(): Observable<{ notifications: any[]; unreadCount: number }> {
+    return this.http.get<any>(`${API_BASE}/notifications`, { headers: this.cartHeaders() });
+  }
+
+  markNotificationRead(id: string): Observable<any> {
+    return this.http.patch(
+      `${API_BASE}/notifications/${id}/read`, {}
+    ).pipe(tap(() => this.refreshUnreadCount()));
+  }
+
+  markAllNotificationsRead(): Observable<any> {
+    return this.http.patch(
+      `${API_BASE}/notifications/read-all`, {},
+      { headers: this.cartHeaders() }
+    ).pipe(tap(() => this._unreadCount.next(0)));
+  }
+
+  createNotification(data: {
+    userId: string;
+    title: string;
+    message: string;
+    type?: string;
+    orderId?: string;
+  }): Observable<any> {
+    return this.http.post(`${API_BASE}/notifications`, data).pipe(
+      tap(() => this.refreshUnreadCount())
+    );
   }
 }

@@ -96,6 +96,14 @@ export class PromotionList implements OnInit {
   }
 
   /**
+   * Cập nhật trạng thái lọc từ các thẻ thống kê phía trên
+   */
+  filterByStatus(status: string): void {
+    this.filterStatus = status;
+    this.organizeGroups();
+  }
+
+  /**
    * HÀM QUAN TRỌNG: LỌC ĐA ĐIỀU KIỆN & CHIA FOLDER
    * Giữ nguyên trạng thái isOpen của các nhóm trước đó nếu có
    */
@@ -190,7 +198,7 @@ export class PromotionList implements OnInit {
     this.filterDiscountType = '';
     this.filterCategory = '';
     this.filterApplyTo = '';
-    this.filterStatus = '';
+    this.filterStatus = ''; // Quan trọng: Reset luôn trạng thái lọc từ thẻ thống kê
     this.organizeGroups(); 
   }
 

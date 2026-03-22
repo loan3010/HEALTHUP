@@ -25,12 +25,11 @@ export class Header implements OnInit, OnDestroy {
   showDropdown = false;
   menuOpen = false;
   showTrackOrderModal = false;
+  showLogoutConfirm = false;
 
-  // ── CART COUNT ──
   cartCount = 0;
   private cartCountSub!: Subscription;
 
-  // ── SEARCH STATE ──
   searchQuery = '';
   searchResults: SearchProduct[] = [];
   isSearching = false;
@@ -52,8 +51,6 @@ export class Header implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.checkLoginStatus();
     this.initSearch();
-
-    // ✅ Subscribe cart count — tự động cập nhật badge khi thêm/xóa sản phẩm
     this.cartCountSub = this.api.cartCount$.subscribe(count => {
       this.cartCount = count;
       this.cdr.detectChanges();
@@ -67,38 +64,34 @@ export class Header implements OnInit, OnDestroy {
 
   initSearch(): void {
     this.searchSub = this.searchSubject.pipe(
-      debounceTime(250),              // giảm từ 300 → 250ms cho nhanh hơn
+      debounceTime(150),
       distinctUntilChanged(),
       switchMap(keyword => {
         if (!keyword.trim()) {
           this.isSearching = false;
           this.searchResults = [];
           this.showSearchDropdown = false;
-          this.cdr.detectChanges();   // ✅
+          this.cdr.detectChanges();
           return of([] as SearchProduct[]);
         }
         this.isSearching = true;
         this.showSearchDropdown = true;
-        this.cdr.detectChanges();     // ✅ hiện loading spinner ngay
+        this.cdr.detectChanges();
         return this.searchService.search(keyword);
       })
     ).subscribe({
       next: (results: SearchProduct[]) => {
         this.searchResults = results;
         this.isSearching = false;
-        if (this.searchQuery.trim()) {
-          this.showSearchDropdown = true;
-        }
+        if (this.searchQuery.trim()) this.showSearchDropdown = true;
         this.activeIndex = -1;
-        this.cdr.detectChanges();     // ✅ hiện kết quả ngay, không cần click
+        this.cdr.detectChanges();
       },
       error: () => {
         this.isSearching = false;
         this.searchResults = [];
-        if (this.searchQuery.trim()) {
-          this.showSearchDropdown = true;
-        }
-        this.cdr.detectChanges();     // ✅ hiện trạng thái lỗi ngay
+        if (this.searchQuery.trim()) this.showSearchDropdown = true;
+        this.cdr.detectChanges();
       }
     });
   }
@@ -109,12 +102,12 @@ export class Header implements OnInit, OnDestroy {
       this.searchResults = [];
       this.showSearchDropdown = false;
       this.isSearching = false;
-      this.cdr.detectChanges();       // ✅
+      this.cdr.detectChanges();
       return;
     }
     this.showSearchDropdown = true;
     this.isSearching = true;
-    this.cdr.detectChanges();         // ✅ hiện dropdown + spinner ngay khi gõ
+    this.cdr.detectChanges();
     this.searchSubject.next(value.trim());
   }
 
@@ -123,7 +116,7 @@ export class Header implements OnInit, OnDestroy {
       this.showSearchDropdown = true;
       if (this.searchResults.length === 0 && !this.isSearching) {
         this.isSearching = true;
-        this.cdr.detectChanges();     // ✅
+        this.cdr.detectChanges();
         this.searchSubject.next(this.searchQuery.trim());
       }
     }
@@ -132,7 +125,7 @@ export class Header implements OnInit, OnDestroy {
   onSearchBlur(): void {
     setTimeout(() => {
       this.closeSearchDropdown();
-      this.cdr.detectChanges();       // ✅
+      this.cdr.detectChanges();
     }, 200);
   }
 
@@ -166,19 +159,31 @@ export class Header implements OnInit, OnDestroy {
 
   selectProduct(product: SearchProduct): void {
     this.closeSearchDropdown();
-    this.searchQuery = '';
-    this.cdr.detectChanges();
-    this.router.navigate(['/product-detail-page', product._id]);
+    this.router.navigate(['/product-detail-page', product._id]).then(() => {
+      this.searchQuery = '';
+      this.searchResults = [];
+      this.cdr.detectChanges();
+    });
   }
 
   submitSearch(): void {
-    if (!this.searchQuery.trim()) return;
+    const keyword = this.searchQuery.trim();
+    if (!keyword) return;
+
     this.closeSearchDropdown();
+    this.searchInputRef?.nativeElement?.blur();
+
+    // ✅ Nếu đang ở /products rồi: chỉ update queryParams, không recreate component
+    const isOnProductPage = this.router.url.split('?')[0] === '/products';
+
     this.router.navigate(['/products'], {
-      queryParams: { search: this.searchQuery.trim() }
+      queryParams: { search: keyword },
+      replaceUrl: isOnProductPage,
+    }).then(() => {
+      this.searchQuery = '';
+      this.searchResults = [];
+      this.cdr.detectChanges();
     });
-    this.searchQuery = '';
-    this.cdr.detectChanges();
   }
 
   closeSearchDropdown(): void {
@@ -226,7 +231,7 @@ export class Header implements OnInit, OnDestroy {
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
     const target = event.target as HTMLElement;
-    if (!target.closest('.user-menu')) {
+    if (!target.closest('.user-menu') && !target.closest('.logout-confirm-modal')) {
       this.showDropdown = false;
       this.cdr.detectChanges();
     }
@@ -235,13 +240,26 @@ export class Header implements OnInit, OnDestroy {
   openTrackOrder()       { this.showTrackOrderModal = true;  this.cdr.detectChanges(); }
   closeTrackOrderModal() { this.showTrackOrderModal = false; this.cdr.detectChanges(); }
 
-  logout() {
+  logout(): void {
+    this.showDropdown = false;
+    this.showLogoutConfirm = true;
+    this.cdr.detectChanges();
+  }
+
+  confirmLogout(): void {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    this.isLoggedIn   = false;
-    this.userName     = '';
-    this.showDropdown = false;
+    localStorage.removeItem('userId');
+    this.isLoggedIn        = false;
+    this.userName          = '';
+    this.showDropdown      = false;
+    this.showLogoutConfirm = false;
     this.cdr.detectChanges();
     this.router.navigate(['/']);
+  }
+
+  cancelLogout(): void {
+    this.showLogoutConfirm = false;
+    this.cdr.detectChanges();
   }
 }
