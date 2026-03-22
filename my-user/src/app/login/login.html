@@ -21,6 +21,13 @@
       <input type="text" style="display:none">
       <input type="password" style="display:none">
 
+      <!-- Tài khoản bị khóa: hiện lý do admin đã nhập -->
+      <div *ngIf="loginBanMessage" class="login-ban-banner" role="alert">
+        <div class="login-ban-title"><i class="bi bi-exclamation-octagon-fill"></i> {{ loginBanMessage }}</div>
+        <div *ngIf="loginBanReason" class="login-ban-reason-label">Lý do từ cửa hàng:</div>
+        <div *ngIf="loginBanReason" class="login-ban-reason-text">{{ loginBanReason }}</div>
+      </div>
+
       <!-- USERNAME / EMAIL / PHONE -->
       <div class="field">
         <label class="label">

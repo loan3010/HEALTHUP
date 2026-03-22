@@ -39,7 +39,7 @@
             <div class="out-of-stock-overlay" *ngIf="isProductCompletelyOutOfStock() || product.isOutOfStock">
               <div class="out-of-stock-circle">
                 <i class="bi bi-slash-circle"></i>
-                <span>TẠM HẾT HÀNG</span>
+                <span>{{ galleryOverlayHeadline() }}</span>
               </div>
             </div>
           </div>
@@ -85,8 +85,82 @@
           </span>
         </div>
 
-        <!-- Biến thể 2 chiều (attr1 + attr2) - từ TN -->
-        <div *ngIf="product.variants?.length && hasSecondAttrDimension()">
+        <!-- Gợi ý kiểu định lượng (admin chọn mass / volume) -->
+        <div class="text-muted small mb-2" *ngIf="hasSellableVariants() && variantQuantityKindHint()">
+          <i class="bi bi-info-circle me-1" aria-hidden="true"></i>{{ variantQuantityKindHint() }}
+        </div>
+
+        <!-- Biến thể 4 chiều -->
+        <div *ngIf="hasSellableVariants() && hasFourthAttrDimension()">
+          <div class="variant-label mb-2">{{ variantLabel1() }}</div>
+          <div class="d-flex gap-2 flex-wrap">
+            <button type="button" class="variant-btn" *ngFor="let a1 of variantAttr1Options()"
+              [class.active]="selectedAttr1 === a1" (click)="onSelectVariantAttr1(a1)">{{ a1 }}</button>
+          </div>
+          <div class="variant-label mb-2 mt-3">{{ variantLabel2() }}</div>
+          <div class="d-flex gap-2 flex-wrap">
+            <button type="button" class="variant-btn" *ngFor="let a2 of variantAttr2OptionsForSelection()"
+              [class.active]="selectedAttr2 === a2"
+              [class.out-of-stock]="variantStockForAttrs(selectedAttr1, a2) === 0"
+              (click)="onSelectVariantAttr2(a2)">{{ a2 }}</button>
+          </div>
+          <div class="variant-label mb-2 mt-3">{{ variantLabel3() }}</div>
+          <div class="d-flex gap-2 flex-wrap">
+            <button type="button" class="variant-btn" *ngFor="let a3 of variantAttr3OptionsForSelection()"
+              [class.active]="selectedAttr3 === a3"
+              [class.out-of-stock]="variantStockForAttrs(selectedAttr1, selectedAttr2, a3) === 0"
+              (click)="onSelectVariantAttr3(a3)">{{ a3 }}</button>
+          </div>
+          <div class="variant-label mb-2 mt-3">{{ variantLabel4() }}</div>
+          <div class="d-flex gap-2 flex-wrap">
+            <button type="button" class="variant-btn" *ngFor="let a4 of variantAttr4OptionsForSelection()"
+              [class.active]="selectedAttr4 === a4"
+              [class.out-of-stock]="variantStockForAttrs(selectedAttr1, selectedAttr2, selectedAttr3, a4) === 0"
+              (click)="onSelectVariantAttr4(a4)">{{ a4 }}</button>
+          </div>
+        </div>
+
+        <!-- Biến thể 3 chiều -->
+        <div *ngIf="hasSellableVariants() && hasThirdAttrDimension() && !hasFourthAttrDimension()">
+          <div class="variant-label mb-2">{{ variantLabel1() }}</div>
+          <div class="d-flex gap-2 flex-wrap">
+            <button
+              type="button"
+              class="variant-btn"
+              *ngFor="let a1 of variantAttr1Options()"
+              [class.active]="selectedAttr1 === a1"
+              (click)="onSelectVariantAttr1(a1)">
+              {{ a1 }}
+            </button>
+          </div>
+          <div class="variant-label mb-2 mt-3">{{ variantLabel2() }}</div>
+          <div class="d-flex gap-2 flex-wrap">
+            <button
+              type="button"
+              class="variant-btn"
+              *ngFor="let a2 of variantAttr2OptionsForSelection()"
+              [class.active]="selectedAttr2 === a2"
+              [class.out-of-stock]="variantStockForAttrs(selectedAttr1, a2) === 0"
+              (click)="onSelectVariantAttr2(a2)">
+              {{ a2 }}
+            </button>
+          </div>
+          <div class="variant-label mb-2 mt-3">{{ variantLabel3() }}</div>
+          <div class="d-flex gap-2 flex-wrap">
+            <button
+              type="button"
+              class="variant-btn"
+              *ngFor="let a3 of variantAttr3OptionsForSelection()"
+              [class.active]="selectedAttr3 === a3"
+              [class.out-of-stock]="variantStockForAttrs(selectedAttr1, selectedAttr2, a3) === 0"
+              (click)="onSelectVariantAttr3(a3)">
+              {{ a3 }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Biến thể 2 chiều -->
+        <div *ngIf="hasSellableVariants() && hasSecondAttrDimension() && !hasThirdAttrDimension()">
           <div class="variant-label mb-2">{{ variantLabel1() }}</div>
           <div class="d-flex gap-2 flex-wrap">
             <button
@@ -113,13 +187,13 @@
         </div>
 
         <!-- Biến thể 1 chiều (label đơn) - giữ cả main lẫn TN -->
-        <div *ngIf="product.variants?.length && !hasSecondAttrDimension()">
-          <div class="variant-label mb-2">Phân loại</div>
+        <div *ngIf="hasSellableVariants() && !hasSecondAttrDimension()">
+          <div class="variant-label mb-2">{{ variantLabel2() }}</div>
           <div class="d-flex gap-2 flex-wrap">
             <button
               type="button"
               class="variant-btn"
-              *ngFor="let v of product.variants"
+              *ngFor="let v of visibleVariants()"
               [class.active]="selectedVariantId === v._id"
               [class.out-of-stock]="(v.stock || 0) === 0"
               (click)="selectVariant(v)">
@@ -128,7 +202,12 @@
             </button>
           </div>
           <div class="mt-2" style="font-size:13px;font-weight:500;color:#C62828;"
-               *ngIf="isCurrentVariantOutOfStock() && !isProductCompletelyOutOfStock()">
+               *ngIf="showAdminPauseInVariantBlock()">
+            <i class="bi bi-exclamation-circle me-1"></i>
+            Shop tạm không nhận đơn cho sản phẩm này.
+          </div>
+          <div class="mt-2" style="font-size:13px;font-weight:500;color:#C62828;"
+               *ngIf="showVariantPickAnotherHint()">
             <i class="bi bi-exclamation-circle me-1"></i>
             Phân loại này đã hết hàng — vui lòng chọn phân loại khác.
           </div>
@@ -138,7 +217,7 @@
         <p class="detail-desc mb-0">{{ product.shortDesc }}</p>
 
         <!-- Trọng lượng -->
-        <div *ngIf="!product.variants?.length && product.weights?.length">
+        <div *ngIf="!hasSellableVariants() && product.weights?.length">
           <div class="variant-label mb-2">Trọng lượng</div>
           <div class="d-flex gap-2 flex-wrap">
             <button class="variant-btn"
@@ -183,7 +262,7 @@
             Còn {{ currentStock() }} sản phẩm
           </span>
           <span class="stock-info" *ngIf="isCurrentVariantOutOfStock()" style="color:#C62828;">
-            <i class="bi bi-slash-circle me-1"></i>Hết hàng
+            <i class="bi bi-slash-circle me-1"></i>{{ stockStatusShortLabel() }}
           </span>
         </div>
 
@@ -202,7 +281,7 @@
             [disabled]="isCurrentVariantOutOfStock()"
             (click)="buyNow()">
             <i class="bi bi-lightning-charge-fill me-1"></i>
-            {{ isCurrentVariantOutOfStock() ? 'Tạm hết hàng' : 'Mua ngay' }}
+            {{ isCurrentVariantOutOfStock() ? ctaUnavailableLabel() : 'Mua ngay' }}
           </button>
         </div>
 

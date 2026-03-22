@@ -1,10 +1,10 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 export type AdminOrderStatus = 'pending' | 'confirmed' | 'shipping' | 'delivered' | 'cancelled';
-export type AdminReturnStatus = 'none' | 'requested' | 'completed';
+export type AdminReturnStatus = 'none' | 'requested' | 'approved' | 'rejected' | 'completed';
 
 export interface AdminOrderItem {
   _id: string;
@@ -35,6 +35,7 @@ export interface AdminOrder {
   status: AdminOrderStatus;
   returnStatus: AdminReturnStatus;
   returnReason?: string;
+  returnRejectionReason?: string;
   subTotal: number;
   shippingFee: number;
   discount: number;
@@ -45,6 +46,8 @@ export interface AdminOrder {
     membershipTier?: string;
     totalOrders?: number;
     totalSpent?: number;
+    /** Có đơn delivered đang chờ xử lý hoàn (requested|approved) — tiền/hạng vẫn tạm tính. */
+    hasProvisionalSpend?: boolean;
   };
 }
 
@@ -58,13 +61,52 @@ export interface AdminOrderListResponse {
     pendingCount: number;
     shippingCount: number;
     returnRequestedCount: number;
+    returnApprovedCount?: number;
+    returnRejectedCount?: number;
     returnCompletedCount: number;
   };
 }
 
+/** Phản hồi xem trước tiền (admin hotline). */
+export interface HotlineOrderPreview {
+  subTotal: number;
+  shippingFee: number;
+  discount: number;
+  discountOnItems: number;
+  discountOnShipping: number;
+  total: number;
+  items: Array<{
+    name: string;
+    quantity: number;
+    price: number;
+    variantLabel: string;
+    lineTotal: number;
+  }>;
+}
+
+export interface HotlineOrderPayload {
+  customer: {
+    fullName: string;
+    phone: string;
+    email?: string;
+    address: string;
+    province: string;
+    district: string;
+    ward: string;
+    note?: string;
+  };
+  items: Array<{ productId: string; quantity: number; variantId?: string; variantLabel?: string }>;
+  shippingMethod: 'standard' | 'express';
+  paymentMethod: 'cod' | 'momo' | 'vnpay';
+  voucherCode?: string | null;
+  shipVoucherCode?: string | null;
+  userId?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AdminOrderService {
-  private readonly BASE = 'http://localhost:3000/api/orders/admin';
+  /** Gốc /api/orders — các route admin là /admin/... */
+  private readonly ORDERS = 'http://localhost:3000/api/orders';
 
   constructor(private http: HttpClient) {}
 
@@ -93,56 +135,57 @@ export class AdminOrderService {
     if (params.from) p = p.set('from', params.from);
     if (params.to) p = p.set('to', params.to);
 
-    return this.http.get<AdminOrderListResponse>(`${this.BASE}/list`, { params: p, headers: this.authHeader() });
+    return this.http.get<AdminOrderListResponse>(`${this.ORDERS}/admin/list`, { params: p, headers: this.authHeader() });
   }
 
   getById(orderId: string): Observable<AdminOrder> {
-    return this.http.get<AdminOrder>(`${this.BASE}/${orderId}`, { headers: this.authHeader() });
+    return this.http.get<AdminOrder>(`${this.ORDERS}/admin/${orderId}`, { headers: this.authHeader() });
   }
 
   updateStatus(orderId: string, status: AdminOrderStatus, note = ''): Observable<AdminOrder> {
     return this.http.patch<AdminOrder>(
-      `${this.BASE}/${orderId}/status`,
+      `${this.ORDERS}/admin/${orderId}/status`,
       { status, note },
       { headers: this.authHeader() }
     );
   }
 
-  updateReturnStatus(orderId: string, returnStatus: AdminReturnStatus, note = '', returnReason = ''): Observable<AdminOrder> {
+  updateReturnStatus(
+    orderId: string,
+    returnStatus: AdminReturnStatus,
+    note = '',
+    returnReason = '',
+    returnRejectionReason = ''
+  ): Observable<AdminOrder> {
     return this.http.patch<AdminOrder>(
-      `${this.BASE}/${orderId}/return-status`,
-      { returnStatus, note, returnReason },
+      `${this.ORDERS}/admin/${orderId}/return-status`,
+      { returnStatus, note, returnReason, returnRejectionReason },
       { headers: this.authHeader() }
     );
   }
 
-  getProductsForOrder(limit = 100): Observable<any[]> {
+  /** Tìm SP theo tên (admin — gồm cả SP ẩn). */
+  searchProductsForOrder(search: string, limit = 15): Observable<any[]> {
+    const q = (search || '').trim();
+    if (!q) return of([]);
+    const params = new HttpParams().set('search', q).set('limit', String(limit)).set('isAdmin', 'true');
     return this.http
-      .get<any>(`http://localhost:3000/api/products?limit=${limit}`)
-      .pipe(map(res => Array.isArray(res?.products) ? res.products : []));
+      .get<{ products?: any[] }>('http://localhost:3000/api/products', { params })
+      .pipe(map((res) => (Array.isArray(res?.products) ? res.products : [])));
   }
 
-  createHotlineOrder(payload: {
-    customer: {
-      fullName: string;
-      phone: string;
-      email?: string;
-      address: string;
-      province: string;
-      district: string;
-      ward: string;
-      note?: string;
-    };
-    items: Array<{ productId: string; quantity: number; variantId?: string; variantLabel?: string }>;
-    shippingMethod: 'standard' | 'express';
-    paymentMethod: 'cod' | 'momo' | 'vnpay';
-    voucherCode?: string;
-    userId?: string;
-  }): Observable<{ orderId: string; orderCode?: string }> {
-    return this.http.post<{ orderId: string; orderCode?: string }>(
-      'http://localhost:3000/api/orders',
-      payload
-    );
+  /** Xem trước tạm tính — cần JWT admin. */
+  previewHotlineOrder(payload: HotlineOrderPayload): Observable<HotlineOrderPreview> {
+    return this.http.post<HotlineOrderPreview>(`${this.ORDERS}/admin/hotline-preview`, payload, {
+      headers: this.authHeader(),
+    });
+  }
+
+  /** Tạo đơn hotline — cần JWT admin. */
+  createAdminHotlineOrder(payload: HotlineOrderPayload): Observable<{ orderId: string; orderCode?: string }> {
+    return this.http.post<{ orderId: string; orderCode?: string }>(`${this.ORDERS}/admin/hotline`, payload, {
+      headers: this.authHeader(),
+    });
   }
 
   private authHeader() {

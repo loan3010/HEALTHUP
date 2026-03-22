@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { AdminOrder, AdminOrderService } from '../order/order.service';
+import { AdminOrder, AdminOrderService, AdminReturnStatus } from '../order/order.service';
 
 @Component({
   selector: 'app-order-detail',
@@ -60,21 +60,38 @@ export class OrderDetail implements OnChanges {
     });
   }
 
-  setReturnStatus(nextReturnStatus: 'requested' | 'completed'): void {
+  /**
+   * Cập nhật returnStatus theo luồng: none→requested → approved|rejected|completed; approved→completed.
+   */
+  setReturnStatus(nextReturnStatus: AdminReturnStatus): void {
     if (!this.order || this.actionLoading) return;
+    let returnReason = '';
+    let returnRejectionReason = '';
+    if (nextReturnStatus === 'requested') {
+      const r = window.prompt('Lý do yêu cầu hoàn/trả (tùy chọn):', this.order.returnReason || '');
+      if (r === null) return;
+      returnReason = r;
+    }
+    if (nextReturnStatus === 'rejected') {
+      const r = window.prompt('Lý do từ chối yêu cầu hoàn:', '');
+      if (r === null) return;
+      returnRejectionReason = r;
+    }
     this.actionLoading = true;
-    this.orderService.updateReturnStatus(this.order._id, nextReturnStatus).subscribe({
-      next: (res) => {
-        this.order = res;
-        this.actionLoading = false;
-        this.updated.emit();
-        alert('Cập nhật trả hàng/hoàn tiền thành công!');
-      },
-      error: (err) => {
-        this.actionLoading = false;
-        alert(err?.error?.message || 'Không thể cập nhật trạng thái trả hàng/hoàn tiền');
-      }
-    });
+    this.orderService
+      .updateReturnStatus(this.order._id, nextReturnStatus, '', returnReason, returnRejectionReason)
+      .subscribe({
+        next: (res) => {
+          this.order = res;
+          this.actionLoading = false;
+          this.updated.emit();
+          alert('Cập nhật trả hàng/hoàn tiền thành công!');
+        },
+        error: (err) => {
+          this.actionLoading = false;
+          alert(err?.error?.message || 'Không thể cập nhật trạng thái trả hàng/hoàn tiền');
+        }
+      });
   }
 
   get statusLabel(): string {
@@ -118,8 +135,29 @@ export class OrderDetail implements OnChanges {
   canRequestReturn(): boolean {
     return this.order?.status === 'delivered' && this.order?.returnStatus === 'none';
   }
-  canCompleteReturn(): boolean {
+  /** Shop chấp nhận xử lý hoàn (sau khi khách đã yêu cầu). */
+  canApproveReturn(): boolean {
     return this.order?.status === 'delivered' && this.order?.returnStatus === 'requested';
+  }
+  canRejectReturn(): boolean {
+    return this.order?.status === 'delivered' && this.order?.returnStatus === 'requested';
+  }
+  /** Đã nhận hàng trả / hoàn tiền xong — từ requested (tắt) hoặc approved. */
+  canCompleteReturn(): boolean {
+    const rs = this.order?.returnStatus;
+    return this.order?.status === 'delivered' && (rs === 'requested' || rs === 'approved');
+  }
+
+  /** Nhãn hiển thị cột trả/hoàn + khối chi tiết. */
+  returnFlowLabel(rs: string | undefined): string {
+    const map: Record<string, string> = {
+      none: 'Không',
+      requested: 'Yêu cầu hoàn/trả',
+      approved: 'Đã chấp nhận hoàn',
+      rejected: 'Từ chối hoàn',
+      completed: 'Đã hoàn tiền / trả xong',
+    };
+    return map[rs || 'none'] || (rs || '');
   }
 
 }

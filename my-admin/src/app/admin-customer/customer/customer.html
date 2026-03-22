@@ -155,6 +155,9 @@
             <span class="tier-badge" [ngClass]="getTierClass(c.membershipTier)">
               {{ c.membershipTier }}
             </span>
+            <div class="cust-provisional-pill" *ngIf="c.hasProvisionalSpend" title="Có đơn đã giao đang chờ xử lý hoàn — tiền & hạng tính tạm">
+              Tạm (chờ hoàn)
+            </div>
           </td>
 
           <td class="text-center">{{ c.totalOrders }} đơn</td>
@@ -162,6 +165,7 @@
           <td class="text-center">
             <span *ngIf="c.totalSpent > 0" class="cust-amount">{{ c.totalSpent | number }}đ</span>
             <span *ngIf="c.totalSpent === 0" class="cust-amount-zero">0đ</span>
+            <div class="cust-provisional-pill light" *ngIf="c.hasProvisionalSpend && c.totalSpent > 0">tạm tính</div>
           </td>
 
           <td class="text-center" (click)="$event.stopPropagation()">
@@ -216,7 +220,7 @@
         <div>
           <div class="cust-detail-hero-name">{{ selectedCustomer?.username }}</div>
           <div class="cust-detail-hero-id">{{ selectedCustomer?.customerID || '—' }}</div>
-          <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+          <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap">
             <span class="tier-badge" [ngClass]="getTierClass(selectedCustomer?.membershipTier || '')">
               {{ selectedCustomer?.membershipTier }}
             </span>
@@ -227,6 +231,11 @@
               (click)="onToggleActive(selectedCustomer!, $event)">
               {{ selectedCustomer?.isActive ? 'Hoạt động' : 'Đã khóa' }}
             </button>
+          </div>
+          <!-- Lý do khóa: admin xem lại; trùng nội dung khách thấy khi đăng nhập -->
+          <div *ngIf="selectedCustomer && !selectedCustomer.isActive && selectedCustomer.deactivationReason" class="cust-deactivate-reason-box">
+            <div class="cust-deactivate-reason-label">Lý do vô hiệu hóa (hiển thị cho khách)</div>
+            <div class="cust-deactivate-reason-text">{{ selectedCustomer.deactivationReason }}</div>
           </div>
         </div>
       </div>
@@ -247,7 +256,10 @@
         </div>
         <div class="cust-detail-item">
           <div class="cust-detail-item-label">Hạng thành viên</div>
-          <div class="cust-detail-item-value">{{ selectedCustomer?.membershipTier }}</div>
+          <div class="cust-detail-item-value">
+            {{ selectedCustomer?.membershipTier }}
+            <span class="cust-provisional-inline" *ngIf="selectedCustomer?.hasProvisionalSpend"> (tạm — có đơn chờ hoàn)</span>
+          </div>
         </div>
         <div class="cust-detail-item cust-detail-item-full">
           <div class="cust-detail-item-label">Địa chỉ</div>
@@ -266,6 +278,7 @@
             {{ selectedCustomer?.totalSpent ? ((selectedCustomer?.totalSpent || 0) / 1000000 | number:'1.1-1') + 'M' : '0đ' }}
           </div>
           <div class="cust-metric-label">Tổng hóa đơn</div>
+          <div class="cust-metric-hint" *ngIf="selectedCustomer?.hasProvisionalSpend">Tạm tính: có đơn đã giao đang xử lý hoàn.</div>
         </div>
         <div class="cust-metric-box">
           <div class="cust-metric-value cust-metric-avg">{{ getAvgOrder() }}</div>
@@ -281,6 +294,34 @@
       </button>
     </div>
 
+  </div>
+</div>
+
+<!-- ── MODAL VÔ HIỆU HÓA (bắt buộc lý do) ── -->
+<div class="modal-overlay" *ngIf="isDeactivateModalOpen" (click)="!deactivateSubmitting && cancelDeactivate()">
+  <div class="confirm-card confirm-card-wide" (click)="$event.stopPropagation()">
+    <div class="confirm-icon confirm-icon-lock"><i class="bi bi-lock-fill"></i></div>
+    <div class="confirm-title">Xác nhận vô hiệu hóa tài khoản</div>
+    <div class="confirm-msg" style="text-align:left">
+      Bạn sắp khóa tài khoản <strong>{{ deactivateTarget?.username }}</strong>.
+      Khách hàng <strong>không đăng nhập được</strong> và sẽ thấy <strong>lý do bạn nhập bên dưới</strong> trên trang đăng nhập.
+    </div>
+    <label class="confirm-field-label" for="deactivate-reason-input">Lý do vô hiệu hóa <span class="req-star">*</span></label>
+    <textarea
+      id="deactivate-reason-input"
+      class="confirm-textarea"
+      rows="4"
+      [(ngModel)]="deactivateReasonDraft"
+      [disabled]="deactivateSubmitting"
+      placeholder="Ví dụ: Vi phạm điều khoản mua hàng, nhiều đơn hủy…"
+      maxlength="2000"></textarea>
+    <div class="confirm-hint">Tối thiểu 5 ký tự. Tối đa 2000 ký tự.</div>
+    <div class="confirm-actions">
+      <button class="btn-tool" type="button" (click)="cancelDeactivate()" [disabled]="deactivateSubmitting">Huỷ</button>
+      <button class="btn-confirm-deactivate" type="button" (click)="confirmDeactivate()" [disabled]="deactivateSubmitting">
+        <i class="bi bi-lock-fill"></i> Vô hiệu hóa
+      </button>
+    </div>
   </div>
 </div>
 

@@ -11,9 +11,13 @@ export interface CustomerItem {
   address: string;
   membershipTier: 'Đồng' | 'Bạc' | 'Vàng' | 'Kim Cương';
   isActive: boolean;
+  /** Có giá trị khi tài khoản đang khóa — khách thấy khi đăng nhập */
+  deactivationReason?: string;
   createdAt: string;
   totalOrders: number;
   totalSpent: number;
+  /** true: có đơn đã giao đang yêu cầu/chấp nhận hoàn — tổng tiền & hạng đang tính tạm. */
+  hasProvisionalSpend?: boolean;
 }
 
 export interface CustomerListResponse {
@@ -63,9 +67,14 @@ export class CustomerService {
     return this.http.put<{ message: string; user: CustomerItem }>(`${this.BASE}/${id}`, data);
   }
 
-  toggleActive(id: string): Observable<{ message: string; isActive: boolean }> {
-    return this.http.patch<{ message: string; isActive: boolean }>(
-      `${this.BASE}/${id}/toggle-active`, {}
+  /**
+   * @param reason Bắt buộc khi đang chuyển sang khóa tài khoản (backend tối thiểu 5 ký tự).
+   */
+  toggleActive(id: string, reason?: string): Observable<{ message: string; isActive: boolean; deactivationReason?: string }> {
+    const body = reason != null && reason !== '' ? { reason: reason.trim() } : {};
+    return this.http.patch<{ message: string; isActive: boolean; deactivationReason?: string }>(
+      `${this.BASE}/${id}/toggle-active`,
+      body
     );
   }
 

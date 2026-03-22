@@ -51,12 +51,15 @@ const OrderSchema = new mongoose.Schema(
     },
 
     // Theo dõi quy trình trả hàng/hoàn tiền tách biệt với status giao hàng.
+    // none → requested → approved | rejected | completed (trực tiếp); approved → completed.
     returnStatus: {
       type: String,
-      enum: ['none', 'requested', 'completed'],
+      enum: ['none', 'requested', 'approved', 'rejected', 'completed'],
       default: 'none'
     },
     returnReason: { type: String, default: '', trim: true },
+    /** Ghi nhận khi admin từ chối yêu cầu hoàn (hiển thị nội bộ / có thể đưa cho khách sau). */
+    returnRejectionReason: { type: String, default: '', trim: true, maxlength: 2000 },
     returnRequestedAt: { type: Date, default: null },
     returnCompletedAt: { type: Date, default: null }
   },
