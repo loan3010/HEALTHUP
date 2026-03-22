@@ -12,6 +12,7 @@
       <a routerLink="/about-the-brand" routerLinkActive="active">Giới thiệu</a>
       <a routerLink="/products" routerLinkActive="active">Sản phẩm</a>
       <a routerLink="/blog" routerLinkActive="active">Blogs</a>
+      <a href="#" [class.active]="isTrackOrderPage" (click)="openTrackOrderFromNav($event, false)">Tra cứu đơn</a>
       <a routerLink="/faqs" routerLinkActive="active">FAQs</a>
     </nav>
 
@@ -78,7 +79,13 @@
       <!-- Actions -->
       <div class="header-actions">
         <ng-container *ngIf="!isLoggedIn">
-          <button type="button" class="btn-track-order" (click)="openTrackOrder()" title="Tra cứu đơn hàng">
+          <!-- Giỏ đặt trước: màn hẹp vẫn thấy; cùng icon + badge như lúc đã đăng nhập -->
+          <div class="cart-icon-wrap cart-icon-guest" routerLink="/cart" title="Giỏ hàng" aria-label="Giỏ hàng">
+            <i class="bi bi-cart icon"></i>
+            <span class="cart-badge" *ngIf="cartCount > 0">{{ cartCount > 99 ? '99+' : cartCount }}</span>
+          </div>
+          <!-- Trên mobile ẩn nút này (đã có Tra cứu đơn trong menu hamburger) để chừa chỗ cho giỏ + đăng nhập -->
+          <button type="button" class="btn-track-order guest-track-in-header" (click)="openTrackOrder()" title="Tra cứu đơn hàng">
             <i class="bi bi-search btn-icon-only"></i>
             <span class="btn-text">Tra cứu đơn hàng</span>
           </button>
@@ -140,6 +147,8 @@
     <a routerLink="/about-the-brand" routerLinkActive="active" (click)="closeMenu()">Giới thiệu</a>
     <a routerLink="/products" routerLinkActive="active" (click)="closeMenu()">Sản phẩm</a>
     <a routerLink="/blog" routerLinkActive="active" (click)="closeMenu()">Blogs</a>
+    <a href="#" [class.active]="isTrackOrderPage" (click)="openTrackOrderFromNav($event, true)">Tra cứu đơn</a>
+    <a routerLink="/cart" routerLinkActive="active" (click)="closeMenu()">Giỏ hàng</a>
     <a routerLink="/faqs" routerLinkActive="active" (click)="closeMenu()">FAQs</a>
   </div>
 </header>

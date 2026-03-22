@@ -37,9 +37,10 @@ const OrderSchema = new mongoose.Schema(
       phone:    { type: String, required: true, trim: true },
       email:    { type: String, default: '', trim: true },
       address:  { type: String, required: true, trim: true },
-      province: { type: String, required: true },
-      district: { type: String, required: true },
-      ward:     { type: String, required: true },
+      // Khách checkout một ô địa chỉ đầy đủ có thể không tách tỉnh/huyện/xã — lưu rỗng, chi tiết nằm ở address.
+      province: { type: String, default: '', trim: true },
+      district: { type: String, default: '', trim: true },
+      ward:     { type: String, default: '', trim: true },
       note:     { type: String, default: '', trim: true }
     },
 

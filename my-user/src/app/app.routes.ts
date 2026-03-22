@@ -26,6 +26,7 @@ import { AddressBook } from './address-book/address-book';
 import { OrderManagement } from './order-management/order-management';
 import { OrderDetail } from './order-details/order-details';
 import { ReturnManagement } from './return-management/return-management';
+import { GuestOrderLookup } from './guest-order-lookup/guest-order-lookup';
 import { Notification } from './notifications/notifications';
 
 export const routes: Routes = [
@@ -55,6 +56,7 @@ export const routes: Routes = [
   // ===== SHOPPING =====
   { path: 'checkout', component: Checkout },
   { path: 'cart',     component: Cart },
+  { path: 'tra-cuu-don', component: GuestOrderLookup },
 
   // ===== CHATBOT =====
   { path: 'chatbot', component: ChatbotComponent },

@@ -6,6 +6,9 @@ import { map } from 'rxjs/operators';
 export const API_BASE    = 'http://localhost:3000/api';
 export const STATIC_BASE = 'http://localhost:3000';
 
+/** Đồng bộ với backend header x-guest-cart-id (UUID v4). */
+export const GUEST_CART_STORAGE_KEY = 'healthup_guest_cart_id';
+
 export interface CartItem {
   productId: string;
   variantId?: string | null;
@@ -68,8 +71,42 @@ export class ApiService {
     return localStorage.getItem('token') || '';
   }
 
+  /**
+   * Phiên giỏ khách (chưa đăng nhập): UUID lưu localStorage, gửi qua x-guest-cart-id.
+   * Không dùng chung với checkout cart_v1 — đây là giỏ trên MongoDB.
+   */
+  private getOrCreateGuestCartSessionId(): string {
+    const genUuidV4 = (): string => {
+      if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID();
+      }
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        const r = (Math.random() * 16) | 0;
+        const v = c === 'x' ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+      });
+    };
+    // Phải khớp chuẩn UUID (giống backend cartIdentity) — id cũ sai định dạng thì tạo mới.
+    const isUuidShape = (v: string) =>
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
+    try {
+      let id = localStorage.getItem(GUEST_CART_STORAGE_KEY);
+      if (id && isUuidShape(id.trim())) return id.trim();
+      id = genUuidV4();
+      localStorage.setItem(GUEST_CART_STORAGE_KEY, id);
+      return id;
+    } catch {
+      return genUuidV4();
+    }
+  }
+
+  /** Header giỏ: user đăng nhập → x-user-id; khách → x-guest-cart-id. */
   private cartHeaders(): HttpHeaders {
-    return new HttpHeaders({ 'x-user-id': this.getUserId() });
+    const uid = String(this.getUserId() || '').trim();
+    if (uid && /^[a-f0-9]{24}$/i.test(uid)) {
+      return new HttpHeaders({ 'x-user-id': uid });
+    }
+    return new HttpHeaders({ 'x-guest-cart-id': this.getOrCreateGuestCartSessionId() });
   }
 
   private authHeaders(): HttpHeaders {
@@ -181,14 +218,15 @@ export class ApiService {
   // ════════════════════════════════════════════════════════════════════════════
 
   refreshCartCount(): void {
-    if (!this.getUserId()) return;
     this.getCart().subscribe({
       next: (res) => {
         const items: any[] = res?.items || res?.cart?.items || [];
         const count = items.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0);
         this._cartCount.next(count);
       },
-      error: () => {}
+      error: () => {
+        this._cartCount.next(0);
+      },
     });
   }
 
@@ -418,6 +456,41 @@ export class ApiService {
 
   getOrderById(id: string): Observable<any> {
     return this.http.get<any>(`${API_BASE}/orders/${id}`);
+  }
+
+  /** Tra cứu đơn không cần đăng nhập (SĐT + mã đơn ORD...). */
+  guestLookupOrder(phone: string, orderCode: string): Observable<{ order: any }> {
+    return this.http.post<{ order: any }>(`${API_BASE}/orders/guest-lookup`, {
+      phone: String(phone || '').trim(),
+      orderCode: String(orderCode || '').trim(),
+    });
+  }
+
+  /** Yêu cầu đổi trả khi không đăng nhập — xác minh SĐT + mã đơn trong FormData. */
+  guestRequestReturn(
+    orderId: string,
+    data: {
+      phone: string;
+      orderCode: string;
+      reason: string;
+      note?: string;
+      items?: any[];
+      images?: File[];
+    }
+  ): Observable<any> {
+    const formData = new FormData();
+    formData.append('phone', data.phone);
+    formData.append('orderCode', data.orderCode);
+    formData.append('reason', data.reason);
+    if (data.note) formData.append('note', data.note);
+    if (data.items?.length) {
+      formData.append('items', JSON.stringify(data.items));
+    }
+    (data.images || []).forEach((f) => formData.append('images', f));
+    return this.http.patch<any>(
+      `${API_BASE}/orders/${orderId}/guest-request-return`,
+      formData
+    );
   }
 
   updateOrderStatus(id: string, status: string): Observable<any> {

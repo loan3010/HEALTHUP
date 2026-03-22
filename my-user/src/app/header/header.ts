@@ -240,6 +240,18 @@ export class Header implements OnInit, OnDestroy {
   openTrackOrder()       { this.showTrackOrderModal = true;  this.cdr.detectChanges(); }
   closeTrackOrderModal() { this.showTrackOrderModal = false; this.cdr.detectChanges(); }
 
+  /** Tra cứu đơn trên menu = mở modal xanh (app-track-order-modal), không tách luồng mới. */
+  openTrackOrderFromNav(event: Event, closeMobileMenu: boolean): void {
+    event.preventDefault();
+    if (closeMobileMenu) this.closeMenu();
+    this.openTrackOrder();
+  }
+
+  /** Gạch chân menu khi đang xem trang chi tiết tra cứu (sau khi modal redirect). */
+  get isTrackOrderPage(): boolean {
+    return this.router.url.split('?')[0] === '/tra-cuu-don';
+  }
+
   logout(): void {
     this.showDropdown = false;
     this.showLogoutConfirm = true;
