@@ -32,6 +32,9 @@ export class ProductListingPageComponent implements OnInit, OnDestroy {
   skeletons = Array(6).fill(0);
   categoryCounts: Record<string, number> = {};
 
+  // ✅ THÊM: lưu keyword tìm kiếm từ header
+  searchKeyword = '';
+
   private currentFilters: SidebarFilters = {
     categories: [],
     priceMin: 0,
@@ -55,15 +58,25 @@ export class ProductListingPageComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadCategoryCounts();
 
+    // ✅ FIX: xử lý cả 'search' lẫn 'cat' từ queryParams
     this.route.queryParams.subscribe(params => {
-      if (params['cat']) {
-        this.selectedFilters = [params['cat']];
-        this.currentFilters.categories = [params['cat']];
+      const keyword = params['search'] || '';
+      const cat     = params['cat']    || '';
+
+      // Reset về trạng thái sạch mỗi lần params thay đổi
+      this.searchKeyword = keyword.trim();
+
+      if (cat) {
+        this.selectedFilters           = [cat];
+        this.currentFilters.categories = [cat];
         this.rebuildFilterTags();
       } else {
-        this.selectedFilters = [];
+        this.selectedFilters           = [];
         this.currentFilters.categories = [];
+        // Chỉ clear filter tags nếu không phải do search
+        if (!keyword) this.activeFilterTags = [];
       }
+
       this.currentPage = 1;
       this.loadProducts();
     });
@@ -97,6 +110,11 @@ export class ProductListingPageComponent implements OnInit, OnDestroy {
       page:  this.currentPage,
       limit: this.pageSize,
     };
+
+    // ✅ FIX: truyền search keyword lên API
+    if (this.searchKeyword) {
+      filters.search = this.searchKeyword;
+    }
 
     if (this.currentFilters.categories.length > 0) {
       filters.cat = this.currentFilters.categories.join(',');
@@ -167,7 +185,14 @@ export class ProductListingPageComponent implements OnInit, OnDestroy {
     this.selectedFilters  = [];
     this.priceRange       = [0, 1000000];
     this.activeFilterTags = [];
+    this.searchKeyword    = '';
     this.currentPage      = 1;
+    // ✅ Clear cả search param trên URL khi reset
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {},
+      replaceUrl: true,
+    });
     this.loadProducts();
   }
 
