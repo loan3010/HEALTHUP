@@ -34,21 +34,26 @@ router.post('/register', async (req, res) => {
     const phoneVal = String(phone).trim();
     const emailVal = (email || '').trim().toLowerCase();
 
-    // check username
-    const existsUsername = await User.findOne({ username: usernameVal });
+    // SĐT đã có tài khoản thật → không cho đăng ký trùng
+    const existsPhone = await User.findOne({ phone: phoneVal });
+    if (existsPhone && existsPhone.role !== 'guest') {
+      return res.status(409).json({ message: 'Số điện thoại đã tồn tại' });
+    }
+
+    // Username / email trùng user khác (không tính chính bản ghi guest sẽ nâng cấp)
+    const usernameQuery = existsPhone
+      ? { username: usernameVal, _id: { $ne: existsPhone._id } }
+      : { username: usernameVal };
+    const existsUsername = await User.findOne(usernameQuery);
     if (existsUsername) {
       return res.status(409).json({ message: 'Tên tài khoản đã tồn tại' });
     }
 
-    // check phone
-    const existsPhone = await User.findOne({ phone: phoneVal });
-    if (existsPhone) {
-      return res.status(409).json({ message: 'Số điện thoại đã tồn tại' });
-    }
-
-    // check email
     if (emailVal) {
-      const existsEmail = await User.findOne({ email: emailVal });
+      const emailQuery = existsPhone
+        ? { email: emailVal, _id: { $ne: existsPhone._id } }
+        : { email: emailVal };
+      const existsEmail = await User.findOne(emailQuery);
       if (existsEmail) {
         return res.status(409).json({ message: 'Email đã tồn tại' });
       }
@@ -60,9 +65,6 @@ router.post('/register', async (req, res) => {
     // ============================
     // CREATE CUSTOMER ID (KH####)
     // ============================
-    // Mục tiêu: nếu bạn đã backfill customerID hiện tại về dạng KH0001, KH0002...
-    // thì user đăng ký mới cũng phải tiếp tục dãy theo đúng prefix KH để tránh lẫn prefix.
-    // Cách làm: lấy max phần số của các customerID dạng /^KH\d+$/ rồi cấp tiếp.
     const khUsers = await User.find(
       { customerID: { $regex: '^KH\\d+$' } },
       { customerID: 1 }
@@ -70,7 +72,7 @@ router.post('/register', async (req, res) => {
 
     let maxNum = 0;
     for (const u of khUsers) {
-      const id = String(u.customerID || ''); // ví dụ: KH0016
+      const id = String(u.customerID || '');
       const num = parseInt(id.replace(/^KH/, ''), 10);
       if (Number.isFinite(num) && num > maxNum) maxNum = num;
     }
@@ -78,15 +80,27 @@ router.post('/register', async (req, res) => {
     const nextNum = maxNum + 1;
     const customerID = 'KH' + String(nextNum).padStart(4, '0');
 
-    // create user
-    const user = await User.create({
-      customerID,
-      username: usernameVal,
-      phone: phoneVal,
-      email: emailVal || undefined,
-      passwordHash,
-      role: role === 'admin' ? 'admin' : 'user'
-    });
+    let user;
+    // Nâng cấp guest (đã mua không đăng nhập) → cùng _id, gộp lịch sử đơn
+    if (existsPhone && existsPhone.role === 'guest') {
+      existsPhone.username = usernameVal;
+      existsPhone.phone = phoneVal;
+      existsPhone.email = emailVal || undefined;
+      existsPhone.passwordHash = passwordHash;
+      existsPhone.role = role === 'admin' ? 'admin' : 'user';
+      existsPhone.customerID = customerID;
+      await existsPhone.save();
+      user = existsPhone;
+    } else {
+      user = await User.create({
+        customerID,
+        username: usernameVal,
+        phone: phoneVal,
+        email: emailVal || undefined,
+        passwordHash,
+        role: role === 'admin' ? 'admin' : 'user',
+      });
+    }
 
     // create token
     const token = jwt.sign(
@@ -161,6 +175,13 @@ router.post('/login', async (req, res) => {
     if (!user) {
       return res.status(401).json({
         message: 'Sai tài khoản hoặc mật khẩu'
+      });
+    }
+
+    if (user.role === 'guest') {
+      return res.status(403).json({
+        message:
+          'Đây là tài khoản khách tự động khi đặt hàng không đăng nhập. Vui lòng đăng ký tài khoản để đăng nhập.',
       });
     }
 
