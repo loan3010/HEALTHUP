@@ -1,6 +1,10 @@
-import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
+import {
+  Component, Input, Output, EventEmitter,
+  OnChanges, OnInit, SimpleChanges
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpClient, HttpClientModule } from '@angular/common/http';
 
 export interface CategoryFilter { key: string; name: string; count: number; }
 export interface PricePreset    { key: string; label: string; min: number; max: number; }
@@ -15,11 +19,11 @@ export interface SidebarFilters {
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, HttpClientModule],
   templateUrl: './sidebar.html',
   styleUrls: ['./sidebar.css']
 })
-export class SidebarComponent implements OnChanges {
+export class SidebarComponent implements OnInit, OnChanges {
 
   @Input() selectedFilters: string[] = [];
   @Input() priceRange: [number, number] = [0, 1000000];
@@ -31,20 +35,13 @@ export class SidebarComponent implements OnChanges {
   openSections: Record<string, boolean> = {
     category: true,
     price: true,
-    rating: false,   // ✅ thêm rating section (collapsed mặc định)
   };
 
-  readonly categoryKeys = [
-    { key: 'Hạt dinh dưỡng', name: 'Hạt dinh dưỡng' },
-    { key: 'Granola',        name: 'Granola'          },
-    { key: 'Trái cây sấy',  name: 'Trái cây sấy'    },
-    { key: 'Đồ ăn vặt',     name: 'Đồ ăn vặt'       },
-    { key: 'Trà thảo mộc',  name: 'Trà thảo mộc'    },
-    { key: 'Combo',          name: 'Combo'            },
-  ];
+  private _categoryKeys: { key: string; name: string }[] = [];
+  isLoadingCategories = false;
 
   get categories(): CategoryFilter[] {
-    return this.categoryKeys.map(c => ({
+    return this._categoryKeys.map(c => ({
       ...c,
       count: this.categoryCounts?.[c.key] ?? 0,
     }));
@@ -61,21 +58,18 @@ export class SidebarComponent implements OnChanges {
   priceMin = 0;
   priceMax = 1000000;
 
-  // ✅ Rating filter
-  selectedRating = 0;
-  readonly ratingOptions = [
-    { value: 5, label: 'Từ 5 sao' },
-    { value: 4, label: 'Từ 4 sao trở lên' },
-    { value: 3, label: 'Từ 3 sao trở lên' },
-  ];
-
   get sliderLeft():  number { return (this.priceMin  / 1000000) * 100; }
   get sliderRight(): number { return 100 - (this.priceMax / 1000000) * 100; }
 
   get activeFilterCount(): number {
     return this.selectedFilters.length
-      + (this.activePricePreset !== 'all' ? 1 : 0)
-      + (this.selectedRating > 0 ? 1 : 0);
+      + (this.activePricePreset !== 'all' ? 1 : 0);
+  }
+
+  constructor(private http: HttpClient) {}
+
+  ngOnInit(): void {
+    this.loadCategories();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -86,6 +80,30 @@ export class SidebarComponent implements OnChanges {
         this.activePricePreset = 'all';
       }
     }
+  }
+
+  loadCategories(): void {
+    this.isLoadingCategories = true;
+    this.http.get<any[]>('http://localhost:3000/api/categories').subscribe({
+      next: (cats) => {
+        this._categoryKeys = (cats || [])
+          .filter(c => c.isActive !== false)
+          .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+          .map(c => ({ key: c.name, name: c.name }));
+        this.isLoadingCategories = false;
+      },
+      error: () => {
+        this._categoryKeys = [
+          { key: 'Hạt dinh dưỡng', name: 'Hạt dinh dưỡng' },
+          { key: 'Granola',        name: 'Granola'          },
+          { key: 'Trái cây sấy',  name: 'Trái cây sấy'    },
+          { key: 'Đồ ăn vặt',     name: 'Đồ ăn vặt'       },
+          { key: 'Trà thảo mộc',  name: 'Trà thảo mộc'    },
+          { key: 'Combo',          name: 'Combo'            },
+        ];
+        this.isLoadingCategories = false;
+      }
+    });
   }
 
   toggleSection(key: string): void { this.openSections[key] = !this.openSections[key]; }
@@ -113,18 +131,12 @@ export class SidebarComponent implements OnChanges {
     this.emitAll();
   }
 
-  // ✅ Rating filter handler
-  selectRating(value: number): void {
-    this.selectedRating = this.selectedRating === value ? 0 : value;
-    this.emitAll();
-  }
-
   private emitAll(): void {
     this.allFiltersChanged.emit({
       categories: this.selectedFilters,
       priceMin:   this.priceMin,
       priceMax:   this.priceMax,
-      rating:     this.selectedRating,
+      rating:     0,
     });
   }
 
@@ -133,7 +145,6 @@ export class SidebarComponent implements OnChanges {
     this.activePricePreset = 'all';
     this.priceMin = 0;
     this.priceMax = 1000000;
-    this.selectedRating = 0;
     this.reset.emit();
   }
 }

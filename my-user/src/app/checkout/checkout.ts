@@ -34,7 +34,7 @@ export interface VoucherInfo {
   code: string;
   name: string;
   description?: string;
-  type?: 'order' | 'shipping';       // phân loại từ backend
+  type?: 'order' | 'shipping';
   discountType: 'percent' | 'fixed' | 'freeship';
   discountValue: number;
   minOrder?: number;
@@ -46,7 +46,7 @@ interface ApplyVoucherResult {
   code?: string;
   name?: string;
   description?: string;
-  type?: 'order' | 'shipping';       // phân loại từ backend
+  type?: 'order' | 'shipping';
   discountType?: string;
   discountValue?: number;
   discountOnType?: 'items' | 'shipping';
@@ -92,11 +92,14 @@ export class Checkout implements OnInit {
   shipVoucherResult     = signal<ApplyVoucherResult | null>(null);
   isApplyingShipVoucher = false;
 
-  // ── Modal voucher (dùng chung, phân loại bởi voucherModalFor) ──
+  // ── Modal voucher ──
   showVoucherModal     = false;
   voucherModalFor: 'order' | 'shipping' = 'order';
   availableVouchers    = signal<VoucherInfo[]>([]);
   isLoadingVouchers    = false;
+
+  // ✅ MỚI: Lưu code voucher tốt nhất (giảm nhiều tiền nhất)
+  bestVoucherCode = signal<string>('');
 
   // ── Address ──
   savedAddresses = signal<SavedAddress[]>([]);
@@ -397,7 +400,7 @@ export class Checkout implements OnInit {
     this.loadingWards = true;
     this.http.get<any>(`${this.GEO_API}/d/${code}?depth=2`).subscribe({
       next: (d) => { this.wards = d.wards || []; this.loadingWards = false; this.cdr.detectChanges(); },
-      error: () => { this.loadingWards = false; }
+      error: () => { this.loadingWards; }
     });
   }
 
@@ -428,9 +431,28 @@ export class Checkout implements OnInit {
     return '';
   }
 
-  /**
-   * Xử lý nhập mã voucher — tự động chuyển hoa, reset kết quả khi xóa
-   */
+  // ✅ MỚI: Tính số tiền tiết kiệm thực tế của 1 voucher
+  calcVoucherSaving(v: VoucherInfo): number {
+    if (!this.isVoucherEligible(v)) return 0;
+
+    if (v.discountType === 'freeship') {
+      return this.shippingFee();
+    }
+
+    const base = v.type === 'shipping' ? this.shippingFee() : this.subTotal();
+
+    if (v.discountType === 'percent') {
+      const saving = Math.round(base * v.discountValue / 100);
+      return v.maxDiscount ? Math.min(saving, v.maxDiscount) : saving;
+    }
+
+    if (v.discountType === 'fixed') {
+      return Math.min(v.discountValue, base);
+    }
+
+    return 0;
+  }
+
   onVoucherInput(v: string, forType: 'order' | 'shipping'): void {
     const upper = v.trim().toUpperCase();
     if (forType === 'order') {
@@ -445,9 +467,6 @@ export class Checkout implements OnInit {
     this.cdr.detectChanges();
   }
 
-  /**
-   * Áp dụng voucher — kiểm tra đúng loại sau khi nhận response
-   */
   applyVoucher(forType: 'order' | 'shipping'): void {
     const code = forType === 'order' ? this.orderVoucherCode() : this.shipVoucherCode();
 
@@ -475,7 +494,6 @@ export class Checkout implements OnInit {
       shippingFee: this.shippingFee(),
     }).subscribe({
       next: (res) => {
-        // Kiểm tra đúng loại không — báo lỗi nếu nhầm ô
         if (forType === 'order' && res.discountOnType !== 'items') {
           this.isApplyingOrderVoucher = false;
           this.orderVoucherResult.set({ valid: false, message: '' });
@@ -529,25 +547,43 @@ export class Checkout implements OnInit {
     this.cdr.detectChanges();
   }
 
-  /**
-   * Mở modal — lọc voucher đúng loại (order/shipping)
-   */
+  // ✅ CẬP NHẬT: Mở modal — sort voucher theo saving giảm dần, đánh dấu tốt nhất
   openVoucherModal(forType: 'order' | 'shipping'): void {
     this.voucherModalFor   = forType;
     this.showVoucherModal  = true;
     this.isLoadingVouchers = true;
+    this.bestVoucherCode.set('');
     this.cdr.detectChanges();
 
     this.http.get<VoucherInfo[]>(`${this.API_BASE}/promotions/available`).subscribe({
       next: (list) => {
-        // Lọc đúng loại theo type từ backend
+        // Lọc đúng loại
         const filtered = (list || []).filter(v =>
-          forType === 'shipping'
-            ? v.type === 'shipping'
-            : v.type === 'order'
+          forType === 'shipping' ? v.type === 'shipping' : v.type === 'order'
         );
-        const eligible   = filtered.filter(v => this.isVoucherEligible(v));
-        const ineligible = filtered.filter(v => !this.isVoucherEligible(v));
+
+        // Tính saving thực tế rồi sort
+        const withSaving = filtered.map(v => ({
+          ...v,
+          _saving:   this.calcVoucherSaving(v),
+          _eligible: this.isVoucherEligible(v),
+        }));
+
+        // Eligible: sort theo tiết kiệm nhiều nhất lên đầu
+        const eligible = withSaving
+          .filter(v => v._eligible)
+          .sort((a, b) => b._saving - a._saving);
+
+        // Ineligible: sort theo minOrder tăng dần (gần đủ điều kiện lên đầu)
+        const ineligible = withSaving
+          .filter(v => !v._eligible)
+          .sort((a, b) => (a.minOrder ?? 0) - (b.minOrder ?? 0));
+
+        // Đánh dấu voucher tốt nhất
+        if (eligible.length > 0) {
+          this.bestVoucherCode.set(eligible[0].code);
+        }
+
         this.availableVouchers.set([...eligible, ...ineligible]);
         this.isLoadingVouchers = false;
         this.cdr.detectChanges();
@@ -587,7 +623,6 @@ export class Checkout implements OnInit {
     return 'bi-tag';
   }
 
-  // ── Tiêu đề modal theo loại ──
   get voucherModalTitle(): string {
     return this.voucherModalFor === 'shipping'
       ? 'Mã giảm phí vận chuyển'
@@ -631,7 +666,6 @@ export class Checkout implements OnInit {
       })),
       shippingMethod: this.shippingMethod(),
       paymentMethod:  this.paymentMethod(),
-      // Gửi cả 2 mã voucher lên backend
       voucherCode:     this.isOrderVoucherApplied ? this.orderVoucherCode() : null,
       shipVoucherCode: this.isShipVoucherApplied  ? this.shipVoucherCode()  : null,
     };
