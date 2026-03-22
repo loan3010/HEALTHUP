@@ -48,11 +48,14 @@ const OrderSchema = new mongoose.Schema(
     shippingMethod: { type: String, enum: ['standard', 'express'], default: 'standard' },
     paymentMethod:  { type: String, enum: ['cod', 'momo', 'vnpay'], default: 'cod' },
     voucherCode:    { type: String, default: null },
+    shipVoucherCode: { type: String, default: null },
 
-    subTotal:    { type: Number, required: true, min: 0 },
-    shippingFee: { type: Number, required: true, min: 0 },
-    discount:    { type: Number, required: true, min: 0 },
-    total:       { type: Number, required: true, min: 0 },
+    subTotal:           { type: Number, required: true, min: 0 },
+    shippingFee:        { type: Number, required: true, min: 0 },
+    discount:           { type: Number, required: true, min: 0 },
+    discountOnItems:    { type: Number, default: 0 },
+    discountOnShipping: { type: Number, default: 0 },
+    total:              { type: Number, required: true, min: 0 },
 
     status: {
       type: String,
@@ -60,24 +63,19 @@ const OrderSchema = new mongoose.Schema(
       default: 'pending'
     },
 
-    // Theo dõi quy trình trả hàng/hoàn tiền tách biệt với status giao hàng.
-    // none → requested → approved | rejected | completed (trực tiếp); approved → completed.
     returnStatus: {
       type: String,
       enum: ['none', 'requested', 'approved', 'rejected', 'completed'],
       default: 'none'
     },
     returnReason: { type: String, default: '', trim: true },
-    /** Ghi nhận khi admin từ chối yêu cầu hoàn (hiển thị nội bộ / có thể đưa cho khách sau). */
     returnRejectionReason: { type: String, default: '', trim: true, maxlength: 2000 },
     returnNote:        { type: String, default: '', trim: true },
     returnRequestedAt: { type: Date, default: null },
     returnCompletedAt: { type: Date, default: null },
 
-    // Danh sách sản phẩm trả
     returnItems: { type: [ReturnItemSchema], default: [] },
 
-    // ✅ MỚI: Ảnh minh chứng đổi trả (tối đa 5 ảnh)
     returnImages: { type: [String], default: [] },
   },
   { timestamps: true }

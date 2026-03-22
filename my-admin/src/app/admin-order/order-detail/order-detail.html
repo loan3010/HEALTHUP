@@ -155,8 +155,25 @@
           <h4>Thông tin đơn hàng</h4>
           <div class="line"><label>Số lượng sản phẩm</label><strong>{{ itemCount }}</strong></div>
           <div class="line"><label>Tổng tiền hàng</label><strong>{{ formatMoney(order.subTotal) }}</strong></div>
-          <div class="line"><label>Giảm giá</label><strong>{{ formatMoney(order.discount) }}</strong></div>
+          <div class="line" *ngIf="order.discountOnItems > 0">
+            <label>Giảm tiền hàng</label>
+            <strong class="discount-value">-{{ formatMoney(order.discountOnItems) }}</strong>
+          </div>
           <div class="line"><label>Phí vận chuyển</label><strong>{{ formatMoney(order.shippingFee) }}</strong></div>
+          <div class="line" *ngIf="order.discountOnShipping > 0">
+            <label>Giảm phí vận chuyển</label>
+            <strong class="discount-value">-{{ formatMoney(order.discountOnShipping) }}</strong>
+          </div>
+          <div class="line" *ngIf="order.discount > 0">
+            <label>Tổng giảm giá</label>
+            <strong class="discount-value">-{{ formatMoney(order.discount) }}</strong>
+          </div>
+          <div class="line" *ngIf="order.voucherCode">
+            <label>Mã voucher hàng</label><strong>{{ order.voucherCode }}</strong>
+          </div>
+          <div class="line" *ngIf="order.shipVoucherCode">
+            <label>Mã voucher ship</label><strong>{{ order.shipVoucherCode }}</strong>
+          </div>
           <div class="line"><label>Ghi chú đơn hàng</label><strong>{{ order.customer.note || 'Không có' }}</strong></div>
           <div class="line total"><label>Thành tiền</label><strong>{{ formatMoney(order.total) }}</strong></div>
         </div>

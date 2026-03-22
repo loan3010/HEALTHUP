@@ -16,7 +16,6 @@ const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const { buildCustomerListStatsMaps, statsForUser } = require('../helpers/customerOrderStats');
 
 // ======================= MULTER CONFIG =======================
-// Lưu ảnh vào backend/public/uploads/returns/
 const returnStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = path.join(__dirname, '../public/images/returns');
@@ -42,8 +41,8 @@ const fileFilter = (req, file, cb) => {
 const uploadReturnImages = multer({
   storage: returnStorage,
   fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB mỗi ảnh
-}).array('images', 5); // tối đa 5 ảnh
+  limits: { fileSize: 5 * 1024 * 1024 },
+}).array('images', 5);
 
 // ======================= HELPER =======================
 
@@ -60,14 +59,18 @@ async function calcDiscountFromDB(voucherCode, subTotal, shippingFee) {
   if (!voucherCode) return { discountAmount: 0, discountOnType: null };
 
   const now   = new Date();
+  // Chỉ tìm theo code, check startDate/endDate bằng JS (tránh lỗi string vs Date trong MongoDB)
   const promo = await Promotion.findOne({
-    code:      voucherCode.trim().toUpperCase(),
-    status:    'ongoing',
-    startDate: { $lte: now },
-    endDate:   { $gte: now },
+    code: voucherCode.trim().toUpperCase(),
   });
 
   if (!promo) return { discountAmount: 0, discountOnType: null };
+
+  // Check thời gian bằng JS
+  const start = promo.startDate ? new Date(promo.startDate) : null;
+  const end   = promo.endDate   ? new Date(promo.endDate)   : null;
+  if (start && now < start) return { discountAmount: 0, discountOnType: null };
+  if (end   && now > end)   return { discountAmount: 0, discountOnType: null };
   if (promo.totalLimit > 0 && promo.usedCount >= promo.totalLimit) {
     return { discountAmount: 0, discountOnType: null };
   }
@@ -113,18 +116,12 @@ function normalizePhone(phone) {
   return String(phone || '').replace(/\D/g, '');
 }
 
-// ✅ Helper format tiền VND (từ nhánh THnew)
 function formatVND(amount) {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency', currency: 'VND'
   }).format(amount);
 }
 
-/**
- * Chuẩn hoá từng phần tỉnh/huyện/xã khi lưu đơn.
- * Trước đây dùng chữ "N/A" khi checkout không tách cấp hành chính → hiển thị rối; để rỗng thay vì N/A.
- * (từ nhánh main)
- */
 function normalizeShippingPart(v) {
   const s = String(v ?? '').trim();
   if (!s || /^n\/a$/i.test(s)) return '';
@@ -216,11 +213,8 @@ async function generateNextOrderCode() {
   return `ORD${String(current + 1).padStart(11, '0')}`;
 }
 
-/**
- * Chuẩn bị payload đơn hàng từ body (checkout công khai + admin hotline + preview).
- * Dùng chung để tạm tính trên admin khớp 100% với lúc lưu DB.
- */
 async function prepareOrderFromRequestBody(body) {
+
   const {
     customer,
     items,
@@ -326,6 +320,7 @@ async function prepareOrderFromRequestBody(body) {
   const { discountAmount: discShip } =
     await calcDiscountFromDB(shipVoucherCode, subTotal, ship);
 
+
   const totalDiscount = discOrder + discShip;
   const total = Math.max(0, subTotal - discOrder + ship - discShip);
 
@@ -368,9 +363,6 @@ async function prepareOrderFromRequestBody(body) {
   };
 }
 
-/**
- * Lưu đơn sau khi prepareOrderFromRequestBody thành công (mã đơn, voucher, cart, kho).
- */
 async function persistNewOrder(orderData, orderItems, voucherCodeRaw, shipVoucherCodeRaw) {
   let order = null;
   let lastErr = null;
@@ -450,7 +442,7 @@ async function persistNewOrder(orderData, orderItems, voucherCodeRaw, shipVouche
   return order;
 }
 
-// ======================= CREATE ORDER (checkout khách — công khai) =======================
+// ======================= CREATE ORDER =======================
 
 router.post('/', async (req, res) => {
   try {
@@ -466,7 +458,6 @@ router.post('/', async (req, res) => {
       prep.shipVoucherCodeRaw
     );
 
-    // ✅ Tạo notification cho user sau khi đặt hàng thành công (từ nhánh THnew)
     if (order.userId) {
       try {
         const firstItem = prep.orderItems[0];
@@ -506,7 +497,6 @@ router.get('/', async (req, res) => {
     const filter = userId && mongoose.Types.ObjectId.isValid(userId)
       ? { userId: new mongoose.Types.ObjectId(userId) }
       : {};
-    // Populate ảnh SP: nhiều đơn thiếu imageUrl trên dòng hàng — cần cho trang đổi trả.
     const orders = await Order.find(filter)
       .populate({ path: 'items.productId', select: 'images name' })
       .sort({ createdAt: -1 });
@@ -577,7 +567,7 @@ router.get('/admin/list', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
-// ======================= ADMIN HOTLINE: xem trước tiền (không ghi DB) =======================
+// ======================= ADMIN HOTLINE PREVIEW =======================
 router.post('/admin/hotline-preview', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const prep = await prepareOrderFromRequestBody(req.body);
@@ -606,7 +596,7 @@ router.post('/admin/hotline-preview', authenticateToken, requireAdmin, async (re
   }
 });
 
-// ======================= ADMIN HOTLINE: tạo đơn (có JWT admin) =======================
+// ======================= ADMIN HOTLINE CREATE =======================
 router.post('/admin/hotline', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const prep = await prepareOrderFromRequestBody(req.body);
@@ -713,7 +703,6 @@ router.patch('/admin/:id/status', authenticateToken, requireAdmin, async (req, r
       note:      String(note || '')
     });
 
-    // ✅ Gửi notification khi admin cập nhật trạng thái đơn hàng (từ nhánh THnew)
     if (order.userId) {
       try {
         const statusLabel = {
@@ -762,8 +751,6 @@ router.patch('/admin/:id/return-status', authenticateToken, requireAdmin, async 
       return res.status(400).json({ message: 'Đơn đã ở trạng thái trả hàng/hoàn tiền này' });
     }
 
-    // Luồng admin (khớp nghiệp vụ): chỉ user gọi PATCH /:id/request-return mới tạo requested.
-    // Admin: requested → approved | rejected; approved → completed (sau khi nhận hàng trả & hoàn tiền).
     const returnFlow = {
       none: [],
       requested: ['approved', 'rejected'],
@@ -850,7 +837,6 @@ router.patch('/:id/status', async (req, res) => {
     );
     if (!order) return res.status(404).json({ message: 'Order not found' });
 
-    // ✅ Tạo notification khi user tự hủy đơn (từ nhánh THnew)
     if (status === 'cancelled' && order.userId) {
       try {
         await Notification.create({
@@ -870,8 +856,7 @@ router.patch('/:id/status', async (req, res) => {
   }
 });
 
-// ======================= USER REQUEST RETURN (có upload ảnh) =======================
-// POST multipart/form-data với fields: reason, note, items (JSON string), images (files)
+// ======================= USER REQUEST RETURN =======================
 
 router.patch('/:id/request-return', authenticateToken, (req, res) => {
   uploadReturnImages(req, res, async (uploadErr) => {
@@ -883,7 +868,6 @@ router.patch('/:id/request-return', authenticateToken, (req, res) => {
       const { reason, note, items } = req.body;
 
       if (!reason) {
-        // Xóa ảnh vừa upload nếu validate fail
         (req.files || []).forEach(f => fs.unlink(f.path, () => {}));
         return res.status(400).json({ message: 'Vui lòng chọn lý do đổi trả' });
       }
@@ -904,7 +888,6 @@ router.patch('/:id/request-return', authenticateToken, (req, res) => {
         return res.status(400).json({ message: 'Chỉ có thể yêu cầu đổi trả cho đơn đã giao' });
       }
 
-      // Chỉ chủ đơn (user đăng nhập) được gửi yêu cầu — khớp flow, tránh lạm dụng ID đơn.
       const tokenUserId = req.user?.userId && String(req.user.userId);
       const orderUserId = order.userId && String(order.userId);
       if (!tokenUserId || !orderUserId || tokenUserId !== orderUserId) {
@@ -919,7 +902,6 @@ router.patch('/:id/request-return', authenticateToken, (req, res) => {
         return res.status(400).json({ message: 'Đơn hàng này đã có yêu cầu đổi trả rồi' });
       }
 
-      // Parse items nếu là JSON string (do FormData gửi lên)
       let parsedItems = [];
       if (items) {
         try {
@@ -927,7 +909,6 @@ router.patch('/:id/request-return', authenticateToken, (req, res) => {
         } catch { parsedItems = []; }
       }
 
-      // Đường dẫn ảnh trả về dạng URL
       const imageUrls = (req.files || []).map(
         f => `/images/returns/${f.filename}`
       );
