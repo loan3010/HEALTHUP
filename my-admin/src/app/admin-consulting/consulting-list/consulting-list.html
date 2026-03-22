@@ -1,59 +1,123 @@
-<div class="consulting-list-container">
-  <h1 class="page-title">QUẢN LÝ TƯ VẤN SẢN PHẨM</h1>
+<div class="consulting-list-container fadeIn">
+  <h1 class="page-title">HỆ THỐNG QUẢN LÝ TƯ VẤN</h1>
 
   <div class="summary-cards">
-    <div class="s-card card-total">
+    <div class="s-card" [class.active-card]="filterStatus === 'all'" (click)="setFilterStatus('all')">
       <span class="s-label">TỔNG CÂU HỎI</span>
-      <span class="s-value text-total">8</span>
+      <span class="s-value text-total">{{ summary.total }}</span>
     </div>
-    <div class="s-card card-pending">
+    <div class="s-card" [class.active-card]="filterStatus === 'pending'" (click)="setFilterStatus('pending')">
       <span class="s-label">CHỜ TRẢ LỜI</span>
-      <span class="s-value text-warning">5</span>
+      <span class="s-value text-warning">{{ summary.pending }}</span>
     </div>
-    <div class="s-card card-answered">
+    <div class="s-card" [class.active-card]="filterStatus === 'answered'" (click)="setFilterStatus('answered')">
       <span class="s-label">ĐÃ TRẢ LỜI</span>
-      <span class="s-value text-success">3</span>
+      <span class="s-value text-success">{{ summary.answered }}</span>
     </div>
   </div>
 
   <div class="toolbar">
     <div class="search-box">
-      <input type="text" placeholder="Tìm kiếm theo sản phẩm, câu hỏi, khách hàng...">
-      <i class="bi bi-search"></i>
+      <input type="text" 
+             [(ngModel)]="searchText" 
+             (keyup.enter)="onSearch()" 
+             (input)="searchText === '' ? onSearch() : null"
+             placeholder="Tìm sản phẩm, SKU...">
+      <i class="bi bi-search" (click)="onSearch()"></i>
     </div>
-    <button class="btn-filter-consult">
-      <i class="bi bi-funnel"></i>
-      <span>Tất cả</span>
-      <i class="bi bi-chevron-down"></i>
-    </button>
+
+    <div class="filter-controls">
+      <div class="custom-dropdown-container">
+        <div class="dropdown-trigger" (click)="showCatDropdown = !showCatDropdown" [class.active]="selectedCat">
+          <i class="bi bi-tag"></i>
+          <span class="trigger-label">{{ selectedCat || 'Tất cả danh mục' }}</span>
+          <i class="bi bi-chevron-down ms-auto"></i>
+        </div>
+        
+        <div class="dropdown-menu-custom shadow" *ngIf="showCatDropdown">
+          <div class="menu-header">DANH MỤC SẢN PHẨM</div>
+          <div class="menu-item" [class.active]="selectedCat === ''" (click)="selectCategory('')">
+            Tất cả danh mục <i class="bi bi-check" *ngIf="selectedCat === ''"></i>
+          </div>
+          <div class="menu-item" *ngFor="let cat of categories" 
+               [class.active]="selectedCat === cat.name" 
+               (click)="selectCategory(cat.name)">
+            {{ cat.name }} <i class="bi bi-check" *ngIf="selectedCat === cat.name"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="custom-dropdown-container">
+        <div class="dropdown-trigger sort-active" (click)="showSortDropdown = !showSortDropdown">
+          <i class="bi bi-sort-down"></i>
+          <span class="sort-pill">{{ getSortLabel() }}</span>
+          <i class="bi bi-chevron-down ms-2"></i>
+        </div>
+        
+        <div class="dropdown-menu-custom shadow sort-menu" *ngIf="showSortDropdown">
+          <div class="menu-header">TRẠNG THÁI</div>
+          <div class="menu-item" [class.active]="sortBy === 'pending-desc'" (click)="selectSort('pending-desc')">
+            Chờ trả lời · Nhiều nhất <i class="bi bi-check" *ngIf="sortBy === 'pending-desc'"></i>
+          </div>
+          
+          <div class="menu-header">MUA HÀNG & SỐ LƯỢNG</div>
+          <div class="menu-item" [class.active]="sortBy === 'total-desc'" (click)="selectSort('total-desc')">
+            Tổng câu hỏi · Cao → Thấp <i class="bi bi-check" *ngIf="sortBy === 'total-desc'"></i>
+          </div>
+
+          <div class="menu-header">TÊN & MÃ</div>
+          <div class="menu-item" [class.active]="sortBy === 'name-asc'" (click)="selectSort('name-asc')">
+            Tên sản phẩm · A → Z <i class="bi bi-check" *ngIf="sortBy === 'name-asc'"></i>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-reset-filters" (click)="resetFilters()" title="Làm mới bộ lọc">
+        <i class="bi bi-arrow-counterclockwise"></i>
+      </button>
+    </div>
   </div>
 
-  <div class="product-grid">
-    <div class="p-card-consult" *ngFor="let p of products" (click)="selectProduct.emit(p)">
+  <div class="text-center py-5" *ngIf="isLoading">
+    <div class="spinner-border text-success" role="status"></div>
+    <p class="mt-2 text-secondary fw-500">Đang đồng bộ dữ liệu tư vấn...</p>
+  </div>
+
+  <div class="product-grid" *ngIf="!isLoading">
+    <div class="p-card-consult fadeIn" 
+         *ngFor="let p of filteredProducts" 
+         (click)="selectProduct.emit(p)"
+         [class.has-pending]="p.pending > 0">
       
       <div class="p-left-content">
+        <div class="p-cat-tag">{{ p.cat || 'CHỨA PHÂN LOẠI' }}</div>
         <h3 class="p-name">{{p.name}}</h3>
-        <span class="p-sku">SKU: {{p.sku}}</span>
+        <span class="p-sku">SKU: {{p.sku || 'N/A'}}</span>
       </div>
 
       <div class="p-right-content">
         <div class="stat-group">
           <div class="stat-item">
-            <span class="st-label">TỔNG:</span>
-            <span class="st-val text-total">{{p.total}}</span>
+            <span class="st-val">{{p.total}}</span>
+            <span class="st-label">TỔNG</span>
+          </div>
+          <div class="stat-item" [class.is-pending]="p.pending > 0">
+            <span class="st-val">{{p.pending}}</span>
+            <span class="st-label">CHỜ</span>
           </div>
           <div class="stat-item">
-            <span class="st-label">CHỜ TRẢ LỜI:</span>
-            <span class="st-val text-warning">{{p.pending}}</span>
-          </div>
-          <div class="stat-item">
-            <span class="st-label">ĐÃ TRẢ LỜI:</span>
-            <span class="st-val text-success">{{p.answered}}</span>
+            <span class="st-val">{{p.answered}}</span>
+            <span class="st-label">XONG</span>
           </div>
         </div>
         <i class="bi bi-chevron-right arrow-icon"></i>
       </div>
+    </div>
 
+    <div class="search-empty text-center py-5 w-100 fadeIn" *ngIf="filteredProducts.length === 0">
+      <i class="bi bi-funnel fs-1 text-light mb-3 d-block"></i>
+      <h5 class="text-dark">Không tìm thấy sản phẩm phù hợp</h5>
+      <p class="text-secondary">Vui lòng điều chỉnh lại bộ lọc hoặc từ khóa tìm kiếm của bà.</p>
     </div>
   </div>
 </div>

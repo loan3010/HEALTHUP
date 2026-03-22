@@ -19,7 +19,9 @@ export interface ConsultingQuestion {
   answer?: string;
   answerTime?: string;
   time: string;
-  helpful?: number;
+  helpfulCount?: number;
+  unhelpfulCount?: number;
+  voted?: boolean;
 }
 
 export interface ConsultingStats {
@@ -61,13 +63,16 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
   }
 
   policyItems: PolicyItem[] = [
-    { icon: 'bi-arrow-repeat', title: 'Đổi trả trong 7 ngày',  desc: 'Áp dụng khi sản phẩm lỗi hoặc không đúng đơn hàng.' },
-    { icon: 'bi-truck',        title: 'Giao hàng toàn quốc',   desc: 'Từ 2-5 ngày làm việc.' },
-    { icon: 'bi-credit-card',  title: 'Thanh toán an toàn',    desc: 'Hỗ trợ COD, VNPay, Momo.' },
-    { icon: 'bi-patch-check',  title: 'Chất lượng kiểm định',  desc: 'Sản phẩm đạt chứng nhận VSATTP.' }
+    { icon: 'bi-arrow-repeat', title: 'Đổi trả trong 7 ngày',   desc: 'Áp dụng khi sản phẩm lỗi hoặc không đúng đơn hàng.' },
+    { icon: 'bi-truck',        title: 'Giao hàng toàn quốc',    desc: 'Từ 2-5 ngày làm việc.' },
+    { icon: 'bi-credit-card',  title: 'Thanh toán an toàn',     desc: 'Hỗ trợ COD, VNPay, Momo.' },
+    { icon: 'bi-patch-check',  title: 'Chất lượng kiểm định',   desc: 'Sản phẩm đạt chứng nhận VSATTP.' }
   ];
 
-  isLoggedIn = true;
+  // --- LOGIC TƯ VẤN (CONSULTING) ---
+  get isLoggedIn(): boolean {
+    return !!localStorage.getItem('token'); // Kiểm tra trạng thái đăng nhập thật
+  }
   askText = '';
   isAskSubmitting = false;
   askSubmitSuccess = false;
@@ -106,6 +111,7 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
         this.consultingQuestions = [];
         this.consultingPage = 1;
         this.cdr.detectChanges();
+        
         this.loadProduct(id);
         this.loadRelated(id);
         this.loadConsultingQuestions(id);
@@ -125,7 +131,11 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
         this.selectedWeight = data.weights?.[0]?.label || '';
         this.selectedType   = this.visiblePackagingTypes(data)?.[0] || '';
 
+<<<<<<< HEAD
         // Ưu tiên chọn biến thể còn hàng đầu tiên; fallback sang biến thể đầu tiên
+=======
+        // Ưu tiên chọn variant còn hàng (main)
+>>>>>>> d48a6e10 (feat: hoàn thiện tính năng tư vấn sản phẩm và đánh giá hữu ích)
         const firstInStock = (data.variants || []).find((v: any) => Number(v.stock || 0) > 0);
         const defaultVariant = firstInStock || data.variants?.[0];
         if (defaultVariant) {
@@ -163,6 +173,8 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
     });
   }
 
+  // --- HÀM XỬ LÝ TƯ VẤN (CONSULTING) DỮ LIỆU THẬT ---
+
   loadConsultingQuestions(productId?: string, append = false): void {
     const id = productId || this.product?._id;
     if (!id) return;
@@ -176,17 +188,28 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
       limit:  5,
     }).subscribe({
       next: (res) => {
-        const questions: ConsultingQuestion[] = res.questions || [];
+        // Map lại dữ liệu từ Backend để hiển thị thời gian thân thiện nếu cần
+        const questions: ConsultingQuestion[] = (res.questions || []).map((q: any) => ({
+          ...q,
+          time: q.createdAt ? new Date(q.createdAt).toLocaleDateString('vi-VN') : 'Vừa xong',
+          answerTime: q.answerAt ? new Date(q.answerAt).toLocaleDateString('vi-VN') : '',
+          helpfulCount: q.helpfulCount || 0,
+          unhelpfulCount: q.unhelpfulCount || 0,
+          voted: false
+        }));
+
         if (!append) {
           this.consultingQuestions = questions;
         } else {
           this.consultingQuestions = [...this.consultingQuestions, ...questions];
         }
+
         this.consultingStats = {
-          total:    res.stats?.total    || res.total || 0,
+          total:    res.stats?.total    || 0,
           pending:  res.stats?.pending  || 0,
           answered: res.stats?.answered || 0,
         };
+
         this.applyConsultingFilter();
         this.hasMoreQuestions    = questions.length === 5;
         this.isConsultingLoading = false;
@@ -225,6 +248,7 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
   submitQuestion(): void {
   if (this.askText.trim().length < 10 || !this.product?._id) return;
 
+<<<<<<< HEAD
   const userId = this.api.getUserId();
 
   // ❗ Chặn nếu chưa đăng nhập
@@ -269,6 +293,92 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
     }
   });
 }
+=======
+    // Lấy tên người dùng từ localStorage
+    let userName = 'Khách hàng';
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      userName = user.name || user.username || 'Khách hàng';
+    } catch (e) {}
+
+    this.api.submitConsultingQuestion({
+      productId: this.product._id,
+      content:   this.askText.trim(),
+      user: userName
+    }).subscribe({
+      next: () => {
+        this.askText          = '';
+        this.isAskSubmitting  = false;
+        this.askSubmitSuccess = true;
+        this.consultingPage      = 1;
+        this.consultingQuestions = [];
+        this.loadConsultingQuestions(); // Tải lại để hiện câu hỏi mới gửi
+        this.api.showToast('Câu hỏi của bạn đã được gửi! Chúng tôi sẽ phản hồi sớm nhất.', 'success');
+        
+        setTimeout(() => {
+          this.askSubmitSuccess = false;
+          this.cdr.detectChanges();
+        }, 5000);
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Lỗi gửi câu hỏi:', err);
+        this.isAskSubmitting = false;
+        this.api.showToast('Không thể gửi câu hỏi. Vui lòng thử lại.', 'error');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  /**
+   * Khách hàng đánh giá câu trả lời (Like / Dislike) - Bản fix cứng lỗi không nhảy số
+   */
+  voteQuestion(q: any, type: 'up' | 'down'): void {
+    if (q.voted || !q._id) return; 
+
+    this.api.voteConsultingQuestion(q._id, type).subscribe({
+      next: (res: any) => {
+        // 1. Cập nhật dữ liệu vào mảng filtered (mảng đang hiển thị trên HTML)
+        this.filteredConsultingQuestions = this.filteredConsultingQuestions.map(item => {
+          if (item._id === q._id) {
+            return {
+              ...item,
+              helpfulCount: res.helpfulCount,
+              unhelpfulCount: res.unhelpfulCount,
+              voted: true // Đánh dấu đã vote để disable nút
+            };
+          }
+          return item;
+        });
+
+        // 2. Đồng bộ luôn qua mảng gốc để khi lọc không bị mất số
+        this.consultingQuestions = this.consultingQuestions.map(item => {
+          if (item._id === q._id) {
+            return {
+              ...item,
+              helpfulCount: res.helpfulCount,
+              unhelpfulCount: res.unhelpfulCount,
+              voted: true
+            };
+          }
+          return item;
+        });
+
+        this.api.showToast('Cảm ơn bạn đã gửi đánh giá!', 'success');
+        
+        // 3. Ép Angular render lại ngay lập tức
+        this.cdr.markForCheck();
+        this.cdr.detectChanges();
+      },
+      error: (err: any) => {
+        console.error('Lỗi khi đánh giá:', err);
+        this.api.showToast('Không thể gửi đánh giá lúc này.', 'error');
+      }
+    });
+  }
+
+  // --- CÁC HÀM TIỆN ÍCH KHÁC ---
+>>>>>>> d48a6e10 (feat: hoàn thiện tính năng tư vấn sản phẩm và đánh giá hữu ích)
 
   getStars(rating: number): string {
     const full = Math.round(rating);
@@ -286,14 +396,21 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
     }
   }
 
+<<<<<<< HEAD
   /**
    * Chọn biến thể: đồng bộ id, attr1, attr2 và ảnh biến thể (nếu có).
    */
+=======
+>>>>>>> d48a6e10 (feat: hoàn thiện tính năng tư vấn sản phẩm và đánh giá hữu ích)
   selectVariant(v: any): void {
     this.selectedVariantId = v?._id || '';
     const p = this.parseVariantParts(v);
     this.selectedAttr1 = p.a1;
     this.selectedAttr2 = p.a2;
+<<<<<<< HEAD
+=======
+    
+>>>>>>> d48a6e10 (feat: hoàn thiện tính năng tư vấn sản phẩm và đánh giá hữu ích)
     const variantImage = v?.image || v?.imageUrl || '';
     if (variantImage) {
       this.activeImage = String(variantImage).startsWith('http')
@@ -319,9 +436,6 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
     ) || null;
   }
 
-  /**
-   * Đọc attr1/attr2 từ API; fallback tách "A | B" trong label (sản phẩm cũ).
-   */
   parseVariantParts(v: any): { a1: string; a2: string } {
     const a1 = String(v?.attr1Value ?? '').trim();
     const a2 = String(v?.attr2Value ?? '').trim();
@@ -332,7 +446,10 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
     return { a1: parts[0] || label, a2: '' };
   }
 
+<<<<<<< HEAD
   /** Có đủ 2 chiều để hiển thị 2 hàng nút. */
+=======
+>>>>>>> d48a6e10 (feat: hoàn thiện tính năng tư vấn sản phẩm và đánh giá hữu ích)
   hasSecondAttrDimension(): boolean {
     return (this.product?.variants || []).some((v: any) => !!this.parseVariantParts(v).a2);
   }
@@ -467,7 +584,6 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
     ).subscribe({
       next: () => {
         this.addedToCart = true;
-        this.api.showToast(`Đã thêm ${this.qty} sản phẩm vào giỏ hàng!`, 'success');
         setTimeout(() => {
           this.addedToCart = false;
           this.cdr.detectChanges();
@@ -495,7 +611,7 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
       productId:    this.product._id,
       variantId:    v?._id || null,
       variantLabel: v?.label || '',
-      name:         this.product.name,
+      name:          this.product.name,
       price:        this.currentPrice(),
       quantity:     this.qty,
       imageUrl:     this.product.images?.[0] || this.product.image || null,
@@ -536,7 +652,7 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
     }
     this.api.addToCart(product._id, 1, product.name).subscribe({
       next: () => {
-        this.api.showToast(`Đã thêm "${product.name}" vào giỏ hàng!`, 'success');
+        // Success toast đã được handle trong Service
       },
       error: (err) => {
         console.error('Lỗi thêm SP liên quan:', err);
