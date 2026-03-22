@@ -171,8 +171,8 @@ router.post('/', async (req, res) => {
       });
     }
 
-    // ── Tạo review ──
-    const review = new Review(req.body);
+    // ✅ FIX: Set verified = true vì đã xác nhận có đơn delivered
+    const review = new Review({ ...req.body, verified: true });
     await review.save();
     await syncProductStats(productId);
     res.status(201).json(review);
