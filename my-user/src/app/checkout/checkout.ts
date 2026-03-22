@@ -222,7 +222,7 @@ export class Checkout implements OnInit {
     private router: Router,
     private http:   HttpClient,
     private cdr:    ChangeDetectorRef,
-    private api:    ApiService  // ✅ Inject ApiService
+    private api:    ApiService
   ) {}
 
   ngOnInit(): void {
@@ -471,7 +471,6 @@ export class Checkout implements OnInit {
     return '';
   }
 
-  // ✅ MỚI: Tính số tiền tiết kiệm thực tế của 1 voucher (từ nhánh main)
   calcVoucherSaving(v: VoucherInfo): number {
     if (!this.isVoucherEligible(v)) return 0;
 
@@ -589,7 +588,6 @@ export class Checkout implements OnInit {
     this.cdr.detectChanges();
   }
 
-  // ✅ CẬP NHẬT: Mở modal — sort voucher theo saving giảm dần, đánh dấu tốt nhất (từ nhánh main)
   openVoucherModal(forType: 'order' | 'shipping'): void {
     if (!this.canUseVouchers) return;
     this.voucherModalFor   = forType;
@@ -600,29 +598,24 @@ export class Checkout implements OnInit {
 
     this.http.get<VoucherInfo[]>(`${this.API_BASE}/promotions/available`).subscribe({
       next: (list) => {
-        // Lọc đúng loại
         const filtered = (list || []).filter(v =>
           forType === 'shipping' ? v.type === 'shipping' : v.type === 'order'
         );
 
-        // Tính saving thực tế rồi sort
         const withSaving = filtered.map(v => ({
           ...v,
           _saving:   this.calcVoucherSaving(v),
           _eligible: this.isVoucherEligible(v),
         }));
 
-        // Eligible: sort theo tiết kiệm nhiều nhất lên đầu
         const eligible = withSaving
           .filter(v => v._eligible)
           .sort((a, b) => b._saving - a._saving);
 
-        // Ineligible: sort theo minOrder tăng dần (gần đủ điều kiện lên đầu)
         const ineligible = withSaving
           .filter(v => !v._eligible)
           .sort((a, b) => (a.minOrder ?? 0) - (b.minOrder ?? 0));
 
-        // Đánh dấu voucher tốt nhất
         if (eligible.length > 0) {
           this.bestVoucherCode.set(eligible[0].code);
         }
@@ -675,6 +668,35 @@ export class Checkout implements OnInit {
   // ══════════════════════════════════════
   // PLACE ORDER
   // ══════════════════════════════════════
+
+  /**
+   * Tách province/district/ward từ chuỗi địa chỉ đầy đủ.
+   * Địa chỉ thường có dạng: "123 đường ABC, Phường X, Quận Y, Tỉnh Z"
+   * → parts[-1] = province, parts[-2] = district, parts[-3] = ward
+   */
+  private parseAddressParts(fullAddress: string): { province: string; district: string; ward: string } {
+    const parts = fullAddress.split(',').map(p => p.trim()).filter(Boolean);
+    if (parts.length >= 4) {
+      return {
+        province: parts[parts.length - 1],
+        district: parts[parts.length - 2],
+        ward:     parts[parts.length - 3],
+      };
+    }
+    if (parts.length === 3) {
+      return {
+        province: parts[2],
+        district: parts[1],
+        ward:     parts[0],
+      };
+    }
+    if (parts.length === 2) {
+      return { province: parts[1], district: parts[0], ward: parts[0] };
+    }
+    // fallback: dùng toàn bộ chuỗi để tránh lỗi required
+    return { province: fullAddress, district: fullAddress, ward: fullAddress };
+  }
+
   placeOrder(): void {
     this.errorMsg.set('');
     if (this.isPlacing()) return;
@@ -700,10 +722,18 @@ export class Checkout implements OnInit {
 
     const note = this.checkoutForm.value.note || '';
 
-    // Sổ địa chỉ lưu 1 chuỗi đầy đủ trong `address`; không gửi N/A (sẽ bị nối thừa trên màn chi tiết đơn).
+    // ✅ FIX: Tách province/district/ward từ chuỗi địa chỉ đầy đủ
+    const { province, district, ward } = this.parseAddressParts(addr.address);
+
     const customer: any = {
-      fullName: addr.name, phone: addr.phone, email: '',
-      address: addr.address, province: '', district: '', ward: '', note,
+      fullName: addr.name,
+      phone:    addr.phone,
+      email:    '',
+      address:  addr.address,
+      province,
+      district,
+      ward,
+      note,
     };
 
     const useVoucher = this.canUseVouchers;
@@ -749,8 +779,6 @@ export class Checkout implements OnInit {
         this.successOrderCode.set(String(res?.orderCode || ''));
         this.showSuccess.set(true);
 
-        // ✅ FIX: Refresh unread count để badge thông báo cập nhật ngay
-        // và refresh cart count sau khi đặt hàng thành công
         this.api.refreshUnreadCount();
         this.api.refreshCartCount();
 

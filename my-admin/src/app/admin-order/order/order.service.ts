@@ -46,15 +46,16 @@ export interface AdminOrder {
   returnStatus: AdminReturnStatus;
   returnReason?: string;
   returnRejectionReason?: string;
-  /** Ghi chú khách khi gửi yêu cầu hoàn. */
   returnNote?: string;
-  /** Đường dẫn ảnh minh chứng (vd: /images/returns/...) */
   returnImages?: string[];
-  /** Chỉ các dòng khách chọn trả (thường returnQty > 0). */
   returnItems?: AdminReturnLine[];
+  voucherCode?: string | null;
+  shipVoucherCode?: string | null;
   subTotal: number;
   shippingFee: number;
   discount: number;
+  discountOnItems: number;
+  discountOnShipping: number;
   total: number;
   createdAt: string;
   customerSummary?: {
@@ -62,7 +63,6 @@ export interface AdminOrder {
     membershipTier?: string;
     totalOrders?: number;
     totalSpent?: number;
-    /** Có đơn delivered đang chờ xử lý hoàn (requested|approved) — tiền/hạng vẫn tạm tính. */
     hasProvisionalSpend?: boolean;
   };
 }
