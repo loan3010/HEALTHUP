@@ -3,6 +3,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { Router, RouterModule } from '@angular/router';
 import { HttpClient, HttpClientModule, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
+import { ApiService } from '../services/api.service'; // ✅ Thêm import
 
 type ShippingMethod = 'standard' | 'express';
 type PaymentMethod  = 'cod' | 'momo' | 'vnpay';
@@ -193,7 +194,8 @@ export class Checkout implements OnInit {
     private fb:     FormBuilder,
     private router: Router,
     private http:   HttpClient,
-    private cdr:    ChangeDetectorRef
+    private cdr:    ChangeDetectorRef,
+    private api:    ApiService  // ✅ Inject ApiService
   ) {}
 
   ngOnInit(): void {
@@ -431,7 +433,7 @@ export class Checkout implements OnInit {
     return '';
   }
 
-  // ✅ MỚI: Tính số tiền tiết kiệm thực tế của 1 voucher
+  // ✅ MỚI: Tính số tiền tiết kiệm thực tế của 1 voucher (từ nhánh main)
   calcVoucherSaving(v: VoucherInfo): number {
     if (!this.isVoucherEligible(v)) return 0;
 
@@ -547,7 +549,7 @@ export class Checkout implements OnInit {
     this.cdr.detectChanges();
   }
 
-  // ✅ CẬP NHẬT: Mở modal — sort voucher theo saving giảm dần, đánh dấu tốt nhất
+  // ✅ CẬP NHẬT: Mở modal — sort voucher theo saving giảm dần, đánh dấu tốt nhất (từ nhánh main)
   openVoucherModal(forType: 'order' | 'shipping'): void {
     this.voucherModalFor   = forType;
     this.showVoucherModal  = true;
@@ -651,9 +653,10 @@ export class Checkout implements OnInit {
     const addr = this.selectedAddr!;
     const note = this.checkoutForm.value.note || '';
 
+    // Sổ địa chỉ lưu 1 chuỗi đầy đủ trong `address`; không gửi N/A (sẽ bị nối thừa trên màn chi tiết đơn).
     const customer: any = {
       fullName: addr.name, phone: addr.phone, email: '',
-      address: addr.address, province: 'N/A', district: 'N/A', ward: 'N/A', note,
+      address: addr.address, province: '', district: '', ward: '', note,
     };
 
     const payload: any = {
@@ -681,6 +684,12 @@ export class Checkout implements OnInit {
         this.isPlacing.set(false);
         this.successOrderId.set(String(orderId));
         this.showSuccess.set(true);
+
+        // ✅ FIX: Refresh unread count để badge thông báo cập nhật ngay
+        // và refresh cart count sau khi đặt hàng thành công
+        this.api.refreshUnreadCount();
+        this.api.refreshCartCount();
+
         this.cdr.detectChanges();
       },
       error: (err) => {

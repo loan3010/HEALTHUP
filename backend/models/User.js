@@ -13,6 +13,15 @@ const userSchema = new mongoose.Schema(
     // Mặc định user mới tạo sẽ đang hoạt động
     isActive:     { type: Boolean, default: true },
 
+    // Lý do vô hiệu hóa (admin nhập khi khóa). Khách xem khi đăng nhập / gọi API.
+    // Xóa khi kích hoạt lại tài khoản.
+    deactivationReason: {
+      type: String,
+      default: '',
+      trim: true,
+      maxlength: 2000,
+    },
+
     // Profile
     dob:     { type: String, default: '' },
     gender:  { type: String, enum: ['male', 'female', 'other'], default: 'male' },

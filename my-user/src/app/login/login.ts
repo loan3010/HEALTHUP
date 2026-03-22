@@ -18,7 +18,7 @@ type LoginRes = {
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [FormsModule, RouterModule, CommonModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './login.html',
   styleUrls: ['./login.css']
 })
@@ -32,6 +32,11 @@ export class Login implements OnInit {
   // ✅ MỚI: kiểm soát popup thành công
   showSuccessPopup = false;
   loggedInName     = '';
+
+  /** Thông báo khi tài khoản bị khóa (403 từ API) */
+  loginBanMessage = '';
+  /** Lý do admin nhập — hiển thị cùng thông báo khóa */
+  loginBanReason = '';
 
   private API = 'http://localhost:3000/api';
 
@@ -83,7 +88,14 @@ export class Login implements OnInit {
       },
       error: (err: HttpErrorResponse) => {
         this.isLoading = false;
-        this.errorMsg  = err?.error?.message || 'Sai tên tài khoản hoặc mật khẩu!';
+        const body = err.error as { message?: string; deactivationReason?: string } | null;
+        // Tài khoản user bị vô hiệu hóa: API trả 403 + lý do để khách hiểu
+        if (err.status === 403) {
+          this.loginBanMessage = body?.message || 'Tài khoản của bạn đã bị vô hiệu hóa.';
+          this.loginBanReason  = String(body?.deactivationReason || '').trim();
+        } else {
+          this.errorMsg = body?.message || 'Sai tên tài khoản hoặc mật khẩu!';
+        }
       }
     });
   }

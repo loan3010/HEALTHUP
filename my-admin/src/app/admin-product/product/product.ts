@@ -1,8 +1,10 @@
 import { Component, HostListener, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { forkJoin } from 'rxjs';
 import { ProductService, Product, ADMIN_STATIC_BASE } from '../product.service';
 import { ProductFormComponent } from '../product-form/product-form';
+import { buildProductClassificationSummary } from '../product-classification-summary.util';
 
 @Component({
   selector: 'app-product',
@@ -78,6 +80,12 @@ export class ProductComponent implements OnInit {
   confirmMessage = '';
   confirmDanger = false;
   private confirmAction: (() => void) | null = null;
+
+  /**
+   * Modal từ nút toolbar "Xóa": Hủy | Vô hiệu hóa (ẩn) | Xác nhận xóa (vĩnh viễn).
+   */
+  isBulkDeleteChoiceModalOpen = false;
+  bulkToolbarSubmitting = false;
 
   // ── SẮP XẾP (dropdown kiểu admin-customer) ──
   sortMenuOpen = false;
@@ -165,7 +173,9 @@ export class ProductComponent implements OnInit {
         // Sort stock client-side (API chưa hỗ trợ)
         if (this.sortField === 'stock') {
           products = [...products].sort((a, b) =>
-            this.sortDir === 'asc' ? a.stock - b.stock : b.stock - a.stock
+            this.sortDir === 'asc'
+              ? this.stockOf(a) - this.stockOf(b)
+              : this.stockOf(b) - this.stockOf(a)
           );
         }
 
@@ -216,6 +226,31 @@ export class ProductComponent implements OnInit {
   }
 
   get selectedCount() { return this.selectedIds.size; }
+
+  /**
+   * Trong nhóm đã chọn: bao nhiêu SP đang hiển thị (còn “vô hiệu hóa” = ẩn được).
+   * Chọn lộn ẩn + hiện → chỉ những cái đang hiện mới bị toggle-hidden.
+   */
+  get bulkVisibleSelectedCount(): number {
+    return this.selectedVisibleProductIds().length;
+  }
+
+  /** SP đã chọn nhưng đã ẩn — thao tác vô hiệu hóa hàng loạt bỏ qua. */
+  get bulkHiddenSelectedCount(): number {
+    return Math.max(0, this.selectedCount - this.bulkVisibleSelectedCount);
+  }
+
+  /** Tooltip nút Vô hiệu hóa trên toolbar. */
+  get bulkDisableToolbarTitle(): string {
+    if (this.selectedCount < 1) return '';
+    if (this.bulkVisibleSelectedCount === 0) {
+      return 'Tất cả sản phẩm đã chọn đang ẩn — không có gì để vô hiệu hóa thêm. Bật lại bằng nút Hiển thị trên từng dòng.';
+    }
+    if (this.bulkHiddenSelectedCount > 0) {
+      return `Sẽ ẩn ${this.bulkVisibleSelectedCount} SP đang hiển thị; ${this.bulkHiddenSelectedCount} SP đã ẩn được bỏ qua.`;
+    }
+    return 'Ẩn khỏi cửa hàng — có thể hiện lại sau';
+  }
 
   // ── SORT ── server-side
   setSort(field: string) {
@@ -280,18 +315,109 @@ export class ProductComponent implements OnInit {
     );
   }
 
-  /** Ẩn nhiều sản phẩm đã chọn */
-  hideSelected() {
-    this.openConfirmModal(
-      'Xóa sản phẩm đã chọn',
-      `Bạn có chắc muốn xóa (ẩn) ${this.selectedCount} sản phẩm đã chọn?\n\nBạn vẫn có thể hiển thị lại sau.`,
-      true,
-      () => {
-        const ids = [...this.selectedIds];
-        Promise.all(ids.map(id => this.productService.toggleHidden(id).toPromise()))
-          .then(() => this.loadProducts());
-      }
-    );
+  /** Mở modal cảnh báo khi bấm "Xóa" trên toolbar (nhiều hoặc 1 SP). */
+  openBulkDeleteChoiceModal(): void {
+    if (this.selectedCount < 1) return;
+    this.isBulkDeleteChoiceModalOpen = true;
+  }
+
+  closeBulkDeleteChoiceModal(): void {
+    if (this.bulkToolbarSubmitting) return;
+    this.isBulkDeleteChoiceModalOpen = false;
+  }
+
+  /** Trong modal "Xóa": chỉ ẩn (vô hiệu hóa) các SP đang hiển thị. */
+  executeBulkDisableFromChoiceModal(): void {
+    const ids = this.selectedVisibleProductIds();
+    if (!ids.length) {
+      this.isBulkDeleteChoiceModalOpen = false;
+      const n = this.selectedCount;
+      this.openConfirmModal(
+        'Không thể vô hiệu hóa thêm',
+        n === 1
+          ? 'Sản phẩm đã chọn đang ẩn. Không có gì để vô hiệu hóa — dùng nút Hiển thị trên dòng đó nếu muốn bật lại.'
+          : `Cả ${n} sản phẩm đã chọn đều đang ẩn. Không có gì để vô hiệu hóa thêm — dùng nút Hiển thị trên từng dòng nếu muốn bật lại.`,
+        false,
+        () => {}
+      );
+      return;
+    }
+    this.runBulkDisable(() => {
+      this.isBulkDeleteChoiceModalOpen = false;
+    });
+  }
+
+  /** Trong modal "Xóa": xóa vĩnh viễn mọi ID đã chọn. */
+  executeBulkPermanentDeleteFromModal(): void {
+    const ids = [...this.selectedIds];
+    if (!ids.length || this.bulkToolbarSubmitting) return;
+    this.bulkToolbarSubmitting = true;
+    forkJoin(ids.map((id) => this.productService.delete(id))).subscribe({
+      next: () => {
+        this.bulkToolbarSubmitting = false;
+        this.isBulkDeleteChoiceModalOpen = false;
+        this.loadProducts();
+      },
+      error: (err) => {
+        console.error(err);
+        this.bulkToolbarSubmitting = false;
+      },
+    });
+  }
+
+  /**
+   * Nút toolbar "Vô hiệu hóa": xác nhận rồi ẩn hàng loạt (chỉ SP đang hiển thị).
+   */
+  openBulkDisableToolbarConfirm(): void {
+    if (this.selectedCount < 1) return;
+    const visibleIds = this.selectedVisibleProductIds();
+    if (!visibleIds.length) {
+      const n = this.selectedCount;
+      this.openConfirmModal(
+        'Vô hiệu hóa',
+        n === 1
+          ? 'Sản phẩm đã chọn đang ẩn. Không có gì để vô hiệu hóa thêm.'
+          : `Cả ${n} sản phẩm đã chọn đều đang ẩn. Không có gì để vô hiệu hóa thêm.`,
+        false,
+        () => {}
+      );
+      return;
+    }
+    const skipped = this.bulkHiddenSelectedCount;
+    let body = `Ẩn ${visibleIds.length} sản phẩm đang hiển thị khỏi cửa hàng?\n\nBạn có thể bật lại sau bằng nút Hiển thị trên từng dòng.`;
+    if (skipped > 0) {
+      body += `\n\n(${skipped} sản phẩm đã ẩn trong nhóm đã chọn sẽ được bỏ qua — không đổi.)`;
+    }
+    this.openConfirmModal('Vô hiệu hóa sản phẩm', body, false, () => this.runBulkDisable());
+  }
+
+  /** ID đã chọn mà hiện đang không ẩn — mới gọi toggle-hidden để ẩn. */
+  private selectedVisibleProductIds(): string[] {
+    return [...this.selectedIds].filter((id) => {
+      const p = this.filteredProducts.find((x) => x._id === id);
+      return !!p && !p.isHidden;
+    });
+  }
+
+  /** Gọi API ẩn lần lượt các SP đang hiển thị trong nhóm đã chọn. */
+  private runBulkDisable(afterClose?: () => void): void {
+    const ids = this.selectedVisibleProductIds();
+    if (!ids.length) {
+      afterClose?.();
+      return;
+    }
+    this.bulkToolbarSubmitting = true;
+    forkJoin(ids.map((id) => this.productService.toggleHidden(id))).subscribe({
+      next: () => {
+        this.bulkToolbarSubmitting = false;
+        afterClose?.();
+        this.loadProducts();
+      },
+      error: (err) => {
+        console.error(err);
+        this.bulkToolbarSubmitting = false;
+      },
+    });
   }
 
   /** Toggle Tạm hết hàng thủ công */
@@ -345,6 +471,27 @@ export class ProductComponent implements OnInit {
       return p.variants.reduce((sum, v) => sum + Number(v?.stock || 0), 0);
     }
     return Number(p.stock || 0);
+  }
+
+  /**
+   * Chuỗi phân loại biến thể (khớp form chỉnh sửa) — dùng cho cột bảng, không lẫn với danh mục `cat`.
+   */
+  classificationSummaryForList(p: Product): string {
+    return buildProductClassificationSummary(p);
+  }
+
+  /**
+   * Giá hiển thị trên bảng: ưu tiên biến thể đang bán có giá > 0 (min), fallback dòng đầu / price cấp SP.
+   * Tránh lệch với form khi `p.price` chưa sync hoặc = 0.
+   */
+  adminListDisplayPrice(p: Product): number {
+    const vs = p.variants || [];
+    if (!vs.length) return Number(p.price || 0);
+    const active = vs.filter((v) => v.isActive !== false);
+    const src = active.length ? active : vs;
+    const priced = src.map((v) => Number(v.price || 0)).filter((x) => x > 0);
+    if (priced.length) return Math.min(...priced);
+    return Number(src[0]?.price ?? p.price ?? 0);
   }
 
   isEffectiveOutOfStock(p: Product): boolean {

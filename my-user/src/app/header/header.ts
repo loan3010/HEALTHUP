@@ -25,13 +25,14 @@ export class Header implements OnInit, OnDestroy {
   showDropdown = false;
   menuOpen = false;
   showTrackOrderModal = false;
-
-  // ✅ MỚI: kiểm soát popup xác nhận đăng xuất
   showLogoutConfirm = false;
 
-  // ── CART COUNT ──
   cartCount = 0;
   private cartCountSub!: Subscription;
+
+  // ✅ UNREAD NOTIFICATION COUNT (từ THnew)
+  unreadCount = 0;
+  private unreadCountSub!: Subscription;
 
   // ── SEARCH STATE ──
   searchQuery = '';
@@ -56,8 +57,15 @@ export class Header implements OnInit, OnDestroy {
     this.checkLoginStatus();
     this.initSearch();
 
+    // ✅ Subscribe cart count
     this.cartCountSub = this.api.cartCount$.subscribe(count => {
       this.cartCount = count;
+      this.cdr.detectChanges();
+    });
+
+    // ✅ Subscribe unread notification count — badge chuông tự cập nhật
+    this.unreadCountSub = this.api.unreadCount$.subscribe(count => {
+      this.unreadCount = count;
       this.cdr.detectChanges();
     });
   }
@@ -65,11 +73,12 @@ export class Header implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.searchSub?.unsubscribe();
     this.cartCountSub?.unsubscribe();
+    this.unreadCountSub?.unsubscribe(); // ✅ Unsubscribe tránh memory leak
   }
 
   initSearch(): void {
     this.searchSub = this.searchSubject.pipe(
-      debounceTime(250),
+      debounceTime(250), // giữ 250ms từ THnew (phản hồi người dùng tốt hơn 150ms)
       distinctUntilChanged(),
       switchMap(keyword => {
         if (!keyword.trim()) {
@@ -164,19 +173,31 @@ export class Header implements OnInit, OnDestroy {
 
   selectProduct(product: SearchProduct): void {
     this.closeSearchDropdown();
-    this.searchQuery = '';
-    this.cdr.detectChanges();
-    this.router.navigate(['/product-detail-page', product._id]);
+    this.router.navigate(['/product-detail-page', product._id]).then(() => {
+      this.searchQuery = '';
+      this.searchResults = [];
+      this.cdr.detectChanges();
+    });
   }
 
   submitSearch(): void {
-    if (!this.searchQuery.trim()) return;
+    const keyword = this.searchQuery.trim();
+    if (!keyword) return;
+
     this.closeSearchDropdown();
+    this.searchInputRef?.nativeElement?.blur();
+
+    // ✅ Nếu đang ở /products rồi: chỉ update queryParams, không recreate component
+    const isOnProductPage = this.router.url.split('?')[0] === '/products';
+
     this.router.navigate(['/products'], {
-      queryParams: { search: this.searchQuery.trim() }
+      queryParams: { search: keyword },
+      replaceUrl: isOnProductPage,
+    }).then(() => {
+      this.searchQuery = '';
+      this.searchResults = [];
+      this.cdr.detectChanges();
     });
-    this.searchQuery = '';
-    this.cdr.detectChanges();
   }
 
   closeSearchDropdown(): void {
@@ -233,27 +254,25 @@ export class Header implements OnInit, OnDestroy {
   openTrackOrder()       { this.showTrackOrderModal = true;  this.cdr.detectChanges(); }
   closeTrackOrderModal() { this.showTrackOrderModal = false; this.cdr.detectChanges(); }
 
-  // ✅ MỚI: mở popup xác nhận thay vì logout ngay
   logout(): void {
     this.showDropdown = false;
     this.showLogoutConfirm = true;
     this.cdr.detectChanges();
   }
 
-  // ✅ MỚI: xác nhận đăng xuất
   confirmLogout(): void {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    localStorage.removeItem('userId');
+    localStorage.removeItem('userId'); // từ main
     this.isLoggedIn        = false;
     this.userName          = '';
     this.showDropdown      = false;
-    this.showLogoutConfirm = false;
+    this.showLogoutConfirm = false; // từ main
+    this.unreadCount       = 0; //
     this.cdr.detectChanges();
     this.router.navigate(['/']);
   }
 
-  // ✅ MỚI: hủy đăng xuất
   cancelLogout(): void {
     this.showLogoutConfirm = false;
     this.cdr.detectChanges();

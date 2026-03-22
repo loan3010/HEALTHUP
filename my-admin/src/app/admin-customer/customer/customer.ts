@@ -39,6 +39,12 @@ export class Customer implements OnInit {
   isDeleteModalOpen = false;
   deleteTarget: CustomerRow | null = null;
 
+  // Modal xác nhận vô hiệu hóa (bắt buộc nhập lý do cho khách)
+  isDeactivateModalOpen = false;
+  deactivateTarget: CustomerRow | null = null;
+  deactivateReasonDraft = '';
+  deactivateSubmitting = false;
+
   // Pagination — backend driven
   currentPage = 1;
   totalPages  = 1;
@@ -166,14 +172,56 @@ export class Customer implements OnInit {
   closeModal(): void { this.isModalOpen = false; this.selectedCustomer = null; }
 
   // ── TOGGLE ACTIVE ──
+  /** Đang khóa → mở modal nhập lý do. Đang mở khóa → gọi API ngay (không cần lý do). */
   onToggleActive(c: CustomerRow, event?: Event): void {
     event?.stopPropagation();
-    this.customerService.toggleActive(c.id).subscribe({
+    if (!c.isActive) {
+      this.runToggleActive(c, undefined);
+      return;
+    }
+    this.deactivateTarget = c;
+    this.deactivateReasonDraft = '';
+    this.isDeactivateModalOpen = true;
+  }
+
+  cancelDeactivate(): void {
+    this.isDeactivateModalOpen = false;
+    this.deactivateTarget = null;
+    this.deactivateReasonDraft = '';
+    this.deactivateSubmitting = false;
+  }
+
+  confirmDeactivate(): void {
+    const reason = this.deactivateReasonDraft.trim();
+    if (reason.length < 5) {
+      alert('Vui lòng nhập lý do vô hiệu hóa (tối thiểu 5 ký tự). Khách hàng sẽ thấy nội dung này khi đăng nhập.');
+      return;
+    }
+    const target = this.deactivateTarget;
+    if (!target) return;
+    this.deactivateSubmitting = true;
+    this.runToggleActive(target, reason, () => {
+      this.cancelDeactivate();
+    });
+  }
+
+  /** Gọi PATCH toggle-active; optional onDone sau khi thành công (đóng modal). */
+  private runToggleActive(c: CustomerRow, reason: string | undefined, onDone?: () => void): void {
+    this.customerService.toggleActive(c.id, reason).subscribe({
       next: res => {
         c.isActive = res.isActive;
-        if (this.selectedCustomer?.id === c.id) this.selectedCustomer.isActive = res.isActive;
+        c.deactivationReason = res.deactivationReason ?? (res.isActive ? '' : c.deactivationReason);
+        if (this.selectedCustomer?.id === c.id) {
+          this.selectedCustomer.isActive = res.isActive;
+          this.selectedCustomer.deactivationReason = c.deactivationReason;
+        }
+        onDone?.();
+        this.deactivateSubmitting = false;
       },
-      error: err => alert(err?.error?.message || 'Có lỗi xảy ra')
+      error: err => {
+        this.deactivateSubmitting = false;
+        alert(err?.error?.message || 'Có lỗi xảy ra');
+      }
     });
   }
 
@@ -222,6 +270,7 @@ export class Customer implements OnInit {
   private toRow(c: CustomerItem): CustomerRow {
     return {
       ...c,
+      deactivationReason: c.deactivationReason || '',
       selected: false,
       initials: this.getInitials(c.username),
       avatarBg: this.getAvatarColor(c.username).bg,

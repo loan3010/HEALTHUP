@@ -41,6 +41,7 @@
           <div class="search-dropdown-loading" *ngIf="isSearching">
             <span class="search-spinner"></span>Đang tìm kiếm...
           </div>
+
           <ng-container *ngIf="!isSearching && searchResults.length > 0">
             <div class="search-dropdown-header">Gợi ý sản phẩm</div>
             <div *ngFor="let product of searchResults; let i = index"
@@ -67,6 +68,7 @@
               Xem tất cả kết quả cho "<strong>{{ searchQuery }}</strong>"
             </div>
           </ng-container>
+
           <div class="search-no-result" *ngIf="!isSearching && searchResults.length === 0">
             <i class="bi bi-emoji-frown"></i>
             <p>Không tìm thấy sản phẩm nào</p>
@@ -93,7 +95,16 @@
         </ng-container>
 
         <ng-container *ngIf="isLoggedIn">
-          <i class="bi bi-bell icon" title="Thông báo"></i>
+
+          <!-- ✅ Chuông thông báo với badge unread count (từ THnew) -->
+          <div class="cart-icon-wrap" routerLink="/profile/notifications" title="Thông báo">
+            <i class="bi bi-bell icon"></i>
+            <span class="cart-badge" *ngIf="unreadCount > 0">
+              {{ unreadCount > 99 ? '99+' : unreadCount }}
+            </span>
+          </div>
+
+          <!-- Cart icon với badge -->
           <div class="cart-icon-wrap" routerLink="/cart" title="Giỏ hàng">
             <i class="bi bi-cart icon"></i>
             <span class="cart-badge" *ngIf="cartCount > 0">{{ cartCount > 99 ? '99+' : cartCount }}</span>
@@ -118,6 +129,11 @@
               </a>
               <a routerLink="/profile/order-management" (click)="closeDropdown()">
                 <i class="bi-box-seam"></i> Theo dõi đơn hàng
+              </a>
+              <!-- ✅ Thêm link thông báo vào dropdown -->
+              <a routerLink="/profile/notifications" (click)="closeDropdown()">
+                <i class="bi bi-bell"></i> Thông báo
+                <span class="dropdown-badge" *ngIf="unreadCount > 0">{{ unreadCount }}</span>
               </a>
               <div class="dropdown-divider"></div>
               <!-- ✅ Gọi logout() → mở popup xác nhận -->

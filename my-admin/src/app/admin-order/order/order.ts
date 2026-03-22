@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminOrder, AdminOrderService } from './order.service';
 import { OrderDetail } from '../order-detail/order-detail';
+import { OrderFormComponent } from '../order-form/order-form';
 
 @Component({
   selector: 'app-order',
   standalone: true,
-  imports: [CommonModule, FormsModule, OrderDetail],
+  imports: [CommonModule, FormsModule, OrderDetail, OrderFormComponent],
   templateUrl: './order.html',
   styleUrl: './order.css',
 })
@@ -35,6 +36,9 @@ export class Order implements OnInit, OnDestroy {
   // Detail view on same page (no modal)
   selectedOrderId: string | null = null;
 
+  /** Màn hình tạo đơn full-page (giống product-form). */
+  isCreateFormOpen = false;
+
   // Stats cards
   totalOrders = 0;
   pendingCount = 0;
@@ -46,27 +50,6 @@ export class Order implements OnInit, OnDestroy {
   allChecked = false;
   showFilterPanel = false;
   sortMenuOpen = false;
-  showCreatePanel = false;
-  createSubmitting = false;
-  createError = '';
-  productOptions: Array<{ _id: string; name: string }> = [];
-  newOrder = {
-    customer: {
-      fullName: '',
-      phone: '',
-      email: '',
-      address: '',
-      province: '',
-      district: '',
-      ward: '',
-      note: ''
-    },
-    shippingMethod: 'standard' as 'standard' | 'express',
-    paymentMethod: 'cod' as 'cod' | 'momo' | 'vnpay',
-    items: [
-      { productId: '', quantity: 1 }
-    ] as Array<{ productId: string; quantity: number }>
-  };
 
   private searchTimer: any;
   private refreshTimer: any;
@@ -75,10 +58,9 @@ export class Order implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadOrders();
-    this.loadProductOptions();
-    // Tự refresh để admin thấy đơn mới mà không cần F5.
+    // Tự refresh khi đang xem danh sách (không mở chi tiết / form tạo).
     this.refreshTimer = setInterval(() => {
-      if (!this.selectedOrderId) this.loadOrders(false);
+      if (!this.selectedOrderId && !this.isCreateFormOpen) this.loadOrders(false);
     }, 30000);
   }
 
@@ -178,73 +160,19 @@ export class Order implements OnInit, OnDestroy {
     return this.selectedIds.size;
   }
 
-  loadProductOptions(): void {
-    this.orderService.getProductsForOrder(200).subscribe({
-      next: (rows) => {
-        this.productOptions = rows.map((p: any) => ({ _id: String(p._id), name: String(p.name || '') }));
-      },
-      error: () => {
-        this.productOptions = [];
-      }
-    });
+  openCreateForm(): void {
+    this.isCreateFormOpen = true;
   }
 
-  toggleCreatePanel(): void {
-    this.showCreatePanel = !this.showCreatePanel;
-    this.createError = '';
+  closeCreateForm(): void {
+    this.isCreateFormOpen = false;
   }
 
-  addItemRow(): void {
-    this.newOrder.items.push({ productId: '', quantity: 1 });
-  }
-
-  removeItemRow(idx: number): void {
-    if (this.newOrder.items.length <= 1) return;
-    this.newOrder.items.splice(idx, 1);
-  }
-
-  submitHotlineOrder(): void {
-    this.createError = '';
-    if (!this.newOrder.customer.fullName || !this.newOrder.customer.phone || !this.newOrder.customer.address) {
-      this.createError = 'Vui lòng nhập đủ họ tên, số điện thoại, địa chỉ.';
-      return;
-    }
-    if (!this.newOrder.customer.province || !this.newOrder.customer.district || !this.newOrder.customer.ward) {
-      this.createError = 'Vui lòng nhập đủ tỉnh/thành, quận/huyện, phường/xã.';
-      return;
-    }
-    const items = this.newOrder.items
-      .filter(i => i.productId && Number(i.quantity) > 0)
-      .map(i => ({ productId: i.productId, quantity: Number(i.quantity) }));
-    if (!items.length) {
-      this.createError = 'Vui lòng chọn ít nhất 1 sản phẩm.';
-      return;
-    }
-
-    this.createSubmitting = true;
-    this.orderService.createHotlineOrder({
-      customer: this.newOrder.customer,
-      items,
-      shippingMethod: this.newOrder.shippingMethod,
-      paymentMethod: this.newOrder.paymentMethod
-    }).subscribe({
-      next: (res) => {
-        this.createSubmitting = false;
-        alert(`Tạo đơn thành công: ${res.orderCode || res.orderId}`);
-        this.showCreatePanel = false;
-        this.newOrder = {
-          customer: { fullName: '', phone: '', email: '', address: '', province: '', district: '', ward: '', note: '' },
-          shippingMethod: 'standard',
-          paymentMethod: 'cod',
-          items: [{ productId: '', quantity: 1 }]
-        };
-        this.loadOrders(true);
-      },
-      error: (err) => {
-        this.createSubmitting = false;
-        this.createError = err?.error?.message || 'Không thể tạo đơn hàng hotline';
-      }
-    });
+  /** Sau khi tạo đơn hotline: đóng form và mở chi tiết đơn vừa tạo. */
+  onHotlineCreated(orderId: string): void {
+    this.isCreateFormOpen = false;
+    this.selectedOrderId = orderId;
+    this.loadOrders(true);
   }
 
   toggleAll(checked: boolean): void {
@@ -353,7 +281,9 @@ export class Order implements OnInit, OnDestroy {
     const map: Record<string, string> = {
       none: 'Không',
       requested: 'Yêu cầu hoàn/trả',
-      completed: 'Đã hoàn/trả'
+      approved: 'Đã chấp nhận hoàn',
+      rejected: 'Từ chối hoàn',
+      completed: 'Đã hoàn/trả xong'
     };
     return map[returnStatus] || returnStatus;
   }

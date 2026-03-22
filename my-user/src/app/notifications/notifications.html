@@ -2,13 +2,17 @@
 
   <div class="noti-header">
     <h2>Thông báo</h2>
-    <button
-      class="btn-read-all"
-      *ngIf="unreadCount > 0"
-      (click)="markAllRead()"
-    >
-      <i class="bi bi-check2-all"></i> Đánh dấu tất cả đã đọc
-    </button>
+    <div class="noti-actions">
+      <button class="btn-shopping" (click)="continueShopping()">
+        <i class="bi bi-bag"></i> Tiếp tục mua sắm
+      </button>
+      <button class="btn-read-all" *ngIf="unreadCount > 0" (click)="markAllRead()">
+        <i class="bi bi-check2-all"></i> Đánh dấu đã đọc
+      </button>
+      <button class="btn-delete-all" *ngIf="notifications.length > 0" (click)="deleteAll()">
+        <i class="bi bi-trash"></i> Xóa tất cả
+      </button>
+    </div>
   </div>
 
   <!-- Loading -->
@@ -20,6 +24,9 @@
   <div *ngIf="!isLoading && notifications.length === 0" class="noti-empty">
     <i class="bi bi-bell-slash"></i>
     <p>Chưa có thông báo nào</p>
+    <button class="btn-shopping" (click)="continueShopping()">
+      <i class="bi bi-bag"></i> Tiếp tục mua sắm
+    </button>
   </div>
 
   <!-- List -->
@@ -28,7 +35,8 @@
       class="noti-item"
       *ngFor="let n of notifications"
       [class.unread]="!n.isRead"
-      (click)="markRead(n)"
+      [class.clickable]="n.type === 'order'"
+      (click)="onClickNoti(n)"
     >
       <div class="noti-icon" [ngClass]="'icon-' + n.type">
         <i class="bi" [ngClass]="getIcon(n.type)"></i>
@@ -40,7 +48,13 @@
         <span class="noti-time">{{ formatDate(n.createdAt) }}</span>
       </div>
 
-      <div class="noti-dot" *ngIf="!n.isRead"></div>
+      <div class="noti-right">
+        <div class="noti-dot" *ngIf="!n.isRead"></div>
+        <i class="bi bi-chevron-right noti-arrow" *ngIf="n.type === 'order'"></i>
+        <button class="btn-delete-item" (click)="deleteOne($event, n._id)" title="Xóa">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
     </div>
   </div>
 

@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import type { VariantClassificationPersisted } from './variant-classification.models';
 
 export const ADMIN_API_BASE = 'http://localhost:3000/api';
 export const ADMIN_STATIC_BASE = 'http://localhost:3000';
@@ -8,10 +9,14 @@ export const ADMIN_STATIC_BASE = 'http://localhost:3000';
 export interface ProductVariant {
   _id?: string;
   label: string;
-  /** Giá trị chiều 1 (VD: Dâu) — đồng bộ với label "A | B". */
+  /** Giá trị chiều 1 (VD: Dâu) — đồng bộ với label "A | B | C". */
   attr1Value?: string;
   /** Giá trị chiều 2 (VD: 200g). */
   attr2Value?: string;
+  /** Chiều 3 (VD: hương vị). */
+  attr3Value?: string;
+  /** Chiều 4 (VD: size). */
+  attr4Value?: string;
   image?: string;
   price: number;
   stock: number;
@@ -23,6 +28,12 @@ export interface ProductNutrition {
   name: string;
   value: string;
   percent: number;
+}
+
+/** Trọng lượng / đơn vị cũ (trang user chọn nút) — không có giá riêng từng dòng. */
+export interface ProductWeightOption {
+  label: string;
+  outOfStock?: boolean;
 }
 
 export interface Product {
@@ -42,11 +53,22 @@ export interface Product {
   badge?: 'new' | 'hot' | null;
   sale?: string;
   weight?: string;
+  /** Dữ liệu cũ từ Mongo; khác `variants` (biến thể có giá + tồn riêng). */
+  weights?: ProductWeightOption[];
   saving?: string;
   packagingTypes?: string[];
   /** Nhãn hiển thị chiều 1/2 trên trang khách (VD: "Hương vị", "Khối lượng"). */
   variantAttr1Name?: string;
   variantAttr2Name?: string;
+  variantAttr3Name?: string;
+  variantAttr4Name?: string;
+  /** Tối đa 4 nhóm preset — khớp Mongo variantClassifications. */
+  variantClassifications?: VariantClassificationPersisted[];
+  /**
+   * Kiểu định lượng biến thể — khớp Mongo (XOR g/kg vs ml/l).
+   * none: không ép đơn vị; mass: chỉ g/kg; volume: chỉ ml/l.
+   */
+  variantQuantityKind?: 'none' | 'mass' | 'volume';
   variants?: ProductVariant[];
   nutrition?: ProductNutrition[];
   createdAt?: string;

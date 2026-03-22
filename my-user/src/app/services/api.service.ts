@@ -37,6 +37,10 @@ export class ApiService {
   toasts$ = this._toasts.asObservable();
   private _toastCounter = 0;
 
+  // ✅ Cache cho getProducts: key = JSON.stringify(filters), TTL 20s
+  private _productsCache = new Map<string, { data: any; ts: number }>();
+  private readonly _PRODUCTS_TTL = 20_000;
+
   // Stream unread count cho header badge
   private _unreadCount = new BehaviorSubject<number>(0);
   unreadCount$ = this._unreadCount.asObservable();
@@ -45,13 +49,21 @@ export class ApiService {
     this.refreshCartCount();
     this.refreshUnreadCount();
     this.refreshWishlist();
+
+    // ✅ Tự động refresh unread count mỗi 30 giây
+    // để badge cập nhật khi admin đổi trạng thái đơn hàng
+    setInterval(() => {
+      if (this.getUserId() && this.getToken()) {
+        this.refreshUnreadCount();
+      }
+    }, 30000);
   }
 
   // ════════════════════════════════════════════════════════════════════════════
   //  Private helpers
   // ════════════════════════════════════════════════════════════════════════════
 
-   getUserId(): string {
+  private getUserId(): string {
     const direct = localStorage.getItem('userId');
     if (direct) return direct;
     try {
@@ -202,6 +214,14 @@ export class ApiService {
     cat?: string; minPrice?: number; maxPrice?: number; badge?: string;
     minRating?: number; sort?: string; page?: number; limit?: number; search?: string;
   } = {}): Observable<{ products: any[]; total: number; totalPages: number }> {
+
+    // ✅ Cache: trả ngay nếu cùng filters trong vòng 20 giây
+    const cacheKey = JSON.stringify(filters);
+    const cached = this._productsCache.get(cacheKey);
+    if (cached && Date.now() - cached.ts < this._PRODUCTS_TTL) {
+      return of(cached.data);
+    }
+
     let params = new HttpParams();
     if (filters.cat)                     params = params.set('cat',       filters.cat);
     if (filters.minPrice !== undefined)  params = params.set('minPrice',  filters.minPrice.toString());
@@ -213,8 +233,16 @@ export class ApiService {
     if (filters.limit)                   params = params.set('limit',     filters.limit.toString());
     if (filters.search)                  params = params.set('search',    filters.search);
     return this.http.get<any>(`${API_BASE}/products`, { params }).pipe(
-      map(res => ({ ...res, products: (res.products || []).map((p: any) => this.fixImages(p)) }))
+      map(res => ({ ...res, products: (res.products || []).map((p: any) => this.fixImages(p)) })),
+      tap(result => {
+        this._productsCache.set(cacheKey, { data: result, ts: Date.now() });
+      })
     );
+  }
+
+  // ✅ Gọi khi thêm/sửa/xóa sản phẩm để cache không stale
+  clearProductsCache(): void {
+    this._productsCache.clear();
   }
 
   getCategoryCounts(): Observable<Record<string, number>> {
@@ -442,7 +470,7 @@ export class ApiService {
   // ════════════════════════════════════════════════════════════════════════════
 
   refreshUnreadCount(): void {
-    if (!this.getUserId()) return;
+    if (!this.getUserId() || !this.getToken()) return;
     this.getNotifications().subscribe({
       next: (res) => this._unreadCount.next(res.unreadCount || 0),
       error: () => {}
@@ -450,7 +478,7 @@ export class ApiService {
   }
 
   getNotifications(): Observable<{ notifications: any[]; unreadCount: number }> {
-    return this.http.get<any>(`${API_BASE}/notifications`, { headers: this.cartHeaders() });
+    return this.http.get<any>(`${API_BASE}/notifications`, { headers: this.authHeaders() });
   }
 
   markNotificationRead(id: string): Observable<any> {
@@ -462,7 +490,7 @@ export class ApiService {
   markAllNotificationsRead(): Observable<any> {
     return this.http.patch(
       `${API_BASE}/notifications/read-all`, {},
-      { headers: this.cartHeaders() }
+      { headers: this.authHeaders() }
     ).pipe(tap(() => this._unreadCount.next(0)));
   }
 
@@ -476,5 +504,13 @@ export class ApiService {
     return this.http.post(`${API_BASE}/notifications`, data).pipe(
       tap(() => this.refreshUnreadCount())
     );
+  }
+
+  deleteNotification(id: string): Observable<any> {
+    return this.http.delete(`${API_BASE}/notifications/${id}`, { headers: this.authHeaders() });
+  }
+
+  deleteAllNotifications(): Observable<any> {
+    return this.http.delete(`${API_BASE}/notifications`, { headers: this.authHeaders() });
   }
 }

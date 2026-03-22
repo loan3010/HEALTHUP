@@ -1,5 +1,7 @@
 /* Nhúng Bootstrap vào Angular */
 @import 'bootstrap/dist/css/bootstrap.min.css';
+/* Rich text (mô tả sản phẩm) — Quill snow theme */
+@import 'quill/dist/quill.snow.css';
 @import 'bootstrap-icons/font/bootstrap-icons.css';
 @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&display=swap');
 

@@ -1,6 +1,13 @@
 const express = require('express');
 const router  = express.Router();
 const Product = require('../models/Product');
+const Order = require('../models/Order');
+
+/** Badge “new”: sản phẩm tạo trong N ngày gần đây (admin không chỉnh tay). */
+const NEW_BADGE_MS = (Number(process.env.NEW_BADGE_DAYS) || 14) * 86400000;
+/** Badge “hot”: tổng số lượng bán (items.quantity) trong window ngày ≥ ngưỡng. */
+const HOT_BADGE_DAYS = Number(process.env.HOT_BADGE_DAYS) || 7;
+const HOT_BADGE_MIN_ORDERS = Number(process.env.HOT_BADGE_MIN_ORDERS) || 50;
 
 // ─────────────────────────────────────────────────────────────────
 // QUAN TRỌNG: Các route cụ thể PHẢI đứng TRƯỚC /:id
@@ -31,7 +38,7 @@ router.get('/featured', async (req, res) => {
       { $sample: { size: limit } }
     ]);
 
-    res.json(products);
+    res.json(await attachBadgesToProducts(products));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -68,13 +75,26 @@ function normalizeVN(str) {
     .trim();
 }
 
-/** Tách "A | B" từ label cũ → attr1 / attr2 (khi client chưa gửi attr). */
+/**
+ * Tách label "A | B | C | D" → tối đa 4 phần (khi client chưa gửi attr đủ).
+ */
 function splitLabelToAttrs(label) {
   const raw = String(label || '').trim();
-  if (!raw) return { a1: '', a2: '' };
+  const empty = { a1: '', a2: '', a3: '', a4: '' };
+  if (!raw) return empty;
   const parts = raw.split('|').map((x) => x.trim()).filter(Boolean);
-  if (parts.length >= 2) return { a1: parts[0], a2: parts[1] };
-  return { a1: raw, a2: '' };
+  return {
+    a1: parts[0] || '',
+    a2: parts[1] || '',
+    a3: parts[2] || '',
+    a4: parts[3] || ''
+  };
+}
+
+/** Ghép label từ attr1–4 (bỏ phần rỗng cuối). */
+function joinAttrsToLabel(a1, a2, a3, a4) {
+  const parts = [a1, a2, a3, a4].map((x) => String(x || '').trim()).filter(Boolean);
+  return parts.join(' | ');
 }
 
 function normalizeVariantAttrName(v, fallback) {
@@ -89,19 +109,25 @@ function normalizeVariantsInput(rawVariants) {
     .map((v) => {
       let attr1 = String(v?.attr1Value ?? '').trim();
       let attr2 = String(v?.attr2Value ?? '').trim();
+      let attr3 = String(v?.attr3Value ?? '').trim();
+      let attr4 = String(v?.attr4Value ?? '').trim();
       let label = String(v?.label || '').trim();
-      if ((!attr1 || !attr2) && label) {
+      const needFromLabel = !attr1 || !attr2 || !attr3 || !attr4;
+      if (needFromLabel && label) {
         const p = splitLabelToAttrs(label);
         if (!attr1) attr1 = p.a1;
         if (!attr2) attr2 = p.a2;
+        if (!attr3) attr3 = p.a3;
+        if (!attr4) attr4 = p.a4;
       }
-      if (attr1 && attr2) label = `${attr1} | ${attr2}`;
-      else if (!label && (attr1 || attr2)) label = attr1 && attr2 ? `${attr1} | ${attr2}` : (attr1 || attr2);
+      label = joinAttrsToLabel(attr1, attr2, attr3, attr4) || label;
 
       return {
         label,
         attr1Value: attr1,
         attr2Value: attr2,
+        attr3Value: attr3,
+        attr4Value: attr4,
         image: String(v?.image || '').trim(),
         price: Number(v?.price || 0),
         stock: Math.max(0, Number(v?.stock || 0)),
@@ -118,6 +144,170 @@ function normalizeVariantsInput(rawVariants) {
     seen.add(key);
     return true;
   });
+}
+
+/** Chuẩn hóa kiểu định lượng từ body (POST/PUT). */
+function normalizeVariantQuantityKind(raw) {
+  const k = String(raw || '').toLowerCase().trim();
+  if (k === 'mass' || k === 'volume') return k;
+  return 'none';
+}
+
+/**
+ * Phát hiện gợi ý thể tích (ml, l, lít) trong nhãn biến thể — heuristic đơn giản.
+ * Dùng để bắt trộn mass+volume trên cùng sản phẩm khi admin chọn một kiểu cố định.
+ */
+function textHasVolumeQuantityHint(text) {
+  const s = String(text || '').toLowerCase();
+  if (/\d[\d.,]*\s*(ml|mℓ)\b/.test(s)) return true;
+  if (/\d[\d.,]*\s*l\b/.test(s)) return true;
+  if (/\b(lít|liter|litre)\b/.test(s)) return true;
+  return false;
+}
+
+/** Gợi ý khối lượng (g, gr, gram, kg). */
+function textHasMassQuantityHint(text) {
+  const s = String(text || '').toLowerCase();
+  if (/\d[\d.,]*\s*(g|gr|gram|grams)\b/.test(s)) return true;
+  if (/\d[\d.,]*\s*kg\b/.test(s)) return true;
+  if (/\bkg\b/.test(s)) return true;
+  return false;
+}
+
+/** Ghép toàn bộ chữ cần kiểm tra cho một biến thể. */
+function variantQuantityProbe(v) {
+  return [v.label, v.attr1Value, v.attr2Value, v.attr3Value, v.attr4Value]
+    .map((x) => String(x || '').trim())
+    .join(' ');
+}
+
+/** Chuẩn hóa mảng cấu hình nhóm phân loại (tối đa 4 preset). */
+function normalizeVariantClassificationsPayload(raw) {
+  if (!Array.isArray(raw)) return { ok: [] };
+  const rows = raw
+    .slice(0, 4)
+    .map((row) => {
+      const role = String(row?.role || 'free').toLowerCase();
+      const r = role === 'mass' || role === 'volume' ? role : 'free';
+      const name = String(row?.name || '').trim().slice(0, 80);
+      const values = (Array.isArray(row?.values) ? row.values : [])
+        .map((x) => String(x || '').trim())
+        .filter(Boolean)
+        .filter((x, i, a) => a.indexOf(x) === i);
+      return { role: r, name, values };
+    });
+
+  let massN = 0;
+  let volN = 0;
+  rows.forEach((row) => {
+    if (row.role === 'mass') massN++;
+    if (row.role === 'volume') volN++;
+  });
+  if (massN > 1) return { error: 'Chỉ được tối đa một nhóm Khối lượng (g, kg).' };
+  if (volN > 1) return { error: 'Chỉ được tối đa một nhóm Thể tích (ml, l).' };
+  if (massN && volN) {
+    return { error: 'Không được vừa có nhóm Khối lượng vừa có nhóm Thể tích trên cùng sản phẩm.' };
+  }
+  return { ok: rows };
+}
+
+/** Gán variantQuantityKind từ cấu hình nhóm (mass / volume / none). */
+function deriveVariantQuantityKindFromClassifications(classifications) {
+  const arr = Array.isArray(classifications) ? classifications : [];
+  if (arr.some((c) => c.role === 'mass')) return 'mass';
+  if (arr.some((c) => c.role === 'volume')) return 'volume';
+  return 'none';
+}
+
+/** Chip trong nhóm mass/volume phải khớp đơn vị (heuristic). */
+function validateClassificationChipValues(classifications) {
+  const arr = Array.isArray(classifications) ? classifications : [];
+  for (const c of arr) {
+    for (const val of c.values || []) {
+      const t = String(val || '');
+      if (c.role === 'mass' && textHasVolumeQuantityHint(t)) {
+        return `Nhóm Khối lượng: giá trị "${val}" có dấu hiệu thể tích (ml/l).`;
+      }
+      if (c.role === 'volume' && textHasMassQuantityHint(t)) {
+        return `Nhóm Thể tích: giá trị "${val}" có dấu hiệu khối lượng (g/kg).`;
+      }
+    }
+  }
+  return null;
+}
+
+/** Chuẩn hóa + validate classifications trên body; gán variantQuantityKind. Trả { error } hoặc { ok }. */
+function applyVariantClassificationsToBody(reqBody) {
+  if (!Object.prototype.hasOwnProperty.call(reqBody, 'variantClassifications')) {
+    return { ok: true };
+  }
+  const norm = normalizeVariantClassificationsPayload(reqBody.variantClassifications);
+  if (norm.error) return { error: norm.error };
+  reqBody.variantClassifications = norm.ok;
+  const chipErr = validateClassificationChipValues(norm.ok);
+  if (chipErr) return { error: chipErr };
+  reqBody.variantQuantityKind = deriveVariantQuantityKindFromClassifications(norm.ok);
+  return { ok: true };
+}
+
+/**
+ * Tổng số lượng đã bán (theo dòng đơn) trong window HOT_BADGE_DAYS — dùng cho badge "hot".
+ */
+async function hotOrderQtyByProductIds(productIds) {
+  if (!productIds || !productIds.length) return new Map();
+  const since = new Date(Date.now() - HOT_BADGE_DAYS * 86400000);
+  const rows = await Order.aggregate([
+    { $match: { createdAt: { $gte: since }, status: { $ne: 'cancelled' } } },
+    { $unwind: '$items' },
+    { $match: { 'items.productId': { $in: productIds } } },
+    { $group: { _id: '$items.productId', n: { $sum: '$items.quantity' } } }
+  ]);
+  const m = new Map();
+  rows.forEach((r) => m.set(String(r._id), r.n));
+  return m;
+}
+
+/** Badge hiển thị: hot ưu tiên hơn new — không lấy từ body admin. */
+function computePublicBadge(productLean, hotMap) {
+  const id = String(productLean._id);
+  const soldN = hotMap.get(id) || 0;
+  if (soldN >= HOT_BADGE_MIN_ORDERS) return 'hot';
+  const t = productLean.createdAt ? new Date(productLean.createdAt).getTime() : 0;
+  if (t && Date.now() - t <= NEW_BADGE_MS) return 'new';
+  return null;
+}
+
+async function attachBadgesToProducts(list) {
+  if (!Array.isArray(list) || !list.length) return list;
+  const ids = list.map((p) => p._id);
+  const hotMap = await hotOrderQtyByProductIds(ids);
+  return list.map((p) => ({ ...p, badge: computePublicBadge(p, hotMap) }));
+}
+
+/**
+ * Trả về thông báo lỗi tiếng Việt hoặc null nếu hợp lệ.
+ * Chỉ gọi khi đã có ít nhất một biến thể.
+ */
+function validateVariantQuantityKind(kind, variants) {
+  const k = normalizeVariantQuantityKind(kind);
+  if (!Array.isArray(variants) || variants.length === 0) return null;
+
+  for (let i = 0; i < variants.length; i++) {
+    const probe = variantQuantityProbe(variants[i]);
+    const hasV = textHasVolumeQuantityHint(probe);
+    const hasM = textHasMassQuantityHint(probe);
+
+    if (k === 'mass' && hasV) {
+      return `Kiểu "khối lượng": biến thể "${variants[i].label}" có dấu hiệu thể tích (ml/l). Đổi kiểu hoặc sửa nhãn.`;
+    }
+    if (k === 'volume' && hasM) {
+      return `Kiểu "thể tích": biến thể "${variants[i].label}" có dấu hiệu khối lượng (g/kg). Đổi kiểu hoặc sửa nhãn.`;
+    }
+    if (k === 'none' && hasM && hasV) {
+      return `Kiểu "không dùng g/ml": biến thể "${variants[i].label}" vừa có g/kg vừa có ml/l. Tách SP hoặc chọn một kiểu định lượng.`;
+    }
+  }
+  return null;
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -157,8 +347,11 @@ router.get('/', async (req, res) => {
         return aScore - bScore;
       });
 
+      const slice = matched.slice(0, limitNum);
+      const withBadge = await attachBadgesToProducts(slice);
+
       return res.json({
-        products:   matched.slice(0, limitNum),
+        products:   withBadge,
         total:      matched.length,
         page:       1,
         totalPages: Math.ceil(matched.length / limitNum),
@@ -211,8 +404,10 @@ router.get('/', async (req, res) => {
       .limit(limitNum)
       .lean();
 
+    const withBadge = await attachBadgesToProducts(products);
+
     res.json({
-      products,
+      products: withBadge,
       total,
       page: pageNum,
       totalPages: Math.ceil(total / limitNum),
@@ -330,6 +525,9 @@ router.get('/:id/related', async (req, res) => {
 // POST create product
 router.post('/', async (req, res) => {
   try {
+    // Badge do hệ thống tính (new/hot) — không cho admin gửi tay.
+    delete req.body.badge;
+
     if (!req.body.sku || String(req.body.sku).trim() === '') {
       const skuDocs = await Product.find(
         { sku: { $regex: '^SKU\\d{4}$' } },
@@ -347,6 +545,12 @@ router.post('/', async (req, res) => {
       req.body.sku = 'SKU' + String(nextNum).padStart(4, '0');
     }
 
+    const clsCreate = applyVariantClassificationsToBody(req.body);
+    if (clsCreate.error) return res.status(400).json({ message: clsCreate.error });
+    if (!Object.prototype.hasOwnProperty.call(req.body, 'variantClassifications')) {
+      req.body.variantQuantityKind = normalizeVariantQuantityKind(req.body.variantQuantityKind);
+    }
+
     const variants = normalizeVariantsInput(req.body.variants);
     if (variants.length > 0) {
       req.body.variants = variants;
@@ -354,6 +558,9 @@ router.post('/', async (req, res) => {
       req.body.oldPrice = variants[0].oldPrice || req.body.oldPrice || 0;
       req.body.stock    = variants.reduce((sum, v) => sum + (v.stock || 0), 0);
     }
+
+    const qErrCreate = validateVariantQuantityKind(req.body.variantQuantityKind, variants);
+    if (qErrCreate) return res.status(400).json({ message: qErrCreate });
 
     const product = new Product(req.body);
     await product.save();
@@ -366,6 +573,16 @@ router.post('/', async (req, res) => {
 // PUT update product
 router.put('/:id', async (req, res) => {
   try {
+    delete req.body.badge;
+
+    const clsPut = applyVariantClassificationsToBody(req.body);
+    if (clsPut.error) return res.status(400).json({ message: clsPut.error });
+    if (!Object.prototype.hasOwnProperty.call(req.body, 'variantClassifications')) {
+      if (Object.prototype.hasOwnProperty.call(req.body, 'variantQuantityKind')) {
+        req.body.variantQuantityKind = normalizeVariantQuantityKind(req.body.variantQuantityKind);
+      }
+    }
+
     const variants = normalizeVariantsInput(req.body.variants);
     if (Array.isArray(req.body.variants)) {
       req.body.variants = variants;
@@ -375,7 +592,25 @@ router.put('/:id', async (req, res) => {
         req.body.stock    = variants.reduce((sum, v) => sum + (v.stock || 0), 0);
         req.body.variantAttr1Name = normalizeVariantAttrName(req.body.variantAttr1Name, 'Phân loại 1');
         req.body.variantAttr2Name = normalizeVariantAttrName(req.body.variantAttr2Name, 'Phân loại 2');
+        req.body.variantAttr3Name = normalizeVariantAttrName(req.body.variantAttr3Name, 'Phân loại 3');
+        req.body.variantAttr4Name = normalizeVariantAttrName(req.body.variantAttr4Name, 'Phân loại 4');
       }
+    }
+
+    // Kiểm tra XOR: dùng kiểu trong body nếu có, không thì đọc bản ghi cũ.
+    if (Array.isArray(req.body.variants)) {
+      let kindPut = req.body.variantQuantityKind;
+      if (kindPut === undefined) {
+        const exK = await Product.findById(req.params.id).select('variantQuantityKind').lean();
+        kindPut = exK?.variantQuantityKind;
+      }
+      const qErrPut = validateVariantQuantityKind(kindPut, variants);
+      if (qErrPut) return res.status(400).json({ message: qErrPut });
+    } else if (Object.prototype.hasOwnProperty.call(req.body, 'variantQuantityKind')) {
+      const ex = await Product.findById(req.params.id).select('variants').lean();
+      const vOld = normalizeVariantsInput(ex?.variants);
+      const qErrOnlyKind = validateVariantQuantityKind(req.body.variantQuantityKind, vOld);
+      if (qErrOnlyKind) return res.status(400).json({ message: qErrOnlyKind });
     }
 
     const product = await Product.findByIdAndUpdate(
@@ -384,6 +619,19 @@ router.put('/:id', async (req, res) => {
     res.json(product);
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────
+// DELETE /:id — xóa vĩnh viễn bản ghi (admin; khác toggle ẩn)
+// ─────────────────────────────────────────────────────────────────
+router.delete('/:id', async (req, res) => {
+  try {
+    const deleted = await Product.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ error: 'Product not found' });
+    res.json({ message: 'Đã xóa sản phẩm vĩnh viễn' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

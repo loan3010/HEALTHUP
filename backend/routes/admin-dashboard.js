@@ -2,6 +2,7 @@ const router = require('express').Router();
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const User = require('../models/User');
+const { buildCustomerListStatsMaps, statsForUser } = require('../helpers/customerOrderStats');
 
 const TZ = 'Asia/Ho_Chi_Minh';
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -166,7 +167,7 @@ async function buildDashboardData({ preset, from, to }) {
     const orderMap = new Map(ordersByDay.map((r) => [r._id, Number(r.value || 0)]));
     const userMap = new Map(usersByDay.map((r) => [r._id, Number(r.value || 0)]));
 
-    const [statusPie, promotionPie, recentOrders, topAgg, spentByPhone, users] = await Promise.all([
+    const [statusPie, promotionPie, recentOrders, topAgg, customerStatsMaps, users] = await Promise.all([
       Order.aggregate([{ $group: { _id: '$status', value: { $sum: 1 } } }]),
       Order.aggregate([
         { $match: { status: { $ne: 'cancelled' } } },
@@ -187,10 +188,7 @@ async function buildDashboardData({ preset, from, to }) {
         },
         { $sort: { quantity: -1, revenue: -1 } },
       ]),
-      Order.aggregate([
-        { $match: { status: { $ne: 'cancelled' } } },
-        { $group: { _id: '$customer.phone', totalSpent: { $sum: '$total' } } },
-      ]),
+      buildCustomerListStatsMaps(Order),
       User.find({ role: 'user' }).select({ phone: 1 }).lean(),
     ]);
 
@@ -206,10 +204,10 @@ async function buildDashboardData({ preset, from, to }) {
       revenue: Number(r.revenue || 0),
     }));
 
-    const spentMap = new Map(spentByPhone.map((x) => [x._id, Number(x.totalSpent || 0)]));
     const tierMap = { Đồng: 0, Bạc: 0, Vàng: 0, 'Kim Cương': 0 };
     users.forEach((u) => {
-      const tier = getMembershipTier(spentMap.get(u.phone) || 0);
+      const s = statsForUser(u, customerStatsMaps);
+      const tier = getMembershipTier(s.totalSpent || 0);
       tierMap[tier] += 1;
     });
 

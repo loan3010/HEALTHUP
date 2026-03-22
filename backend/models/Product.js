@@ -12,12 +12,14 @@ const WeightOptionSchema = new mongoose.Schema({
 });
 
 // Biến thể bán hàng: mỗi phân loại có giá + tồn kho riêng.
-// attr1Value / attr2Value: hai chiều phân loại (VD: hương vị + khối lượng).
-// label giữ dạng "A | B" để tương thích API/cart cũ.
+// attr1–attr4: tối đa 4 chiều (preset: khối lượng, đóng gói, hương vị, size).
+// label dạng "A | B | C | D" (bỏ phần rỗng phía sau).
 const VariantSchema = new mongoose.Schema({
   label: { type: String, required: true, trim: true },
   attr1Value: { type: String, default: '', trim: true },
   attr2Value: { type: String, default: '', trim: true },
+  attr3Value: { type: String, default: '', trim: true },
+  attr4Value: { type: String, default: '', trim: true },
   image: { type: String, default: '' },
   price: { type: Number, required: true, min: 0 },
   stock: { type: Number, required: true, min: 0 },
@@ -43,9 +45,35 @@ const ProductSchema = new mongoose.Schema({
   description: String,
   stock: { type: Number, default: 100 },
   variants: { type: [VariantSchema], default: [] },
-  // Tên hiển thị cho 2 chiều phân loại (admin đặt tùy ý, ví dụ "Hương vị" / "Khối lượng").
+  // Tên hiển thị cho từng chiều phân loại trên shop (tối đa 4).
   variantAttr1Name: { type: String, default: 'Phân loại 1', trim: true },
   variantAttr2Name: { type: String, default: 'Phân loại 2', trim: true },
+  variantAttr3Name: { type: String, default: 'Phân loại 3', trim: true },
+  variantAttr4Name: { type: String, default: 'Phân loại 4', trim: true },
+  /**
+   * Cấu hình nhóm phân loại do admin chọn (tối đa 4 nhóm preset).
+   * role: free | mass | volume — không được vừa mass vừa volume; tối đa 1 mass và 1 volume.
+   */
+  variantClassifications: {
+    type: [{
+      _id: false,
+      role: { type: String, enum: ['free', 'mass', 'volume'], default: 'free' },
+      name: { type: String, default: '', trim: true },
+      values: { type: [String], default: [] }
+    }],
+    default: []
+  },
+  /**
+   * Kiểu định lượng cho biến thể: chỉ một trong ba — không trộn g/kg với ml/l trên cùng SP.
+   * - none: không ép đơn vị (vị, size chữ, loại đóng gói…)
+   * - mass: biến thể theo khối lượng (g, kg)
+   * - volume: biến thể theo thể tích (ml, l)
+   */
+  variantQuantityKind: {
+    type: String,
+    enum: ['none', 'mass', 'volume'],
+    default: 'none'
+  },
   weights: [WeightOptionSchema],
   packagingTypes: [String],
   nutrition: [NutritionSchema],
