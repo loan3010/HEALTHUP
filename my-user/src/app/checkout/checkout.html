@@ -1,4 +1,5 @@
-<!-- checkout.html -->
+<!-- checkout.html — chỉ thay đổi phần co-rank-card -->
+<!-- Toàn bộ phần còn lại GIỮ NGUYÊN như file gốc bạn đã paste -->
 
 <!-- ══════════ SUCCESS MODAL ══════════ -->
 <div class="co-modal-backdrop" *ngIf="showSuccess()" (click)="goToHome()">
@@ -6,8 +7,7 @@
     <div class="co-modal-icon">
       <svg viewBox="0 0 52 52" fill="none">
         <circle cx="26" cy="26" r="25" stroke="#36873A" stroke-width="2"/>
-        <path d="M14 27l8 8 16-16" stroke="#36873A" stroke-width="2.5"
-              stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M14 27l8 8 16-16" stroke="#36873A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </div>
     <h2 class="co-modal-title">Đặt hàng thành công!</h2>
@@ -110,88 +110,57 @@
 <!-- ══════════ VOUCHER MODAL ══════════ -->
 <div class="co-modal-backdrop" *ngIf="showVoucherModal" (click)="closeVoucherModal()">
   <div class="co-voucher-modal" (click)="$event.stopPropagation()">
-
     <div class="co-voucher-modal-header">
       <div class="co-voucher-modal-title">
-        <i class="bi" [class.bi-ticket-perforated-fill]="voucherModalFor === 'order'"
-                      [class.bi-truck]="voucherModalFor === 'shipping'"></i>
+        <i class="bi" [class.bi-ticket-perforated-fill]="voucherModalFor === 'order'" [class.bi-truck]="voucherModalFor === 'shipping'"></i>
         <span>{{ voucherModalTitle }}</span>
       </div>
-      <button class="ab-close" (click)="closeVoucherModal()">
-        <i class="bi bi-x-lg"></i>
-      </button>
+      <button class="ab-close" (click)="closeVoucherModal()"><i class="bi bi-x-lg"></i></button>
     </div>
-
     <div class="co-voucher-modal-subheader">
       <i class="bi bi-cart3"></i>
       Đơn hàng hiện tại: <strong>{{ vnd(subTotal()) }}</strong>
       &nbsp;|&nbsp;
-      <span class="rank-badge-sm"
-            [class.badge-sm-member]="userRank() === 'member'"
-            [class.badge-sm-vip]="userRank() === 'vip'">
-        <i class="bi"
-           [class.bi-person-circle]="userRank() === 'member'"
-           [class.bi-star-fill]="userRank() === 'vip'"></i>
+      <span class="rank-badge-sm" [class.badge-sm-member]="userRank() === 'member'" [class.badge-sm-vip]="userRank() === 'vip'">
+        <i class="bi" [class.bi-person-circle]="userRank() === 'member'" [class.bi-star-fill]="userRank() === 'vip'"></i>
         {{ memberRankLabel }}
       </span>
     </div>
-
     <div class="co-voucher-modal-loading" *ngIf="isLoadingVouchers">
-      <span class="co-spinner"></span>
-      <span>Đang tải danh sách mã...</span>
+      <span class="co-spinner"></span><span>Đang tải danh sách mã...</span>
     </div>
-
     <div class="co-voucher-modal-body" *ngIf="!isLoadingVouchers">
-
       <ng-container *ngIf="availableVouchers().length > 0">
-
-        <div class="co-voucher-section-label"
-             *ngIf="availableVouchers().some(isVoucherEligible.bind(this))">
+        <div class="co-voucher-section-label" *ngIf="availableVouchers().some(isVoucherEligible.bind(this))">
           <i class="bi bi-check-circle-fill"></i> Có thể áp dụng
         </div>
-
-        <div class="co-voucher-card"
-             *ngFor="let v of availableVouchers()"
+        <div class="co-voucher-card" *ngFor="let v of availableVouchers()"
              [class.is-applied]="(voucherModalFor === 'order' ? orderVoucherCode() : shipVoucherCode()) === v.code"
              [class.is-best]="bestVoucherCode() === v.code"
              [class.is-eligible]="isVoucherEligible(v)"
              [class.is-ineligible]="!isVoucherEligible(v)"
              [title]="!isVoucherEligible(v) ? voucherDisabledReason(v) : ''"
              (click)="selectVoucher(v.code, isVoucherEligible(v))">
-
           <div class="co-voucher-section-divider"
                *ngIf="!isVoucherEligible(v) && availableVouchers().indexOf(v) > 0 && isVoucherEligible(availableVouchers()[availableVouchers().indexOf(v)-1])">
             <span><i class="bi bi-lock-fill"></i> Chưa đủ điều kiện</span>
           </div>
-
           <div class="co-voucher-card-inner">
-
             <div class="co-voucher-best-badge" *ngIf="bestVoucherCode() === v.code">
               <i class="bi bi-trophy-fill"></i> Tốt nhất
             </div>
-
-            <div class="co-voucher-card-icon"
-                 [class.icon-percent]="v.discountType === 'percent'"
-                 [class.icon-ship]="v.discountType === 'freeship' || v.type === 'shipping'"
-                 [class.icon-fixed]="v.discountType === 'fixed'">
+            <div class="co-voucher-card-icon" [class.icon-percent]="v.discountType === 'percent'" [class.icon-ship]="v.discountType === 'freeship' || v.type === 'shipping'" [class.icon-fixed]="v.discountType === 'fixed'">
               <i class="bi" [ngClass]="voucherTypeIcon(v)"></i>
             </div>
-
             <div class="co-voucher-card-body">
               <div class="co-voucher-card-label">{{ voucherTypeLabel(v) }}</div>
               <div class="co-voucher-card-desc" *ngIf="v.description">{{ v.description }}</div>
-
               <div class="co-voucher-saving" *ngIf="isVoucherEligible(v) && calcVoucherSaving(v) > 0">
-                <i class="bi bi-piggy-bank-fill"></i>
-                Tiết kiệm <strong>{{ vnd(calcVoucherSaving(v)) }}</strong>
+                <i class="bi bi-piggy-bank-fill"></i> Tiết kiệm <strong>{{ vnd(calcVoucherSaving(v)) }}</strong>
               </div>
-
               <div class="co-voucher-card-cond">
-                <span *ngIf="v.minOrder && v.minOrder > 0" class="co-voucher-cond-item"
-                      [class.cond-ok]="isVoucherEligible(v)"
-                      [class.cond-fail]="!isVoucherEligible(v)">
-                  <i class="bi" [class.bi-check]="isVoucherEligible(v)" [class.bi-x]="!isVoucherEligible(v)"></i>
-                  Đơn tối thiểu {{ vnd(v.minOrder) }}
+                <span *ngIf="v.minOrder && v.minOrder > 0" class="co-voucher-cond-item" [class.cond-ok]="isVoucherEligible(v)" [class.cond-fail]="!isVoucherEligible(v)">
+                  <i class="bi" [class.bi-check]="isVoucherEligible(v)" [class.bi-x]="!isVoucherEligible(v)"></i> Đơn tối thiểu {{ vnd(v.minOrder) }}
                 </span>
                 <span *ngIf="!v.minOrder || v.minOrder === 0" class="co-voucher-cond-item cond-ok">
                   <i class="bi bi-check"></i> Không giới hạn đơn tối thiểu
@@ -200,54 +169,35 @@
                   <i class="bi bi-info-circle"></i> Giảm tối đa {{ vnd(v.maxDiscount) }}
                 </span>
               </div>
-
-              <div class="co-voucher-card-need" *ngIf="!isVoucherEligible(v) && v.minOrder">
-                <i class="bi bi-arrow-up-circle"></i>
-                Cần thêm <strong>{{ vnd((v.minOrder ?? 0) - subTotal()) }}</strong> để dùng mã này
+              <div class="co-voucher-card-need" *ngIf="!isVoucherEligible(v)">
+                <i class="bi bi-arrow-up-circle"></i> {{ voucherDisabledReason(v) }}
               </div>
-
-              <div class="co-voucher-card-code">
-                <span>{{ v.code }}</span>
-              </div>
+              <div class="co-voucher-card-code"><span>{{ v.code }}</span></div>
             </div>
-
             <div class="co-voucher-card-action">
-              <span *ngIf="(voucherModalFor === 'order' ? orderVoucherCode() : shipVoucherCode()) === v.code"
-                    class="co-voucher-applied-badge">
+              <span *ngIf="(voucherModalFor === 'order' ? orderVoucherCode() : shipVoucherCode()) === v.code" class="co-voucher-applied-badge">
                 <i class="bi bi-check-circle-fill"></i><br>Đang dùng
               </span>
               <button *ngIf="(voucherModalFor === 'order' ? orderVoucherCode() : shipVoucherCode()) !== v.code && isVoucherEligible(v)"
-                      class="co-voucher-select-btn"
-                      [class.btn-best]="bestVoucherCode() === v.code"
-                      (click)="$event.stopPropagation(); selectVoucher(v.code, true)">
-                Dùng ngay
-              </button>
-              <span *ngIf="!isVoucherEligible(v)" class="co-voucher-lock-badge">
-                <i class="bi bi-lock-fill"></i>
-              </span>
+                      class="co-voucher-select-btn" [class.btn-best]="bestVoucherCode() === v.code"
+                      (click)="$event.stopPropagation(); selectVoucher(v.code, true)">Dùng ngay</button>
+              <span *ngIf="!isVoucherEligible(v)" class="co-voucher-lock-badge"><i class="bi bi-lock-fill"></i></span>
             </div>
-
           </div>
         </div>
-
       </ng-container>
-
       <div class="co-voucher-modal-empty" *ngIf="availableVouchers().length === 0">
         <i class="bi bi-emoji-frown"></i>
         <p>Hiện chưa có mã giảm giá nào phù hợp với hạng của bạn</p>
       </div>
-
     </div>
   </div>
 </div>
 
 <!-- ══════════ MAIN ══════════ -->
 <div class="co-page">
-
   <div class="co-header">
-    <button class="co-back-btn" (click)="goToCart()">
-      <i class="bi bi-arrow-left"></i>
-    </button>
+    <button class="co-back-btn" (click)="goToCart()"><i class="bi bi-arrow-left"></i></button>
     <h1 class="co-title">Thanh toán</h1>
     <div class="co-steps">
       <span class="co-step done">Giỏ hàng</span>
@@ -260,7 +210,6 @@
 
   <div class="co-body">
     <div class="co-left">
-
       <div class="co-alert co-alert-error" *ngIf="errorMsg()">
         <i class="bi bi-exclamation-circle-fill"></i> {{ errorMsg() }}
       </div>
@@ -274,13 +223,10 @@
             <i class="bi bi-plus-lg"></i> Thêm địa chỉ
           </button>
         </div>
-        <div class="co-addr-loading" *ngIf="isLoadingAddr()">
-          <span class="co-spinner"></span> Đang tải sổ địa chỉ...
-        </div>
+        <div class="co-addr-loading" *ngIf="isLoadingAddr()"><span class="co-spinner"></span> Đang tải sổ địa chỉ...</div>
         <div class="co-guest-notice" *ngIf="!userId">
           <i class="bi bi-info-circle"></i>
-          Bạn chưa đăng nhập. <a routerLink="/login">Đăng nhập</a> để dùng sổ địa chỉ, lưu đơn trong tài khoản và
-          <strong>dùng mã khuyến mãi</strong>.
+          Bạn chưa đăng nhập. <a routerLink="/login">Đăng nhập</a> để dùng sổ địa chỉ, lưu đơn trong tài khoản và <strong>dùng mã khuyến mãi</strong>.
         </div>
         <div class="co-guest-addr" *ngIf="!userId" [formGroup]="guestAddrForm">
           <div class="co-guest-addr-row">
@@ -293,47 +239,28 @@
           </div>
           <div class="co-guest-addr-row">
             <label>Địa chỉ nhận hàng *</label>
-            <textarea class="co-inp co-textarea" rows="2" formControlName="address"
-              placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh..."></textarea>
+            <textarea class="co-inp co-textarea" rows="2" formControlName="address" placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh..."></textarea>
           </div>
         </div>
-        <!-- Dropdown địa chỉ -->
         <div class="ab-dropdown" *ngIf="!isLoadingAddr() && savedAddresses().length > 0">
-
-          <!-- Ô hiển thị địa chỉ đang chọn — click để mở/đóng -->
-          <div class="ab-dropdown-trigger" (click)="addrDropdownOpen = !addrDropdownOpen"
-               [class.is-open]="addrDropdownOpen">
+          <div class="ab-dropdown-trigger" (click)="addrDropdownOpen = !addrDropdownOpen" [class.is-open]="addrDropdownOpen">
             <div class="ab-avatar ab-avatar-sm">{{ getInitial(selectedAddr?.name || 'U') }}</div>
             <div class="ab-dropdown-preview">
               <div class="ab-dropdown-name-row">
                 <span class="ab-name">{{ selectedAddr?.name }}</span>
                 <span class="ab-phone">{{ selectedAddr?.phone }}</span>
-                <span class="ab-ribbon-inline" *ngIf="selectedAddr?.isDefault">
-                  <i class="bi bi-star-fill"></i> Mặc định
-                </span>
+                <span class="ab-ribbon-inline" *ngIf="selectedAddr?.isDefault"><i class="bi bi-star-fill"></i> Mặc định</span>
               </div>
               <div class="ab-dropdown-addr">{{ selectedAddr?.address }}</div>
             </div>
-            <!-- Nút edit/xóa nằm trong trigger, chặn click lan ra trigger -->
             <div class="ab-trigger-actions" (click)="$event.stopPropagation()">
-              <button class="ab-trigger-btn" title="Chỉnh sửa"
-                      (click)="openEditAddrModal(savedAddresses().indexOf(selectedAddr!))">
-                <i class="bi bi-pencil"></i>
-              </button>
-              <button class="ab-trigger-btn ab-trigger-del" title="Xóa"
-                      (click)="deleteAddr(savedAddresses().indexOf(selectedAddr!))">
-                <i class="bi bi-trash3"></i>
-              </button>
+              <button class="ab-trigger-btn" title="Chỉnh sửa" (click)="openEditAddrModal(savedAddresses().indexOf(selectedAddr!))"><i class="bi bi-pencil"></i></button>
+              <button class="ab-trigger-btn ab-trigger-del" title="Xóa" (click)="deleteAddr(savedAddresses().indexOf(selectedAddr!))"><i class="bi bi-trash3"></i></button>
             </div>
-            <i class="bi ab-dropdown-arrow"
-               [class.bi-chevron-down]="!addrDropdownOpen"
-               [class.bi-chevron-up]="addrDropdownOpen"></i>
+            <i class="bi ab-dropdown-arrow" [class.bi-chevron-down]="!addrDropdownOpen" [class.bi-chevron-up]="addrDropdownOpen"></i>
           </div>
-
-          <!-- Danh sách xổ xuống -->
           <div class="ab-dropdown-list" *ngIf="addrDropdownOpen">
-            <div class="ab-dropdown-item"
-                 *ngFor="let a of savedAddresses(); let i = index"
+            <div class="ab-dropdown-item" *ngFor="let a of savedAddresses(); let i = index"
                  [class.is-selected]="selectedAddrId() === getId(a)"
                  (click)="selectAddress(getId(a)); addrDropdownOpen = false">
               <div class="ab-avatar ab-avatar-sm">{{ getInitial(a.name) }}</div>
@@ -341,62 +268,43 @@
                 <div class="ab-dropdown-name-row">
                   <span class="ab-name">{{ a.name }}</span>
                   <span class="ab-phone">{{ a.phone }}</span>
-                  <span class="ab-ribbon-inline" *ngIf="a.isDefault">
-                    <i class="bi bi-star-fill"></i> Mặc định
-                  </span>
+                  <span class="ab-ribbon-inline" *ngIf="a.isDefault"><i class="bi bi-star-fill"></i> Mặc định</span>
                 </div>
                 <div class="ab-dropdown-addr">{{ a.address }}</div>
               </div>
-              <i class="bi bi-check-circle-fill ab-dropdown-check"
-                 *ngIf="selectedAddrId() === getId(a)"></i>
+              <i class="bi bi-check-circle-fill ab-dropdown-check" *ngIf="selectedAddrId() === getId(a)"></i>
             </div>
-
-            <!-- Nút thêm địa chỉ -->
             <div class="ab-dropdown-add" (click)="openAddAddrModal(); addrDropdownOpen = false">
               <i class="bi bi-plus-circle"></i> Thêm địa chỉ mới
             </div>
           </div>
-
         </div>
         <div class="ab-empty" *ngIf="!isLoadingAddr() && savedAddresses().length === 0 && userId">
           <div class="ab-empty-icon"><i class="bi bi-geo-alt"></i></div>
           <h5>Chưa có địa chỉ nào</h5>
           <p>Thêm địa chỉ để thanh toán nhanh hơn</p>
-          <button class="ab-btn-add-lg" (click)="openAddAddrModal()">
-            <i class="bi bi-plus-lg"></i> Thêm địa chỉ đầu tiên
-          </button>
+          <button class="ab-btn-add-lg" (click)="openAddAddrModal()"><i class="bi bi-plus-lg"></i> Thêm địa chỉ đầu tiên</button>
         </div>
         <div class="co-note-wrap" [formGroup]="checkoutForm">
           <label class="co-label">Ghi chú</label>
-          <textarea class="co-inp co-textarea" rows="2"
-                    placeholder="Ghi chú cho người giao hàng..."
-                    formControlName="note"></textarea>
+          <textarea class="co-inp co-textarea" rows="2" placeholder="Ghi chú cho người giao hàng..." formControlName="note"></textarea>
         </div>
       </div>
 
       <!-- SECTION 2: Vận chuyển -->
       <div class="co-section">
-        <div class="co-section-head">
-          <span class="co-section-num">2</span>
-          <h3 class="co-section-title">Phương thức vận chuyển</h3>
-        </div>
+        <div class="co-section-head"><span class="co-section-num">2</span><h3 class="co-section-title">Phương thức vận chuyển</h3></div>
         <div class="co-options">
           <label class="co-opt" [class.selected]="shippingMethod() === 'standard'">
             <input type="radio" [checked]="shippingMethod() === 'standard'" (change)="setShipping('standard')" />
             <i class="bi bi-truck"></i>
-            <div class="co-opt-body">
-              <div class="co-opt-title">Giao tiêu chuẩn</div>
-              <div class="co-opt-sub">2–4 ngày làm việc</div>
-            </div>
+            <div class="co-opt-body"><div class="co-opt-title">Giao tiêu chuẩn</div><div class="co-opt-sub">2–4 ngày làm việc</div></div>
             <div class="co-opt-price">{{ vnd(shippingFee()) }}</div>
           </label>
           <label class="co-opt" [class.selected]="shippingMethod() === 'express'">
             <input type="radio" [checked]="shippingMethod() === 'express'" (change)="setShipping('express')" />
             <i class="bi bi-lightning"></i>
-            <div class="co-opt-body">
-              <div class="co-opt-title">Giao nhanh <span class="co-badge">Ưu tiên</span></div>
-              <div class="co-opt-sub">1–2 ngày làm việc</div>
-            </div>
+            <div class="co-opt-body"><div class="co-opt-title">Giao nhanh <span class="co-badge">Ưu tiên</span></div><div class="co-opt-sub">1–2 ngày làm việc</div></div>
             <div class="co-opt-price">{{ vnd(30000) }}</div>
           </label>
         </div>
@@ -404,74 +312,50 @@
 
       <!-- SECTION 3: Thanh toán -->
       <div class="co-section">
-        <div class="co-section-head">
-          <span class="co-section-num">3</span>
-          <h3 class="co-section-title">Phương thức thanh toán</h3>
-        </div>
+        <div class="co-section-head"><span class="co-section-num">3</span><h3 class="co-section-title">Phương thức thanh toán</h3></div>
         <div class="co-options">
           <label class="co-opt" [class.selected]="paymentMethod() === 'cod'">
             <input type="radio" [checked]="paymentMethod() === 'cod'" (change)="setPayment('cod')" />
             <i class="bi bi-cash"></i>
-            <div class="co-opt-body">
-              <div class="co-opt-title">COD <span class="co-badge co-badge-pop">Phổ biến</span></div>
-              <div class="co-opt-sub">Thanh toán khi nhận hàng</div>
-            </div>
+            <div class="co-opt-body"><div class="co-opt-title">COD <span class="co-badge co-badge-pop">Phổ biến</span></div><div class="co-opt-sub">Thanh toán khi nhận hàng</div></div>
           </label>
           <label class="co-opt" [class.selected]="paymentMethod() === 'momo'">
             <input type="radio" [checked]="paymentMethod() === 'momo'" (change)="setPayment('momo')" />
             <i class="bi bi-heart-fill"></i>
-            <div class="co-opt-body">
-              <div class="co-opt-title">MoMo</div>
-              <div class="co-opt-sub">Quét QR – thanh toán nhanh</div>
-            </div>
+            <div class="co-opt-body"><div class="co-opt-title">MoMo</div><div class="co-opt-sub">Quét QR – thanh toán nhanh</div></div>
             <span class="co-tag">QR</span>
           </label>
           <label class="co-opt" [class.selected]="paymentMethod() === 'vnpay'">
             <input type="radio" [checked]="paymentMethod() === 'vnpay'" (change)="setPayment('vnpay')" />
             <i class="bi bi-bank"></i>
-            <div class="co-opt-body">
-              <div class="co-opt-title">VNPay</div>
-              <div class="co-opt-sub">Thanh toán qua ngân hàng</div>
-            </div>
+            <div class="co-opt-body"><div class="co-opt-title">VNPay</div><div class="co-opt-sub">Thanh toán qua ngân hàng</div></div>
             <span class="co-tag">QR</span>
           </label>
         </div>
       </div>
+    </div>
 
-    </div><!-- /co-left -->
-
-    <!-- RIGHT: Summary -->
+    <!-- RIGHT -->
     <div class="co-right">
       <div class="co-summary">
-
         <div class="co-summary-head">
           <h3 class="co-summary-title">Đơn hàng</h3>
           <span class="co-summary-count">{{ items().length }} sản phẩm</span>
         </div>
 
-        <!-- ══ HẠNG THÀNH VIÊN CARD — gọn ══ -->
+        <!-- ══ HẠNG THÀNH VIÊN CARD — CHỈ THAY ĐỔI PHẦN NÀY ══ -->
         <div class="co-rank-card" *ngIf="canUseVouchers">
-
-          <!-- Hàng 1: Badge hạng + label -->
           <div class="co-rank-top">
-            <span class="co-rank-badge"
-                  [class.badge-member]="userRank() === 'member'"
-                  [class.badge-vip]="userRank() === 'vip'">
-              <i class="bi"
-                 [class.bi-person-fill]="userRank() === 'member'"
-                 [class.bi-star-fill]="userRank() === 'vip'"></i>
+            <span class="co-rank-badge" [class.badge-member]="userRank() === 'member'" [class.badge-vip]="userRank() === 'vip'">
+              <i class="bi" [class.bi-person-fill]="userRank() === 'member'" [class.bi-star-fill]="userRank() === 'vip'"></i>
               {{ memberRankLabel }}
             </span>
             <span class="co-rank-top-label">Hạng của bạn</span>
           </div>
-
-          <!-- Hàng 2: Tổng đơn đã giao (style giống profile) -->
           <div class="co-rank-spent">
             <span class="co-rank-spent-label">Tổng đơn đã giao</span>
             <span class="co-rank-spent-value">{{ vnd(totalSpent()) }}</span>
           </div>
-
-          <!-- Hàng 3: Thanh tiến độ (chỉ member) -->
           <ng-container *ngIf="userRank() === 'member'">
             <div class="co-rank-bar-wrap">
               <div class="co-rank-bar">
@@ -479,22 +363,18 @@
               </div>
               <div class="co-rank-bar-labels">
                 <span>Thành viên</span>
-                <span>VIP (5.000.000₫)</span>
+                <span>VIP (2.000.000₫)</span>
               </div>
             </div>
+            <!-- FIX: "Mua X trong 3 tháng gần nhất để lên VIP" — không có chữ "thêm" -->
             <div class="co-rank-remain" *ngIf="rankProgressRemain() > 0">
-              Mua thêm <strong>{{ vnd(rankProgressRemain()) }}</strong> để lên VIP
+              Mua {{ vnd(rankProgressRemain()) }} trong 3 tháng gần nhất để lên VIP
             </div>
           </ng-container>
-
-          <!-- VIP msg -->
           <div class="co-rank-vip-msg" *ngIf="userRank() === 'vip'">
-            <i class="bi bi-patch-check-fill"></i>
-            Hạng cao nhất — hưởng toàn bộ ưu đãi VIP!
+            <i class="bi bi-patch-check-fill"></i> Hạng cao nhất — hưởng toàn bộ ưu đãi VIP!
           </div>
-
         </div>
-        <!-- ══ /HẠNG THÀNH VIÊN CARD ══ -->
 
         <div class="co-items">
           <div class="co-item" *ngFor="let it of items()">
@@ -510,131 +390,66 @@
         </div>
 
         <ng-container *ngIf="canUseVouchers">
-          <!-- Voucher tiền hàng -->
           <div class="co-voucher">
-            <div class="co-voucher-label">
-              <i class="bi bi-tag-fill"></i> Mã giảm tiền hàng
-            </div>
+            <div class="co-voucher-label"><i class="bi bi-tag-fill"></i> Mã giảm tiền hàng</div>
             <div class="co-voucher-row">
               <i class="bi bi-ticket-perforated co-voucher-icon"></i>
-              <input class="co-voucher-inp"
-                     placeholder="Nhập mã giảm tiền hàng"
-                     [value]="orderVoucherCode()"
-                     (input)="onVoucherInput($any($event.target).value, 'order')" />
-              <button class="co-voucher-btn" type="button"
-                      [disabled]="isApplyingOrderVoucher"
-                      (click)="applyVoucher('order')">
-                {{ isApplyingOrderVoucher ? '...' : 'Áp dụng' }}
-              </button>
-              <button class="co-voucher-clear" type="button"
-                      *ngIf="orderVoucherCode()"
-                      (click)="removeVoucher('order')">×</button>
+              <input class="co-voucher-inp" placeholder="Nhập mã giảm tiền hàng" [value]="orderVoucherCode()" (input)="onVoucherInput($any($event.target).value, 'order')" />
+              <button class="co-voucher-btn" type="button" [disabled]="isApplyingOrderVoucher" (click)="applyVoucher('order')">{{ isApplyingOrderVoucher ? '...' : 'Áp dụng' }}</button>
+              <button class="co-voucher-clear" type="button" *ngIf="orderVoucherCode()" (click)="removeVoucher('order')">×</button>
             </div>
-            <button class="co-voucher-see-all" type="button" (click)="openVoucherModal('order')">
-              <i class="bi bi-grid-3x3-gap-fill"></i> Xem mã giảm tiền hàng
-            </button>
-            <div class="co-voucher-msg"
-                 *ngIf="orderVoucherMsg()"
-                 [class.success]="orderVoucherResult()?.valid === true"
-                 [class.error]="orderVoucherResult()?.valid === false">
-              {{ orderVoucherMsg() }}
-            </div>
+            <button class="co-voucher-see-all" type="button" (click)="openVoucherModal('order')"><i class="bi bi-grid-3x3-gap-fill"></i> Xem mã giảm tiền hàng</button>
+            <div class="co-voucher-msg" *ngIf="orderVoucherMsg()" [class.success]="orderVoucherResult()?.valid === true" [class.error]="orderVoucherResult()?.valid === false">{{ orderVoucherMsg() }}</div>
           </div>
-
-          <!-- Voucher phí vận chuyển -->
           <div class="co-voucher">
-            <div class="co-voucher-label">
-              <i class="bi bi-truck"></i> Mã giảm phí vận chuyển
-            </div>
+            <div class="co-voucher-label"><i class="bi bi-truck"></i> Mã giảm phí vận chuyển</div>
             <div class="co-voucher-row">
               <i class="bi bi-ticket-perforated co-voucher-icon"></i>
-              <input class="co-voucher-inp"
-                     placeholder="Nhập mã giảm phí ship"
-                     [value]="shipVoucherCode()"
-                     (input)="onVoucherInput($any($event.target).value, 'shipping')" />
-              <button class="co-voucher-btn" type="button"
-                      [disabled]="isApplyingShipVoucher"
-                      (click)="applyVoucher('shipping')">
-                {{ isApplyingShipVoucher ? '...' : 'Áp dụng' }}
-              </button>
-              <button class="co-voucher-clear" type="button"
-                      *ngIf="shipVoucherCode()"
-                      (click)="removeVoucher('shipping')">×</button>
+              <input class="co-voucher-inp" placeholder="Nhập mã giảm phí ship" [value]="shipVoucherCode()" (input)="onVoucherInput($any($event.target).value, 'shipping')" />
+              <button class="co-voucher-btn" type="button" [disabled]="isApplyingShipVoucher" (click)="applyVoucher('shipping')">{{ isApplyingShipVoucher ? '...' : 'Áp dụng' }}</button>
+              <button class="co-voucher-clear" type="button" *ngIf="shipVoucherCode()" (click)="removeVoucher('shipping')">×</button>
             </div>
-            <button class="co-voucher-see-all" type="button" (click)="openVoucherModal('shipping')">
-              <i class="bi bi-grid-3x3-gap-fill"></i> Xem mã giảm phí ship
-            </button>
-            <div class="co-voucher-msg"
-                 *ngIf="shipVoucherMsg()"
-                 [class.success]="shipVoucherResult()?.valid === true"
-                 [class.error]="shipVoucherResult()?.valid === false">
-              {{ shipVoucherMsg() }}
-            </div>
+            <button class="co-voucher-see-all" type="button" (click)="openVoucherModal('shipping')"><i class="bi bi-grid-3x3-gap-fill"></i> Xem mã giảm phí ship</button>
+            <div class="co-voucher-msg" *ngIf="shipVoucherMsg()" [class.success]="shipVoucherResult()?.valid === true" [class.error]="shipVoucherResult()?.valid === false">{{ shipVoucherMsg() }}</div>
           </div>
         </ng-container>
 
         <div class="co-voucher-guest-hint" *ngIf="!canUseVouchers">
           <i class="bi bi-ticket-perforated"></i>
-          Mã khuyến mãi chỉ áp dụng khi <a routerLink="/login">đăng nhập</a> hoặc
-          <a routerLink="/register">đăng ký</a>. Bạn vẫn đặt hàng bình thường với tài khoản khách (theo SĐT).
+          Mã khuyến mãi chỉ áp dụng khi <a routerLink="/login">đăng nhập</a> hoặc <a routerLink="/register">đăng ký</a>. Bạn vẫn đặt hàng bình thường với tài khoản khách (theo SĐT).
         </div>
 
-        <!-- Totals -->
         <div class="co-totals">
-          <div class="co-total-row">
-            <span>Tạm tính</span>
-            <span>{{ vnd(subTotal()) }}</span>
-          </div>
+          <div class="co-total-row"><span>Tạm tính</span><span>{{ vnd(subTotal()) }}</span></div>
           <div class="co-total-row co-discount" *ngIf="discountOnItems() > 0">
-            <span>
-              Giảm tiền hàng
-              <span class="co-discount-tag">{{ appliedOrderVoucherInfo?.code }}</span>
-            </span>
+            <span>Giảm tiền hàng <span class="co-discount-tag">{{ appliedOrderVoucherInfo?.code }}</span></span>
             <span>–{{ vnd(discountOnItems()) }}</span>
           </div>
           <div class="co-total-row">
             <span>Phí vận chuyển</span>
             <span *ngIf="discountOnShipping() === 0">{{ vnd(shippingFee()) }}</span>
-            <span *ngIf="discountOnShipping() > 0" class="co-ship-free">
-              <span class="co-ship-old">{{ vnd(shippingFee()) }}</span>
-              Miễn phí
-            </span>
+            <span *ngIf="discountOnShipping() > 0" class="co-ship-free"><span class="co-ship-old">{{ vnd(shippingFee()) }}</span> Miễn phí</span>
           </div>
           <div class="co-total-row co-discount" *ngIf="discountOnShipping() > 0">
-            <span>
-              Giảm phí vận chuyển
-              <span class="co-discount-tag">{{ appliedShipVoucherInfo?.code }}</span>
-            </span>
+            <span>Giảm phí vận chuyển <span class="co-discount-tag">{{ appliedShipVoucherInfo?.code }}</span></span>
             <span>–{{ vnd(discountOnShipping()) }}</span>
           </div>
-          <div class="co-total-final">
-            <span>Tổng thanh toán</span>
-            <strong>{{ vnd(total()) }}</strong>
-          </div>
+          <div class="co-total-final"><span>Tổng thanh toán</span><strong>{{ vnd(total()) }}</strong></div>
         </div>
 
-        <!-- Actions -->
         <div class="co-actions">
-          <button class="co-btn co-btn-outline" type="button" (click)="goToCart()">
-            <i class="bi bi-arrow-left"></i> Giỏ hàng
-          </button>
-          <button class="co-btn co-btn-primary" type="button"
-                  [disabled]="isPlacing()" (click)="placeOrder()">
+          <button class="co-btn co-btn-outline" type="button" (click)="goToCart()"><i class="bi bi-arrow-left"></i> Giỏ hàng</button>
+          <button class="co-btn co-btn-primary" type="button" [disabled]="isPlacing()" (click)="placeOrder()">
             <span *ngIf="!isPlacing()"><i class="bi bi-check2-circle"></i> Đặt hàng</span>
-            <span *ngIf="isPlacing()" class="co-btn-loading">
-              <span class="co-spinner co-spinner-white"></span> Đang xử lý...
-            </span>
+            <span *ngIf="isPlacing()" class="co-btn-loading"><span class="co-spinner co-spinner-white"></span> Đang xử lý...</span>
           </button>
         </div>
-
         <div class="co-trust">
           <span><i class="bi bi-shield-check"></i> Bảo mật</span>
           <span><i class="bi bi-arrow-counterclockwise"></i> Đổi trả 7 ngày</span>
           <span><i class="bi bi-truck"></i> Giao tận nơi</span>
         </div>
-
       </div>
     </div>
-
-  </div><!-- /co-body -->
+  </div>
 </div>

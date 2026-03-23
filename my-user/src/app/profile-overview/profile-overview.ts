@@ -18,31 +18,30 @@ export class ProfileOverview implements OnInit {
   message = '';
   error = false;
 
-  // Hạng thành viên
-  memberRank  = 'member';
-  totalSpent  = 0;
+  memberRank    = 'member';
+  totalSpent    = 0;
+  recentSpent   = 0; // chi tiêu 3 tháng gần nhất — dùng cho progress bar
   isLoadingRank = true;
 
-  readonly VIP_THRESHOLD = 5_000_000;
+  // FIX: ngưỡng VIP = 2.000.000₫ (3 tháng gần nhất)
+  readonly VIP_THRESHOLD = 2_000_000;
 
   get memberRankLabel(): string {
     return this.memberRank === 'vip' ? '⭐ VIP' : 'Thành viên';
   }
 
+  // FIX: progress tính từ recentSpent / 2.000.000
   get rankProgressPercent(): number {
-    return Math.min(100, Math.round((this.totalSpent / this.VIP_THRESHOLD) * 100));
+    return Math.min(100, Math.round((this.recentSpent / this.VIP_THRESHOLD) * 100));
   }
 
   get rankProgressRemain(): number {
-    return Math.max(0, this.VIP_THRESHOLD - this.totalSpent);
+    return Math.max(0, this.VIP_THRESHOLD - this.recentSpent);
   }
 
   private readonly API = 'http://localhost:3000/api';
 
-  constructor(
-    private fb: FormBuilder,
-    private http: HttpClient
-  ) {}
+  constructor(private fb: FormBuilder, private http: HttpClient) {}
 
   ngOnInit(): void {
     const userStr = localStorage.getItem('user');
@@ -71,13 +70,18 @@ export class ProfileOverview implements OnInit {
       headers: new HttpHeaders({ Authorization: `Bearer ${token}` })
     }).subscribe({
       next: (u) => {
-        this.memberRank = u.memberRank  || 'member';
-        this.totalSpent = u.totalSpent  || 0;
+        this.memberRank  = u.memberRank  || 'member';
+        this.totalSpent  = u.totalSpent  || 0;
+        this.recentSpent = u.recentSpent || 0; // FIX: lấy từ API
         this.isLoadingRank = false;
 
-        // Cập nhật localStorage
         const stored = JSON.parse(localStorage.getItem('user') || '{}');
-        localStorage.setItem('user', JSON.stringify({ ...stored, memberRank: this.memberRank, totalSpent: this.totalSpent }));
+        localStorage.setItem('user', JSON.stringify({
+          ...stored,
+          memberRank:  this.memberRank,
+          totalSpent:  this.totalSpent,
+          recentSpent: this.recentSpent,
+        }));
       },
       error: () => { this.isLoadingRank = false; }
     });

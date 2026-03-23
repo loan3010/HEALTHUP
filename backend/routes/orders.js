@@ -6,16 +6,17 @@ const jwt      = require('jsonwebtoken');
 const router   = express.Router();
 const multer   = require('multer');
 
-const Order   = require('../models/Order');
-const Product = require('../models/Product');
-const Cart    = require('../models/Cart');
-const User    = require('../models/User');
-const Promotion = require('../models/Promotion');
+const Order        = require('../models/Order');
+const Product      = require('../models/Product');
+const Cart         = require('../models/Cart');
+const User         = require('../models/User');
+const Promotion    = require('../models/Promotion');
+const Category     = require('../models/Categories');
 const OrderAuditLog = require('../models/OrderAuditLog');
-const Notification = require('../models/Notification');
+const Notification  = require('../models/Notification');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const { buildCustomerListStatsMaps, statsForUser } = require('../helpers/customerOrderStats');
-const { findOrCreateGuestUser } = require('../helpers/guestUser');
+const { findOrCreateGuestUser }   = require('../helpers/guestUser');
 const { isValidGuestCartSessionId } = require('../helpers/cartIdentity');
 
 function jwtSecretOrders() {
@@ -67,27 +68,91 @@ function calcShipping(subTotal, shippingMethod) {
   return subTotal > 500000 ? 0 : 20000;
 }
 
-async function calcDiscountFromDB(voucherCode, subTotal, shippingFee) {
+// ─────────────────────────────────────────────────────────────────────────────
+// FIX: calcDiscountFromDB
+// Thêm check: firstOrderOnly, applyScope (category / product), userLimit
+// ─────────────────────────────────────────────────────────────────────────────
+async function calcDiscountFromDB(voucherCode, subTotal, shippingFee, userId, cartProductIds) {
   if (!voucherCode) return { discountAmount: 0, discountOnType: null };
 
-  const now = new Date();
+  const now   = new Date();
   const promo = await Promotion.findOne({
-    code: voucherCode.trim().toUpperCase(),
+    code: voucherCode.trim().toUpperCase()
   });
 
   if (!promo) return { discountAmount: 0, discountOnType: null };
 
+  // Thời gian
   const start = promo.startDate ? new Date(promo.startDate) : null;
   const end   = promo.endDate   ? new Date(promo.endDate)   : null;
   if (start && now < start) return { discountAmount: 0, discountOnType: null };
   if (end   && now > end)   return { discountAmount: 0, discountOnType: null };
 
+  // Tổng lượt toàn hệ thống
   if (promo.totalLimit > 0 && promo.usedCount >= promo.totalLimit) {
     return { discountAmount: 0, discountOnType: null };
   }
+
+  // Đơn tối thiểu
   if (subTotal < promo.minOrder) return { discountAmount: 0, discountOnType: null };
 
-  let discountAmount = 0;
+  // ── FIX 1: firstOrderOnly ──
+  if (promo.firstOrderOnly && userId) {
+    const prevCount = await Order.countDocuments({
+      userId: new mongoose.Types.ObjectId(String(userId)),
+      status: { $ne: 'cancelled' }
+    });
+    if (prevCount > 0) return { discountAmount: 0, discountOnType: null };
+  }
+
+  // ── FIX 2: userLimit ──
+  if (promo.userLimit > 0 && userId) {
+    const userUsedCount = await Order.countDocuments({
+      userId: new mongoose.Types.ObjectId(String(userId)),
+      status: { $ne: 'cancelled' },
+      $or: [
+        { voucherCode:     promo.code },
+        { shipVoucherCode: promo.code }
+      ]
+    });
+    if (userUsedCount >= promo.userLimit) {
+      return { discountAmount: 0, discountOnType: null };
+    }
+  }
+
+  // ── FIX 3: applyScope category ──
+  // Product.cat là String (tên danh mục), appliedCategoryIds là ObjectId → cần join Category
+  if (promo.applyScope === 'category' && promo.appliedCategoryIds?.length > 0) {
+    const ids = cartProductIds || [];
+    if (ids.length === 0) return { discountAmount: 0, discountOnType: null };
+
+    const cats = await Category.find({
+      _id: { $in: promo.appliedCategoryIds }
+    }).select('name').lean();
+    const allowedCatNames = cats.map(c => c.name);
+
+    if (allowedCatNames.length === 0) return { discountAmount: 0, discountOnType: null };
+
+    const match = await Product.findOne({
+      _id: { $in: ids.map(id => {
+        try { return new mongoose.Types.ObjectId(String(id)); } catch { return null; }
+      }).filter(Boolean) },
+      cat: { $in: allowedCatNames }
+    }).lean();
+
+    if (!match) return { discountAmount: 0, discountOnType: null };
+  }
+
+  // ── FIX 4: applyScope product ──
+  if (promo.applyScope === 'product' && promo.appliedProductIds?.length > 0) {
+    const ids        = cartProductIds || [];
+    const allowedSet = new Set(promo.appliedProductIds.map(id => String(id)));
+    const hasMatch   = ids.some(id => allowedSet.has(String(id)));
+    if (!hasMatch) return { discountAmount: 0, discountOnType: null };
+  }
+
+  // Tính tiền giảm
+  let discountAmount   = 0;
   const discountOnType = (promo.type === 'shipping') ? 'shipping' : 'items';
 
   if (promo.type === 'shipping') {
@@ -99,7 +164,11 @@ async function calcDiscountFromDB(voucherCode, subTotal, shippingFee) {
     } else if (promo.discountType === 'fixed') {
       discountAmount = Math.min(promo.discountValue, Number(shippingFee));
     } else {
-      discountAmount = Number(shippingFee);
+      // freeship
+      discountAmount = Math.min(
+        Number(shippingFee),
+        promo.maxDiscount > 0 ? promo.maxDiscount : Number(shippingFee)
+      );
     }
   } else {
     if (promo.discountType === 'percent') {
@@ -113,6 +182,52 @@ async function calcDiscountFromDB(voucherCode, subTotal, shippingFee) {
   }
 
   return { discountAmount, discountOnType };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FIX: updateMemberRank
+// Ngưỡng VIP: tổng delivered trong 3 tháng gần nhất >= 2.000.000₫
+// ─────────────────────────────────────────────────────────────────────────────
+async function updateMemberRank(userId) {
+  if (!userId) return;
+
+  try {
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+    // totalSpent cho hạng: chỉ đơn delivered trong 3 tháng gần nhất
+    // không tính đơn đang return completed (hoàn tiền xong)
+    const aggRank = await Order.aggregate([
+      {
+        $match: {
+          userId:       new mongoose.Types.ObjectId(String(userId)),
+          status:       'delivered',
+          returnStatus: { $ne: 'completed' },
+          createdAt:    { $gte: threeMonthsAgo }   // FIX: createdAt — ngày đặt hàng, không phải ngày cập nhật
+        }
+      },
+      { $group: { _id: null, total: { $sum: '$total' } } }
+    ]);
+    const recentSpent = aggRank[0]?.total || 0;
+    const memberRank  = recentSpent >= 2_000_000 ? 'vip' : 'member';
+
+    // totalSpent lưu DB: toàn bộ lịch sử delivered (dùng cho admin xem)
+    const aggAll = await Order.aggregate([
+      {
+        $match: {
+          userId:       new mongoose.Types.ObjectId(String(userId)),
+          status:       'delivered',
+          returnStatus: { $ne: 'completed' }
+        }
+      },
+      { $group: { _id: null, total: { $sum: '$total' } } }
+    ]);
+    const totalSpent = aggAll[0]?.total || 0;
+
+    await User.findByIdAndUpdate(userId, { totalSpent, memberRank });
+  } catch (e) {
+    console.error('Cập nhật hạng thành viên thất bại:', e);
+  }
 }
 
 function getMembershipTier(totalSpent) {
@@ -162,16 +277,14 @@ function parseDateEnd(d) {
 
 function buildAdminOrderFilter(query) {
   const filter = {};
-  const and = [];
+  const and    = [];
 
   if (ORDER_STATUS.includes(String(query.status || ''))) {
     filter.status = String(query.status);
   }
-
   if (RETURN_STATUS.includes(String(query.returnStatus || ''))) {
     filter.returnStatus = String(query.returnStatus);
   }
-
   if (['cod', 'momo', 'vnpay'].includes(String(query.paymentMethod || ''))) {
     filter.paymentMethod = String(query.paymentMethod);
   }
@@ -197,8 +310,8 @@ function buildAdminOrderFilter(query) {
         { orderCode: rx },
         { _id: mongoose.Types.ObjectId.isValid(keyword) ? new mongoose.Types.ObjectId(keyword) : null },
         { 'customer.fullName': rx },
-        { 'customer.phone': rx },
-        { 'customer.email': rx }
+        { 'customer.phone':    rx },
+        { 'customer.email':    rx }
       ].filter(Boolean)
     });
   }
@@ -219,7 +332,6 @@ async function generateNextOrderCode() {
     .sort({ orderCode: -1 })
     .select('orderCode')
     .lean();
-
   const current = Number(String(latest?.orderCode || '').replace(/^ORD/, '')) || 0;
   return `ORD${String(current + 1).padStart(11, '0')}`;
 }
@@ -230,7 +342,7 @@ async function persistOrderReturnRequest(order, { reason, note, parsedItems, fil
   order.returnStatus      = 'requested';
   order.returnRequestedAt = new Date();
   order.returnReason      = String(reason || '');
-  order.returnNote        = String(note || '');
+  order.returnNote        = String(note   || '');
   order.returnImages      = imageUrls;
 
   if (Array.isArray(parsedItems) && parsedItems.length > 0) {
@@ -238,7 +350,7 @@ async function persistOrderReturnRequest(order, { reason, note, parsedItems, fil
       productId: i.productId,
       name:      i.name,
       imageUrl:  i.imageUrl || '',
-      price:     Number(i.price || 0),
+      price:     Number(i.price    || 0),
       quantity:  Number(i.quantity || 0),
       returnQty: Number(i.returnQty || 0),
     }));
@@ -256,6 +368,9 @@ async function persistOrderReturnRequest(order, { reason, note, parsedItems, fil
   });
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// FIX: prepareOrderFromRequestBody — truyền userId + cartProductIds vào calcDiscountFromDB
+// ─────────────────────────────────────────────────────────────────────────────
 async function prepareOrderFromRequestBody(body, opts = {}) {
   const allowVouchers = opts.allowVouchers !== false;
   const lockedUserId  = opts.lockedUserId;
@@ -270,8 +385,8 @@ async function prepareOrderFromRequestBody(body, opts = {}) {
     userId
   } = body || {};
 
-  const voucherCode     = allowVouchers && voucherCodeBody  ? String(voucherCodeBody).trim()  : null;
-  const shipVoucherCode = allowVouchers && shipVoucherBody   ? String(shipVoucherBody).trim()  : null;
+  const voucherCode     = allowVouchers && voucherCodeBody ? String(voucherCodeBody).trim()  : null;
+  const shipVoucherCode = allowVouchers && shipVoucherBody  ? String(shipVoucherBody).trim()  : null;
 
   if (!customer?.fullName || !customer?.phone || !customer?.address) {
     return { ok: false, status: 400, payload: { message: 'Thiếu thông tin khách hàng' } };
@@ -284,8 +399,8 @@ async function prepareOrderFromRequestBody(body, opts = {}) {
   }
 
   const normalizedIn = items.map(i => ({
-    productId:    String(i.productId || '').trim(),
-    variantId:    String(i.variantId || '').trim(),
+    productId:    String(i.productId    || '').trim(),
+    variantId:    String(i.variantId    || '').trim(),
     variantLabel: String(i.variantLabel || '').trim(),
     quantity:     Math.max(1, Number(i.quantity || 1)),
   }));
@@ -293,7 +408,6 @@ async function prepareOrderFromRequestBody(body, opts = {}) {
   const invalidIds = normalizedIn
     .filter(i => !mongoose.Types.ObjectId.isValid(i.productId))
     .map(i => i.productId);
-
   if (invalidIds.length) {
     return { ok: false, status: 400, payload: { message: 'productId không hợp lệ', invalidIds } };
   }
@@ -301,7 +415,6 @@ async function prepareOrderFromRequestBody(body, opts = {}) {
   const invalidVariantIds = normalizedIn
     .filter(i => i.variantId && !mongoose.Types.ObjectId.isValid(i.variantId))
     .map(i => i.variantId);
-
   if (invalidVariantIds.length) {
     return { ok: false, status: 400, payload: { message: 'variantId không hợp lệ', invalidVariantIds } };
   }
@@ -310,10 +423,7 @@ async function prepareOrderFromRequestBody(body, opts = {}) {
   const products = await Product.find({ _id: { $in: ids } }).lean();
   const map      = new Map(products.map(p => [String(p._id), p]));
 
-  const missing = normalizedIn
-    .filter(i => !map.has(i.productId))
-    .map(i => i.productId);
-
+  const missing = normalizedIn.filter(i => !map.has(i.productId)).map(i => i.productId);
   if (missing.length) {
     return { ok: false, status: 400, payload: { message: 'Có sản phẩm không tồn tại', missing } };
   }
@@ -329,8 +439,7 @@ async function prepareOrderFromRequestBody(body, opts = {}) {
       variant = (p.variants || []).find(v => String(v._id) === String(i.variantId));
       if (!variant) {
         return {
-          ok: false,
-          status: 400,
+          ok: false, status: 400,
           payload: { message: `Biến thể không tồn tại cho sản phẩm ${p.name}` }
         };
       }
@@ -340,8 +449,7 @@ async function prepareOrderFromRequestBody(body, opts = {}) {
     const available = Number(variant?.stock ?? p.stock ?? 0);
     if (qty > available) {
       return {
-        ok: false,
-        status: 400,
+        ok: false, status: 400,
         payload: { message: `Sản phẩm "${p.name}" chỉ còn ${available} trong kho` }
       };
     }
@@ -360,16 +468,22 @@ async function prepareOrderFromRequestBody(body, opts = {}) {
     });
   }
 
+  // cartProductIds để check applyScope
+  const cartProductIds = normalizedIn.map(i => i.productId);
+
+  const resolvedUserId = lockedUserId
+    || (userId && mongoose.Types.ObjectId.isValid(String(userId)) ? userId : null);
+
   const ship = calcShipping(subTotal, shippingMethod);
 
+  // FIX: truyền resolvedUserId + cartProductIds vào calcDiscountFromDB
   const { discountAmount: discOrder } =
-    await calcDiscountFromDB(voucherCode || '', subTotal, ship);
-
-  const { discountAmount: discShip } =
-    await calcDiscountFromDB(shipVoucherCode || '', subTotal, ship);
+    await calcDiscountFromDB(voucherCode     || '', subTotal, ship, resolvedUserId, cartProductIds);
+  const { discountAmount: discShip  } =
+    await calcDiscountFromDB(shipVoucherCode || '', subTotal, ship, resolvedUserId, cartProductIds);
 
   const totalDiscount = discOrder + discShip;
-  const total = Math.max(0, subTotal - discOrder + ship - discShip);
+  const total         = Math.max(0, subTotal - discOrder + ship - discShip);
 
   const orderData = {
     customer: {
@@ -382,19 +496,19 @@ async function prepareOrderFromRequestBody(body, opts = {}) {
       ward:     normalizeShippingPart(customer.ward),
       note:     customer.note || '',
     },
-    items:           orderItems,
-    shippingMethod:  shippingMethod || 'standard',
-    paymentMethod:   paymentMethod  || 'cod',
-    voucherCode:     voucherCode    || null,
-    shipVoucherCode: shipVoucherCode || null,
+    items:              orderItems,
+    shippingMethod:     shippingMethod  || 'standard',
+    paymentMethod:      paymentMethod   || 'cod',
+    voucherCode:        voucherCode     || null,
+    shipVoucherCode:    shipVoucherCode || null,
     subTotal,
-    shippingFee:     ship,
-    discount:        totalDiscount,
+    shippingFee:        ship,
+    discount:           totalDiscount,
     discountOnItems:    discOrder,
     discountOnShipping: discShip,
     total,
-    status:  'pending',
-    userId:  null,
+    status: 'pending',
+    userId: null,
   };
 
   if (lockedUserId && mongoose.Types.ObjectId.isValid(String(lockedUserId))) {
@@ -467,9 +581,7 @@ async function persistNewOrder(
     await stripPurchasedFromCart({ userId: order.userId });
   }
   if (guestCartSessionId && isValidGuestCartSessionId(guestCartSessionId)) {
-    await stripPurchasedFromCart({
-      guestSessionId: String(guestCartSessionId).trim(),
-    });
+    await stripPurchasedFromCart({ guestSessionId: String(guestCartSessionId).trim() });
   }
 
   for (const item of orderItems) {
@@ -477,20 +589,12 @@ async function persistNewOrder(
     if (!p) continue;
 
     if (item.variantId) {
-      const idx = (p.variants || []).findIndex(
-        v => String(v._id) === String(item.variantId)
-      );
+      const idx = (p.variants || []).findIndex(v => String(v._id) === String(item.variantId));
       if (idx >= 0) {
-        p.variants[idx].stock = Math.max(
-          0,
-          Number(p.variants[idx].stock || 0) - Number(item.quantity || 0)
-        );
+        p.variants[idx].stock = Math.max(0, Number(p.variants[idx].stock || 0) - Number(item.quantity || 0));
       }
     } else {
-      p.stock = Math.max(
-        0,
-        Number(p.stock || 0) - Number(item.quantity || 0)
-      );
+      p.stock = Math.max(0, Number(p.stock || 0) - Number(item.quantity || 0));
     }
 
     if (Array.isArray(p.variants) && p.variants.length > 0) {
@@ -539,15 +643,12 @@ router.post('/', async (req, res) => {
       allowVouchers = false;
     }
 
-    const prep = await prepareOrderFromRequestBody(req.body, {
-      allowVouchers,
-      lockedUserId,
-    });
+    const prep = await prepareOrderFromRequestBody(req.body, { allowVouchers, lockedUserId });
     if (!prep.ok) {
       return res.status(prep.status).json(prep.payload);
     }
 
-    const guestCartRaw = String(req.body?.guestCartSessionId || '').trim();
+    const guestCartRaw       = String(req.body?.guestCartSessionId || '').trim();
     const guestCartSessionId = isValidGuestCartSessionId(guestCartRaw) ? guestCartRaw : null;
 
     const order = await persistNewOrder(
@@ -558,27 +659,12 @@ router.post('/', async (req, res) => {
       guestCartSessionId
     );
 
-    // ── Cập nhật hạng thành viên sau khi đặt hàng thành công ──
+    // FIX: chỉ update rank sau khi đặt hàng thành công, dùng hàm mới
     if (order.userId) {
-      try {
-        const agg = await Order.aggregate([
-          {
-            $match: {
-              userId: new mongoose.Types.ObjectId(String(order.userId)),
-              status: { $in: ['pending', 'confirmed', 'shipping', 'delivered'] }
-            }
-          },
-          { $group: { _id: null, total: { $sum: '$total' } } }
-        ]);
-        const totalSpent = agg[0]?.total || 0;
-        const memberRank = totalSpent >= 5_000_000 ? 'vip' : 'member';
-        await User.findByIdAndUpdate(order.userId, { totalSpent, memberRank });
-      } catch (e) {
-        console.error('Cập nhật hạng thành viên thất bại:', e);
-      }
+      await updateMemberRank(order.userId);
     }
 
-    // ── Tạo notification ──
+    // Tạo notification
     if (order.userId) {
       try {
         const firstItem      = prep.orderItems[0];
@@ -659,7 +745,7 @@ router.get('/admin/list', authenticateToken, requireAdmin, async (req, res) => {
       Order.aggregate([
         {
           $group: {
-            _id: null,
+            _id:                  null,
             totalOrders:          { $sum: 1 },
             pendingCount:         { $sum: { $cond: [{ $eq: ['$status', 'pending'] },   1, 0] } },
             shippingCount:        { $sum: { $cond: [{ $eq: ['$status', 'shipping'] },  1, 0] } },
@@ -817,24 +903,9 @@ router.patch('/admin/:id/status', authenticateToken, requireAdmin, async (req, r
       note:      String(note || '')
     });
 
-    // ── Khi đơn chuyển sang delivered: cập nhật lại hạng thành viên ──
+    // FIX: khi delivered → dùng hàm updateMemberRank mới (window 3 tháng, chỉ tính delivered)
     if (status === 'delivered' && order.userId) {
-      try {
-        const agg = await Order.aggregate([
-          {
-            $match: {
-              userId: new mongoose.Types.ObjectId(String(order.userId)),
-              status: 'delivered'
-            }
-          },
-          { $group: { _id: null, total: { $sum: '$total' } } }
-        ]);
-        const totalSpent = agg[0]?.total || 0;
-        const memberRank = totalSpent >= 5_000_000 ? 'vip' : 'member';
-        await User.findByIdAndUpdate(order.userId, { totalSpent, memberRank });
-      } catch (e) {
-        console.error('Cập nhật hạng thành viên thất bại:', e);
-      }
+      await updateMemberRank(order.userId);
     }
 
     if (order.userId) {
@@ -916,6 +987,8 @@ router.patch('/admin/:id/return-status', authenticateToken, requireAdmin, async 
     }
     if (returnStatus === 'completed') {
       order.returnCompletedAt = new Date();
+      // FIX: khi hoàn trả xong → recalc rank (totalSpent giảm vì completed bị loại)
+      if (order.userId) await updateMemberRank(order.userId);
     }
     await order.save();
 
@@ -937,7 +1010,7 @@ router.patch('/admin/:id/return-status', authenticateToken, requireAdmin, async 
 // ======================= GUEST: tra cứu đơn =======================
 router.post('/guest-lookup', async (req, res) => {
   try {
-    const phone   = String(req.body?.phone || '').trim();
+    const phone   = String(req.body?.phone    || '').trim();
     const rawCode = String(req.body?.orderCode || '').replace(/\s/g, '').toUpperCase();
     if (!isValidPhoneVN(phone)) {
       return res.status(400).json({ message: 'Số điện thoại không hợp lệ' });
@@ -979,7 +1052,7 @@ router.patch('/:id/guest-request-return', (req, res) => {
         return res.status(400).json({ message: 'Vui lòng chọn lý do đổi trả' });
       }
 
-      const phoneVal = String(phone || '').trim();
+      const phoneVal = String(phone     || '').trim();
       const rawCode  = String(orderCode || '').replace(/\s/g, '').toUpperCase();
       if (!isValidPhoneVN(phoneVal)) {
         (req.files || []).forEach((f) => fs.unlink(f.path, () => {}));
@@ -989,7 +1062,6 @@ router.patch('/:id/guest-request-return', (req, res) => {
         (req.files || []).forEach((f) => fs.unlink(f.path, () => {}));
         return res.status(400).json({ message: 'Mã đơn không hợp lệ' });
       }
-
       if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
         (req.files || []).forEach((f) => fs.unlink(f.path, () => {}));
         return res.status(400).json({ message: 'ID không hợp lệ' });
@@ -1009,12 +1081,10 @@ router.patch('/:id/guest-request-return', (req, res) => {
         (req.files || []).forEach((f) => fs.unlink(f.path, () => {}));
         return res.status(403).json({ message: 'Số điện thoại không khớp đơn hàng' });
       }
-
       if (order.status !== 'delivered') {
         (req.files || []).forEach((f) => fs.unlink(f.path, () => {}));
         return res.status(400).json({ message: 'Chỉ có thể yêu cầu đổi trả cho đơn đã giao' });
       }
-
       if (order.returnStatus && order.returnStatus !== 'none') {
         (req.files || []).forEach((f) => fs.unlink(f.path, () => {}));
         return res.status(400).json({ message: 'Đơn hàng này đã có yêu cầu đổi trả rồi' });
@@ -1022,9 +1092,8 @@ router.patch('/:id/guest-request-return', (req, res) => {
 
       let parsedItems = [];
       if (items) {
-        try {
-          parsedItems = typeof items === 'string' ? JSON.parse(items) : items;
-        } catch { parsedItems = []; }
+        try { parsedItems = typeof items === 'string' ? JSON.parse(items) : items; }
+        catch { parsedItems = []; }
       }
 
       await persistOrderReturnRequest(order, {
@@ -1053,19 +1122,18 @@ router.get('/:id', async (req, res) => {
     if (mongoose.Types.ObjectId.isValid(id)) {
       order = await Order.findById(id).populate('items.productId');
     }
-
     if (!order) {
       order = await Order.findOne({ orderCode: id }).populate('items.productId');
     }
-
     if (!order) return res.status(404).json({ message: 'Order not found' });
+
     return res.json(order);
   } catch (err) {
     return res.status(500).json({ message: 'Server error' });
   }
 });
 
-// ======================= UPDATE STATUS =======================
+// ======================= UPDATE STATUS (user) =======================
 
 router.patch('/:id/status', async (req, res) => {
   try {
@@ -1114,7 +1182,6 @@ router.patch('/:id/request-return', authenticateToken, (req, res) => {
         (req.files || []).forEach(f => fs.unlink(f.path, () => {}));
         return res.status(400).json({ message: 'Vui lòng chọn lý do đổi trả' });
       }
-
       if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
         (req.files || []).forEach(f => fs.unlink(f.path, () => {}));
         return res.status(400).json({ message: 'ID không hợp lệ' });
@@ -1125,21 +1192,19 @@ router.patch('/:id/request-return', authenticateToken, (req, res) => {
         (req.files || []).forEach(f => fs.unlink(f.path, () => {}));
         return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
       }
-
       if (order.status !== 'delivered') {
         (req.files || []).forEach(f => fs.unlink(f.path, () => {}));
         return res.status(400).json({ message: 'Chỉ có thể yêu cầu đổi trả cho đơn đã giao' });
       }
 
       const tokenUserId = req.user?.userId && String(req.user.userId);
-      const orderUserId = order.userId && String(order.userId);
+      const orderUserId = order.userId    && String(order.userId);
       if (!tokenUserId || !orderUserId || tokenUserId !== orderUserId) {
         (req.files || []).forEach(f => fs.unlink(f.path, () => {}));
         return res.status(403).json({
           message: 'Bạn chỉ có thể yêu cầu trả hàng cho đơn hàng của tài khoản mình',
         });
       }
-
       if (order.returnStatus && order.returnStatus !== 'none') {
         (req.files || []).forEach(f => fs.unlink(f.path, () => {}));
         return res.status(400).json({ message: 'Đơn hàng này đã có yêu cầu đổi trả rồi' });
@@ -1147,9 +1212,8 @@ router.patch('/:id/request-return', authenticateToken, (req, res) => {
 
       let parsedItems = [];
       if (items) {
-        try {
-          parsedItems = typeof items === 'string' ? JSON.parse(items) : items;
-        } catch { parsedItems = []; }
+        try { parsedItems = typeof items === 'string' ? JSON.parse(items) : items; }
+        catch { parsedItems = []; }
       }
 
       await persistOrderReturnRequest(order, {
