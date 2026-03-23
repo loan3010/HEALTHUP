@@ -205,6 +205,30 @@
   text-transform: none;
 }
 
+.shipping-sub-badge {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 999px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.shipping-sub-confirmed {
+  background: #DBEAFE;
+  color: #1D4ED8;
+}
+
+.shipping-sub-shipping {
+  background: #CFFAFE;
+  color: #0E7490;
+}
+
+.shipping-sub-delivery_failed {
+  background: #FFEDD5;
+  color: #C2410C;
+}
+
 /* Status variants */
 .status-pending         { background: #FFFBEB; color: #B45309; border-bottom: 1px solid #FDE68A; }
 .status-confirmed       { background: #EFF6FF; color: #1D4ED8; border-bottom: 1px solid #BFDBFE; }

@@ -1,8 +1,14 @@
 import { Component, HostListener, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { CustomerService, CustomerItem } from './customer.service';
+import {
+  CustomerService,
+  CustomerItem,
+  CustomerHistoryRow,
+  CustomerSavedAddress,
+} from './customer.service';
 import { AdminAlertModalService } from '../../admin-alert-modal/admin-alert-modal.service';
+import { AdminNavBridgeService } from '../../admin-nav-bridge.service';
 
 interface CustomerRow extends CustomerItem {
   selected: boolean;
@@ -17,6 +23,13 @@ const AVATAR_COLORS = [
   { bg: '#EDE9FE', fg: '#5B21B6' }, { bg: '#FCE7F3', fg: '#9D174D' },
   { bg: '#CCFBF1', fg: '#0F766E' },
 ];
+const DEACTIVATE_QUICK_REASONS: ReadonlyArray<string> = [
+  'Vi phạm điều khoản mua hàng.',
+  'Nhiều lần hủy đơn không lý do.',
+  'Có dấu hiệu gian lận thanh toán.',
+  'Có hành vi quấy rối nhân viên/chăm sóc khách hàng.',
+  'Tài khoản có rủi ro bảo mật, tạm khóa để xác minh.',
+];
 
 @Component({
   selector: 'app-customer',
@@ -26,15 +39,38 @@ const AVATAR_COLORS = [
   styleUrls: ['./customer.css']
 })
 export class Customer implements OnInit {
+  readonly historyTabs: Array<{ id: 'all' | 'pending' | 'in_transit' | 'delivered' | 'cancelled' | 'return'; label: string }> = [
+    { id: 'all', label: 'Tất cả' },
+    { id: 'pending', label: 'Chờ xác nhận' },
+    { id: 'in_transit', label: 'Đang vận chuyển' },
+    { id: 'delivered', label: 'Đã giao' },
+    { id: 'cancelled', label: 'Đã hủy' },
+    { id: 'return', label: 'Đổi trả' },
+  ];
+
   customers: CustomerRow[] = [];
   searchText = '';
+  tierFilter: '' | 'member' | 'vip' = '';
+  activeFilter: 'all' | 'active' | 'inactive' = 'all';
   selectedCount = 0;
   isLoading = false;
   errorMsg  = '';
+  showFilterPanel = false;
 
   // Modal detail
   isModalOpen = false;
   selectedCustomer: CustomerRow | null = null;
+  detailAddresses: CustomerSavedAddress[] = [];
+  detailAddressesLoading = false;
+  detailOrders: CustomerHistoryRow[] = [];
+  detailOrdersLoading = false;
+  detailHistoryError = '';
+  detailHistoryTab: 'all' | 'pending' | 'in_transit' | 'delivered' | 'cancelled' | 'return' = 'all';
+  detailHistoryCounts = { all: 0, pending: 0, in_transit: 0, delivered: 0, cancelled: 0, return: 0 };
+  detailHistoryPage = 1;
+  detailHistoryTotalPages = 1;
+  detailShowAllHistory = false;
+  topProducts: Array<{ name: string; count: number }> = [];
 
   // Modal confirm xóa
   isDeleteModalOpen = false;
@@ -45,6 +81,11 @@ export class Customer implements OnInit {
   deactivateTarget: CustomerRow | null = null;
   deactivateReasonDraft = '';
   deactivateSubmitting = false;
+  readonly deactivateQuickReasons = DEACTIVATE_QUICK_REASONS;
+
+  // Modal xác nhận mở lại tài khoản
+  isActivateModalOpen = false;
+  activateTarget: CustomerRow | null = null;
 
   // Pagination — backend driven
   currentPage = 1;
@@ -64,7 +105,8 @@ export class Customer implements OnInit {
 
   constructor(
     private customerService: CustomerService,
-    private adminAlert: AdminAlertModalService
+    private adminAlert: AdminAlertModalService,
+    private navBridge: AdminNavBridgeService
   ) {}
 
   ngOnInit(): void { this.loadCustomers(); }
@@ -73,8 +115,10 @@ export class Customer implements OnInit {
   @HostListener('document:click', ['$event'])
   onDocumentClick(ev: MouseEvent): void {
     const t = ev.target as HTMLElement;
-    if (t.closest('.sort-wrap')) return;
-    this.sortMenuOpen = false;
+    const inSort = !!t.closest('.sort-wrap');
+    const inFilter = !!t.closest('.hu-dropdown-wrap');
+    if (!inSort) this.sortMenuOpen = false;
+    if (!inFilter) this.showFilterPanel = false;
   }
 
   /** Bật/tắt menu Sắp xếp */
@@ -121,10 +165,18 @@ export class Customer implements OnInit {
   loadCustomers(): void {
     this.isLoading = true;
     this.errorMsg  = '';
+    const isActiveValue =
+      this.activeFilter === 'active'
+        ? true
+        : this.activeFilter === 'inactive'
+          ? false
+          : undefined;
     this.customerService.getAll({
       search: this.searchText,
       page:   this.currentPage,
       limit:  this.perPage,
+      tier: this.tierFilter || undefined,
+      isActive: isActiveValue,
       sortBy: this.sortBy,
       sortDir: this.sortDir,
     }).subscribe({
@@ -151,6 +203,35 @@ export class Customer implements OnInit {
     }, 400);
   }
 
+  /** Đổi bộ lọc (hạng/trạng thái) thì quay lại trang 1 rồi gọi lại API. */
+  onFilterChange(): void {
+    this.currentPage = 1;
+    this.loadCustomers();
+    this.showFilterPanel = false;
+  }
+
+  /** Xóa nhanh toàn bộ bộ lọc về mặc định. */
+  resetFilters(): void {
+    this.tierFilter = '';
+    this.activeFilter = 'all';
+    this.currentPage = 1;
+    this.loadCustomers();
+    this.showFilterPanel = false;
+  }
+
+  get hasActiveFilter(): boolean {
+    return !!this.tierFilter || this.activeFilter !== 'all';
+  }
+
+  get filterLabelShort(): string {
+    const parts: string[] = [];
+    if (this.tierFilter === 'vip') parts.push('VIP');
+    if (this.tierFilter === 'member') parts.push('Thành viên');
+    if (this.activeFilter === 'active') parts.push('Hoạt động');
+    if (this.activeFilter === 'inactive') parts.push('Đang khóa');
+    return parts.length ? parts.join(' · ') : 'Tất cả';
+  }
+
   // ── PAGINATION ──
   get pageStart(): number { return this.totalItems === 0 ? 0 : (this.currentPage - 1) * this.perPage + 1; }
   get pageEnd():   number { return Math.min(this.currentPage * this.perPage, this.totalItems); }
@@ -168,19 +249,130 @@ export class Customer implements OnInit {
   }
 
   // ── MODAL DETAIL ──
-  onRowClick(c: CustomerRow): void { this.selectedCustomer = c; this.isModalOpen = true; }
+  onRowClick(c: CustomerRow): void { this.openCustomerDetail(c); }
   onEditClick(): void {
     const c = this.customers.find(c => c.selected);
-    if (c) { this.selectedCustomer = c; this.isModalOpen = true; }
+    if (c) this.openCustomerDetail(c);
   }
-  closeModal(): void { this.isModalOpen = false; this.selectedCustomer = null; }
+  closeModal(): void {
+    this.isModalOpen = false;
+    this.selectedCustomer = null;
+    this.detailAddresses = [];
+    this.detailOrders = [];
+    this.topProducts = [];
+    this.detailHistoryError = '';
+  }
+
+  private openCustomerDetail(c: CustomerRow): void {
+    this.selectedCustomer = c;
+    this.isModalOpen = true;
+    this.detailAddresses = [];
+    this.topProducts = [];
+    this.detailOrders = [];
+    this.detailHistoryError = '';
+    this.detailHistoryTab = 'all';
+    this.detailHistoryPage = 1;
+    this.detailShowAllHistory = false;
+    this.loadDetailAddresses();
+    this.loadDetailOrderHistory(true);
+  }
+
+  loadDetailAddresses(): void {
+    if (!this.selectedCustomer?.id) return;
+    this.detailAddressesLoading = true;
+    this.customerService.getAddresses(this.selectedCustomer.id).subscribe({
+      next: (res) => {
+        this.detailAddresses = (res?.addresses || []) as CustomerSavedAddress[];
+        this.detailAddressesLoading = false;
+      },
+      error: () => {
+        this.detailAddresses = [];
+        this.detailAddressesLoading = false;
+      },
+    });
+  }
+
+  onHistoryTabClick(tab: 'all' | 'pending' | 'in_transit' | 'delivered' | 'cancelled' | 'return'): void {
+    this.detailHistoryTab = tab;
+    this.detailHistoryPage = 1;
+    this.loadDetailOrderHistory(false);
+  }
+
+  toggleShowAllHistory(): void {
+    this.detailShowAllHistory = !this.detailShowAllHistory;
+    this.detailHistoryPage = 1;
+    this.loadDetailOrderHistory(false);
+  }
+
+  prevHistoryPage(): void {
+    if (this.detailHistoryPage <= 1) return;
+    this.detailHistoryPage -= 1;
+    this.loadDetailOrderHistory(false);
+  }
+
+  nextHistoryPage(): void {
+    if (this.detailHistoryPage >= this.detailHistoryTotalPages) return;
+    this.detailHistoryPage += 1;
+    this.loadDetailOrderHistory(false);
+  }
+
+  loadDetailOrderHistory(resetPage = false): void {
+    if (!this.selectedCustomer?.id) return;
+    if (resetPage) this.detailHistoryPage = 1;
+    this.detailOrdersLoading = true;
+    this.detailHistoryError = '';
+    this.customerService.getOrderHistory(this.selectedCustomer.id, {
+      tab: this.detailHistoryTab,
+      page: this.detailHistoryPage,
+      limit: this.detailShowAllHistory ? 20 : 5,
+    }).subscribe({
+      next: (res) => {
+        this.detailOrders = res?.data || [];
+        this.detailHistoryCounts = res?.counts || this.detailHistoryCounts;
+        this.detailHistoryPage = Number(res?.page || 1);
+        this.detailHistoryTotalPages = Number(res?.totalPages || 1);
+        this.topProducts = res?.topProducts || [];
+        this.detailOrdersLoading = false;
+      },
+      error: (err) => {
+        this.detailOrders = [];
+        this.detailHistoryError = err?.error?.message || 'Không thể tải lịch sử đơn hàng';
+        this.detailOrdersLoading = false;
+      },
+    });
+  }
+
+  historyItemPreview(items: Array<{ name: string; quantity: number }>): string {
+    const list = (items || []).slice(0, 3).map((i) => `${i.name} x${i.quantity}`);
+    const hasMore = (items || []).length > 3;
+    return hasMore ? `${list.join(', ')} ...` : list.join(', ');
+  }
+
+  historyStatusClass(row: CustomerHistoryRow): string {
+    const status = String(row?.status || '');
+    if (status === 'pending') return 'oh-status-pending';
+    if (status === 'confirmed') return 'oh-status-confirmed';
+    if (status === 'shipping') return 'oh-status-shipping';
+    if (status === 'delivery_failed') return 'oh-status-delivery-failed';
+    if (status === 'delivered') return 'oh-status-delivered';
+    if (status === 'cancelled') return 'oh-status-cancelled';
+    return 'oh-status-default';
+  }
+
+  openOrderDetail(orderId: string, event?: Event): void {
+    event?.stopPropagation();
+    if (!orderId) return;
+    this.closeModal();
+    this.navBridge.goToOrder(orderId);
+  }
 
   // ── TOGGLE ACTIVE ──
   /** Đang khóa → mở modal nhập lý do. Đang mở khóa → gọi API ngay (không cần lý do). */
   onToggleActive(c: CustomerRow, event?: Event): void {
     event?.stopPropagation();
     if (!c.isActive) {
-      this.runToggleActive(c, null);
+      this.activateTarget = c;
+      this.isActivateModalOpen = true;
       return;
     }
     this.deactivateTarget = c;
@@ -215,6 +407,24 @@ export class Customer implements OnInit {
         this.cancelDeactivate();
       }
     );
+  }
+
+  applyQuickDeactivateReason(reason: string): void {
+    this.deactivateReasonDraft = reason;
+  }
+
+  cancelActivate(): void {
+    this.isActivateModalOpen = false;
+    this.activateTarget = null;
+  }
+
+  confirmActivate(): void {
+    const target = this.activateTarget;
+    if (!target) return;
+    this.deactivateSubmitting = true;
+    this.runToggleActive(target, null, () => {
+      this.cancelActivate();
+    });
   }
 
   /**
@@ -313,12 +523,6 @@ export class Customer implements OnInit {
 
   getTierClass(tier: string): string {
     return String(tier || '').toLowerCase() === 'vip' ? 'tier-vip' : 'tier-member';
-  }
-
-  getAvgOrder(): string {
-    const c = this.selectedCustomer;
-    if (!c || c.totalOrders === 0) return '—';
-    return Math.round(c.totalSpent / c.totalOrders).toLocaleString('vi-VN') + 'đ';
   }
 
   private toRow(c: CustomerItem): CustomerRow {

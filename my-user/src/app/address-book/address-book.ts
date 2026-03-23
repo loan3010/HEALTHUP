@@ -69,7 +69,9 @@ export class AddressBook implements OnInit {
       try {
         const user = JSON.parse(userStr);
         // Khớp checkout: một số phiên bản lưu _id thay vì id.
-        this.userId = user.id || user._id || '';
+        // Ưu tiên decode từ JWT để tránh lệch localStorage (gây 403 ở backend).
+        const fromToken = this.decodeUserIdFromToken(token);
+        this.userId = fromToken || user.id || user._id || '';
         this.token = token;
       } catch {}
     }
@@ -80,6 +82,28 @@ export class AddressBook implements OnInit {
 
   get headers() {
     return new HttpHeaders({ Authorization: `Bearer ${this.token}` });
+  }
+
+  /**
+   * Decode JWT (payload) để lấy userId.
+   * Lý do: localStorage('userId') / localStorage('user') có thể bị lệch so với token,
+   * dẫn đến 403 khi gọi GET /api/users/:id/addresses.
+   */
+  private decodeUserIdFromToken(token: string): string {
+    if (!token) return '';
+    try {
+      const parts = String(token).split('.');
+      if (parts.length < 2) return '';
+      const payloadB64 = parts[1];
+      const base64 = payloadB64.replace(/-/g, '+').replace(/_/g, '/');
+      const padded = base64.padEnd(base64.length + (4 - (base64.length % 4)) % 4, '=');
+      const decodedStr = globalThis.atob(padded);
+      const decoded = JSON.parse(decodedStr) as any;
+      const uid = decoded?.userId ?? decoded?.id ?? decoded?._id;
+      return uid != null ? String(uid) : '';
+    } catch {
+      return '';
+    }
   }
 
   initForm(): void {

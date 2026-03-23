@@ -124,6 +124,15 @@ export class OrderDetail implements OnInit {
     return map[status] || status;
   }
 
+  /** Nhãn nguồn hủy để khách biết đơn do ai thực hiện hủy. */
+  getCancelActorLabel(order: any): string {
+    const by = String(order?.cancelledByType || '').toLowerCase();
+    if (by === 'customer') return 'Bạn đã hủy đơn này';
+    if (by === 'admin') return 'Shop đã hủy đơn này';
+    if (by === 'system') return 'Hệ thống đã hủy đơn này';
+    return 'Đơn đã bị hủy';
+  }
+
   getPaymentLabel(method: string): string {
     const map: Record<string, string> = {
       cod:   'Thanh toán khi nhận hàng (COD)',

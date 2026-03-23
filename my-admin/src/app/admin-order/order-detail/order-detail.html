@@ -22,6 +22,7 @@
               <div class="label">Trạng thái đơn hàng</div>
               <span class="badge">{{ statusLabel }}</span>
               <div class="cancel-reason-admin" *ngIf="order.status === 'cancelled' && order.cancelReason">
+                <span class="cancel-actor-chip">{{ cancelActorLabel }}</span>
                 <span class="label">Lý do hủy (hiển thị cho khách)</span>
                 <span class="cancel-reason-text">{{ order.cancelReason }}</span>
               </div>
