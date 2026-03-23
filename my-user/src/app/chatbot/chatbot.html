@@ -1,26 +1,18 @@
-<!-- HEALTHUP CHATBOT WIDGET -->
-
-<!-- Floating Chat Button -->
 <button
   class="hu-chat-button"
   [class.active]="isOpen"
   (click)="toggleChat()"
   aria-label="Mở chat">
-  <svg class="hu-chat-icon" viewBox="0 0 24 24" fill="none">
-    <path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2ZM20 16H5.2L4 17.2V4H20V16Z" fill="currentColor"/>
-    <circle cx="12" cy="10" r="1.5" fill="currentColor"/>
-    <circle cx="8" cy="10" r="1.5" fill="currentColor"/>
-    <circle cx="16" cy="10" r="1.5" fill="currentColor"/>
-  </svg>
-  <svg class="hu-close-icon" viewBox="0 0 24 24" fill="none">
-    <path d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12L19 6.41Z" fill="currentColor"/>
-  </svg>
+  
+  <div class="hu-pulse-ring"></div>
+
+  <i class="bi bi-chat-dots-fill hu-chat-icon" style="font-size: 1.8rem; line-height: 1;"></i>
+  
+  <i class="bi bi-x-lg hu-close-icon" style="font-size: 1.8rem; line-height: 1;"></i>
 </button>
 
-<!-- Chat Widget -->
 <div class="hu-chat-widget" [class.active]="isOpen">
 
-  <!-- Header -->
   <div class="hu-chat-header">
     <div class="hu-header-left">
       <div class="hu-bot-avatar">
@@ -41,7 +33,6 @@
     </button>
   </div>
 
-  <!-- Welcome Screen -->
   <div class="hu-welcome" *ngIf="showWelcome">
     <div class="hu-welcome-body">
       <div class="hu-welcome-icon">🌿</div>
@@ -62,23 +53,40 @@
     </div>
   </div>
 
-  <!-- Messages -->
   <div class="hu-chat-messages" *ngIf="!showWelcome">
 
     <div *ngFor="let message of messages"
          class="hu-message"
          [ngClass]="'hu-' + message.type">
 
-      <!-- Bot avatar -->
       <div class="hu-msg-avatar" *ngIf="message.type === 'bot'">
         <img [src]="botAvatar" alt="Bot">
       </div>
 
       <div class="hu-msg-content">
-        <div class="hu-msg-bubble" [innerHTML]="sanitizeHtml(message.text)"></div>
+        <div class="hu-msg-bubble" [innerHTML]="message.text"></div>
+
+        <div class="hu-product-cards-wrapper" *ngIf="message.type === 'bot' && message.products && message.products.length > 0">
+          <div class="hu-product-cards-container">
+            <div class="hu-product-card shadow-sm" *ngFor="let prod of message.products">
+              <div class="hu-card-img">
+                <img [src]="getFullImageUrl(prod)"
+                     [alt]="prod.name"
+                     (error)="$any($event.target).src = fallbackImage">
+              </div>
+              <div class="hu-card-body">
+                <h4 class="hu-prod-name" [title]="prod.name">{{ prod.name }}</h4>
+                <p class="hu-prod-price">{{ prod.price | number }}đ</p>
+                <button type="button" class="hu-btn-detail" (click)="goToProductDetail(prod._id)">
+                  Xem chi tiết
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="hu-msg-time">{{ message.time }}</div>
 
-        <!-- FAQ suggestions -->
         <div class="hu-faq-list" *ngIf="message.suggestions && message.suggestions.length > 0">
           <button
             *ngFor="let faq of message.suggestions"
@@ -89,13 +97,11 @@
         </div>
       </div>
 
-      <!-- User avatar -->
       <div class="hu-msg-avatar hu-user-avatar" *ngIf="message.type === 'user'">
         <img [src]="userAvatar" alt="User">
       </div>
     </div>
 
-    <!-- Typing indicator -->
     <div class="hu-message hu-bot" *ngIf="isTyping">
       <div class="hu-msg-avatar">
         <img [src]="botAvatar" alt="Bot">
@@ -109,7 +115,6 @@
 
   </div>
 
-  <!-- Quick reply categories -->
   <div class="hu-quick-replies" *ngIf="!showWelcome && categories.length > 0">
     <p class="hu-qr-title">Chọn chủ đề:</p>
     <div class="hu-qr-buttons">
@@ -122,7 +127,6 @@
     </div>
   </div>
 
-  <!-- Input -->
   <div class="hu-input-wrapper" *ngIf="!showWelcome">
     <div class="hu-input-row">
       <input
@@ -135,7 +139,7 @@
       />
       <button
         class="hu-send-btn"
-        [disabled]="!userInput.trim()"
+        [disabled]="!userInput.trim() || isTyping"
         (click)="sendMessage()"
         aria-label="Gửi">
         <svg viewBox="0 0 24 24" fill="none" width="20" height="20">

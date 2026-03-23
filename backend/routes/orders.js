@@ -35,7 +35,6 @@ function extractBearer(req) {
 }
 
 // ======================= MULTER CONFIG =======================
-// Lưu ảnh vào backend/public/uploads/returns/
 const returnStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = path.join(__dirname, '../public/images/returns');
@@ -61,8 +60,8 @@ const fileFilter = (req, file, cb) => {
 const uploadReturnImages = multer({
   storage: returnStorage,
   fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB mỗi ảnh
-}).array('images', 5); // tối đa 5 ảnh
+  limits: { fileSize: 5 * 1024 * 1024 },
+}).array('images', 5);
 
 // ======================= HELPER =======================
 
@@ -78,15 +77,18 @@ function calcShipping(subTotal, shippingMethod) {
 async function calcDiscountFromDB(voucherCode, subTotal, shippingFee) {
   if (!voucherCode) return { discountAmount: 0, discountOnType: null };
 
-  const now   = new Date();
+  const now = new Date();
   const promo = await Promotion.findOne({
-    code:      voucherCode.trim().toUpperCase(),
-    status:    'ongoing',
-    startDate: { $lte: now },
-    endDate:   { $gte: now },
+    code: voucherCode.trim().toUpperCase(),
   });
 
   if (!promo) return { discountAmount: 0, discountOnType: null };
+
+  const start = promo.startDate ? new Date(promo.startDate) : null;
+  const end   = promo.endDate   ? new Date(promo.endDate)   : null;
+  if (start && now < start) return { discountAmount: 0, discountOnType: null };
+  if (end   && now > end)   return { discountAmount: 0, discountOnType: null };
+
   if (promo.totalLimit > 0 && promo.usedCount >= promo.totalLimit) {
     return { discountAmount: 0, discountOnType: null };
   }
@@ -132,18 +134,12 @@ function normalizePhone(phone) {
   return String(phone || '').replace(/\D/g, '');
 }
 
-// ✅ Helper format tiền VND (từ nhánh THnew)
 function formatVND(amount) {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency', currency: 'VND'
   }).format(amount);
 }
 
-/**
- * Chuẩn hoá từng phần tỉnh/huyện/xã khi lưu đơn.
- * Trước đây dùng chữ "N/A" khi checkout không tách cấp hành chính → hiển thị rối; để rỗng thay vì N/A.
- * (từ nhánh main)
- */
 function normalizeShippingPart(v) {
   const s = String(v ?? '').trim();
   if (!s || /^n\/a$/i.test(s)) return '';
@@ -160,18 +156,15 @@ const ORDER_STATUS = [
 ];
 const RETURN_STATUS = ['none', 'requested', 'approved', 'rejected', 'completed'];
 
-/** Tối đa số lần chuyển delivery_failed → shipping (giao lại). */
 const MAX_REDELIVERY_ATTEMPTS = 2;
 
 const DELIVERY_FAIL_PRESET_LABELS = {
   no_contact: 'Không liên lạc được khách',
   wrong_address: 'Sai địa chỉ',
   customer_refused: 'Khách từ chối nhận',
-  /** Cho phép giao lại (cùng nhóm với no_contact / other theo nghiệp vụ). */
   reschedule: 'Khách hẹn giao ngày khác',
 };
 
-/** Sai địa chỉ / khách từ chối nhận → không cho giao lại, chỉ hủy đơn. */
 function deliveryPresetAllowsRedelivery(preset) {
   const p = String(preset || '');
   return p !== 'wrong_address' && p !== 'customer_refused';
@@ -315,10 +308,6 @@ function getAdminSort(sortBy, sortDir) {
   return { [by]: dir, _id: -1 };
 }
 
-/**
- * Gắn thông tin tài khoản đặt hàng (User: username, SĐT đăng ký).
- * Trường `customer` trên Order là người nhận lúc checkout (sổ địa chỉ), có thể khác tài khoản.
- */
 async function attachBuyerAccountToOrders(orders) {
   if (!Array.isArray(orders) || !orders.length) return orders;
   const idSet = new Set();
@@ -359,9 +348,6 @@ async function generateNextOrderCode() {
   return `ORD${String(current + 1).padStart(11, '0')}`;
 }
 
-/**
- * Ghi yêu cầu đổi trả lên đơn (dùng chung user JWT + guest).
- */
 async function persistOrderReturnRequest(order, { reason, note, parsedItems, files, auditWho }) {
   const imageUrls = (files || []).map((f) => `/images/returns/${f.filename}`);
 
@@ -393,7 +379,6 @@ async function persistOrderReturnRequest(order, { reason, note, parsedItems, fil
     note:      `Yêu cầu: ${reason}${note ? ' — ' + note : ''}`,
   });
 
-  // Chuông admin: có yêu cầu hoàn/trả (user đăng nhập hoặc khách qua guest-lookup).
   try {
     await notifyAdminReturnRequested(order);
   } catch (e) {
@@ -401,15 +386,6 @@ async function persistOrderReturnRequest(order, { reason, note, parsedItems, fil
   }
 }
 
-/**
- * Chuẩn bị payload đơn hàng từ body (checkout công khai + admin hotline + preview).
- * Dùng chung để tạm tính trên admin khớp 100% với lúc lưu DB.
- */
-/**
- * @param {object} opts
- * @param {boolean} [opts.allowVouchers=true] — false = khách không đăng nhập (guest), bỏ mã KM
- * @param {string|mongoose.Types.ObjectId} [opts.lockedUserId] — gán userId đơn (JWT user hoặc guest)
- */
 async function prepareOrderFromRequestBody(body, opts = {}) {
   const allowVouchers = opts.allowVouchers !== false;
   const lockedUserId  = opts.lockedUserId;
@@ -424,12 +400,8 @@ async function prepareOrderFromRequestBody(body, opts = {}) {
     userId
   } = body || {};
 
-  const voucherCode = allowVouchers && voucherCodeBody
-    ? String(voucherCodeBody).trim()
-    : null;
-  const shipVoucherCode = allowVouchers && shipVoucherBody
-    ? String(shipVoucherBody).trim()
-    : null;
+  const voucherCode     = allowVouchers && voucherCodeBody    ? String(voucherCodeBody).trim()  : null;
+  const shipVoucherCode = allowVouchers && shipVoucherBody     ? String(shipVoucherBody).trim()  : null;
 
   if (!customer?.fullName || !customer?.phone || !customer?.address) {
     return { ok: false, status: 400, payload: { message: 'Thiếu thông tin khách hàng' } };
@@ -535,16 +507,15 @@ async function prepareOrderFromRequestBody(body, opts = {}) {
       phone:    customer.phone,
       email:    customer.email || '',
       address:  customer.address,
-      // Khách checkout một ô địa chỉ: có thể rỗng (schema Order — province/district/ward không bắt buộc).
       province: normalizeShippingPart(customer.province),
       district: normalizeShippingPart(customer.district),
       ward:     normalizeShippingPart(customer.ward),
-      note:     customer.note     || '',
+      note:     customer.note || '',
     },
     items:           orderItems,
     shippingMethod:  shippingMethod || 'standard',
     paymentMethod:   paymentMethod  || 'cod',
-    voucherCode:     voucherCode || null,
+    voucherCode:     voucherCode    || null,
     shipVoucherCode: shipVoucherCode || null,
     subTotal,
     shippingFee:     ship,
@@ -566,14 +537,11 @@ async function prepareOrderFromRequestBody(body, opts = {}) {
     ok: true,
     orderData,
     orderItems,
-    voucherCodeRaw: allowVouchers && voucherCode ? voucherCode : null,
+    voucherCodeRaw:     allowVouchers && voucherCode     ? voucherCode     : null,
     shipVoucherCodeRaw: allowVouchers && shipVoucherCode ? shipVoucherCode : null,
   };
 }
 
-/**
- * Lưu đơn sau khi prepareOrderFromRequestBody thành công (mã đơn, voucher, cart, kho).
- */
 async function persistNewOrder(
   orderData,
   orderItems,
@@ -625,11 +593,9 @@ async function persistNewOrder(
     } catch (_e) { /* ignore */ }
   };
 
-  // Giỏ theo tài khoản (user / guest user sau khi tạo đơn vẫn có order.userId).
   if (order.userId) {
     await stripPurchasedFromCart({ userId: order.userId });
   }
-  // Giỏ API theo phiên khách (x-guest-cart-id) — khác với userId document User guest.
   if (guestCartSessionId && isValidGuestCartSessionId(guestCartSessionId)) {
     await stripPurchasedFromCart({
       guestSessionId: String(guestCartSessionId).trim(),
@@ -669,12 +635,12 @@ async function persistNewOrder(
   return order;
 }
 
-// ======================= CREATE ORDER (checkout khách — công khai) =======================
+// ======================= CREATE ORDER =======================
 
 router.post('/', async (req, res) => {
   try {
     let allowVouchers = false;
-    let lockedUserId    = null;
+    let lockedUserId  = null;
 
     const token = extractBearer(req);
     if (token) {
@@ -687,7 +653,7 @@ router.post('/', async (req, res) => {
               message: 'Thông tin đăng nhập không khớp với tài khoản đặt hàng.',
             });
           }
-          lockedUserId = decoded.userId;
+          lockedUserId  = decoded.userId;
           allowVouchers = true;
         }
       } catch (_e) {
@@ -702,7 +668,7 @@ router.post('/', async (req, res) => {
       }
       const g = await findOrCreateGuestUser(cust.phone, cust.fullName, cust.email);
       if (!g.ok) return res.status(400).json({ message: g.message });
-      lockedUserId = g.userId;
+      lockedUserId  = g.userId;
       allowVouchers = false;
     }
 
@@ -715,9 +681,7 @@ router.post('/', async (req, res) => {
     }
 
     const guestCartRaw = String(req.body?.guestCartSessionId || '').trim();
-    const guestCartSessionId = isValidGuestCartSessionId(guestCartRaw)
-      ? guestCartRaw
-      : null;
+    const guestCartSessionId = isValidGuestCartSessionId(guestCartRaw) ? guestCartRaw : null;
 
     const order = await persistNewOrder(
       prep.orderData,
@@ -727,11 +691,10 @@ router.post('/', async (req, res) => {
       guestCartSessionId
     );
 
-    // ✅ Tạo notification cho user sau khi đặt hàng thành công (từ nhánh THnew)
     if (order.userId) {
       try {
-        const firstItem = prep.orderItems[0];
-        const extraCount = prep.orderItems.length - 1;
+        const firstItem    = prep.orderItems[0];
+        const extraCount   = prep.orderItems.length - 1;
         const productSummary = extraCount > 0
           ? `${firstItem.name} và ${extraCount} sản phẩm khác`
           : firstItem.name;
@@ -749,7 +712,6 @@ router.post('/', async (req, res) => {
       }
     }
 
-    // Chuông admin real-time: đơn mới từ checkout (không báo khi admin tạo hotline).
     try {
       await notifyAdminOrderPlaced(order);
     } catch (e) {
@@ -774,7 +736,6 @@ router.get('/', async (req, res) => {
     const filter = userId && mongoose.Types.ObjectId.isValid(userId)
       ? { userId: new mongoose.Types.ObjectId(userId) }
       : {};
-    // Populate ảnh SP: nhiều đơn thiếu imageUrl trên dòng hàng — cần cho trang đổi trả.
     const orders = await Order.find(filter)
       .populate({ path: 'items.productId', select: 'images name' })
       .sort({ createdAt: -1 });
@@ -846,27 +807,27 @@ router.get('/admin/list', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
-// ======================= ADMIN HOTLINE: xem trước tiền (không ghi DB) =======================
+// ======================= ADMIN HOTLINE PREVIEW =======================
 router.post('/admin/hotline-preview', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const prep = await prepareOrderFromRequestBody(req.body);
+    const prep = await prepareOrderFromRequestBody(req.body, { allowVouchers: true });
     if (!prep.ok) {
       return res.status(prep.status).json(prep.payload);
     }
     const { orderData, orderItems } = prep;
     return res.json({
-      subTotal: orderData.subTotal,
-      shippingFee: orderData.shippingFee,
-      discount: orderData.discount,
-      discountOnItems: orderData.discountOnItems,
+      subTotal:           orderData.subTotal,
+      shippingFee:        orderData.shippingFee,
+      discount:           orderData.discount,
+      discountOnItems:    orderData.discountOnItems,
       discountOnShipping: orderData.discountOnShipping,
-      total: orderData.total,
+      total:              orderData.total,
       items: orderItems.map((i) => ({
-        name: i.name,
-        quantity: i.quantity,
-        price: i.price,
+        name:         i.name,
+        quantity:     i.quantity,
+        price:        i.price,
         variantLabel: i.variantLabel,
-        lineTotal: i.price * i.quantity,
+        lineTotal:    i.price * i.quantity,
       })),
     });
   } catch (err) {
@@ -875,10 +836,10 @@ router.post('/admin/hotline-preview', authenticateToken, requireAdmin, async (re
   }
 });
 
-// ======================= ADMIN HOTLINE: tạo đơn (có JWT admin) =======================
+// ======================= ADMIN HOTLINE CREATE =======================
 router.post('/admin/hotline', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const prep = await prepareOrderFromRequestBody(req.body);
+    const prep = await prepareOrderFromRequestBody(req.body, { allowVouchers: true });
     if (!prep.ok) {
       return res.status(prep.status).json(prep.payload);
     }
@@ -944,10 +905,10 @@ router.get('/admin/:id', authenticateToken, requireAdmin, async (req, res) => {
       ...order,
       buyerAccount,
       customerSummary: {
-        customerID:     user?.customerID || '',
-        membershipTier: getMembershipTier(totalSpent),
-        totalOrders,
-        totalSpent,
+        customerID:          user?.customerID || '',
+        membershipTier:      getMembershipTier(stats.totalSpent),
+        totalOrders:         stats.totalOrders,
+        totalSpent:          stats.totalSpent,
         hasProvisionalSpend: stats.hasProvisionalSpend,
       }
     });
@@ -1089,13 +1050,11 @@ router.patch('/admin/:id/return-status', authenticateToken, requireAdmin, async 
       return res.status(400).json({ message: 'Đơn đã ở trạng thái trả hàng/hoàn tiền này' });
     }
 
-    // Luồng admin (khớp nghiệp vụ): chỉ user gọi PATCH /:id/request-return mới tạo requested.
-    // Admin: requested → approved | rejected; approved → completed (sau khi nhận hàng trả & hoàn tiền).
     const returnFlow = {
-      none: [],
+      none:      [],
       requested: ['approved', 'rejected'],
-      approved: ['completed'],
-      rejected: [],
+      approved:  ['completed'],
+      rejected:  [],
       completed: []
     };
 
@@ -1108,8 +1067,8 @@ router.patch('/admin/:id/return-status', authenticateToken, requireAdmin, async 
 
     order.returnStatus = returnStatus;
     if (returnStatus === 'requested') {
-      order.returnRequestedAt = new Date();
-      order.returnReason = String(returnReason || '');
+      order.returnRequestedAt    = new Date();
+      order.returnReason         = String(returnReason || '');
       order.returnRejectionReason = '';
     }
     if (returnStatus === 'approved') {
@@ -1134,7 +1093,6 @@ router.patch('/admin/:id/return-status', authenticateToken, requireAdmin, async 
       note:      String(note || '')
     });
 
-    // Thông báo cho khách đăng nhập khi shop từ chối hoàn (hiện ở trang Notifications + badge chuông).
     if (returnStatus === 'rejected' && order.userId) {
       try {
         const shopReason = String(order.returnRejectionReason || '').trim();
@@ -1163,7 +1121,7 @@ router.patch('/admin/:id/return-status', authenticateToken, requireAdmin, async 
 // ======================= GUEST: tra cứu đơn =======================
 router.post('/guest-lookup', async (req, res) => {
   try {
-    const phone = String(req.body?.phone || '').trim();
+    const phone   = String(req.body?.phone || '').trim();
     const rawCode = String(req.body?.orderCode || '').replace(/\s/g, '').toUpperCase();
     if (!isValidPhoneVN(phone)) {
       return res.status(400).json({ message: 'Số điện thoại không hợp lệ' });
@@ -1190,7 +1148,7 @@ router.post('/guest-lookup', async (req, res) => {
   }
 });
 
-// ======================= GUEST: đổi trả (xác minh SĐT + mã đơn) =======================
+// ======================= GUEST: đổi trả =======================
 router.patch('/:id/guest-request-return', (req, res) => {
   uploadReturnImages(req, res, async (uploadErr) => {
     try {
@@ -1250,16 +1208,14 @@ router.patch('/:id/guest-request-return', (req, res) => {
       if (items) {
         try {
           parsedItems = typeof items === 'string' ? JSON.parse(items) : items;
-        } catch {
-          parsedItems = [];
-        }
+        } catch { parsedItems = []; }
       }
 
       await persistOrderReturnRequest(order, {
         reason,
         note,
         parsedItems,
-        files: req.files || [],
+        files:    req.files || [],
         auditWho: 'guest-lookup',
       });
 
@@ -1293,7 +1249,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// ======================= UPDATE STATUS =======================
+// ======================= UPDATE STATUS (user tự hủy) =======================
 
 router.patch('/:id/status', async (req, res) => {
   try {
@@ -1354,8 +1310,7 @@ router.patch('/:id/status', async (req, res) => {
   }
 });
 
-// ======================= USER REQUEST RETURN (có upload ảnh) =======================
-// POST multipart/form-data với fields: reason, note, items (JSON string), images (files)
+// ======================= USER REQUEST RETURN =======================
 
 router.patch('/:id/request-return', authenticateToken, (req, res) => {
   uploadReturnImages(req, res, async (uploadErr) => {
@@ -1367,7 +1322,6 @@ router.patch('/:id/request-return', authenticateToken, (req, res) => {
       const { reason, note, items } = req.body;
 
       if (!reason) {
-        // Xóa ảnh vừa upload nếu validate fail
         (req.files || []).forEach(f => fs.unlink(f.path, () => {}));
         return res.status(400).json({ message: 'Vui lòng chọn lý do đổi trả' });
       }
@@ -1388,7 +1342,6 @@ router.patch('/:id/request-return', authenticateToken, (req, res) => {
         return res.status(400).json({ message: 'Chỉ có thể yêu cầu đổi trả cho đơn đã giao' });
       }
 
-      // Chỉ chủ đơn (user đăng nhập) được gửi yêu cầu — khớp flow, tránh lạm dụng ID đơn.
       const tokenUserId = req.user?.userId && String(req.user.userId);
       const orderUserId = order.userId && String(order.userId);
       if (!tokenUserId || !orderUserId || tokenUserId !== orderUserId) {
@@ -1414,7 +1367,7 @@ router.patch('/:id/request-return', authenticateToken, (req, res) => {
         reason,
         note,
         parsedItems,
-        files: req.files || [],
+        files:    req.files || [],
         auditWho: req.user?.userId || 'user',
       });
 

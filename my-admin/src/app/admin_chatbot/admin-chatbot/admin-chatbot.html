@@ -18,19 +18,29 @@
           <button class="btn-global btn-add" (click)="openAddModal()">
             <i class="bi bi-plus-circle"></i> Thêm câu hỏi mới
           </button>
-          <button class="btn-global btn-save-train">
-            <i class="bi bi-cpu-fill"></i> Lưu & Huấn luyện bot
+
+          <button class="btn-global btn-save-train" (click)="trainBot()" [disabled]="isLoading">
+            <i class="bi bi-cpu-fill"></i> 
+            {{ isLoading ? 'Đang huấn luyện...' : 'Lưu & Huấn luyện bot' }}
           </button>
+
           <button class="btn-global btn-logic" (click)="toggleView(viewMode === 'knowledge' ? 'logic' : 'knowledge')">
-            <i class="bi bi-gear"></i> {{ viewMode === 'knowledge' ? 'Cài đặt chuẩn hóa' : 'Về kho tri thức' }}
+            <i class="bi bi-gear"></i> 
+            {{ viewMode === 'knowledge' ? 'Cài đặt chuẩn hóa' : 'Về kho tri thức' }}
           </button>
         </div>
       </div>
 
       <div class="dynamic-view-port">
         <div *ngIf="viewMode === 'knowledge'">
-          <app-chatbot-knowledge-base (editRequest)="openEditModal($event)"></app-chatbot-knowledge-base>
+          <app-chatbot-knowledge-base 
+            [faqs]="faqList" 
+            [categories]="categoryList"
+            (editRequest)="openEditModal($event)"
+            (deleteRequest)="handleDeleteFAQ($event)">
+          </app-chatbot-knowledge-base>
         </div>
+
         <div *ngIf="viewMode === 'logic'">
           <app-chatbot-logic-engine></app-chatbot-logic-engine>
         </div>
@@ -49,5 +59,35 @@
 </div>
 
 <div class="modal-overlay-consult" *ngIf="isModalOpen">
-     <app-chatbot-form-editor [data]="editingData" (close)="closeModal()"></app-chatbot-form-editor>
+  <app-chatbot-form-editor 
+    [data]="editingData" 
+    [categories]="categoryList"
+    [allProducts]="allProductList"  
+    (save)="handleSaveFAQ($event)" 
+    (close)="closeModal()">
+  </app-chatbot-form-editor>
+</div>
+
+<div class="modal-overlay-consult custom-alert-overlay" *ngIf="alertModal.isOpen">
+  <div class="custom-alert-card shadow-lg">
+    <div class="alert-icon-wrap" [ngClass]="alertModal.type">
+      <i class="bi" 
+         [ngClass]="{
+           'bi-check-circle-fill': alertModal.type === 'success',
+           'bi-exclamation-triangle-fill': alertModal.type === 'warning',
+           'bi-x-circle-fill': alertModal.type === 'error'
+         }"></i>
+    </div>
+    <h3 class="alert-title">{{ alertModal.title }}</h3>
+    <p class="alert-message">{{ alertModal.message }}</p>
+    
+    <div class="alert-actions">
+      <button class="btn-alert-cancel" *ngIf="alertModal.showCancel" (click)="closeAlert()">
+        {{ alertModal.cancelText }}
+      </button>
+      <button class="btn-alert-confirm" [ngClass]="alertModal.type" (click)="confirmAlert()">
+        {{ alertModal.confirmText }}
+      </button>
+    </div>
   </div>
+</div>
