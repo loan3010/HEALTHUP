@@ -302,7 +302,7 @@ function parseDateEnd(d) {
   return Number.isNaN(dt.getTime()) ? null : dt;
 }
 
-function buildAdminOrderFilter(query) {
+function buildAdminOrderFilter(query, customerUserIds = []) {
   const filter = {};
   const and = [];
 
@@ -341,10 +341,17 @@ function buildAdminOrderFilter(query) {
   const keyword = String(query.search || '').trim();
   if (keyword) {
     const rx = new RegExp(keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+    const normalizedUserIds = Array.isArray(customerUserIds)
+      ? customerUserIds
+          .map((id) => String(id || '').trim())
+          .filter((id) => mongoose.Types.ObjectId.isValid(id))
+          .map((id) => new mongoose.Types.ObjectId(id))
+      : [];
     and.push({
       $or: [
         { orderCode: rx },
         { _id: mongoose.Types.ObjectId.isValid(keyword) ? new mongoose.Types.ObjectId(keyword) : null },
+        normalizedUserIds.length ? { userId: { $in: normalizedUserIds } } : null,
         { 'customer.fullName': rx },
         { 'customer.phone': rx },
         { 'customer.email': rx }
@@ -830,7 +837,14 @@ router.get('/admin/list', authenticateToken, requireAdmin, async (req, res) => {
     const page  = Math.max(1, Number(req.query.page  || 1));
     const limit = Math.min(100, Math.max(1, Number(req.query.limit || 50)));
     const skip  = (page - 1) * limit;
-    const filter = buildAdminOrderFilter(req.query);
+    const keyword = String(req.query.search || '').trim();
+    let customerUserIds = [];
+    if (keyword) {
+      const rx = new RegExp(keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      const users = await User.find({ role: 'user', customerID: rx }).select('_id').lean();
+      customerUserIds = users.map((u) => String(u._id || ''));
+    }
+    const filter = buildAdminOrderFilter(req.query, customerUserIds);
     const sort   = getAdminSort(req.query.sortBy, req.query.sortDir);
 
     const [data, total, globalStats] = await Promise.all([
