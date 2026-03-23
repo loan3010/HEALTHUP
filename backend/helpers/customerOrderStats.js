@@ -6,15 +6,27 @@ function normalizePhone(phone) {
   return String(phone || '').replace(/\D/g, '');
 }
 
+const VIP_MIN_SPENT = 2_000_000;
+const ROLLING_WINDOW_DAYS = 90;
+
+function rollingCutoffDate() {
+  return new Date(Date.now() - ROLLING_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+}
+
+function membershipTierFromTotalSpent90d(totalSpent90d) {
+  return Number(totalSpent90d || 0) >= VIP_MIN_SPENT ? 'vip' : 'member';
+}
+
 function rowToStats(row) {
   return {
     totalOrders: Number(row.totalOrders || 0),
     totalSpent: Number(row.totalSpent || 0),
+    totalSpent90d: Number(row.totalSpent90d || 0),
     hasProvisionalSpend: Number(row.provisionalSpendCount || 0) > 0,
   };
 }
 
-const ZERO_STATS = { totalOrders: 0, totalSpent: 0, hasProvisionalSpend: false };
+const ZERO_STATS = { totalOrders: 0, totalSpent: 0, totalSpent90d: 0, hasProvisionalSpend: false };
 
 function mergeStats(a, b) {
   const A = a || ZERO_STATS;
@@ -22,6 +34,7 @@ function mergeStats(a, b) {
   return {
     totalOrders: A.totalOrders + B.totalOrders,
     totalSpent: A.totalSpent + B.totalSpent,
+    totalSpent90d: A.totalSpent90d + B.totalSpent90d,
     hasProvisionalSpend: A.hasProvisionalSpend || B.hasProvisionalSpend,
   };
 }
@@ -30,11 +43,13 @@ function mergeStats(a, b) {
  * Thống kê khách — bám bảng nghiệp vụ admin:
  *
  * - Tổng đơn: đếm mọi đơn có status !== 'cancelled' (gồm pending, confirmed, shipping, delivered…).
- * - Tổng HĐ & hạng (totalSpent): chỉ cộng tiền đơn status === 'delivered' và returnStatus !== 'completed'.
+ * - Tổng HĐ & hạng (totalSpent): chỉ cộng tiền đơn status === 'delivered' và returnStatus không thuộc nhóm "đã xử lý xong".
+ *   Ở luồng mới, nhóm này tương ứng returnStatus === 'approved'.
+ *   Với dữ liệu cũ còn returnStatus === 'completed' thì cũng coi như đã xử lý xong.
  *   pending / confirmed / shipping / cancelled: không cộng tiền.
- *   delivered + none | requested | approved | rejected: cộng (requested|approved = tiền tạm, vẫn cộng số).
- *   delivered + completed: không cộng (đã hoàn tiền xong).
- * - hasProvisionalSpend: true nếu có ít nhất một đơn delivered với returnStatus requested hoặc approved
+ *   delivered + none | requested | rejected: cộng (requested = tiền tạm, vẫn cộng số).
+ *   delivered + approved | completed: không cộng (đã hoàn tiền xong).
+ * - hasProvisionalSpend: true nếu có ít nhất một đơn delivered với returnStatus requested
  *   (để UI hiển thị gợi ý "tạm chờ hoàn").
  *
  * Lưu ý: bảng gốc không có dòng `confirmed`; ta xử lý giống pending/shipping (chỉ tính đơn, chưa cộng tiền).
@@ -44,7 +59,7 @@ function mergeStats(a, b) {
  * Các biến aggregate $group (dùng chung cho group theo phone hoặc theo null).
  * @returns {Record<string, object>}
  */
-function groupCustomerStatsFields() {
+function groupCustomerStatsFields(cutoff = rollingCutoffDate()) {
   return {
     totalOrders: {
       $sum: { $cond: [{ $ne: ['$status', 'cancelled'] }, 1, 0] },
@@ -55,7 +70,36 @@ function groupCustomerStatsFields() {
           {
             $and: [
               { $eq: ['$status', 'delivered'] },
-              { $ne: [{ $ifNull: ['$returnStatus', 'none'] }, 'completed'] },
+              {
+                $not: {
+                  $in: [
+                    { $ifNull: ['$returnStatus', 'none'] },
+                    ['approved', 'completed'],
+                  ],
+                },
+              },
+            ],
+          },
+          '$total',
+          0,
+        ],
+      },
+    },
+    totalSpent90d: {
+      $sum: {
+        $cond: [
+          {
+            $and: [
+              { $eq: ['$status', 'delivered'] },
+              {
+                $not: {
+                  $in: [
+                    { $ifNull: ['$returnStatus', 'none'] },
+                    ['approved', 'completed'],
+                  ],
+                },
+              },
+              { $gte: ['$createdAt', cutoff] },
             ],
           },
           '$total',
@@ -72,7 +116,7 @@ function groupCustomerStatsFields() {
               {
                 $in: [
                   { $ifNull: ['$returnStatus', 'none'] },
-                  ['requested', 'approved'],
+                  ['requested'],
                 ],
               },
             ],
@@ -94,14 +138,15 @@ function groupCustomerStatsFields() {
  * @returns {Promise<{ byUserId: Map<string, object>, byPhoneNorm: Map<string, object> }>}
  */
 async function buildCustomerListStatsMaps(Order) {
+  const cutoff = rollingCutoffDate();
   const [userRows, phoneRows] = await Promise.all([
     Order.aggregate([
       { $match: { userId: { $type: 'objectId' } } },
-      { $group: { _id: '$userId', ...groupCustomerStatsFields() } },
+      { $group: { _id: '$userId', ...groupCustomerStatsFields(cutoff) } },
     ]),
     Order.aggregate([
       { $match: { $nor: [{ userId: { $type: 'objectId' } }] } },
-      { $group: { _id: '$customer.phone', ...groupCustomerStatsFields() } },
+      { $group: { _id: '$customer.phone', ...groupCustomerStatsFields(cutoff) } },
     ]),
   ]);
 
@@ -139,16 +184,18 @@ function statsForUser(user, maps) {
  * @param {Record<string, unknown>} matchFilter — ví dụ { userId } hoặc { 'customer.phone': '...' }
  */
 async function aggregateStatsForMatch(Order, matchFilter) {
+  const cutoff = rollingCutoffDate();
   const [row] = await Order.aggregate([
     { $match: matchFilter },
-    { $group: { _id: null, ...groupCustomerStatsFields() } },
+    { $group: { _id: null, ...groupCustomerStatsFields(cutoff) } },
   ]);
   if (!row) {
-    return { totalOrders: 0, totalSpent: 0, hasProvisionalSpend: false };
+    return { totalOrders: 0, totalSpent: 0, totalSpent90d: 0, hasProvisionalSpend: false };
   }
   return {
     totalOrders: Number(row.totalOrders || 0),
     totalSpent: Number(row.totalSpent || 0),
+    totalSpent90d: Number(row.totalSpent90d || 0),
     hasProvisionalSpend: Number(row.provisionalSpendCount || 0) > 0,
   };
 }
@@ -156,6 +203,9 @@ async function aggregateStatsForMatch(Order, matchFilter) {
 module.exports = {
   groupCustomerStatsFields,
   normalizePhone,
+  membershipTierFromTotalSpent90d,
+  VIP_MIN_SPENT,
+  ROLLING_WINDOW_DAYS,
   buildCustomerListStatsMaps,
   statsForUser,
   aggregateStatsForMatch,

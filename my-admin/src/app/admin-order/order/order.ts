@@ -122,7 +122,10 @@ export class Order implements OnInit, OnDestroy {
         this.pendingCount = Number(summary?.pendingCount ?? 0);
         this.shippingCount = Number(summary?.shippingCount ?? 0);
         this.returnRequestedCount = Number(summary?.returnRequestedCount ?? 0);
-        this.returnCompletedCount = Number(summary?.returnCompletedCount ?? 0);
+        // Luồng mới: `approved` là trạng thái kết thúc luôn.
+        // Dữ liệu cũ còn `completed` vẫn được tính vào cùng một nhóm "đã trả/hoàn".
+        this.returnCompletedCount =
+          Number(summary?.returnApprovedCount ?? 0) + Number(summary?.returnCompletedCount ?? 0);
         this.isLoading = false;
       },
       error: (err) => {
@@ -165,7 +168,7 @@ export class Order implements OnInit, OnDestroy {
     if (card === 'pending') this.statusFilter = 'pending';
     if (card === 'shipping') this.statusFilter = 'shipping';
     if (card === 'returnRequested') this.returnStatusFilter = 'requested';
-    if (card === 'returnCompleted') this.returnStatusFilter = 'completed';
+    if (card === 'returnCompleted') this.returnStatusFilter = 'approved';
 
     this.loadOrders(true);
   }
@@ -298,7 +301,8 @@ export class Order implements OnInit, OnDestroy {
       requested: 'Yêu cầu hoàn/trả',
       approved: 'Đã chấp nhận hoàn',
       rejected: 'Từ chối hoàn',
-      completed: 'Đã hoàn/trả xong'
+      // Dữ liệu cũ còn `completed` coi như kết thúc (tương đương `approved`).
+      completed: 'Đã chấp nhận hoàn',
     };
     return map[returnStatus] || returnStatus;
   }

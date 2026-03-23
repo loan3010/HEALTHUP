@@ -307,12 +307,12 @@ export class Customer implements OnInit {
   cancelDelete(): void { this.isDeleteModalOpen = false; this.deleteTarget = null; }
 
   // ── HELPERS ──
+  tierLabel(tier: string): string {
+    return String(tier || '').toLowerCase() === 'vip' ? 'VIP' : 'Thành viên';
+  }
+
   getTierClass(tier: string): string {
-    const map: Record<string, string> = {
-      'Đồng': 'tier-dong', 'Bạc': 'tier-bac',
-      'Vàng': 'tier-vang', 'Kim Cương': 'tier-kim',
-    };
-    return map[tier] || 'tier-dong';
+    return String(tier || '').toLowerCase() === 'vip' ? 'tier-vip' : 'tier-member';
   }
 
   getAvgOrder(): string {

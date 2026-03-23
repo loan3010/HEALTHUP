@@ -1,6 +1,6 @@
 <div class="modal-container shadow-lg">
   <div class="modal-header">
-    <h2 class="modal-title">{{ mode === 'add' ? 'Thêm mới' : 'Chỉnh sửa' }} khuyến mãi</h2>
+    <h2 class="modal-title">{{ mode === 'add' ? 'Thêm mới' : 'Chỉnh sửa' }} chương trình khuyến mãi</h2>
     <button class="btn-close-x" (click)="goBack.emit()">&times;</button>
   </div>
 
@@ -8,39 +8,39 @@
     <div class="form-grid">
       <div class="form-group">
         <label>Mã khuyến mãi <span class="required">*</span></label>
-        <input type="text" [(ngModel)]="formData.code" placeholder="VD: NHAPMOI20">
+        <input type="text" [(ngModel)]="formData.code" placeholder="VD: HEALTHUP2026" style="text-transform: uppercase;">
       </div>
       <div class="form-group">
-        <label>Tên khuyến mãi <span class="required">*</span></label>
-        <input type="text" [(ngModel)]="formData.name" placeholder="VD: Giảm 20k cho đơn đầu tiên">
+        <label>Tên chương trình <span class="required">*</span></label>
+        <input type="text" [(ngModel)]="formData.name" placeholder="VD: Giảm 20% cho khách hàng mới">
       </div>
 
       <div class="form-group full-width">
-        <label>Mô tả (Không bắt buộc)</label>
-        <textarea rows="2" [(ngModel)]="formData.description" placeholder="Mô tả chi tiết chương trình..."></textarea>
+        <label>Mô tả chi tiết</label>
+        <textarea rows="2" [(ngModel)]="formData.description" placeholder="Nhập nội dung hiển thị cho khách hàng..."></textarea>
       </div>
 
       <div class="form-group">
         <label>Loại khuyến mãi <span class="required">*</span></label>
         <select [(ngModel)]="formData.type">
-          <option value="order">Tiền hàng</option>
-          <option value="shipping">Phí vận chuyển</option>
+          <option value="order">Giảm tiền hàng</option>
+          <option value="freeship">Giảm phí vận chuyển (Freeship)</option>
         </select>
       </div>
       <div class="form-group">
-        <label>Trạng thái <span class="required">*</span></label>
+        <label>Trạng thái hệ thống <span class="required">*</span></label>
         <select [(ngModel)]="formData.status">
-          <option value="upcoming">Sắp diễn ra</option>
-          <option value="ongoing">Đang diễn ra</option>
-          <option value="expired">Đã kết thúc</option>
+          <option value="upcoming">Chờ kích hoạt (Sắp tới)</option>
+          <option value="ongoing">Đang áp dụng</option>
+          <option value="expired">Đã kết thúc/Tạm dừng</option>
         </select>
       </div>
 
       <div class="form-group">
-        <label>Loại giảm giá <span class="required">*</span></label>
+        <label>Cách thức giảm giá <span class="required">*</span></label>
         <select [(ngModel)]="formData.discountType" (change)="onDiscountTypeChange()">
-          <option value="percent">Phần trăm (%)</option>
-          <option value="fixed">Số tiền cố định (đ)</option>
+          <option value="percent">Theo phần trăm (%)</option>
+          <option value="fixed">Số tiền cố định (VND)</option>
         </select>
       </div>
 
@@ -57,12 +57,12 @@
       </div>
 
       <div class="form-group">
-        <label>Giá trị đơn hàng tối thiểu (đ)</label>
+        <label>Đơn hàng tối thiểu (đ)</label>
         <input type="number" [(ngModel)]="formData.minOrder" placeholder="0">
       </div>
 
       <div class="form-group">
-        <label>Giảm tối đa (đ)</label>
+        <label>Mức giảm tối đa (đ)</label>
         <input type="number" [(ngModel)]="formData.maxDiscount"
                [disabled]="formData.discountType === 'fixed'"
                [placeholder]="formData.discountType === 'fixed' ? 'Không áp dụng' : '0'">
@@ -82,36 +82,53 @@
       </div>
 
       <div class="form-group">
-        <label>Tổng giới hạn sử dụng <span class="required">*</span></label>
-        <input type="number" [(ngModel)]="formData.totalLimit">
+        <label>Tổng lượt sử dụng <span class="required">*</span></label>
+        <input type="number" [(ngModel)]="formData.totalLimit" placeholder="100">
       </div>
       <div class="form-group">
-        <label>Giới hạn mỗi khách hàng <span class="required">*</span></label>
-        <input type="number" [(ngModel)]="formData.userLimit">
+        <label>Lượt dùng mỗi khách <span class="required">*</span></label>
+        <input type="number" [(ngModel)]="formData.userLimit" placeholder="1">
       </div>
     </div>
 
     <div class="checkbox-group mt-3">
       <input type="checkbox" id="firstOrder" [(ngModel)]="formData.firstOrderOnly">
-      <label for="firstOrder">Chỉ áp dụng cho đơn hàng đầu tiên</label>
+      <label for="firstOrder" class="ms-2">Chỉ dành cho đơn hàng đầu tiên (Khách mới)</label>
     </div>
 
-    <!-- ── MỚI: Hạng thành viên được áp dụng ── -->
-    <div class="form-group full-width mt-3">
-      <label>Hạng thành viên được áp dụng</label>
-      <p class="form-hint">Để trống = tất cả mọi khách đều dùng được</p>
-      <div class="rank-checkbox-group">
-        <label class="rank-option">
-          <input type="checkbox"
+    <div class="form-group full-width mt-4">
+      <label class="section-label">Hạng thành viên được quyền áp dụng</label>
+      <p class="form-hint"><i class="bi bi-info-circle me-1"></i>Mặc định để trống nếu muốn áp dụng cho tất cả khách hàng (không phân biệt hạng).</p>
+      
+      <div class="rank-selector-group">
+        <label class="rank-card" [class.active]="formData.allowedMemberRanks?.includes('member')">
+          <input type="checkbox" 
                  [checked]="formData.allowedMemberRanks?.includes('member')"
-                 (change)="toggleRank('member')">
-          <span class="rank-badge rank-member">Thành viên</span>
+                 (change)="toggleRank('member')" 
+                 style="display: none;">
+          <div class="rank-card-content">
+            <div class="rank-icon"><i class="bi bi-person-circle"></i></div>
+            <div class="rank-info">
+              <span class="rank-name">Thành viên phổ thông</span>
+              <span class="rank-desc">Khách hàng cơ bản</span>
+            </div>
+            <div class="rank-check-badge"><i class="bi bi-check-lg"></i></div>
+          </div>
         </label>
-        <label class="rank-option">
-          <input type="checkbox"
+
+        <label class="rank-card vip" [class.active]="formData.allowedMemberRanks?.includes('vip')">
+          <input type="checkbox" 
                  [checked]="formData.allowedMemberRanks?.includes('vip')"
-                 (change)="toggleRank('vip')">
-          <span class="rank-badge rank-vip">⭐ VIP</span>
+                 (change)="toggleRank('vip')" 
+                 style="display: none;">
+          <div class="rank-card-content">
+            <div class="rank-icon"><i class="bi bi-gem"></i></div>
+            <div class="rank-info">
+              <span class="rank-name">Khách hàng VIP</span>
+              <span class="rank-desc">⭐ Hạng đặc biệt</span>
+            </div>
+            <div class="rank-check-badge"><i class="bi bi-check-lg"></i></div>
+          </div>
         </label>
       </div>
     </div>
@@ -119,16 +136,16 @@
     <hr class="form-divider" />
 
     <div class="form-group full-width">
-      <label>Phạm vi áp dụng <span class="required">*</span></label>
+      <label class="section-label">Phạm vi áp dụng <span class="required">*</span></label>
       <select [(ngModel)]="formData.applyScope" class="form-select">
-        <option value="all">Toàn bộ cửa hàng</option>
-        <option value="category">Danh mục sản phẩm</option>
-        <option value="product">Sản phẩm cụ thể</option>
+        <option value="all">Toàn bộ cửa hàng (Tất cả sản phẩm)</option>
+        <option value="category">Theo danh mục sản phẩm cụ thể</option>
+        <option value="product">Theo từng sản phẩm được chọn</option>
       </select>
     </div>
 
     <div class="selection-container mt-2" *ngIf="formData.applyScope === 'category'">
-      <label class="sub-label">Chọn các danh mục áp dụng:</label>
+      <label class="sub-label">Đánh dấu các danh mục được hưởng ưu đãi:</label>
       <div class="scroll-list shadow-sm">
         <div *ngFor="let cat of categories" class="item-check">
           <input type="checkbox"
@@ -141,7 +158,7 @@
     </div>
 
     <div class="selection-container mt-2" *ngIf="formData.applyScope === 'product'">
-      <label class="sub-label">Chọn sản phẩm theo từng danh mục:</label>
+      <label class="sub-label">Tìm kiếm sản phẩm theo danh mục và đánh dấu chọn:</label>
       <div class="product-selection-grid">
         <div class="category-sidebar">
           <div *ngFor="let cat of categories"
@@ -151,9 +168,11 @@
             {{ cat.name }}
           </div>
         </div>
+        
         <div class="scroll-list product-list shadow-sm">
-          <div *ngIf="filteredProductsByCat.length === 0" class="no-data p-3">
-            Không có sản phẩm nào trong danh mục này.
+          <div *ngIf="filteredProductsByCat.length === 0" class="no-data p-3 text-center text-muted">
+            <i class="bi bi-search d-block mb-1"></i>
+            Danh mục này chưa có sản phẩm nào.
           </div>
           <div *ngFor="let prod of filteredProductsByCat" class="item-check">
             <input type="checkbox"
@@ -162,20 +181,22 @@
                    (change)="toggleSelection(prod._id, 'product')">
             <label [for]="'prod-' + prod._id">
               {{ prod.name }}
-              <span class="text-danger ms-1" *ngIf="prod.price">({{ prod.price | number }}đ)</span>
+              <span class="text-secondary ms-1 small" *ngIf="prod.price">({{ prod.price | number }}đ)</span>
             </label>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="alert-error" *ngIf="errorMessage">
-      <i class="bi bi-exclamation-circle-fill"></i> {{ errorMessage }}
+    <div class="alert-error mt-3" *ngIf="errorMessage">
+      <i class="bi bi-exclamation-triangle-fill"></i> {{ errorMessage }}
     </div>
   </div>
 
   <div class="modal-footer">
-    <button class="btn-huy" (click)="goBack.emit()">HỦY</button>
-    <button class="btn-luu" (click)="onSave()">LƯU THAY ĐỔI</button>
+    <button class="btn-huy" (click)="goBack.emit()">HỦY BỎ</button>
+    <button class="btn-luu" (click)="onSave()">
+      <i class="bi bi-check-lg me-1"></i> LƯU THÔNG TIN
+    </button>
   </div>
 </div>

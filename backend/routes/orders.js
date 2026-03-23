@@ -14,7 +14,12 @@ const Promotion = require('../models/Promotion');
 const OrderAuditLog = require('../models/OrderAuditLog');
 const Notification = require('../models/Notification');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
-const { buildCustomerListStatsMaps, statsForUser } = require('../helpers/customerOrderStats');
+const {
+  buildCustomerListStatsMaps,
+  statsForUser,
+  aggregateStatsForMatch,
+  membershipTierFromTotalSpent90d,
+} = require('../helpers/customerOrderStats');
 const { findOrCreateGuestUser } = require('../helpers/guestUser');
 const { isValidGuestCartSessionId } = require('../helpers/cartIdentity');
 const {
@@ -121,16 +126,19 @@ async function calcDiscountFromDB(voucherCode, subTotal, shippingFee) {
   return { discountAmount, discountOnType };
 }
 
-function getMembershipTier(totalSpent) {
-  if (!totalSpent || totalSpent <= 0) return 'Đồng';
-  if (totalSpent < 5_000_000)  return 'Đồng';
-  if (totalSpent < 10_000_000) return 'Bạc';
-  if (totalSpent < 20_000_000) return 'Vàng';
-  return 'Kim Cương';
-}
-
 function normalizePhone(phone) {
   return String(phone || '').replace(/\D/g, '');
+}
+
+async function refreshUserMembershipRealtime(userId) {
+  if (!userId || !mongoose.Types.ObjectId.isValid(String(userId))) return;
+  const uid = new mongoose.Types.ObjectId(String(userId));
+  const stats = await aggregateStatsForMatch(Order, { userId: uid });
+  const memberRank = membershipTierFromTotalSpent90d(stats.totalSpent90d);
+  await User.findByIdAndUpdate(uid, {
+    totalSpent: Number(stats.totalSpent || 0),
+    memberRank,
+  });
 }
 
 function formatVND(amount) {
@@ -261,8 +269,15 @@ function buildAdminOrderFilter(query) {
     filter.status = String(query.status);
   }
 
-  if (RETURN_STATUS.includes(String(query.returnStatus || ''))) {
-    filter.returnStatus = String(query.returnStatus);
+  const rs = String(query.returnStatus || '');
+  if (RETURN_STATUS.includes(rs)) {
+    // Luồng mới: 'approved' là trạng thái kết thúc.
+    // Dữ liệu cũ có thể còn 'completed', nên coi nó như 'approved' khi lọc.
+    if (rs === 'approved' || rs === 'completed') {
+      filter.returnStatus = { $in: ['approved', 'completed'] };
+    } else {
+      filter.returnStatus = rs;
+    }
   }
 
   if (['cod', 'momo', 'vnpay'].includes(String(query.paymentMethod || ''))) {
@@ -687,21 +702,10 @@ router.post('/', async (req, res) => {
       guestCartSessionId
     );
 
-    // ── Cập nhật hạng thành viên sau khi đặt hàng thành công ──
+    // Đơn mới mặc định chưa delivered nên thường chưa đổi hạng, nhưng vẫn refresh real-time để luôn đồng bộ.
     if (order.userId) {
       try {
-        const agg = await Order.aggregate([
-          {
-            $match: {
-              userId: new mongoose.Types.ObjectId(String(order.userId)),
-              status: { $in: ['pending', 'confirmed', 'shipping', 'delivered'] }
-            }
-          },
-          { $group: { _id: null, total: { $sum: '$total' } } }
-        ]);
-        const totalSpent = agg[0]?.total || 0;
-        const memberRank = totalSpent >= 5_000_000 ? 'vip' : 'member';
-        await User.findByIdAndUpdate(order.userId, { totalSpent, memberRank });
+        await refreshUserMembershipRealtime(order.userId);
       } catch (e) {
         console.error('Cập nhật hạng thành viên thất bại:', e);
       }
@@ -898,8 +902,8 @@ router.get('/admin/:id', authenticateToken, requireAdmin, async (req, res) => {
     } else {
       const k = normalizePhone(order.customer?.phone);
       stats = k
-        ? (statsMaps.byPhoneNorm.get(k) || { totalOrders: 0, totalSpent: 0, hasProvisionalSpend: false })
-        : { totalOrders: 0, totalSpent: 0, hasProvisionalSpend: false };
+        ? (statsMaps.byPhoneNorm.get(k) || { totalOrders: 0, totalSpent: 0, totalSpent90d: 0, hasProvisionalSpend: false })
+        : { totalOrders: 0, totalSpent: 0, totalSpent90d: 0, hasProvisionalSpend: false };
     }
 
     const totalOrders = stats.totalOrders;
@@ -919,7 +923,7 @@ router.get('/admin/:id', authenticateToken, requireAdmin, async (req, res) => {
       buyerAccount,
       customerSummary: {
         customerID:          user?.customerID || '',
-        membershipTier:      getMembershipTier(stats.totalSpent),
+        membershipTier:      membershipTierFromTotalSpent90d(stats.totalSpent90d),
         totalOrders:         stats.totalOrders,
         totalSpent:          stats.totalSpent,
         hasProvisionalSpend: stats.hasProvisionalSpend,
@@ -1010,21 +1014,10 @@ router.patch('/admin/:id/status', authenticateToken, requireAdmin, async (req, r
             : String(note || ''),
     });
 
-    // ── Khi đơn chuyển sang delivered: cập nhật lại hạng thành viên ──
-    if (status === 'delivered' && order.userId) {
+    // Đổi trạng thái đơn có thể ảnh hưởng tổng chi tiêu hợp lệ theo 90 ngày => refresh real-time.
+    if (order.userId) {
       try {
-        const agg = await Order.aggregate([
-          {
-            $match: {
-              userId: new mongoose.Types.ObjectId(String(order.userId)),
-              status: 'delivered'
-            }
-          },
-          { $group: { _id: null, total: { $sum: '$total' } } }
-        ]);
-        const totalSpent = agg[0]?.total || 0;
-        const memberRank = totalSpent >= 5_000_000 ? 'vip' : 'member';
-        await User.findByIdAndUpdate(order.userId, { totalSpent, memberRank });
+        await refreshUserMembershipRealtime(order.userId);
       } catch (e) {
         console.error('Cập nhật hạng thành viên thất bại:', e);
       }
@@ -1086,7 +1079,8 @@ router.patch('/admin/:id/return-status', authenticateToken, requireAdmin, async 
     const returnFlow = {
       none:      [],
       requested: ['approved', 'rejected'],
-      approved:  ['completed'],
+      // Luồng mới: không còn bước 'completed'. 'approved' là xong.
+      approved:  [],
       rejected:  [],
       completed: []
     };
@@ -1112,10 +1106,19 @@ router.patch('/admin/:id/return-status', authenticateToken, requireAdmin, async 
         req.body.returnRejectionReason ?? req.body.note ?? ''
       ).trim().slice(0, 2000);
     }
-    if (returnStatus === 'completed') {
+    if (returnStatus === 'approved' || returnStatus === 'completed') {
       order.returnCompletedAt = new Date();
     }
     await order.save();
+
+    // 'approved' (và 'completed' cũ) sẽ loại đơn này khỏi tổng tích lũy hợp lệ => refresh hạng ngay.
+    if (order.userId) {
+      try {
+        await refreshUserMembershipRealtime(order.userId);
+      } catch (e) {
+        console.error('Cập nhật hạng thành viên sau return thất bại:', e);
+      }
+    }
 
     await OrderAuditLog.create({
       orderId:   order._id,

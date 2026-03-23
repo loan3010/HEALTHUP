@@ -708,6 +708,11 @@
   align-items: center;
   justify-content: center;
 }
+.variant-image-slot-wrap {
+  position: relative;
+  width: 38px;
+  height: 38px;
+}
 
 /*
  * Một slot duy nhất — ảnh đã upload thay thế placeholder (không còn thumbnail + nút cạnh nhau).
@@ -793,20 +798,27 @@
 }
 .remove-img-btn {
   position: absolute;
-  top: -6px;
-  right: -6px;
-  background: var(--danger-main);
+  top: -7px;
+  right: -7px;
+  background: #707070;
   color: #fff;
-  border: none;
+  border: 2px solid #fff;
   border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  font-size: 14px;
+  width: 24px;
+  height: 24px;
+  font-size: 15px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   line-height: 1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+.remove-img-btn:hover {
+  background: #555;
+}
+.variant-remove-img-btn {
+  z-index: 2;
 }
 .image-upload-btn {
   width: 80px;

@@ -200,23 +200,34 @@
             </ng-container>
             <!-- Một ô cố định: có ảnh thì ảnh lấp đầy ô (bấm để thay); không thì icon — các dòng thẳng hàng. -->
             <div class="variant-image-cell">
-              <label
-                class="variant-image-slot"
-                [class.has-image]="!!variantImagePreview(v)"
-                title="Chọn hoặc thay ảnh biến thể"
-              >
-                <img *ngIf="variantImagePreview(v)" [src]="variantImagePreview(v)" alt="" />
-                <span class="variant-image-placeholder" *ngIf="!variantImagePreview(v)">
-                  <i class="bi bi-image" aria-hidden="true"></i>
-                </span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  (change)="onVariantImageSelect(i, $event)"
-                  (cancel)="onNativeFilePickerDismissed()"
-                  hidden
-                />
-              </label>
+              <div class="variant-image-slot-wrap">
+                <label
+                  class="variant-image-slot"
+                  [class.has-image]="!!variantImagePreview(v)"
+                  title="Chọn hoặc thay ảnh biến thể"
+                >
+                  <img *ngIf="variantImagePreview(v)" [src]="variantImagePreview(v)" alt="" />
+                  <span class="variant-image-placeholder" *ngIf="!variantImagePreview(v)">
+                    <i class="bi bi-image" aria-hidden="true"></i>
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    (change)="onVariantImageSelect(i, $event)"
+                    (cancel)="onNativeFilePickerDismissed()"
+                    hidden
+                  />
+                </label>
+                <button
+                  type="button"
+                  class="remove-img-btn variant-remove-img-btn"
+                  *ngIf="variantImagePreview(v)"
+                  (click)="removeVariantImage(i)"
+                  aria-label="Xóa ảnh biến thể"
+                >
+                  ×
+                </button>
+              </div>
             </div>
             <input type="number" [(ngModel)]="v.price" [class.variant-input-warn]="variantRowNeedsAttention(i)">
             <input type="number" [(ngModel)]="v.oldPrice">
@@ -269,13 +280,14 @@
       <div class="form-group full-width">
         <label>Thư viện ảnh</label>
         <div class="form-helper">Ảnh chung gallery; ảnh từng biến thể ở bảng trên.</div>
+        <div class="form-helper">Đã chọn {{ imagePreview.length }}/5 ảnh.</div>
         <div class="image-upload-area">
           <div class="image-preview-list">
             <div class="image-preview-item" *ngFor="let img of imagePreview; let i = index">
               <img [src]="img" alt="preview" />
               <button type="button" class="remove-img-btn" (click)="removeImage(i)">×</button>
             </div>
-            <label class="image-upload-btn">
+            <label class="image-upload-btn" *ngIf="canAddGalleryImage()">
               <input
                 type="file"
                 accept="image/*"

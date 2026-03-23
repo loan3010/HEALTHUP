@@ -135,10 +135,8 @@ h3, h4 { margin: 0 0 10px; }
   font-size: 0.75rem;
   font-weight: 700;
 }
-.tier-dong { background: #FFF3E0; color: #E65100; }
-.tier-bac  { background: #F3F4F6; color: #374151; }
-.tier-vang { background: #FFFBEA; color: #B8860B; }
-.tier-kim  { background: #EEF2FF; color: #4338CA; }
+.tier-member { background: #e8f5e9; color: #2e7d32; }
+.tier-vip { background: #fff3e0; color: #ef6c00; }
 
 .actions {
   display: grid;

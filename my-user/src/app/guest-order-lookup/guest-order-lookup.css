@@ -300,3 +300,72 @@
   font-weight: 600;
   margin-bottom: 12px;
 }
+
+/* ─────────────────────────────────────────────────────────────
+   CONFIRM MODAL (xác nhận gửi yêu cầu đổi trả)
+   Tránh dùng window.confirm để không hiện "localhost:xxxx says".
+   ───────────────────────────────────────────────────────────── */
+.confirm-return-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 18px;
+}
+
+.confirm-return-modal {
+  width: 100%;
+  max-width: 520px;
+  background: #fff;
+  border-radius: 16px;
+  border: 1.5px solid #DFF0D0;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.18);
+  padding: 18px 18px 16px;
+}
+
+.confirm-return-title {
+  font-size: 16.5px;
+  font-weight: 900;
+  color: #1C3A09;
+  margin: 0 0 8px;
+}
+
+.confirm-return-sub {
+  font-size: 13.5px;
+  color: #6B7A6B;
+  line-height: 1.6;
+  margin: 0 0 16px;
+  font-weight: 600;
+}
+
+.confirm-return-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.confirm-return-btn {
+  border-radius: 999px;
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+  border: 1.5px solid #C8DFB6;
+  background: #fff;
+  color: #2D5016;
+}
+
+.confirm-return-btn.confirm-return-ok {
+  background: #2D5016;
+  border-color: #2D5016;
+  color: #fff;
+}
+
+.confirm-return-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
