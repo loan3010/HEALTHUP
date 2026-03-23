@@ -36,10 +36,10 @@
         <div class="product-cards-container">
           <div class="product-test-card shadow-sm" *ngFor="let prod of msg.products">
             <div class="card-img-box">
-              <img [src]="prod.image && prod.image.startsWith('http') ? prod.image : (serverUrl + (prod.image || ''))" 
+              <img [src]="getFullImageUrl(prod)" 
                    [alt]="prod.name" 
                    class="img-fluid"
-                   (error)="$any($event.target).src = 'https://placehold.co/150x90?text=HealthUp'">
+                   (error)="$any($event.target).src = fallbackImage">
             </div>
             <div class="card-body-box">
               <h4 class="product-name-text text-truncate" [title]="prod.name">{{ prod.name }}</h4>
@@ -67,8 +67,12 @@
           <div class="a-row">
             <span>Độ chính xác (Score):</span> 
             <strong [ngClass]="msg.analysis.score >= 80 ? 'text-success' : 'text-warning'">
-              {{ msg.analysis.score | number:'1.0-0' }}%
+              {{ (msg.analysis.score * 100) | number:'1.0-0' }}%
             </strong>
+          </div>
+          <div class="a-row">
+            <span>Từ khóa bắt được:</span> 
+            <strong style="color: #0d6efd;">{{ msg.analysis.keywords || 'N/A' }}</strong>
           </div>
           <div class="a-row">
             <span>Sản phẩm đính kèm:</span> 

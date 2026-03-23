@@ -1,4 +1,4 @@
-import { Component, Output, EventEmitter, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
+import { Component, Output, EventEmitter, ViewChild, ElementRef, AfterViewChecked, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
@@ -53,6 +53,15 @@ export class ChatbotLivePreview implements AfterViewChecked {
     </svg>
   `)}`;
 
+  // --- ẢNH DỰ PHÒNG XỊN SÒ (BASE64) ---
+  fallbackImage = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="150" height="150" viewBox="0 0 150 150">
+      <rect width="150" height="150" fill="#f8f9fa"/>
+      <text x="50%" y="45%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="16" font-weight="bold" fill="#adb5bd">HealthUp</text>
+      <text x="50%" y="60%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#ced4da">No Image</text>
+    </svg>
+  `)}`;
+
   testInput: string = '';
   isTyping: boolean = false;
   
@@ -68,7 +77,10 @@ export class ChatbotLivePreview implements AfterViewChecked {
   // Đường dẫn API xử lý câu hỏi của Bot
   private apiUrl = 'http://localhost:3000/api/chatbot/ask';
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private cdr: ChangeDetectorRef // Thuốc đặc trị để UI cập nhật tức thì
+  ) {}
 
   /** Tự động cuộn xuống cuối danh sách mỗi khi có nội dung mới xuất hiện */
   ngAfterViewChecked() {
@@ -76,6 +88,33 @@ export class ChatbotLivePreview implements AfterViewChecked {
   }
 
   // --- LOGIC XỬ LÝ TƯƠNG TÁC ---
+
+  /** * HÀM TÌM ẢNH SIÊU CẤP (Bản Admin)
+   * Giúp xử lý ảnh sản phẩm mượt mà không bị lỗi
+   */
+  getFullImageUrl(data: any): string {
+    if (!data) return this.fallbackImage;
+
+    let imgName = '';
+    if (typeof data === 'object' && !Array.isArray(data)) {
+      imgName = data.image || data.thumbnail || data.imageUrl || (data.images?.[0]);
+    } else if (Array.isArray(data) && data.length > 0) {
+      imgName = data[0];
+    } else if (typeof data === 'string') {
+      imgName = data;
+    }
+
+    if (!imgName || typeof imgName !== 'string' || imgName.trim() === '') return this.fallbackImage;
+    if (imgName.startsWith('http')) return imgName;
+
+    let fileName = imgName.trim();
+    if (fileName.startsWith('/')) fileName = fileName.substring(1);
+
+    if (!fileName.includes('images/products/')) {
+      return `${this.serverUrl}/images/products/${fileName}`;
+    }
+    return `${this.serverUrl}/${fileName}`;
+  }
 
   /**
    * Gửi tin nhắn kiểm thử và nhận phản hồi từ hệ thống AI
@@ -93,30 +132,33 @@ export class ChatbotLivePreview implements AfterViewChecked {
 
     this.testInput = '';
     this.isTyping = true;
+    this.cdr.detectChanges(); // Vẽ lại UI để hiện dòng chat user
 
-    // 2. Gọi API Backend để phân tích và tìm kiếm câu trả lời
+    // 2. Gọi API Backend để phân tích
     this.http.post<any>(this.apiUrl, { message: query }).subscribe({
       next: (res) => {
-        this.isTyping = false;
-        
-        /** * --- XỬ LÝ XUỐNG DÒNG (BẢN FIX) ---
-         * Biến đổi các ký tự xuống dòng (\n) thành thẻ <br> 
-         * để HTML có thể hiểu và hiển thị đúng định dạng.
-         */
-        const formattedAnswer = (res.answer || '').replace(/\n/g, '<br>');
+        // Đã sửa: Đợi 2 giây để "diễn" hiệu ứng đang trả lời
+        setTimeout(() => {
+          this.isTyping = false;
+          
+          /** XỬ LÝ XUỐNG DÒNG: Biến đổi \n thành <br> */
+          const formattedAnswer = (res.answer || '').replace(/\n/g, '<br>');
 
-        // 3. Hiển thị phản hồi từ Bot kèm theo phân tích kỹ thuật và sản phẩm gợi ý
-        this.testMessages.push({
-          type: 'bot',
-          text: formattedAnswer, 
-          time: this.getCurrentTime(),
-          products: res.products || [], // Nhận mảng sản phẩm đính kèm từ Backend
-          analysis: {
-            intent: res.intent || 'Không xác định',
-            score: res.score || 0,
-            keywords: this.extractKeywords(query)
-          }
-        });
+          // 3. Hiển thị phản hồi từ Bot kèm theo bảng PHÂN TÍCH KỸ THUẬT
+          this.testMessages.push({
+            type: 'bot',
+            text: formattedAnswer, 
+            time: this.getCurrentTime(),
+            products: res.products || [],
+            analysis: {
+              intent: res.intent || (res.score > 0 ? 'Tìm kiếm FAQ' : 'AI Suy luận'),
+              score: res.score || 0,
+              keywords: this.extractKeywords(query) // Lấy keywords từ câu hỏi
+            }
+          });
+          
+          this.cdr.detectChanges(); // Ép cập nhật giao diện
+        }, 2000); 
       },
       error: (err) => {
         console.error('Lỗi kết nối hệ thống kiểm thử:', err);
@@ -126,26 +168,22 @@ export class ChatbotLivePreview implements AfterViewChecked {
           text: '❌ Không thể kết nối với máy chủ Backend. Bạn vui lòng kiểm tra lại dịch vụ.',
           time: this.getCurrentTime()
         });
+        this.cdr.detectChanges();
       }
     });
   }
 
   /**
    * Chuyển hướng đến trang chi tiết sản phẩm phía USER
-   * Mở tab mới để không làm gián đoạn việc quản trị bên Admin
    */
   goToProductDetail(productId: string) {
     if (!productId) return;
-    
-    // Tạo link tuyệt đối sang App User
     const fullUrl = `${this.userAppUrl}/product-detail-page/${productId}`;
-    
-    // Mở trang ở tab mới
     window.open(fullUrl, '_blank');
   }
 
   /**
-   * Làm mới toàn bộ nội dung trò chuyện để bắt đầu quy trình kiểm thử mới
+   * Làm mới toàn bộ nội dung trò chuyện
    */
   clearChat() {
     this.testMessages = [
@@ -155,6 +193,7 @@ export class ChatbotLivePreview implements AfterViewChecked {
         time: this.getCurrentTime()
       }
     ];
+    this.cdr.detectChanges();
   }
 
   // --- CÁC PHƯƠNG THỨC HỖ TRỢ ---
@@ -172,19 +211,19 @@ export class ChatbotLivePreview implements AfterViewChecked {
       if (this.chatContainer) {
         this.chatContainer.nativeElement.scrollTop = this.chatContainer.nativeElement.scrollHeight;
       }
-    } catch (err) {
-      // Bỏ qua lỗi nếu phần tử chưa sẵn sàng
-    }
+    } catch (err) {}
   }
 
   /**
    * Trích xuất các từ khóa chính từ câu hỏi của người dùng để hỗ trợ phân tích
    */
   private extractKeywords(text: string): string {
-    const stopWords = ['có', 'không', 'là', 'bao', 'nhiêu', 'giúp', 'cho', 'cái', 'làm', 'với'];
-    return text.toLowerCase()
-               .split(' ')
-               .filter(word => word.length > 2 && !stopWords.includes(word))
-               .join(', ');
+    const stopWords = ['có', 'không', 'là', 'bao', 'nhiêu', 'giúp', 'cho', 'cái', 'làm', 'với', 'tư', 'vấn', 'tìm', 'giùm'];
+    const filtered = text.toLowerCase()
+                .split(' ')
+                .filter(word => word.length > 2 && !stopWords.includes(word));
+    
+    // Trả về chuỗi keywords ngăn cách bởi dấu phẩy
+    return filtered.length > 0 ? filtered.join(', ') : 'Không lọc được từ khóa';
   }
 }
