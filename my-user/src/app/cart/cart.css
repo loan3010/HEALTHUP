@@ -242,56 +242,61 @@
   flex-wrap: wrap;
 }
 
+/* ================= PHÂN LOẠI DROPDOWN ================= */
+.variant-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 2px 0;
+}
+
+.variant-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
 .variant-label {
   font-size: 12px;
   font-weight: 600;
   color: #8aab8c;
-  min-width: 32px;
   flex-shrink: 0;
 }
 
-.variant-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
+.variant-select-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
 }
 
-.variant-btn {
-  padding: 2px 9px;
-  border-radius: 6px;
+.variant-select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 4px 28px 4px 10px;
+  border-radius: 8px;
   border: 1.5px solid #d4e6d4;
   background: #fff;
   font-size: 12px;
   font-weight: 600;
   font-family: 'Be Vietnam Pro', sans-serif;
-  color: #4a6b4c;
-  cursor: pointer;
-  line-height: 1.7;
-  transition: all 0.15s ease;
-}
-
-.variant-btn:hover:not(:disabled) {
-  border-color: #A2C37F;
   color: #36873A;
-  background: #F0F7F0;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  max-width: 160px;
 }
 
-.variant-btn.active {
-  border-color: #36873A;
-  background: #36873A;
-  color: #fff;
-}
+.variant-select:hover  { border-color: #A2C37F; }
+.variant-select:focus  { border-color: #36873A; box-shadow: 0 0 0 3px rgba(54,135,58,0.1); }
 
-/* FIX: variant hết hàng — mờ xám, không click */
-.variant-btn.out-of-stock,
-.variant-btn:disabled {
-  opacity: 0.4;
-  text-decoration: line-through;
-  cursor: not-allowed;
+.variant-select-arrow {
+  position: absolute;
+  right: 8px;
+  font-size: 13px;
+  color: #36873A;
   pointer-events: none;
-  border-color: #ddd;
-  color: #aaa;
-  background: #f5f5f5;
+  line-height: 1;
 }
 
 .simple-variant-label {

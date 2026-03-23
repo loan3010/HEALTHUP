@@ -74,25 +74,24 @@
             {{ it.name }}
           </div>
 
-          <!-- PHÂN LOẠI: variants hoặc weights -->
+          <!-- PHÂN LOẠI: dropdown -->
           <div class="variant-row"
                *ngIf="it.allVariants && it.allVariants.length > 0">
             <div class="variant-group">
               <span class="variant-label">
                 {{ it.optionType === 'weight' ? 'Trọng lượng:' : 'Phân loại:' }}
               </span>
-              <div class="variant-options">
-                <button class="variant-btn"
-                        *ngFor="let opt of it.allVariants"
-                        [class.active]="currentOptionId(it) === opt._id"
-                        [class.out-of-stock]="opt.stock <= 0 && opt.stock !== 999"
-                        [disabled]="opt.stock <= 0 && opt.stock !== 999"
-                        [title]="(opt.stock <= 0 && opt.stock !== 999) ? 'Hết hàng' : opt.label"
-                        (click)="changeOption(it, opt._id)">
-                  {{ opt.label }}
-                  <span *ngIf="opt.stock <= 0 && opt.stock !== 999"
-                        style="font-size:10px;opacity:0.7;"> (Hết)</span>
-                </button>
+              <div class="variant-select-wrap">
+                <select class="variant-select"
+                        [value]="currentOptionId(it)"
+                        (change)="changeOption(it, $any($event.target).value)">
+                  <option *ngFor="let opt of it.allVariants"
+                          [value]="opt._id"
+                          [disabled]="opt.stock <= 0 && opt.stock !== 999">
+                    {{ opt.label }}{{ (opt.stock <= 0 && opt.stock !== 999) ? ' (Hết hàng)' : '' }}
+                  </option>
+                </select>
+                <i class="variant-select-arrow">&#8964;</i>
               </div>
             </div>
           </div>
