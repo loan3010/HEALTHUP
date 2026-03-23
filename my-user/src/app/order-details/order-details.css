@@ -125,6 +125,39 @@
   border: 1px solid #e2ebe2;
 }
 
+/* ================= NÚT BACK ================= */
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 1.5px solid #36873A;
+  color: #36873A;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  cursor: pointer;
+  padding: 5px 14px;
+  border-radius: 20px;
+  width: fit-content;
+  margin-bottom: 12px;
+  transition: all 0.18s ease;
+}
+
+.btn-back svg {
+  stroke: #36873A;
+  transition: stroke 0.18s ease;
+}
+
+.btn-back:hover {
+  background: #36873A;
+  color: #fff;
+}
+
+.btn-back:hover svg {
+  stroke: #fff;
+}
+
 /* ================= ORDER BOX ================= */
 .od-box {
   background: #fff;
@@ -235,7 +268,6 @@
 }
 
 .od-item:last-child { border-bottom: none; }
-
 .od-item:hover { background: #FAF6F0; }
 
 /* ── Trả hàng / ảnh minh chứng ── */
@@ -297,7 +329,6 @@
 
 .od-return-img-wrap:hover { border-color: #d97706; }
 
-/* Dòng sản phẩm trả (mua / trả) */
 .od-return-lines {
   margin-top: 16px;
   padding-top: 14px;
@@ -374,10 +405,7 @@
   background: #f5f5f5;
 }
 
-.item-info {
-  flex: 1;
-  min-width: 0;
-}
+.item-info { flex: 1; min-width: 0; }
 
 .item-info .name {
   font-weight: 600;
@@ -436,6 +464,11 @@
   font-weight: 700;
   color: #36873A;
 }
+.od-sidebar .btn-back {
+  margin-bottom: 5px;
+  padding-top: 0;  
+}
+
 
 /* ================= RESPONSIVE ================= */
 @media (max-width: 900px) {

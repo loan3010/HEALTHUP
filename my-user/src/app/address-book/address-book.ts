@@ -10,6 +10,13 @@ interface Address {
   name: string;
   phone: string;
   address: string;
+  street?: string;
+  wardName?: string;
+  wardCode?: number;
+  districtName?: string;
+  districtCode?: number;
+  provinceName?: string;
+  provinceCode?: number;
   isDefault: boolean;
 }
 
@@ -92,11 +99,9 @@ export class AddressBook implements OnInit {
       isDefault: [false]
     });
 
-    // Cập nhật preview khi form thay đổi
     this.addressForm.valueChanges.subscribe(() => this.updatePreview());
   }
 
-  // ── Load tỉnh/thành ──
   loadProvinces(): void {
     this.loadingProvinces = true;
     this.http.get<Province[]>(`${this.GEO_API}/?depth=1`).subscribe({
@@ -113,7 +118,7 @@ export class AddressBook implements OnInit {
     const code = this.addressForm.get('province')?.value;
     this.districts = [];
     this.wards     = [];
-    this.addressForm.patchValue({ district: '', ward: '', street: '' });
+    this.addressForm.patchValue({ district: '', ward: '' }, { emitEvent: false });
 
     if (!code) return;
     this.loadingDistricts = true;
@@ -130,7 +135,7 @@ export class AddressBook implements OnInit {
   onDistrictChange(): void {
     const code = this.addressForm.get('district')?.value;
     this.wards = [];
-    this.addressForm.patchValue({ ward: '', street: '' });
+    this.addressForm.patchValue({ ward: '' }, { emitEvent: false });
 
     if (!code) return;
     this.loadingWards = true;
@@ -161,7 +166,6 @@ export class AddressBook implements OnInit {
     return this.fullAddressPreview;
   }
 
-  // ── Load địa chỉ user ──
   loadAddresses(): void {
     if (!this.userId) return;
     this.isPageLoading = true;
@@ -188,10 +192,10 @@ export class AddressBook implements OnInit {
   }
 
   openAddModal(): void {
-    this.isEditMode  = false;
+    this.isEditMode   = false;
     this.editingIndex = -1;
-    this.districts   = [];
-    this.wards       = [];
+    this.districts    = [];
+    this.wards        = [];
     this.fullAddressPreview = '';
     this.addressForm.reset({ isDefault: false });
     this.successMessage = '';
@@ -199,26 +203,122 @@ export class AddressBook implements OnInit {
     this.showModal = true;
   }
 
+  // ✅ FIX: Load tỉnh/huyện/xã đúng thứ tự, hỗ trợ cả data cũ (chỉ có string) và data mới (có code)
   openEditModal(index: number): void {
-    this.isEditMode   = true;
-    this.editingIndex = index;
+    this.isEditMode     = true;
+    this.editingIndex   = index;
     this.successMessage = '';
     this.errorMessage   = '';
+    this.districts      = [];
+    this.wards          = [];
 
-    // Địa chỉ cũ lưu dạng string → hiện vào street, reset phần chọn tỉnh
-    this.districts = [];
-    this.wards     = [];
-    this.fullAddressPreview = this.addresses[index].address;
+    const a = this.addresses[index];
+
+    // Tách street: chỉ lấy phần không phải tỉnh/huyện/xã
+    const allParts = a.address.split(',').map((p: string) => p.trim()).filter(Boolean);
+    const geoKeywords = ['tỉnh', 'thành phố', 'tp.', 'huyện', 'quận', 'thị xã', 'tx.', 'xã', 'phường', 'thị trấn', 'tt.'];
+    const isGeoPart = (p: string) => geoKeywords.some(k => p.toLowerCase().startsWith(k));
+    const streetOnly = a.street || allParts.filter(p => !isGeoPart(p)).join(', ') || a.address;
+
+    this.fullAddressPreview = a.address;
+
     this.addressForm.reset({
-      name:      this.addresses[index].name,
-      phone:     this.addresses[index].phone,
+      name:      a.name,
+      phone:     a.phone,
       province:  '',
       district:  '',
       ward:      '',
-      street:    this.addresses[index].address,
-      isDefault: this.addresses[index].isDefault
+      street:    streetOnly,
+      isDefault: a.isDefault,
     });
+
     this.showModal = true;
+    this.cdr.detectChanges();
+
+    // Parse tên tỉnh/huyện/xã bằng keyword để tránh lệch index
+    const parts = allParts;
+    const provinceKeywords = ['tỉnh', 'thành phố', 'tp.'];
+    const districtKeywords = ['huyện', 'quận', 'thị xã', 'tx.'];
+    const wardKeywords     = ['xã', 'phường', 'thị trấn', 'tt.'];
+    const findPart = (keywords: string[]) =>
+      parts.find(p => keywords.some(k => p.toLowerCase().startsWith(k))) || '';
+
+    const provinceName = a.provinceName || findPart(provinceKeywords);
+    const districtName = a.districtName || findPart(districtKeywords);
+    const wardName     = a.wardName     || findPart(wardKeywords);
+
+    const fuzzy = (x: string, y: string) =>
+      x.toLowerCase().includes(y.toLowerCase()) || y.toLowerCase().includes(x.toLowerCase());
+
+    const doMatch = () => {
+      // Ưu tiên dùng code nếu có, không thì fuzzy match theo tên
+      const province = a.provinceCode
+        ? this.provinces.find(p => p.code === a.provinceCode)
+        : this.provinces.find(p => fuzzy(p.name, provinceName));
+
+      if (!province) return;
+
+      this.loadingDistricts = true;
+      this.cdr.detectChanges();
+
+      this.http.get<any>(`${this.GEO_API}/p/${province.code}?depth=2`).subscribe({
+        next: (d) => {
+          this.districts = d.districts || [];
+          this.loadingDistricts = false;
+
+          // Patch province SAU khi districts đã có
+          this.addressForm.patchValue({ province: province.code }, { emitEvent: false });
+
+          const district = a.districtCode
+            ? this.districts.find(d => d.code === a.districtCode)
+            : this.districts.find(d => fuzzy(d.name, districtName));
+
+          if (!district) { this.cdr.detectChanges(); return; }
+
+          this.loadingWards = true;
+          this.cdr.detectChanges();
+
+          this.http.get<any>(`${this.GEO_API}/d/${district.code}?depth=2`).subscribe({
+            next: (dw) => {
+              this.wards = dw.wards || [];
+              this.loadingWards = false;
+
+              const ward = a.wardCode
+                ? this.wards.find(w => w.code === a.wardCode)
+                : this.wards.find(w => fuzzy(w.name, wardName));
+
+              // Patch district + ward SAU khi wards đã có
+              this.addressForm.patchValue({
+                district: district.code,
+                ward:     ward?.code || '',
+              }, { emitEvent: false });
+
+              this.updatePreview();
+              this.cdr.detectChanges();
+            },
+            error: () => { this.loadingWards = false; this.cdr.detectChanges(); }
+          });
+        },
+        error: () => { this.loadingDistricts = false; this.cdr.detectChanges(); }
+      });
+    };
+
+    // Nếu provinces chưa load thì load trước
+    if (!this.provinces.length) {
+      this.loadingProvinces = true;
+      this.cdr.detectChanges();
+      this.http.get<Province[]>(`${this.GEO_API}/?depth=1`).subscribe({
+        next: (d) => {
+          this.provinces = d;
+          this.loadingProvinces = false;
+          this.cdr.detectChanges();
+          doMatch();
+        },
+        error: () => { this.loadingProvinces = false; }
+      });
+    } else {
+      doMatch();
+    }
   }
 
   closeModal(): void {
@@ -244,14 +344,27 @@ export class AddressBook implements OnInit {
   }
 
   addAddress(): void {
-    this.isLoading   = true;
+    this.isLoading    = true;
     this.errorMessage = '';
+    const v = this.addressForm.value;
+
+    const provinceName = this.provinces.find(p => p.code == v.province)?.name || '';
+    const districtName = this.districts.find(d => d.code == v.district)?.name || '';
+    const wardName     = this.wards.find(w => w.code == v.ward)?.name || '';
+
     const body = {
-      name:      this.addressForm.value.name,
-      phone:     this.addressForm.value.phone,
-      address:   this.getFullAddress(),
-      isDefault: this.addressForm.value.isDefault,
-      userId:    this.userId
+      name:         v.name,
+      phone:        v.phone,
+      address:      this.getFullAddress(),
+      street:       v.street       || '',
+      wardName,
+      wardCode:     v.ward         || null,
+      districtName,
+      districtCode: v.district     || null,
+      provinceName,
+      provinceCode: v.province     || null,
+      isDefault:    v.isDefault,
+      userId:       this.userId,
     };
 
     this.http.post<any>(`${this.API}/users/${this.userId}/addresses`, body, { headers: this.headers })
@@ -265,22 +378,36 @@ export class AddressBook implements OnInit {
           this.cdr.detectChanges();
         },
         error: (err: HttpErrorResponse) => {
-          this.isLoading   = false;
+          this.isLoading    = false;
           this.errorMessage = err?.error?.message || 'Thêm địa chỉ thất bại!';
         }
       });
   }
 
   updateAddress(): void {
-    this.isLoading   = true;
+    this.isLoading    = true;
     this.errorMessage = '';
-    const id   = this.getId(this.addresses[this.editingIndex]);
+    const id  = this.getId(this.addresses[this.editingIndex]);
+    const old = this.addresses[this.editingIndex];
+    const v   = this.addressForm.value;
+
+    const provinceName = this.provinces.find(p => p.code == v.province)?.name || old.provinceName || '';
+    const districtName = this.districts.find(d => d.code == v.district)?.name || old.districtName || '';
+    const wardName     = this.wards.find(w => w.code == v.ward)?.name         || old.wardName     || '';
+
     const body = {
-      name:      this.addressForm.value.name,
-      phone:     this.addressForm.value.phone,
-      address:   this.getFullAddress() || this.addressForm.value.street,
-      isDefault: this.addressForm.value.isDefault,
-      userId:    this.userId
+      name:         v.name,
+      phone:        v.phone,
+      address:      this.getFullAddress() || v.street,
+      street:       v.street       || old.street       || '',
+      wardName,
+      wardCode:     v.ward         || old.wardCode      || null,
+      districtName,
+      districtCode: v.district     || old.districtCode  || null,
+      provinceName,
+      provinceCode: v.province     || old.provinceCode  || null,
+      isDefault:    v.isDefault,
+      userId:       this.userId,
     };
 
     this.http.put<any>(`${this.API}/users/${this.userId}/addresses/${id}`, body, { headers: this.headers })
@@ -294,7 +421,7 @@ export class AddressBook implements OnInit {
           this.cdr.detectChanges();
         },
         error: (err: HttpErrorResponse) => {
-          this.isLoading   = false;
+          this.isLoading    = false;
           this.errorMessage = err?.error?.message || 'Cập nhật thất bại!';
         }
       });

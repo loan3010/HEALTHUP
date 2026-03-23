@@ -1,5 +1,5 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, Location } from '@angular/common';  // ✅ thêm Location
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { ApiService, STATIC_BASE } from '../services/api.service';
 
@@ -12,23 +12,21 @@ import { ApiService, STATIC_BASE } from '../services/api.service';
 })
 export class OrderDetail implements OnInit {
 
-  order: any   = null;
+  order: any    = null;
   orders: any[] = [];
-  loading      = true;
-  currentId    = '';
+  loading       = true;
+  currentId     = '';
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private api: ApiService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private location: Location  // ✅ thêm
   ) {}
 
   ngOnInit(): void {
-    // Load danh sách sidebar ngay
     this.loadOrders();
-
-    // Load chi tiết đơn khi route thay đổi
     this.route.paramMap.subscribe(params => {
       const id = params.get('id') || '';
       if (id && id !== this.currentId) {
@@ -41,7 +39,11 @@ export class OrderDetail implements OnInit {
     });
   }
 
-  // ✅ Đọc userId đúng cách — giống api.service.ts
+  // ✅ Quay lại trang trước
+  goBack(): void {
+    this.location.back();
+  }
+
   private getUserId(): string {
     const direct = localStorage.getItem('userId');
     if (direct) return direct;
@@ -56,7 +58,7 @@ export class OrderDetail implements OnInit {
       next: (res: any) => {
         this.order   = res;
         this.loading = false;
-        this.cdr.detectChanges();   // ✅ hiện ngay
+        this.cdr.detectChanges();
       },
       error: () => {
         this.loading = false;
@@ -70,7 +72,7 @@ export class OrderDetail implements OnInit {
     this.api.getOrders(userId).subscribe({
       next: (res: any) => {
         this.orders = Array.isArray(res) ? res : [];
-        this.cdr.detectChanges();   // ✅ hiện sidebar ngay
+        this.cdr.detectChanges();
       },
       error: () => { this.orders = []; }
     });
@@ -79,8 +81,6 @@ export class OrderDetail implements OnInit {
   goToOrder(id: string): void {
     this.router.navigate(['/profile/order-detail', id]);
   }
-
-  // ── Helpers ──
 
   getTotal(): number {
     return this.order?.total
@@ -139,14 +139,12 @@ export class OrderDetail implements OnInit {
     return map[method] || method;
   }
 
-  /** Danh sách URL ảnh hoàn hàng từ API (mảng returnImages trên đơn). */
   getReturnImages(order: any): string[] {
     const arr = order?.returnImages;
     if (!Array.isArray(arr)) return [];
     return arr.map((u: any) => String(u || '').trim()).filter(Boolean);
   }
 
-  /** Các dòng có returnQty > 0 (khách chỉ trả một phần đơn). */
   getReturnLines(order: any): any[] {
     const rows = order?.returnItems;
     if (!Array.isArray(rows)) return [];
@@ -160,12 +158,11 @@ export class OrderDetail implements OnInit {
     );
   }
 
-  /** Nhãn trạng thái quy trình hoàn (tách với trạng thái giao hàng). */
   getReturnStatusLabel(rs: string): string {
     const map: Record<string, string> = {
       requested: 'Đang chờ shop xử lý',
-      approved: 'Shop đã chấp nhận hoàn',
-      rejected: 'Yêu cầu bị từ chối',
+      approved:  'Shop đã chấp nhận hoàn',
+      rejected:  'Yêu cầu bị từ chối',
       completed: 'Đã hoàn tiền / trả xong',
     };
     return map[rs] || rs;

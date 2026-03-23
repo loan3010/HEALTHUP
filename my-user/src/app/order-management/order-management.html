@@ -64,7 +64,8 @@
 
         <!-- CHỜ XÁC NHẬN -->
         <ng-container *ngIf="order.status === 'pending'">
-          <button class="btn-outline">Liên hệ người bán</button>
+          <!-- ✅ Thêm (click)="contactSeller()" -->
+          <button class="btn-outline" (click)="contactSeller()">Liên hệ người bán</button>
           <button class="btn-danger" (click)="cancelOrder(order._id)">Hủy đơn hàng</button>
         </ng-container>
 
@@ -73,19 +74,18 @@
           <button class="btn-primary">Thanh toán ngay</button>
         </ng-container>
 
-        <!-- ĐÃ GIAO — chỉ status 'delivered' mới hiện nút Đánh giá -->
+        <!-- ĐÃ GIAO -->
         <ng-container *ngIf="order.status === 'delivered'">
           <button class="btn-outline"
             [routerLink]="['/profile/return-management']"
             [queryParams]="{orderId: order._id}">
             Trả hàng
           </button>
-          <!-- ✅ Chỉ hiện khi delivered, navigate sang trang list đánh giá -->
           <button class="btn-primary" (click)="goToReview(order)">Đánh giá</button>
           <button class="btn-outline" (click)="reorder(order)">Mua lại</button>
         </ng-container>
 
-        <!-- ĐÃ THANH TOÁN (paid) — không có nút Đánh giá vì chưa giao -->
+        <!-- ĐÃ THANH TOÁN -->
         <ng-container *ngIf="order.status === 'paid'">
           <button class="btn-outline" (click)="reorder(order)">Mua lại</button>
         </ng-container>
