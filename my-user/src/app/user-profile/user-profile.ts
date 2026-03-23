@@ -3,28 +3,6 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 
-// ✅ Map tất cả các tên field có thể có từ backend → label hiển thị
-const RANK_LABEL: Record<string, string> = {
-  // Tiếng Anh phổ biến
-  bronze:   'Đồng',
-  silver:   'Bạc',
-  gold:     'Vàng',
-  platinum: 'Bạch Kim',
-  diamond:  'Kim Cương',
-  vip:      'VIP',
-  // Tiếng Việt
-  'thanh vien': 'Thành viên',
-  'dong':       'Đồng',
-  'bac':        'Bạc',
-  'vang':       'Vàng',
-  // Số
-  '0': 'Thành viên',
-  '1': 'Đồng',
-  '2': 'Bạc',
-  '3': 'Vàng',
-  '4': 'Bạch Kim',
-};
-
 const API_BASE = 'http://localhost:3000/api';
 
 @Component({
@@ -36,8 +14,23 @@ const API_BASE = 'http://localhost:3000/api';
 })
 export class UserProfile implements OnInit {
 
-  userName    = '';
-  memberRank  = 'Thành viên'; // ✅ default fallback
+  userName   = '';
+  memberRank = 'member';
+  totalSpent = 0;
+
+  readonly VIP_THRESHOLD = 5_000_000;
+
+  get memberRankLabel(): string {
+    return this.memberRank === 'vip' ? '⭐ VIP' : 'Thành viên';
+  }
+
+  get rankProgressPercent(): number {
+    return Math.min(100, Math.round((this.totalSpent / this.VIP_THRESHOLD) * 100));
+  }
+
+  get rankProgressRemain(): number {
+    return Math.max(0, this.VIP_THRESHOLD - this.totalSpent);
+  }
 
   constructor(
     private router: Router,
@@ -49,20 +42,19 @@ export class UserProfile implements OnInit {
     this.fetchFreshUserData();
   }
 
-  // ── Bước 1: Hiển thị ngay từ localStorage (không chờ API) ──
   private loadFromLocalStorage(): void {
     const userStr = localStorage.getItem('user');
     if (!userStr) return;
     try {
-      const user = JSON.parse(userStr);
+      const user      = JSON.parse(userStr);
       this.userName   = user.username || user.email || user.phone || 'User';
-      this.memberRank = this.resolveRank(user);
+      this.memberRank = user.memberRank || 'member';
+      this.totalSpent = user.totalSpent || 0;
     } catch {
       this.userName = 'User';
     }
   }
 
-  // ── Bước 2: Gọi API lấy data mới nhất, cập nhật rank ──
   private fetchFreshUserData(): void {
     const token  = localStorage.getItem('token');
     const userId = this.getUserId();
@@ -73,32 +65,14 @@ export class UserProfile implements OnInit {
     }).subscribe({
       next: (user) => {
         this.userName   = user.username || user.email || user.phone || this.userName;
-        this.memberRank = this.resolveRank(user);
+        this.memberRank = user.memberRank || 'member';
+        this.totalSpent = user.totalSpent || 0;
 
-        // ✅ Cập nhật lại localStorage để lần sau dùng được
         const stored = JSON.parse(localStorage.getItem('user') || '{}');
         localStorage.setItem('user', JSON.stringify({ ...stored, ...user }));
       },
-      error: () => {} // giữ nguyên giá trị từ localStorage nếu lỗi
+      error: () => {}
     });
-  }
-
-  // ── Đọc rank từ nhiều field có thể có ──
-  private resolveRank(user: any): string {
-    // Thử lần lượt các field phổ biến
-    const raw =
-      user?.rank           ??
-      user?.membershipTier ??
-      user?.membership     ??
-      user?.tier           ??
-      user?.level          ??
-      user?.memberRank     ??
-      '';
-
-    if (!raw && raw !== 0) return 'Thành viên';
-
-    const key = String(raw).toLowerCase().trim();
-    return RANK_LABEL[key] ?? String(raw); // fallback: hiện nguyên giá trị từ backend
   }
 
   private getUserId(): string {
@@ -115,6 +89,10 @@ export class UserProfile implements OnInit {
     const words = this.userName.trim().split(' ');
     if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
     return this.userName.substring(0, 2).toUpperCase();
+  }
+
+  vnd(n: number): string {
+    return n.toLocaleString('vi-VN') + '₫';
   }
 
   logout(): void {

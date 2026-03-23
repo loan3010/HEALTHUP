@@ -302,9 +302,9 @@ export class Cart implements OnInit, OnDestroy {
     const newOption = item.allVariants?.find(v => v._id === optionId);
     if (!newOption) return;
 
-    // FIX: Chặn chọn option hết hàng (stock <= 0 và không phải weight unlimited)
+    // Chặn chọn option hết hàng
     if (newOption.stock <= 0 && newOption.stock !== 999) {
-      this.api.showToast(`"${newOption.label}" đã hết hàng.`, 'error');
+      this.api.showToast(`"${newOption.label}" hiện đã hết hàng, vui lòng chọn phân loại khác.`, 'error');
       return;
     }
 
@@ -313,7 +313,7 @@ export class Cart implements OnInit, OnDestroy {
     const oldPrice        = item.price;
 
     if (item.optionType === 'weight') {
-      item.variantId    = null;
+      item.variantId    = newOption.label; // lưu label làm key để reload vẫn giữ đúng option
       item.variantLabel = newOption.label;
     } else {
       item.variantId    = newOption._id;
@@ -328,6 +328,10 @@ export class Cart implements OnInit, OnDestroy {
 
     if (item.optionType === 'weight') {
       this.api.showToast(`Đã chọn "${newOption.label}"`, 'success');
+      // Cập nhật lên backend để lưu variantLabel mới, tránh reload về mặc định
+      this.api.updateCartItem(item.productId, item.quantity, item.variantId).subscribe({
+        error: () => this.rollback(item, oldVariantId, oldVariantLabel, oldPrice)
+      });
       return;
     }
 

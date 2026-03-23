@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 
 @Component({
   selector: 'app-profile-overview',
@@ -11,14 +11,33 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
   styleUrls: ['./profile-overview.css'],
 })
 export class ProfileOverview implements OnInit {
-  
+
   profileForm!: FormGroup;
   user: any = {};
   isLoading = false;
   message = '';
   error = false;
 
-  private API = 'http://localhost:3000/api';
+  // Hạng thành viên
+  memberRank  = 'member';
+  totalSpent  = 0;
+  isLoadingRank = true;
+
+  readonly VIP_THRESHOLD = 5_000_000;
+
+  get memberRankLabel(): string {
+    return this.memberRank === 'vip' ? '⭐ VIP' : 'Thành viên';
+  }
+
+  get rankProgressPercent(): number {
+    return Math.min(100, Math.round((this.totalSpent / this.VIP_THRESHOLD) * 100));
+  }
+
+  get rankProgressRemain(): number {
+    return Math.max(0, this.VIP_THRESHOLD - this.totalSpent);
+  }
+
+  private readonly API = 'http://localhost:3000/api';
 
   constructor(
     private fb: FormBuilder,
@@ -26,36 +45,54 @@ export class ProfileOverview implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    // Lấy user từ localStorage
     const userStr = localStorage.getItem('user');
     if (userStr) {
-      try {
-        this.user = JSON.parse(userStr);
-      } catch (error) {
-        this.user = {};
-      }
+      try { this.user = JSON.parse(userStr); } catch { this.user = {}; }
     }
 
-    // Khởi tạo form
     this.profileForm = this.fb.group({
       username: [this.user.username || '', [Validators.required, Validators.minLength(3)]],
-      email: [this.user.email || '', [Validators.email]],
-      phone: [this.user.phone || '', [Validators.pattern(/^[0-9]{9,11}$/)]],
-      dob: [this.user.dob || ''],
-      gender: [this.user.gender || 'male'],
-      address: [this.user.address || '']
+      email:    [this.user.email    || '', [Validators.email]],
+      phone:    [this.user.phone    || '', [Validators.pattern(/^[0-9]{9,11}$/)]],
+      dob:      [this.user.dob      || ''],
+      gender:   [this.user.gender   || 'male'],
+      address:  [this.user.address  || '']
+    });
+
+    this.fetchRank();
+  }
+
+  private fetchRank(): void {
+    const token  = localStorage.getItem('token');
+    const userId = this.user.id || this.user._id;
+    if (!token || !userId) { this.isLoadingRank = false; return; }
+
+    this.http.get<any>(`${this.API}/users/${userId}`, {
+      headers: new HttpHeaders({ Authorization: `Bearer ${token}` })
+    }).subscribe({
+      next: (u) => {
+        this.memberRank = u.memberRank  || 'member';
+        this.totalSpent = u.totalSpent  || 0;
+        this.isLoadingRank = false;
+
+        // Cập nhật localStorage
+        const stored = JSON.parse(localStorage.getItem('user') || '{}');
+        localStorage.setItem('user', JSON.stringify({ ...stored, memberRank: this.memberRank, totalSpent: this.totalSpent }));
+      },
+      error: () => { this.isLoadingRank = false; }
     });
   }
 
   getInitials(): string {
     const name = this.user.username || '';
     if (!name) return 'U';
-    
     const words = name.trim().split(' ');
-    if (words.length >= 2) {
-      return (words[0][0] + words[1][0]).toUpperCase();
-    }
+    if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
     return name.substring(0, 2).toUpperCase();
+  }
+
+  vnd(n: number): string {
+    return n.toLocaleString('vi-VN') + '₫';
   }
 
   onSubmit(): void {
@@ -68,30 +105,25 @@ export class ProfileOverview implements OnInit {
     this.isLoading = true;
     this.message = '';
 
-    const token = localStorage.getItem('token');
-    const userId = this.user.id;
+    const token  = localStorage.getItem('token');
+    const userId = this.user.id || this.user._id;
 
-    // Gọi API cập nhật profile
-    this.http
-      .put(`${this.API}/users/${userId}`, this.profileForm.value, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      .subscribe({
-        next: (res: any) => {
-          this.isLoading = false;
-          this.error = false;
-          this.message = 'Cập nhật thành công!';
-          
-          // Cập nhật localStorage
-          const updatedUser = { ...this.user, ...this.profileForm.value };
-          localStorage.setItem('user', JSON.stringify(updatedUser));
-          this.user = updatedUser;
-        },
-        error: (err: HttpErrorResponse) => {
-          this.isLoading = false;
-          this.error = true;
-          this.message = err?.error?.message || 'Cập nhật thất bại!';
-        }
-      });
+    this.http.put(`${this.API}/users/${userId}`, this.profileForm.value, {
+      headers: { Authorization: `Bearer ${token}` }
+    }).subscribe({
+      next: (res: any) => {
+        this.isLoading = false;
+        this.error = false;
+        this.message = 'Cập nhật thành công!';
+        const updatedUser = { ...this.user, ...this.profileForm.value };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        this.user = updatedUser;
+      },
+      error: (err: HttpErrorResponse) => {
+        this.isLoading = false;
+        this.error = true;
+        this.message = err?.error?.message || 'Cập nhật thất bại!';
+      }
+    });
   }
 }

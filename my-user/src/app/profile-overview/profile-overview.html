@@ -1,60 +1,151 @@
-<h3 class="mb-4">Tài khoản cá nhân</h3>
+<h3 class="po-page-title">Tài khoản cá nhân</h3>
 
-<div class="card shadow-lg p-4 profile-card">
+<!-- ══ HẠNG THÀNH VIÊN CARD ══ -->
+<div class="po-rank-card" *ngIf="!isLoadingRank">
 
-  <div class="text-center mb-4">
-    <div class="avatar-lg mx-auto">{{ getInitials() }}</div>
-    <h5 class="mt-3">{{ user.username }}</h5>
-    <small class="text-muted">{{ user.email || user.phone }}</small>
+  <!-- Left: Avatar + tên + badge -->
+  <div class="po-rank-left">
+    <div class="po-rank-avatar">{{ getInitials() }}</div>
+    <div class="po-rank-info">
+      <div class="po-rank-name">{{ user.username }}</div>
+      <span class="po-rank-badge"
+            [class.po-badge-member]="memberRank === 'member'"
+            [class.po-badge-vip]="memberRank === 'vip'">
+        <i class="bi"
+           [class.bi-person-fill]="memberRank === 'member'"
+           [class.bi-star-fill]="memberRank === 'vip'"></i>
+        {{ memberRankLabel }}
+      </span>
+    </div>
+  </div>
+
+  <!-- Right: Tiến độ + quyền lợi -->
+  <div class="po-rank-right">
+
+    <!-- Tổng chi + thanh tiến độ -->
+    <div class="po-rank-progress-section" *ngIf="memberRank === 'member'">
+      <div class="po-rank-progress-header">
+        <span class="po-rank-spent-label">Tổng đơn đã giao:</span>
+        <span class="po-rank-spent-value">{{ vnd(totalSpent) }}</span>
+        <span class="po-rank-target-label">/ {{ vnd(VIP_THRESHOLD) }} để lên VIP</span>
+      </div>
+      <div class="po-rank-bar">
+        <div class="po-rank-bar-fill" [style.width]="rankProgressPercent + '%'"></div>
+      </div>
+      <div class="po-rank-remain" *ngIf="rankProgressRemain > 0">
+        Mua thêm <strong>{{ vnd(rankProgressRemain) }}</strong> để lên hạng VIP
+      </div>
+    </div>
+
+    <div class="po-rank-vip-header" *ngIf="memberRank === 'vip'">
+      <span class="po-rank-spent-label">Tổng đơn đã giao:</span>
+      <span class="po-rank-spent-value">{{ vnd(totalSpent) }}</span>
+      <div class="po-rank-vip-msg">
+        <i class="bi bi-patch-check-fill"></i> Bạn đang ở hạng cao nhất!
+      </div>
+    </div>
+
+    <!-- Quyền lợi -->
+    <div class="po-rank-perks">
+      <div class="po-rank-perk-col"
+           [class.perk-col-active]="memberRank === 'member'">
+        <div class="po-rank-perk-title">
+          <span class="po-perk-badge po-badge-member">
+            <i class="bi bi-person-fill"></i> Thành viên
+          </span>
+          <span class="po-current-tag" *ngIf="memberRank === 'member'">Hiện tại</span>
+        </div>
+        <ul class="po-perk-list">
+          <li><i class="bi bi-check2-circle"></i> Mã giảm tiền hàng dành riêng</li>
+          <li><i class="bi bi-check2-circle"></i> Ưu đãi theo dịp đặc biệt</li>
+        </ul>
+      </div>
+
+      <div class="po-rank-perk-divider">
+        <i class="bi bi-chevron-right"></i>
+      </div>
+
+      <div class="po-rank-perk-col"
+           [class.perk-col-active]="memberRank === 'vip'"
+           [class.perk-col-vip]="memberRank === 'vip'">
+        <div class="po-rank-perk-title">
+          <span class="po-perk-badge po-badge-vip">
+            <i class="bi bi-star-fill"></i> VIP
+          </span>
+          <span class="po-current-tag po-tag-vip" *ngIf="memberRank === 'vip'">Hiện tại</span>
+        </div>
+        <ul class="po-perk-list">
+          <li><i class="bi bi-check2-circle"></i> Tất cả quyền lợi Thành viên</li>
+          <li><i class="bi bi-check2-circle"></i> Mã giảm phí ship độc quyền</li>
+          <li><i class="bi bi-check2-circle"></i> Ưu tiên hỗ trợ & hoàn tiền nhanh</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Loading rank -->
+<div class="po-rank-loading" *ngIf="isLoadingRank">
+  <span class="po-spinner"></span> Đang tải thông tin hạng...
+</div>
+
+<!-- ══ FORM THÔNG TIN ══ -->
+<div class="profile-card">
+
+  <div class="profile-card-avatar-row">
+    <div class="avatar-lg">{{ getInitials() }}</div>
+    <div>
+      <div class="profile-card-name">{{ user.username }}</div>
+      <div class="profile-card-email">{{ user.email || user.phone }}</div>
+    </div>
   </div>
 
   <form [formGroup]="profileForm" (ngSubmit)="onSubmit()">
-    <div class="mb-3">
+    <div class="po-form-group">
       <label>Họ tên</label>
-      <input type="text" class="form-control" formControlName="username" placeholder="Nhập họ tên">
+      <input type="text" class="po-input" formControlName="username" placeholder="Nhập họ tên">
     </div>
 
-    <div class="row">
-      <div class="col-md-6 mb-3">
+    <div class="po-form-row">
+      <div class="po-form-group">
         <label>Ngày sinh</label>
-        <input type="date" class="form-control" formControlName="dob">
+        <input type="date" class="po-input" formControlName="dob">
       </div>
-
-      <div class="col-md-6 mb-3">
+      <div class="po-form-group">
         <label>Giới tính</label>
-        <div class="d-flex gap-3 mt-2">
-          <div><input type="radio" name="gender" value="male" formControlName="gender"> Nam</div>
-          <div><input type="radio" name="gender" value="female" formControlName="gender"> Nữ</div>
-          <div><input type="radio" name="gender" value="other" formControlName="gender"> Khác</div>
+        <div class="po-radio-group">
+          <label class="po-radio"><input type="radio" name="gender" value="male"   formControlName="gender"> Nam</label>
+          <label class="po-radio"><input type="radio" name="gender" value="female" formControlName="gender"> Nữ</label>
+          <label class="po-radio"><input type="radio" name="gender" value="other"  formControlName="gender"> Khác</label>
         </div>
       </div>
     </div>
 
-    <div class="row">
-      <div class="col-md-6 mb-3">
+    <div class="po-form-row">
+      <div class="po-form-group">
         <label>Số điện thoại</label>
-        <input type="tel" class="form-control" formControlName="phone" placeholder="Nhập số điện thoại">
+        <input type="tel" class="po-input" formControlName="phone" placeholder="Nhập số điện thoại">
       </div>
-
-      <div class="col-md-6 mb-3">
+      <div class="po-form-group">
         <label>Email</label>
-        <input type="email" class="form-control" formControlName="email" placeholder="Nhập email">
+        <input type="email" class="po-input" formControlName="email" placeholder="Nhập email">
       </div>
     </div>
 
-    <div class="mb-3">
+    <div class="po-form-group">
       <label>Địa chỉ</label>
-      <input type="text" class="form-control" formControlName="address" placeholder="Nhập địa chỉ">
+      <input type="text" class="po-input" formControlName="address" placeholder="Nhập địa chỉ">
     </div>
 
-    <div class="text-center mt-4">
-      <button type="submit" class="btn btn-secondary px-4" [disabled]="isLoading">
+    <div class="po-form-submit">
+      <button type="submit" class="po-btn-submit" [disabled]="isLoading">
         {{ isLoading ? 'Đang lưu...' : 'Lưu những thay đổi' }}
       </button>
     </div>
 
-    <div class="text-center mt-3" *ngIf="message">
-      <small [class.text-success]="!error" [class.text-danger]="error">{{ message }}</small>
+    <div class="po-form-message" *ngIf="message">
+      <span [class.po-msg-success]="!error" [class.po-msg-error]="error">{{ message }}</span>
     </div>
   </form>
 

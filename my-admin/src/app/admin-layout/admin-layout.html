@@ -4,8 +4,9 @@
 
   <div class="main-body">
     
-    <app-admin-sidebar 
-      [isOpen]="isSidebarOpen" 
+    <app-admin-sidebar
+      #sideNav
+      [isOpen]="isSidebarOpen"
       (tabChange)="onTabChange($event)">
     </app-admin-sidebar>
 
@@ -59,4 +60,7 @@
     </main>
 
   </div>
+
+  <!-- Thay toàn bộ alert() trình duyệt bằng modal (service: AdminAlertModalService). -->
+  <app-admin-alert-modal />
 </div>

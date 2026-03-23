@@ -1,7 +1,7 @@
 import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { PromotionService } from '../promotion.service'; 
+import { PromotionService } from '../promotion.service';
 
 @Component({
   selector: 'app-promotion-form',
@@ -28,9 +28,9 @@ export class PromotionForm implements OnInit {
     name: '',
     code: '',
     description: '',
-    groupName: '',    // Đã thêm để đồng bộ nhóm
-    isActive: true,    // Đã thêm để đồng bộ ẩn/hiện
-    type: 'order',     // 'order' (Hàng hóa) | 'shipping' (Vận chuyển)
+    groupName: '',
+    isActive: true,
+    type: 'order', // 'order' (Hàng hóa) | 'shipping' (Vận chuyển)
     status: 'upcoming',
     discountType: 'percent', 
     discountValue: 0,
@@ -43,7 +43,8 @@ export class PromotionForm implements OnInit {
     firstOrderOnly: false,
     applyScope: 'all',
     appliedCategoryIds: [],
-    appliedProductIds: []
+    appliedProductIds: [],
+    allowedMemberRanks: []
   };
 
   constructor(private promoService: PromotionService) {}
@@ -57,13 +58,14 @@ export class PromotionForm implements OnInit {
         this.isFreeshipMode = true;
       }
 
-      this.formData = { 
+      this.formData = {
         ...this.promoData,
         applyScope: this.promoData.applyScope || 'all',
         appliedCategoryIds: (this.promoData.appliedCategoryIds || []).map((id: any) => id?.$oid || id),
-        appliedProductIds: (this.promoData.appliedProductIds || []).map((id: any) => id?.$oid || id),
+        appliedProductIds:  (this.promoData.appliedProductIds  || []).map((id: any) => id?.$oid || id),
+        allowedMemberRanks: this.promoData.allowedMemberRanks || [],
         startDate: this.dinhDangNgay(this.promoData.startDate),
-        endDate: this.dinhDangNgay(this.promoData.endDate)
+        endDate:   this.dinhDangNgay(this.promoData.endDate)
       };
     } else {
       this.datLaiBieuMau();
@@ -77,7 +79,6 @@ export class PromotionForm implements OnInit {
           this.categories = res
             .map(cat => ({ ...cat, _id: cat._id?.$oid || cat._id }))
             .sort((a, b) => a.name.localeCompare(b.name, 'vi'));
-          
           if (this.categories.length > 0 && !this.selectedCatNameForProd) {
             this.selectedCatNameForProd = this.categories[0].name;
           }
@@ -98,7 +99,7 @@ export class PromotionForm implements OnInit {
 
   get filteredProductsByCat() {
     if (!this.selectedCatNameForProd) return [];
-    return this.products.filter(p => 
+    return this.products.filter(p =>
       p.cat?.toString().trim().toLowerCase() === this.selectedCatNameForProd.trim().toLowerCase()
     );
   }
@@ -106,7 +107,7 @@ export class PromotionForm implements OnInit {
   chonDanhMucDeLoc(catName: string): void {
     this.selectedCatNameForProd = catName;
   }
-  
+
   toggleSelection(id: string, type: 'category' | 'product'): void {
     const targetList = type === 'category' ? 'appliedCategoryIds' : 'appliedProductIds';
     if (!this.formData[targetList]) this.formData[targetList] = [];
@@ -120,6 +121,16 @@ export class PromotionForm implements OnInit {
     return this.formData[targetList] ? this.formData[targetList].includes(id) : false;
   }
 
+  toggleRank(rank: string): void {
+    if (!this.formData.allowedMemberRanks) this.formData.allowedMemberRanks = [];
+    const idx = this.formData.allowedMemberRanks.indexOf(rank);
+    if (idx > -1) {
+      this.formData.allowedMemberRanks.splice(idx, 1);
+    } else {
+      this.formData.allowedMemberRanks.push(rank);
+    }
+  }
+
   onDiscountTypeChange(): void {
     if (this.formData.discountType === 'percent' && this.formData.discountValue > 100) {
       this.formData.discountValue = 100;
@@ -129,50 +140,65 @@ export class PromotionForm implements OnInit {
   private dinhDangNgay(ngay: any): string {
     if (!ngay) return '';
     const d = new Date(ngay);
-    return isNaN(d.getTime()) ? '' : d.toISOString().split('T')[0]; 
+    return isNaN(d.getTime()) ? '' : d.toISOString().split('T')[0];
   }
 
   /**
-   * HÀM LƯU DỮ LIỆU: Đã xử lý logic Freeship và ép kiểu Backend
+   * HÀM LƯU DỮ LIỆU: Đã gỡ lỗi lặp biến và xử lý logic Backend
    */
   onSave(): void {
     this.errorMessage = ''; 
     const f = this.formData;
 
     // 1. Kiểm tra thông tin bắt buộc
-    if (!f.code?.trim() || !f.name?.trim() || !f.startDate || !f.endDate) {
-      this.errorMessage = 'Vui lòng điền đầy đủ Tên, Mã và Thời hạn chương trình.';
+    if (!f.code?.trim() || !f.name?.trim() || !f.startDate || !f.endDate || !f.type || !f.status || !f.discountType || !f.applyScope) {
+      this.errorMessage = 'Vui lòng điền đầy đủ các thông tin bắt buộc có dấu (*).';
       return;
     }
 
-    // 2. Kiểm tra logic ngày tháng
+    // 2. Kiểm tra logic dữ liệu số
+    if (f.totalLimit <= 0 || f.userLimit <= 0) {
+      this.errorMessage = 'Tổng giới hạn và giới hạn mỗi khách phải lớn hơn 0.';
+      return;
+    }
+
+    if (f.discountValue <= 0) {
+      this.errorMessage = 'Giá trị giảm giá phải lớn hơn 0.';
+      return;
+    }
+
+    if (f.discountType === 'percent' && f.discountValue > 100) {
+      this.errorMessage = 'Giảm giá theo phần trăm không được vượt quá 100%.';
+      return;
+    }
+
     if (f.endDate < f.startDate) {
       this.errorMessage = 'Ngày kết thúc không được nhỏ hơn ngày bắt đầu.';
       return;
     }
 
-    // Clone dữ liệu để xử lý trung gian
+    // 3. Clone dữ liệu để xử lý trung gian (Chỉ khai báo 1 lần)
     let submitData = { ...this.formData };
 
-    // 3. XỬ LÝ LOGIC "PHIÊN DỊCH" CHO BACKEND (Né lỗi 400)
+    // 4. XỬ LÝ LOGIC FREESHIP
     if (this.isFreeshipMode) {
-      submitData.type = 'shipping';      // Loại: Vận chuyển
-      submitData.discountType = 'percent'; // Cách giảm: Phần trăm
-      submitData.discountValue = 100;     // 100% = Freeship
+      submitData.type = 'shipping';
+      submitData.discountType = 'percent';
+      submitData.discountValue = 100;
     }
 
-    // 4. ÉP KIỂU DỮ LIỆU SỐ CHẶT CHẼ
+    // 5. ÉP KIỂU VÀ LÀM SẠCH DỮ LIỆU
     submitData.discountValue = Number(submitData.discountValue);
     submitData.minOrder = Number(submitData.minOrder);
     submitData.maxDiscount = Number(submitData.maxDiscount);
     submitData.totalLimit = Number(submitData.totalLimit);
     submitData.userLimit = Number(submitData.userLimit);
-    submitData.code = submitData.code.trim().toUpperCase(); // Viết hoa mã voucher
+    submitData.code = submitData.code.trim().toUpperCase();
 
-    // 5. Làm sạch mảng ID theo phạm vi áp dụng
+    // 6. Xử lý mảng ID theo phạm vi áp dụng
     if (submitData.applyScope === 'all') {
       submitData.appliedCategoryIds = [];
-      submitData.appliedProductIds = [];
+      submitData.appliedProductIds  = [];
     } else if (submitData.applyScope === 'category') {
       submitData.appliedProductIds = [];
       if (submitData.appliedCategoryIds.length === 0) {
@@ -187,9 +213,9 @@ export class PromotionForm implements OnInit {
       }
     }
 
-    // Gọi API
-    const request = this.mode === 'add' 
-      ? this.promoService.themKhuyenMai(submitData) 
+    // 7. Gọi API
+    const request = this.mode === 'add'
+      ? this.promoService.themKhuyenMai(submitData)
       : this.promoService.suaKhuyenMai(submitData._id, submitData);
 
     request.subscribe({
@@ -198,11 +224,11 @@ export class PromotionForm implements OnInit {
         this.goBack.emit();
       },
       error: (loi: any) => {
-        console.error('Lỗi chi tiết từ Backend:', loi);
+        console.error('Lỗi từ Backend:', loi);
         if (loi.status === 400) {
           this.errorMessage = 'Dữ liệu không hợp lệ. Hãy kiểm tra lại các trường hoặc mã voucher bị trùng.';
         } else {
-          this.errorMessage = 'Hệ thống đang bận, vui lòng thử lại sau.';
+          this.errorMessage = 'Không thể lưu thay đổi. Vui lòng kiểm tra kết nối mạng hoặc thử lại sau.';
         }
       }
     });
@@ -211,12 +237,26 @@ export class PromotionForm implements OnInit {
   private datLaiBieuMau(): void {
     this.isFreeshipMode = false;
     this.formData = {
-      name: '', code: '', description: '', groupName: '',
-      isActive: true, type: 'order', status: 'upcoming',
-      discountType: 'percent', discountValue: 0, minOrder: 0, maxDiscount: 0,
+      name: '',
+      code: '',
+      description: '',
+      groupName: '',
+      isActive: true,
+      type: 'order',
+      status: 'upcoming',
+      discountType: 'percent',
+      discountValue: 0,
+      minOrder: 0,
+      maxDiscount: 0,
       startDate: new Date().toISOString().split('T')[0],
-      endDate: '', totalLimit: 100, userLimit: 1, firstOrderOnly: false,
-      applyScope: 'all', appliedCategoryIds: [], appliedProductIds: []
+      endDate: '',
+      totalLimit: 100,
+      userLimit: 1,
+      firstOrderOnly: false,
+      applyScope: 'all',
+      appliedCategoryIds: [],
+      appliedProductIds: [],
+      allowedMemberRanks: []
     };
     this.errorMessage = '';
   }

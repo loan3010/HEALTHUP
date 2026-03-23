@@ -159,6 +159,7 @@
 .icon-order  { background: #F0F7F0; color: #36873A; }
 .icon-promo  { background: #FFFBEA; color: #B8860B; }
 .icon-system { background: #EAF4FB; color: #4A8FBB; }
+.icon-consulting { background: #eef6ff; color: #2563eb; }
 
 /* ── Content ── */
 .noti-content { flex: 1; min-width: 0; }

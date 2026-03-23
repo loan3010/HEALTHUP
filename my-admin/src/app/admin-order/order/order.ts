@@ -1,9 +1,11 @@
-import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit, inject, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminOrder, AdminOrderService } from './order.service';
 import { OrderDetail } from '../order-detail/order-detail';
 import { OrderFormComponent } from '../order-form/order-form';
+import { AdminNavBridgeService } from '../../admin-nav-bridge.service';
 
 @Component({
   selector: 'app-order',
@@ -54,9 +56,21 @@ export class Order implements OnInit, OnDestroy {
   private searchTimer: any;
   private refreshTimer: any;
 
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly navBridge = inject(AdminNavBridgeService);
+
   constructor(private orderService: AdminOrderService) {}
 
   ngOnInit(): void {
+    // Deep link từ thông báo admin (chuông).
+    this.navBridge.openOrderDetail$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((id: string) => {
+        if (!id) return;
+        this.isCreateFormOpen = false;
+        this.openDetail(id);
+      });
+
     this.loadOrders();
     // Tự refresh khi đang xem danh sách (không mở chi tiết / form tạo).
     this.refreshTimer = setInterval(() => {
@@ -262,8 +276,9 @@ export class Order implements OnInit, OnDestroy {
       pending: 'Chờ xác nhận',
       confirmed: 'Chờ giao hàng',
       shipping: 'Đang giao',
+      delivery_failed: 'Giao thất bại',
       delivered: 'Đã giao',
-      cancelled: 'Đã hủy'
+      cancelled: 'Đã hủy',
     };
     return map[status] || status;
   }

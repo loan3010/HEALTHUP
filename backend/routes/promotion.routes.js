@@ -3,6 +3,8 @@ const router    = express.Router();
 const mongoose  = require('mongoose');
 const promoCtrl = require('../controllers/Promotion.controller');
 const Promotion = require('../models/Promotion');
+const User      = require('../models/User');
+const { optionalAuth } = require('../middleware/auth');
 
 // 1. Lấy danh sách: GET /api/promotions (Dành cho Admin xem tất cả)
 router.get('/', promoCtrl.getAllPromotions);
@@ -12,12 +14,19 @@ router.post('/', promoCtrl.createPromotion);
 
 // ── Apply voucher ────────────────────────────────────────────────
 // POST /api/promotions/apply
-router.post('/apply', async (req, res) => {
+router.post('/apply', optionalAuth, async (req, res) => {
   try {
     const { code, subTotal = 0, shippingFee = 0 } = req.body;
 
     if (!code || typeof code !== 'string') {
       return res.status(400).json({ valid: false, message: 'Vui lòng nhập mã voucher' });
+    }
+
+    // Lấy hạng user nếu đã đăng nhập
+    let userRank = null;
+    if (req.user?.userId) {
+      const u = await User.findById(req.user.userId).select('memberRank').lean();
+      userRank = u?.memberRank || 'member';
     }
 
     const promo = await Promotion.findOne({ code: code.trim().toUpperCase() });
@@ -60,6 +69,19 @@ router.post('/apply', async (req, res) => {
       });
     }
 
+    // Kiểm tra hạng thành viên
+    if (promo.allowedMemberRanks && promo.allowedMemberRanks.length > 0) {
+      if (!userRank || !promo.allowedMemberRanks.includes(userRank)) {
+        const rankLabel = { member: 'Thành viên', vip: 'VIP' };
+        const required  = promo.allowedMemberRanks.map(r => rankLabel[r] || r).join(', ');
+        return res.status(400).json({
+          valid: false,
+          message: `Mã này chỉ dành cho hạng: ${required}`
+        });
+      }
+    }
+
+    // Tính tiền giảm
     let discountAmount = 0;
     const discountOnType = (promo.type === 'shipping') ? 'shipping' : 'items';
 
@@ -86,16 +108,17 @@ router.post('/apply', async (req, res) => {
     }
 
     return res.json({
-      valid:          true,
-      code:           promo.code,
-      name:           promo.name,
-      description:    promo.description || '',
-      type:           promo.type,
-      discountType:   promo.discountType,
-      discountValue:  promo.discountValue,
+      
+      valid:         true,
+      code:          promo.code,
+      name:          promo.name,
+      description:   promo.description || '',
+      type:          promo.type,
+      discountType:  promo.discountType,
+      discountValue: promo.discountValue,
       discountOnType,
       discountAmount,
-      message:        '✓ Áp dụng thành công!',
+      message:       '✓ Áp dụng thành công!',
     });
 
   } catch (err) {
@@ -104,11 +127,18 @@ router.post('/apply', async (req, res) => {
   }
 });
 
-// ── Lấy danh sách voucher cho User xem (Chỉ lấy mã isActive = true) ──
+// ── Lấy danh sách voucher đang hoạt động (cho modal checkout) ───
 // GET /api/promotions/available
-router.get('/available', async (req, res) => {
+router.get('/available', optionalAuth, async (req, res) => {
   try {
     const now = new Date();
+
+    // Lấy hạng user nếu đã đăng nhập
+    let userRank = null;
+    if (req.user?.userId) {
+      const u = await User.findById(req.user.userId).select('memberRank').lean();
+      userRank = u?.memberRank || 'member';
+    }
 
     const all = await Promotion.find({
       isActive: true, // <--- QUAN TRỌNG: Chỉ lấy voucher đang công khai
@@ -118,16 +148,27 @@ router.get('/available', async (req, res) => {
         { $expr: { $lt: ['$usedCount', '$totalLimit'] } }
       ]
     })
-    .select('code name description type discountType discountValue minOrder maxDiscount startDate endDate')
+    
+    .select('code name description type discountType discountValue minOrder maxDiscount startDate endDate allowedMemberRanks')
     .lean();
 
-    const list = all.filter(p => {
-      const start   = p.startDate ? new Date(p.startDate) : null;
-      const end     = p.endDate   ? new Date(p.endDate)   : null;
-      const startOk = !start || start <= now;
-      const endOk   = !end   || end   >= now;
-      return startOk && endOk;
-    }).map(({ startDate, endDate, ...rest }) => rest);
+    const list = all
+      .filter(p => {
+        // Lọc theo thời gian
+        const start   = p.startDate ? new Date(p.startDate) : null;
+        const end     = p.endDate   ? new Date(p.endDate)   : null;
+        const startOk = !start || start <= now;
+        const endOk   = !end   || end   >= now;
+        if (!startOk || !endOk) return false;
+
+        // Lọc theo hạng thành viên
+        if (p.allowedMemberRanks && p.allowedMemberRanks.length > 0) {
+          if (!userRank || !p.allowedMemberRanks.includes(userRank)) return false;
+        }
+
+        return true;
+      })
+      .map(({ startDate, endDate, allowedMemberRanks, ...rest }) => rest);
 
     res.json(list);
   } catch (err) {

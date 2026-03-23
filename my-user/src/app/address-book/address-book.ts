@@ -67,9 +67,10 @@ export class AddressBook implements OnInit {
     const token   = localStorage.getItem('token');
     if (userStr && token) {
       try {
-        const user  = JSON.parse(userStr);
-        this.userId = user.id;
-        this.token  = token;
+        const user = JSON.parse(userStr);
+        // Khớp checkout: một số phiên bản lưu _id thay vì id.
+        this.userId = user.id || user._id || '';
+        this.token = token;
       } catch {}
     }
     this.initForm();

@@ -17,12 +17,17 @@ const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const { buildCustomerListStatsMaps, statsForUser } = require('../helpers/customerOrderStats');
 const { findOrCreateGuestUser } = require('../helpers/guestUser');
 const { isValidGuestCartSessionId } = require('../helpers/cartIdentity');
+const {
+  notifyAdminOrderPlaced,
+  notifyAdminOrderCancelled,
+  notifyAdminReturnRequested,
+} = require('../services/adminNotificationService');
+const { restoreInventoryForOrderIfNeeded } = require('../helpers/orderInventory');
 
 function jwtSecretOrders() {
   return process.env.JWT_SECRET || 'secret_key';
 }
 
-/** Bearer token từ checkout đã đăng nhập (dùng voucher). */
 function extractBearer(req) {
   const h = req.headers.authorization || req.headers.Authorization || '';
   return typeof h === 'string' && h.startsWith('Bearer ') ? h.slice(7).trim() : '';
@@ -72,14 +77,12 @@ async function calcDiscountFromDB(voucherCode, subTotal, shippingFee) {
   if (!voucherCode) return { discountAmount: 0, discountOnType: null };
 
   const now = new Date();
-  // Chỉ tìm theo code, check startDate/endDate bằng JS (tránh lỗi string vs Date trong MongoDB)
   const promo = await Promotion.findOne({
     code: voucherCode.trim().toUpperCase(),
   });
 
   if (!promo) return { discountAmount: 0, discountOnType: null };
 
-  // Check thời gian bằng JS
   const start = promo.startDate ? new Date(promo.startDate) : null;
   const end   = promo.endDate   ? new Date(promo.endDate)   : null;
   if (start && now < start) return { discountAmount: 0, discountOnType: null };
@@ -120,7 +123,7 @@ async function calcDiscountFromDB(voucherCode, subTotal, shippingFee) {
 
 function getMembershipTier(totalSpent) {
   if (!totalSpent || totalSpent <= 0) return 'Đồng';
-  if (totalSpent < 5_000_000) return 'Đồng';
+  if (totalSpent < 5_000_000)  return 'Đồng';
   if (totalSpent < 10_000_000) return 'Bạc';
   if (totalSpent < 20_000_000) return 'Vàng';
   return 'Kim Cương';
@@ -142,16 +145,103 @@ function normalizeShippingPart(v) {
   return s;
 }
 
-const ORDER_STATUS = ['pending', 'confirmed', 'shipping', 'delivered', 'cancelled'];
+const ORDER_STATUS = [
+  'pending',
+  'confirmed',
+  'shipping',
+  'delivery_failed',
+  'delivered',
+  'cancelled',
+];
 const RETURN_STATUS = ['none', 'requested', 'approved', 'rejected', 'completed'];
+
+const MAX_REDELIVERY_ATTEMPTS = 2;
+
+const DELIVERY_FAIL_PRESET_LABELS = {
+  no_contact: 'Không liên lạc được khách',
+  wrong_address: 'Sai địa chỉ',
+  customer_refused: 'Khách từ chối nhận',
+  reschedule: 'Khách hẹn giao ngày khác',
+};
+
+function deliveryPresetAllowsRedelivery(preset) {
+  const p = String(preset || '');
+  return p !== 'wrong_address' && p !== 'customer_refused';
+}
 
 const NEXT_STATUS = {
   pending: ['confirmed', 'cancelled'],
-  confirmed: ['shipping'],
-  shipping: ['delivered'],
+  confirmed: ['shipping', 'cancelled'],
+  shipping: ['delivered', 'delivery_failed'],
+  delivery_failed: ['shipping', 'cancelled'],
   delivered: [],
-  cancelled: []
+  cancelled: [],
 };
+
+function resolveDeliveryFailureReason(preset, detail) {
+  const p = String(preset || '').trim();
+  if (!p) {
+    return { ok: false, message: 'Vui lòng chọn lý do giao thất bại.' };
+  }
+  if (p === 'other') {
+    const d = String(detail || '').trim();
+    if (d.length < 2) {
+      return { ok: false, message: 'Vui lòng nhập lý do chi tiết (tối thiểu 2 ký tự).' };
+    }
+    return { ok: true, text: d, preset: 'other' };
+  }
+  const label = DELIVERY_FAIL_PRESET_LABELS[p];
+  if (!label) {
+    return { ok: false, message: 'Giá trị lý do giao thất bại không hợp lệ.' };
+  }
+  return { ok: true, text: label, preset: p };
+}
+
+async function notifyUserDeliveryFailed(order, reasonText) {
+  if (!order.userId) return;
+  try {
+    const canRedeliver = deliveryPresetAllowsRedelivery(order.deliveryFailurePreset);
+    const tail = canRedeliver
+      ? ' Shop có thể liên hệ hoặc sắp xếp giao lại.'
+      : ' Đơn không tiếp tục giao lại với lý do này — vui lòng liên hệ shop nếu cần.';
+    await Notification.create({
+      userId: order.userId,
+      title: 'Giao hàng không thành công',
+      message: `Đơn hàng ${order.orderCode}: ${reasonText}.${tail}`,
+      type: 'order',
+      orderId: order._id,
+      isRead: false,
+    });
+  } catch (e) {
+    console.error('notifyUserDeliveryFailed:', e);
+  }
+}
+
+async function notifyUserOrderCancelledRich(order) {
+  if (!order.userId) return;
+  try {
+    const online = ['momo', 'vnpay'].includes(String(order.paymentMethod));
+    let msg = `Đơn hàng ${order.orderCode} đã được hủy.`;
+    const cr = String(order.cancelReason || '').trim();
+    if (cr) {
+      msg += ` Lý do: ${cr}`;
+    }
+    if (online && order.refundStatus === 'pending') {
+      const gate = order.paymentMethod === 'momo' ? 'ví MoMo' : 'VNPay';
+      msg += ` Số tiền ${formatVND(order.total)} đang được xử lý hoàn qua ${gate} (ước tính 3–7 ngày làm việc).`;
+    }
+    await Notification.create({
+      userId: order.userId,
+      title: 'Đơn hàng đã hủy',
+      message: msg,
+      type: 'order',
+      orderId: order._id,
+      isRead: false,
+    });
+  } catch (e) {
+    console.error('notifyUserOrderCancelledRich:', e);
+  }
+}
 
 function parseDateStart(d) {
   const dt = new Date(`${d}T00:00:00.000Z`);
@@ -180,7 +270,7 @@ function buildAdminOrderFilter(query) {
   }
 
   const from = String(query.from || '');
-  const to = String(query.to || '');
+  const to   = String(query.to   || '');
   if (from) {
     const fromDate = parseDateStart(from);
     if (!fromDate) throw new Error('Ngày bắt đầu không hợp lệ');
@@ -211,10 +301,40 @@ function buildAdminOrderFilter(query) {
 }
 
 function getAdminSort(sortBy, sortDir) {
-  const dir = String(sortDir || 'desc') === 'asc' ? 1 : -1;
+  const dir     = String(sortDir || 'desc') === 'asc' ? 1 : -1;
   const allowed = ['createdAt', 'total', 'status', 'paymentMethod', 'orderCode'];
-  const by = allowed.includes(String(sortBy || '')) ? String(sortBy) : 'createdAt';
+  const by      = allowed.includes(String(sortBy || '')) ? String(sortBy) : 'createdAt';
   return { [by]: dir, _id: -1 };
+}
+
+async function attachBuyerAccountToOrders(orders) {
+  if (!Array.isArray(orders) || !orders.length) return orders;
+  const idSet = new Set();
+  for (const o of orders) {
+    if (o.userId && mongoose.Types.ObjectId.isValid(String(o.userId))) {
+      idSet.add(String(o.userId));
+    }
+  }
+  if (!idSet.size) {
+    return orders.map((o) => ({ ...o, buyerAccount: null }));
+  }
+  const users = await User.find({ _id: { $in: [...idSet] } })
+    .select('username phone email')
+    .lean();
+  const byId = new Map(users.map((u) => [String(u._id), u]));
+  return orders.map((o) => {
+    const u = o.userId ? byId.get(String(o.userId)) : null;
+    return {
+      ...o,
+      buyerAccount: u
+        ? {
+            username: String(u.username || ''),
+            phone: String(u.phone || ''),
+            email: String(u.email || ''),
+          }
+        : null,
+    };
+  });
 }
 
 async function generateNextOrderCode() {
@@ -227,9 +347,6 @@ async function generateNextOrderCode() {
   return `ORD${String(current + 1).padStart(11, '0')}`;
 }
 
-/**
- * Ghi yêu cầu đổi trả lên đơn (dùng chung user JWT + guest).
- */
 async function persistOrderReturnRequest(order, { reason, note, parsedItems, files, auditWho }) {
   const imageUrls = (files || []).map((f) => `/images/returns/${f.filename}`);
 
@@ -260,14 +377,14 @@ async function persistOrderReturnRequest(order, { reason, note, parsedItems, fil
     toValue:   'requested',
     note:      `Yêu cầu: ${reason}${note ? ' — ' + note : ''}`,
   });
+
+  try {
+    await notifyAdminReturnRequested(order);
+  } catch (e) {
+    console.error('Admin notify return_requested:', e);
+  }
 }
 
-/**
- * Chuẩn bị payload đơn hàng từ body (checkout công khai + admin hotline + preview).
- * @param {object} opts
- * @param {boolean} [opts.allowVouchers=true] — false = khách không đăng nhập (guest), bỏ mã KM
- * @param {string|mongoose.Types.ObjectId} [opts.lockedUserId] — gán userId đơn (JWT user hoặc guest)
- */
 async function prepareOrderFromRequestBody(body, opts = {}) {
   const allowVouchers = opts.allowVouchers !== false;
   const lockedUserId  = opts.lockedUserId;
@@ -277,13 +394,13 @@ async function prepareOrderFromRequestBody(body, opts = {}) {
     items,
     shippingMethod,
     paymentMethod,
-    voucherCode: voucherCodeBody,
+    voucherCode:     voucherCodeBody,
     shipVoucherCode: shipVoucherBody,
     userId
   } = body || {};
 
-  const voucherCode     = allowVouchers && voucherCodeBody    ? String(voucherCodeBody).trim()  : null;
-  const shipVoucherCode = allowVouchers && shipVoucherBody     ? String(shipVoucherBody).trim()  : null;
+  const voucherCode     = allowVouchers && voucherCodeBody  ? String(voucherCodeBody).trim()  : null;
+  const shipVoucherCode = allowVouchers && shipVoucherBody   ? String(shipVoucherBody).trim()  : null;
 
   if (!customer?.fullName || !customer?.phone || !customer?.address) {
     return { ok: false, status: 400, payload: { message: 'Thiếu thông tin khách hàng' } };
@@ -424,9 +541,6 @@ async function prepareOrderFromRequestBody(body, opts = {}) {
   };
 }
 
-/**
- * Lưu đơn sau khi prepareOrderFromRequestBody thành công (mã đơn, voucher, cart, kho).
- */
 async function persistNewOrder(
   orderData,
   orderItems,
@@ -434,7 +548,7 @@ async function persistNewOrder(
   shipVoucherCodeRaw,
   guestCartSessionId = null
 ) {
-  let order = null;
+  let order   = null;
   let lastErr = null;
   for (let i = 0; i < 4; i += 1) {
     try {
@@ -513,7 +627,6 @@ async function persistNewOrder(
     }
 
     p.sold = Number(p.sold || 0) + Number(item.quantity || 0);
-
     await p.save();
   }
 
@@ -541,9 +654,7 @@ router.post('/', async (req, res) => {
           lockedUserId  = decoded.userId;
           allowVouchers = true;
         }
-      } catch (_e) {
-        /* token hết hạn / sai → xử lý như khách */
-      }
+      } catch (_e) { /* token hết hạn / sai → xử lý như khách */ }
     }
 
     if (!lockedUserId) {
@@ -576,10 +687,31 @@ router.post('/', async (req, res) => {
       guestCartSessionId
     );
 
+    // ── Cập nhật hạng thành viên sau khi đặt hàng thành công ──
     if (order.userId) {
       try {
-        const firstItem    = prep.orderItems[0];
-        const extraCount   = prep.orderItems.length - 1;
+        const agg = await Order.aggregate([
+          {
+            $match: {
+              userId: new mongoose.Types.ObjectId(String(order.userId)),
+              status: { $in: ['pending', 'confirmed', 'shipping', 'delivered'] }
+            }
+          },
+          { $group: { _id: null, total: { $sum: '$total' } } }
+        ]);
+        const totalSpent = agg[0]?.total || 0;
+        const memberRank = totalSpent >= 5_000_000 ? 'vip' : 'member';
+        await User.findByIdAndUpdate(order.userId, { totalSpent, memberRank });
+      } catch (e) {
+        console.error('Cập nhật hạng thành viên thất bại:', e);
+      }
+    }
+
+    // ── Tạo notification ──
+    if (order.userId) {
+      try {
+        const firstItem      = prep.orderItems[0];
+        const extraCount     = prep.orderItems.length - 1;
         const productSummary = extraCount > 0
           ? `${firstItem.name} và ${extraCount} sản phẩm khác`
           : firstItem.name;
@@ -595,6 +727,12 @@ router.post('/', async (req, res) => {
       } catch (e) {
         console.error('Tạo notification thất bại:', e);
       }
+    }
+
+    try {
+      await notifyAdminOrderPlaced(order);
+    } catch (e) {
+      console.error('Admin notify order_new:', e);
     }
 
     return res.status(201).json({ orderId: order._id, orderCode: order.orderCode });
@@ -657,12 +795,12 @@ router.get('/admin/list', authenticateToken, requireAdmin, async (req, res) => {
         {
           $group: {
             _id: null,
-            totalOrders: { $sum: 1 },
-            pendingCount: { $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] } },
-            shippingCount: { $sum: { $cond: [{ $eq: ['$status', 'shipping'] }, 1, 0] } },
+            totalOrders:          { $sum: 1 },
+            pendingCount:         { $sum: { $cond: [{ $eq: ['$status', 'pending'] },   1, 0] } },
+            shippingCount:        { $sum: { $cond: [{ $eq: ['$status', 'shipping'] },  1, 0] } },
             returnRequestedCount: { $sum: { $cond: [{ $eq: ['$returnStatus', 'requested'] }, 1, 0] } },
-            returnApprovedCount: { $sum: { $cond: [{ $eq: ['$returnStatus', 'approved'] }, 1, 0] } },
-            returnRejectedCount: { $sum: { $cond: [{ $eq: ['$returnStatus', 'rejected'] }, 1, 0] } },
+            returnApprovedCount:  { $sum: { $cond: [{ $eq: ['$returnStatus', 'approved'] },  1, 0] } },
+            returnRejectedCount:  { $sum: { $cond: [{ $eq: ['$returnStatus', 'rejected'] },  1, 0] } },
             returnCompletedCount: { $sum: { $cond: [{ $eq: ['$returnStatus', 'completed'] }, 1, 0] } }
           }
         }
@@ -670,16 +808,13 @@ router.get('/admin/list', authenticateToken, requireAdmin, async (req, res) => {
     ]);
 
     const summary = globalStats?.[0] || {
-      totalOrders: 0,
-      pendingCount: 0,
-      shippingCount: 0,
-      returnRequestedCount: 0,
-      returnApprovedCount: 0,
-      returnRejectedCount: 0,
-      returnCompletedCount: 0
+      totalOrders: 0, pendingCount: 0, shippingCount: 0,
+      returnRequestedCount: 0, returnApprovedCount: 0,
+      returnRejectedCount: 0, returnCompletedCount: 0
     };
 
-    return res.json({ data, total, page, totalPages: Math.ceil(total / limit) || 1, summary });
+    const dataWithBuyers = await attachBuyerAccountToOrders(data);
+    return res.json({ data: dataWithBuyers, total, page, totalPages: Math.ceil(total / limit) || 1, summary });
   } catch (err) {
     return res.status(400).json({ message: err.message || 'Không thể tải danh sách đơn hàng' });
   }
@@ -767,8 +902,21 @@ router.get('/admin/:id', authenticateToken, requireAdmin, async (req, res) => {
         : { totalOrders: 0, totalSpent: 0, hasProvisionalSpend: false };
     }
 
+    const totalOrders = stats.totalOrders;
+    const totalSpent = stats.totalSpent;
+
+    // Tài khoản đặt hàng (khác customer = người nhận trên đơn).
+    const buyerAccount = user
+      ? {
+          username: String(user.username || ''),
+          phone: String(user.phone || ''),
+          email: String(user.email || ''),
+        }
+      : null;
+
     return res.json({
       ...order,
+      buyerAccount,
       customerSummary: {
         customerID:          user?.customerID || '',
         membershipTier:      getMembershipTier(stats.totalSpent),
@@ -785,7 +933,7 @@ router.get('/admin/:id', authenticateToken, requireAdmin, async (req, res) => {
 // ======================= ADMIN UPDATE STATUS =======================
 router.patch('/admin/:id/status', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const { status, note } = req.body;
+    const { status, note, deliveryFailurePreset, deliveryFailureDetail, cancelReason: cancelReasonRaw } = req.body;
     if (!ORDER_STATUS.includes(status)) {
       return res.status(400).json({ message: 'Status không hợp lệ' });
     }
@@ -806,37 +954,106 @@ router.patch('/admin/:id/status', authenticateToken, requireAdmin, async (req, r
       });
     }
 
+    if (current === 'shipping' && status === 'delivery_failed') {
+      const r = resolveDeliveryFailureReason(deliveryFailurePreset, deliveryFailureDetail);
+      if (!r.ok) return res.status(400).json({ message: r.message });
+      order.deliveryFailureReason = r.text;
+      order.deliveryFailurePreset = r.preset;
+    }
+
+    if (current === 'delivery_failed' && status === 'shipping') {
+      if (!deliveryPresetAllowsRedelivery(order.deliveryFailurePreset)) {
+        return res.status(400).json({
+          message:
+            'Lý do giao thất bại (sai địa chỉ / khách từ chối nhận) không cho phép giao lại. Vui lòng hủy đơn.',
+        });
+      }
+      const attempts = Number(order.redeliveryAttempts || 0);
+      if (attempts >= MAX_REDELIVERY_ATTEMPTS) {
+        return res.status(400).json({
+          message: `Đã giao lại tối đa ${MAX_REDELIVERY_ATTEMPTS} lần. Chỉ có thể hủy đơn.`,
+        });
+      }
+      order.redeliveryAttempts = attempts + 1;
+    }
+
+    if (status === 'cancelled') {
+      const cancelReason = String(cancelReasonRaw ?? '').trim().slice(0, 2000);
+      const mustExplain = current === 'pending' || current === 'confirmed';
+      if (mustExplain && cancelReason.length < 3) {
+        return res.status(400).json({
+          message: 'Hủy đơn trước khi giao hàng cần kèm lý do (tối thiểu 3 ký tự).',
+        });
+      }
+      order.cancelReason = cancelReason;
+      await restoreInventoryForOrderIfNeeded(order);
+      const pm = String(order.paymentMethod || '');
+      if (['momo', 'vnpay'].includes(pm) && order.refundStatus !== 'completed') {
+        order.refundStatus = 'pending';
+      }
+    }
+
     order.status = status;
     await order.save();
 
     await OrderAuditLog.create({
-      orderId:   order._id,
-      adminId:   String(req.user?.userId || 'unknown-admin'),
-      action:    'status_change',
+      orderId: order._id,
+      adminId: String(req.user?.userId || 'unknown-admin'),
+      action: 'status_change',
       fromValue: current,
-      toValue:   status,
-      note:      String(note || '')
+      toValue: status,
+      note:
+        status === 'delivery_failed'
+          ? `${String(note || '')} | Lý do: ${order.deliveryFailureReason}`.trim()
+          : status === 'cancelled' && order.cancelReason
+            ? `${String(note || '')} | Lý do hủy: ${order.cancelReason}`.trim()
+            : String(note || ''),
     });
 
-    if (order.userId) {
+    // ── Khi đơn chuyển sang delivered: cập nhật lại hạng thành viên ──
+    if (status === 'delivered' && order.userId) {
       try {
-        const statusLabel = {
-          confirmed: 'đã được xác nhận ✅',
-          shipping:  'đang được giao 🚚',
-          delivered: 'đã giao thành công 🎉',
-          cancelled: 'đã bị hủy ❌',
-        }[status] || status;
-
-        await Notification.create({
-          userId:  order.userId,
-          title:   `Cập nhật đơn hàng`,
-          message: `Đơn hàng ${order.orderCode} ${statusLabel}`,
-          type:    'order',
-          orderId: order._id,
-          isRead:  false,
-        });
+        const agg = await Order.aggregate([
+          {
+            $match: {
+              userId: new mongoose.Types.ObjectId(String(order.userId)),
+              status: 'delivered'
+            }
+          },
+          { $group: { _id: null, total: { $sum: '$total' } } }
+        ]);
+        const totalSpent = agg[0]?.total || 0;
+        const memberRank = totalSpent >= 5_000_000 ? 'vip' : 'member';
+        await User.findByIdAndUpdate(order.userId, { totalSpent, memberRank });
       } catch (e) {
-        console.error('Tạo notification thất bại:', e);
+        console.error('Cập nhật hạng thành viên thất bại:', e);
+      }
+    }
+
+    if (order.userId) {
+      if (status === 'delivery_failed') {
+        await notifyUserDeliveryFailed(order, order.deliveryFailureReason);
+      } else if (status === 'cancelled') {
+        await notifyUserOrderCancelledRich(order);
+      } else {
+        try {
+          const statusLabel = {
+            confirmed: 'đã được xác nhận ✅',
+            shipping: 'đang được giao 🚚',
+            delivered: 'đã giao thành công 🎉',
+          }[status] || status;
+
+          await Notification.create({
+            userId: order.userId,
+            title: `Cập nhật đơn hàng`,
+            message: `Đơn hàng ${order.orderCode} ${statusLabel}`,
+            type: 'order',
+            orderId: order._id,
+            isRead: false,
+          });
+        } catch (e) {
+          console.error('Tạo notification thất bại:', e);
+        }
       }
     }
 
@@ -883,8 +1100,8 @@ router.patch('/admin/:id/return-status', authenticateToken, requireAdmin, async 
 
     order.returnStatus = returnStatus;
     if (returnStatus === 'requested') {
-      order.returnRequestedAt    = new Date();
-      order.returnReason         = String(returnReason || '');
+      order.returnRequestedAt     = new Date();
+      order.returnReason          = String(returnReason || '');
       order.returnRejectionReason = '';
     }
     if (returnStatus === 'approved') {
@@ -908,6 +1125,25 @@ router.patch('/admin/:id/return-status', authenticateToken, requireAdmin, async 
       toValue:   returnStatus,
       note:      String(note || '')
     });
+
+    if (returnStatus === 'rejected' && order.userId) {
+      try {
+        const shopReason = String(order.returnRejectionReason || '').trim();
+        const msg = shopReason
+          ? `Đơn ${order.orderCode}: ${shopReason}`
+          : `Đơn ${order.orderCode}: Shop đã từ chối yêu cầu hoàn / trả hàng.`;
+        await Notification.create({
+          userId: order.userId,
+          title: 'Yêu cầu hoàn hàng không được chấp nhận',
+          message: msg,
+          type: 'order',
+          orderId: order._id,
+          isRead: false,
+        });
+      } catch (e) {
+        console.error('Tạo notification từ chối hoàn:', e);
+      }
+    }
 
     return res.json(order);
   } catch (err) {
@@ -945,7 +1181,7 @@ router.post('/guest-lookup', async (req, res) => {
   }
 });
 
-// ======================= GUEST: đổi trả (xác minh SĐT + mã đơn) =======================
+// ======================= GUEST: đổi trả =======================
 router.patch('/:id/guest-request-return', (req, res) => {
   uploadReturnImages(req, res, async (uploadErr) => {
     try {
@@ -1046,32 +1282,59 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// ======================= UPDATE STATUS =======================
+// ======================= UPDATE STATUS (user tự hủy) =======================
 
 router.patch('/:id/status', async (req, res) => {
   try {
-    const { status } = req.body;
-    const allowed = ['pending', 'confirmed', 'shipping', 'delivered', 'cancelled'];
+    const { status, cancelReason: userCancelReason } = req.body;
+    const allowed = [
+      'pending',
+      'confirmed',
+      'shipping',
+      'delivery_failed',
+      'delivered',
+      'cancelled',
+    ];
     if (!allowed.includes(status)) {
       return res.status(400).json({ message: 'Status không hợp lệ' });
     }
 
-    const order = await Order.findByIdAndUpdate(
-      req.params.id, { status }, { new: true }
-    );
+    const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
 
-    if (status === 'cancelled' && order.userId) {
+    const prev = order.status;
+    if (prev === status) {
+      return res.status(400).json({ message: 'Đơn hàng đã ở trạng thái này' });
+    }
+
+    if (status === 'cancelled' && prev !== 'pending') {
+      return res.status(400).json({ message: 'Chỉ có thể hủy đơn đang chờ xác nhận' });
+    }
+
+    if (status === 'cancelled') {
+      const fromUser = String(userCancelReason || '').trim().slice(0, 2000);
+      order.cancelReason =
+        fromUser.length >= 2 ? fromUser : 'Khách hàng hủy đơn (chờ xác nhận).';
+      await restoreInventoryForOrderIfNeeded(order);
+      const pm = String(order.paymentMethod || '');
+      if (['momo', 'vnpay'].includes(pm) && order.refundStatus !== 'completed') {
+        order.refundStatus = 'pending';
+      }
+    }
+
+    order.status = status;
+    await order.save();
+
+    if (status === 'cancelled') {
       try {
-        await Notification.create({
-          userId:  order.userId,
-          title:   '❌ Đơn hàng đã bị hủy',
-          message: `Đơn hàng ${order.orderCode} đã được hủy thành công`,
-          type:    'order',
-          orderId: order._id,
-          isRead:  false,
-        });
-      } catch (e) {}
+        await notifyAdminOrderCancelled(order);
+      } catch (e) {
+        console.error('Admin notify order_cancelled:', e);
+      }
+    }
+
+    if (status === 'cancelled' && order.userId) {
+      await notifyUserOrderCancelledRich(order);
     }
 
     res.json(order);

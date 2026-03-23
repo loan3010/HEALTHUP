@@ -179,13 +179,17 @@ export class OrderReviewComponent implements OnInit {
 
         // Kiểm tra từng sản phẩm đã được review chưa
         const checks$ = eligible.map(order => {
-          const itemChecks$ = (order.items || []).map((item: any) =>
-            this.api.getReviews(String(item.productId), { limit: 100 }).pipe(
+          const itemChecks$ = (order.items || []).map((item: any) => {
+            // ✅ productId có thể là object { _id } hoặc string — extract an toàn
+            const pid = typeof item.productId === 'object'
+              ? (item.productId?._id || item.productId?.id || '')
+              : String(item.productId || '');
+            return this.api.getReviews(pid, { limit: 100 }).pipe(
               map((res: any) => {
                 const reviews: any[] = res?.reviews || [];
                 const myReview = reviews.find((r: any) => r.name === this.currentUserName);
                 return {
-                  productId: String(item.productId),
+                  productId: pid,
                   name:      item.name,
                   imageUrl:  item.imageUrl || '',
                   price:     item.price,
@@ -194,15 +198,15 @@ export class OrderReviewComponent implements OnInit {
                 } as ReviewableItem;
               }),
               catchError(() => of({
-                productId: String(item.productId),
+                productId: pid,
                 name:      item.name,
                 imageUrl:  item.imageUrl || '',
                 price:     item.price,
                 quantity:  item.quantity,
                 reviewed:  false,
               } as ReviewableItem))
-            )
-          );
+            );
+          });
 
           return forkJoin(itemChecks$).pipe(
             map(items => ({
@@ -229,6 +233,7 @@ export class OrderReviewComponent implements OnInit {
   }
 
   goToReview(productId: string): void {
+    if (!productId) return;
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { productId },
@@ -259,6 +264,13 @@ export class OrderReviewComponent implements OnInit {
   //  CHẾ ĐỘ DETAIL
   // ════════════════════════════════════════════════════════════════
 
+  // ✅ Extract productId an toàn từ object hoặc string
+  private extractId(productId: any): string {
+    if (!productId) return '';
+    if (typeof productId === 'object') return productId?._id || productId?.id || '';
+    return String(productId);
+  }
+
   private checkPurchased(): void {
     this.purchaseChecked = false;
     this.api.getOrders(this.currentUserId).subscribe({
@@ -266,7 +278,7 @@ export class OrderReviewComponent implements OnInit {
         const deliveredOrders = (orders || []).filter(o => o.status === 'delivered');
         this.hasPurchased = deliveredOrders.some(order =>
           (order.items || []).some((item: any) =>
-            String(item.productId) === String(this.productId)
+            this.extractId(item.productId) === String(this.productId)
           )
         );
         this.purchaseChecked = true;
