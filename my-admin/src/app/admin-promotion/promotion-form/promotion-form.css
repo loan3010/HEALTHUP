@@ -3,7 +3,7 @@
   position: fixed;
   top: 0; left: 0; width: 100%; height: 100%;
   background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(4px); /* Hiệu ứng blur nền sau */
+  backdrop-filter: blur(4px); /* Hiệu ứng blur nền sau cho sang trọng */
   display: flex; align-items: center; justify-content: center;
   z-index: 9999;
 }
@@ -12,10 +12,10 @@
 .modal-container {
   background: white;
   border-radius: 15px;
-  width: 850px; /* Độ rộng chuẩn theo mẫu */
+  width: 850px; /* Độ rộng chuẩn để chứa Grid 2 cột */
   max-width: 95%;
   max-height: 90vh;
-  overflow-y: auto; /* Tự hiện thanh cuộn nếu nội dung dài */
+  overflow-y: auto; /* Tự hiện thanh cuộn nếu nội dung form dài */
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
@@ -23,12 +23,12 @@
   z-index: 100000;
 }
 
-/* --- HEADER CỐ ĐỊNH (STICKY): Giúp nút X luôn hiện diện khi cuộn --- */
+/* --- HEADER CỐ ĐỊNH (STICKY) --- */
 .modal-header {
   position: sticky;
   top: 0;
   background: white;
-  z-index: 100001; /* Đảm bảo luôn nằm trên nội dung body khi cuộn */
+  z-index: 100001;
   padding: 20px 30px; 
   border-bottom: 1px solid #eee;
   display: flex; 
@@ -54,15 +54,14 @@
 }
 
 .btn-close-x:hover { 
-  color: var(--color-danger); 
+  color: #dc3545; 
 }
 
-/* --- THÂN MODAL --- */
+/* --- THÂN MODAL & GRID HỆ THỐNG --- */
 .modal-body { 
   padding: 30px; 
 }
 
-/* Form Grid 2 cột */
 .form-grid {
   display: grid; 
   grid-template-columns: 1fr 1fr;
@@ -85,12 +84,23 @@
   color: #555; 
 }
 
+.section-label {
+  font-size: 1rem;
+  color: #36873A;
+  font-weight: 700;
+  margin-bottom: 5px;
+  display: block;
+}
+
 .required { 
   color: #dc3545; 
 }
 
-/* Input, Select & Textarea */
-input, select, textarea {
+/* Fix lỗi input lấn lướt checkbox: 
+   Chỉ cho phép các loại input nhập liệu được 100% width */
+input:not([type="checkbox"]):not([type="radio"]), 
+select, 
+textarea {
   padding: 10px 15px; 
   border: 1px solid #ddd; 
   border-radius: 8px;
@@ -98,86 +108,169 @@ input, select, textarea {
   font-size: 0.95rem; 
   color: #333;
   width: 100%;
+  transition: border-color 0.2s;
+  background-color: #fff;
 }
 
 input:focus, select:focus, textarea:focus { 
-  border-color: var(--color-primary); 
+  border-color: #36873A; 
 }
 
-/* --- FOOTER BUTTONS: ÉP ĐỘ RỘNG BẰNG NHAU --- */
-.modal-footer {
-  padding: 20px 30px; 
-  display: flex; 
-  justify-content: flex-end; 
-  gap: 15px;
-  border-top: 1px solid #eee; 
-  background: #fafafa;
-}
-
-.btn-huy, .btn-luu {
-  min-width: 160px; /* Ép độ rộng tối thiểu bằng nhau cho cân đối */
-  padding: 12px 30px;
-  border-radius: 8px; 
-  font-weight: 700; 
-  cursor: pointer;
-  transition: 0.2s;
-  border: none;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 0.95rem;
-}
-
-.btn-huy { 
-  background: #f1f3f5; 
-  color: #495057; 
-}
-
-.btn-huy:hover { 
-  background: #e9ecef; 
-}
-
-.btn-luu { 
-  background: var(--color-primary); 
-  color: white; 
-}
-
-.btn-luu:hover { 
-  background: var(--color-accent); 
-}
-
-/* --- CHECKBOX & LABEL --- */
+/* --- FIX LỖI CHECKBOX GROUP --- */
 .checkbox-group {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  align-items: center; /* Căn giữa theo chiều dọc */
+  gap: 12px;
+  margin-bottom: 12px;
   cursor: pointer;
 }
 
 .checkbox-group input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
+  width: 18px !important; /* Ép kích thước nhỏ cố định */
+  height: 18px !important;
   margin: 0;
+  cursor: pointer;
+  flex-shrink: 0; /* Không cho bị bóp méo */
 }
 
 .checkbox-group label {
+  margin: 0;
   cursor: pointer;
-  font-size: 0.9rem;
-  color: #555;
-  user-select: none;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #4a5568;
+}
+
+/* --- PHẦN CHỌN HẠNG THÀNH VIÊN (CARD STYLE) --- */
+.form-hint { 
+  font-size: 12px; 
+  color: #888; 
+  margin: 2px 0 8px; 
+}
+
+.rank-selector-group {
+  display: flex;
+  gap: 20px;
+  margin-top: 12px;
+}
+
+.rank-card {
+  flex: 1;
+  cursor: pointer;
+  border: 2px solid #edf2f7;
+  border-radius: 12px;
+  padding: 16px;
+  background: #fff;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.rank-card-content {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.rank-icon {
+  width: 45px;
+  height: 45px;
+  border-radius: 10px;
+  background: #f7fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  color: #a0aec0;
+  transition: 0.3s;
+}
+
+.rank-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.rank-name {
+  font-weight: 700;
+  color: #2d3748;
+  font-size: 0.95rem;
+}
+
+.rank-desc {
+  font-size: 0.75rem;
+  color: #718096;
+}
+
+.rank-check-badge {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background: #36873A;
+  color: white;
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  transform: scale(0);
+  transition: 0.3s;
+}
+
+.rank-card:hover {
+  border-color: #cbd5e0;
+  transform: translateY(-2px);
+}
+
+.rank-card.active {
+  border-color: #36873A;
+  background: #f0fdf4;
+}
+
+.rank-card.active .rank-icon {
+  background: #36873A;
+  color: white;
+}
+
+.rank-card.active .rank-check-badge {
+  transform: scale(1);
+  top: 8px;
+  right: 8px;
+}
+
+.rank-card.vip.active {
+  border-color: #ecc94b;
+  background: #fffdf5;
+}
+
+.rank-card.vip.active .rank-icon {
+  background: #ecc94b;
+  color: white;
+}
+
+.rank-card.vip.active .rank-check-badge {
+  background: #ecc94b;
 }
 
 /* --- VÙNG LỰA CHỌN DANH MỤC/SẢN PHẨM --- */
-.selection-box {
+.selection-container {
   background: #f8f9fa;
   padding: 15px;
   border-radius: 8px;
   border: 1px solid #e0e0e0;
 }
 
+.sub-label {
+  font-size: 0.85rem;
+  color: #666;
+  margin-bottom: 8px;
+  display: block;
+  font-weight: 600;
+}
+
 .scroll-list {
-  max-height: 180px; /* Tăng nhẹ chiều cao cho dễ nhìn */
+  max-height: 200px;
   overflow-y: auto;
   background: white;
   border: 1px solid #ddd;
@@ -189,30 +282,22 @@ input:focus, select:focus, textarea:focus {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 0;
+  padding: 8px 10px;
   border-bottom: 1px dashed #eee;
+  transition: background 0.2s;
 }
 
-.item-check:last-child {
-  border-bottom: none;
-}
+.item-check:hover { background: #fcfdfc; }
+.item-check:last-child { border-bottom: none; }
 
 .item-check input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-}
-
-.item-check label {
-  cursor: pointer;
-  margin-bottom: 0;
-  font-weight: 400;
-  font-size: 0.9rem;
+  width: 16px;
+  height: 16px;
 }
 
 .product-selection-grid {
   display: grid;
-  grid-template-columns: 200px 1fr; /* Chia cột sidebar danh mục */
+  grid-template-columns: 220px 1fr;
   gap: 15px;
   margin-top: 10px;
 }
@@ -232,37 +317,64 @@ input:focus, select:focus, textarea:focus {
   transition: all 0.2s;
 }
 
-.cat-item:hover {
-  background: #e9ecef;
-}
-
+.cat-item:hover { background: #e9ecef; }
 .cat-item.active {
-  background: var(--color-primary);
+  background: #36873A;
   color: white;
   font-weight: 700;
 }
 
 .product-list {
-  max-height: 250px !important;
+  max-height: 280px !important;
 }
 
-.no-data {
-  padding: 20px;
-  text-align: center;
-  color: #6c757d;
-  font-style: italic;
+/* --- FOOTER & BUTTONS --- */
+.modal-footer {
+  padding: 20px 30px; 
+  display: flex; 
+  justify-content: flex-end; 
+  gap: 15px;
+  border-top: 1px solid #eee; 
+  background: #fafafa;
+  position: sticky;
+  bottom: 0;
 }
 
-/* --- CÁC PHẦN CẬP NHẬT MỚI --- */
+.btn-huy, .btn-luu {
+  min-width: 160px;
+  padding: 12px 30px;
+  border-radius: 8px; 
+  font-weight: 700; 
+  cursor: pointer;
+  transition: 0.2s;
+  border: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 0.95rem;
+}
 
-/* Thông báo lỗi nằm cuối Body (ngay trên hàng nút) */
+.btn-huy { 
+  background: #f1f3f5; 
+  color: #495057; 
+}
+
+.btn-huy:hover { background: #e9ecef; }
+
+.btn-luu { 
+  background: #36873A; 
+  color: white; 
+}
+
+.btn-luu:hover { background: #2e6f31; }
+
+/* --- THÔNG BÁO LỖI --- */
 .alert-error {
   background-color: #fff5f5;
   color: #e03131;
   padding: 12px 20px;
   border-radius: 8px;
-  margin-top: 25px; /* Khoảng cách với nội dung form phía trên */
-  margin-bottom: 5px; /* Sát với hàng nút lưu */
+  margin-top: 25px;
   border-left: 4px solid #e03131;
   font-size: 0.9rem;
   font-weight: 600;
@@ -272,26 +384,6 @@ input:focus, select:focus, textarea:focus {
   animation: fadeIn 0.3s ease-in-out;
 }
 
-/* Ô nhập có hậu tố (đ / %) */
-.input-with-suffix {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.input-with-suffix input {
-  padding-right: 45px;
-}
-
-.input-with-suffix .suffix {
-  position: absolute;
-  right: 15px;
-  color: #888;
-  font-weight: 700;
-  pointer-events: none;
-  font-size: 0.9rem;
-}
-
 .form-divider {
   border: 0;
   border-top: 1px solid #eee;
@@ -299,12 +391,14 @@ input:focus, select:focus, textarea:focus {
   width: 100%;
 }
 
-.sub-label {
-  font-size: 0.85rem;
-  color: #666;
-  margin-bottom: 8px;
-  display: block;
-  font-weight: 600;
+/* Ô nhập có hậu tố (đ / %) - Đã bọc kỹ trong div input-with-suffix */
+.input-with-suffix .suffix {
+  position: absolute;
+  right: 15px;
+  color: #888;
+  font-weight: 700;
+  pointer-events: none;
+  font-size: 0.9rem;
 }
 
 /* Trạng thái vô hiệu hóa */
@@ -315,24 +409,17 @@ input:disabled {
   border-color: #e9ecef;
 }
 
-.text-muted {
-  color: #6c757d;
-  font-size: 0.85rem;
-}
-
-.text-danger {
-  color: #dc3545 !important;
-}
-
-/* --- ANIMATION --- */
+/* --- ANIMATIONS --- */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-5px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-.form-hint        { font-size: 12px; color: #888; margin: 2px 0 8px; }
-.rank-checkbox-group { display: flex; gap: 16px; margin-top: 8px; flex-wrap: wrap; }
-.rank-option      { display: flex; align-items: center; gap: 8px; cursor: pointer; }
-.rank-badge       { padding: 4px 14px; border-radius: 20px; font-weight: 600; font-size: 13px; }
-.rank-member      { background: #e8f4ea; color: #36873A; border: 1px solid #b7dfba; }
-.rank-vip         { background: #fff3cd; color: #856404; border: 1px solid #ffc107; }
+@keyframes slideIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.modal-container {
+  animation: slideIn 0.3s ease-out;
+}

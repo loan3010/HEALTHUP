@@ -30,10 +30,11 @@ export class PromotionList implements OnInit {
   appliedSearchText: string = '';  // Nội dung thực tế dùng để lọc (chỉ cập nhật khi nhấn Enter)
 
   // --- CÁC BIẾN BỘ LỌC ĐA NĂNG ---
-  filterDiscountType: string = ''; // fixed (cố định) | percent (phần trăm)
-  filterCategory: string = '';     // Map vào trường 'type': freeship | order
-  filterApplyTo: string = '';      // Map vào trường 'applyScope': all | category | product
+  filterDiscountType: string = ''; // fixed | percent
+  filterCategory: string = '';     // freeship | order
+  filterApplyTo: string = '';      // all | category | product
   filterStatus: string = '';       // upcoming | ongoing | expired
+  filterRank: string = '';         // all | member | vip
 
   promotions: any[] = []; // Nguồn dữ liệu gốc từ Server
   groupedPromotions: PromotionGroup[] = []; // Dữ liệu hiển thị sau khi lọc và gom nhóm
@@ -88,7 +89,8 @@ export class PromotionList implements OnInit {
             start: ngayBD.toLocaleDateString('vi-VN'),
             end: ngayKT.toLocaleDateString('vi-VN'),
             groupName: p.groupName || '', 
-            updated: p.updatedAt ? new Date(p.updatedAt).toLocaleDateString('vi-VN') : ''
+            updated: p.updatedAt ? new Date(p.updatedAt).toLocaleDateString('vi-VN') : '',
+            allowedMemberRanks: Array.isArray(p.allowedMemberRanks) ? p.allowedMemberRanks : [] 
           };
         });
         
@@ -128,7 +130,7 @@ export class PromotionList implements OnInit {
     this.groupedPromotions.forEach(g => currentStates.set(g.groupName, g.isOpen));
 
     const term = this.appliedSearchText.toLowerCase().trim();
-    const isAnyFilterActive = !!(term || this.filterDiscountType || this.filterCategory || this.filterApplyTo || this.filterStatus);
+    const isAnyFilterActive = !!(term || this.filterDiscountType || this.filterCategory || this.filterApplyTo || this.filterStatus || this.filterRank);
 
     const filteredList = this.promotions.filter(p => {
       const matchesSearch = !term || 
@@ -141,7 +143,22 @@ export class PromotionList implements OnInit {
       const matchesApply = !this.filterApplyTo || p.applyScope === this.filterApplyTo;
       const matchesStatus = !this.filterStatus || p.status === this.filterStatus;
 
-      return matchesSearch && matchesDiscount && matchesCategory && matchesApply && matchesStatus;
+      // ── LOGIC LỌC HẠNG NGHIÊM NGẶT ──
+      let matchesRank = true;
+      const ranks = p.allowedMemberRanks || [];
+
+      if (this.filterRank === 'all') {
+        // Chỉ hiện mã dành cho Mọi khách hàng (mảng rỗng)
+        matchesRank = ranks.length === 0;
+      } else if (this.filterRank === 'member') {
+        // Chỉ hiện mã có gán hạng member
+        matchesRank = ranks.includes('member');
+      } else if (this.filterRank === 'vip') {
+        // Chỉ hiện mã có gán hạng vip
+        matchesRank = ranks.includes('vip');
+      }
+
+      return matchesSearch && matchesDiscount && matchesCategory && matchesApply && matchesStatus && matchesRank;
     });
 
     const map = new Map<string, any[]>();

@@ -30,8 +30,8 @@ export class PromotionForm implements OnInit {
     description: '',
     groupName: '',
     isActive: true,
-    type: 'order', // 'order' (Hàng hóa) | 'shipping' (Vận chuyển)
-    status: 'upcoming',
+    type: 'order',      // Khớp Schema: 'order' | 'freeship'
+    status: 'upcoming', // 'upcoming' | 'ongoing' | 'expired'
     discountType: 'percent', 
     discountValue: 0,
     minOrder: 0,
@@ -41,10 +41,10 @@ export class PromotionForm implements OnInit {
     totalLimit: 100,
     userLimit: 1,
     firstOrderOnly: false,
-    applyScope: 'all',
+    applyScope: 'all',  // 'all' | 'category' | 'product'
     appliedCategoryIds: [],
     appliedProductIds: [],
-    allowedMemberRanks: []
+    allowedMemberRanks: [] // Trường mới bà vừa thêm
   };
 
   constructor(private promoService: PromotionService) {}
@@ -54,7 +54,7 @@ export class PromotionForm implements OnInit {
 
     if (this.mode === 'edit' && this.promoData) {
       // Nhận diện nếu đây là mã Freeship 100% để bật công tắc giao diện
-      if (this.promoData.type === 'shipping' && this.promoData.discountValue === 100) {
+      if (this.promoData.type === 'freeship' && this.promoData.discountValue === 100) {
         this.isFreeshipMode = true;
       }
 
@@ -121,6 +121,9 @@ export class PromotionForm implements OnInit {
     return this.formData[targetList] ? this.formData[targetList].includes(id) : false;
   }
 
+  /**
+   * Xử lý chọn/bỏ chọn hạng thành viên
+   */
   toggleRank(rank: string): void {
     if (!this.formData.allowedMemberRanks) this.formData.allowedMemberRanks = [];
     const idx = this.formData.allowedMemberRanks.indexOf(rank);
@@ -144,7 +147,7 @@ export class PromotionForm implements OnInit {
   }
 
   /**
-   * HÀM LƯU DỮ LIỆU: Đã gỡ lỗi lặp biến và xử lý logic Backend
+   * HÀM LƯU DỮ LIỆU: Đã đồng bộ với Schema mới (freeship)
    */
   onSave(): void {
     this.errorMessage = ''; 
@@ -156,7 +159,7 @@ export class PromotionForm implements OnInit {
       return;
     }
 
-    // 2. Kiểm tra logic dữ liệu số
+=    // 2. Kiểm tra logic dữ liệu
     if (f.totalLimit <= 0 || f.userLimit <= 0) {
       this.errorMessage = 'Tổng giới hạn và giới hạn mỗi khách phải lớn hơn 0.';
       return;
@@ -168,32 +171,32 @@ export class PromotionForm implements OnInit {
     }
 
     if (f.discountType === 'percent' && f.discountValue > 100) {
-      this.errorMessage = 'Giảm giá theo phần trăm không được vượt quá 100%.';
-      return;
-    }
+  this.errorMessage = 'Giảm giá theo phần trăm không được vượt quá 100%.';
+  return;
+}
 
-    if (f.endDate < f.startDate) {
-      this.errorMessage = 'Ngày kết thúc không được nhỏ hơn ngày bắt đầu.';
-      return;
-    }
+if (f.endDate < f.startDate) {
+  this.errorMessage = 'Ngày kết thúc không được nhỏ hơn ngày bắt đầu.';
+  return;
+}
 
-    // 3. Clone dữ liệu để xử lý trung gian (Chỉ khai báo 1 lần)
-    let submitData = { ...this.formData };
+// 3. Clone dữ liệu để xử lý trung gian
+let submitData = { ...this.formData };
 
-    // 4. XỬ LÝ LOGIC FREESHIP
-    if (this.isFreeshipMode) {
-      submitData.type = 'shipping';
-      submitData.discountType = 'percent';
-      submitData.discountValue = 100;
-    }
+// 4. XỬ LÝ LOGIC FREESHIP (chuẩn theo schema Backend)
+if (this.isFreeshipMode) {
+  submitData.type = 'freeship'; // dùng schema mới
+  submitData.discountType = 'percent';
+  submitData.discountValue = 100;
+}
 
-    // 5. ÉP KIỂU VÀ LÀM SẠCH DỮ LIỆU
-    submitData.discountValue = Number(submitData.discountValue);
-    submitData.minOrder = Number(submitData.minOrder);
-    submitData.maxDiscount = Number(submitData.maxDiscount);
-    submitData.totalLimit = Number(submitData.totalLimit);
-    submitData.userLimit = Number(submitData.userLimit);
-    submitData.code = submitData.code.trim().toUpperCase();
+// 5. ÉP KIỂU VÀ LÀM SẠCH DỮ LIỆU
+submitData.discountValue = Number(submitData.discountValue);
+submitData.minOrder = Number(submitData.minOrder);
+submitData.maxDiscount = Number(submitData.maxDiscount);
+submitData.totalLimit = Number(submitData.totalLimit);
+submitData.userLimit = Number(submitData.userLimit);
+submitData.code = submitData.code.trim().toUpperCase();
 
     // 6. Xử lý mảng ID theo phạm vi áp dụng
     if (submitData.applyScope === 'all') {
@@ -224,11 +227,11 @@ export class PromotionForm implements OnInit {
         this.goBack.emit();
       },
       error: (loi: any) => {
-        console.error('Lỗi từ Backend:', loi);
+        console.error('Lỗi Backend:', loi);
         if (loi.status === 400) {
-          this.errorMessage = 'Dữ liệu không hợp lệ. Hãy kiểm tra lại các trường hoặc mã voucher bị trùng.';
+          this.errorMessage = 'Dữ liệu không hợp lệ. Hãy kiểm tra lại mã voucher hoặc các hạng mục bắt buộc.';
         } else {
-          this.errorMessage = 'Không thể lưu thay đổi. Vui lòng kiểm tra kết nối mạng hoặc thử lại sau.';
+          this.errorMessage = 'Hệ thống đang bận, vui lòng thử lại sau.';
         }
       }
     });

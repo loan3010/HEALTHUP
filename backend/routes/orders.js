@@ -1351,6 +1351,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // ======================= UPDATE STATUS (user) =======================
+// ======================= UPDATE STATUS (user tự hủy) =======================
 
 router.patch('/:id/status', async (req, res) => {
   try {

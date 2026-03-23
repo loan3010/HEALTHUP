@@ -98,6 +98,15 @@
       </div>
 
       <div class="filter-item">
+        <label><i class="bi bi-person-vcard"></i> Hạng áp dụng</label>
+        <select [(ngModel)]="filterRank" (change)="organizeGroups()">
+          <option value="">Tất cả hạng</option>
+          <option value="member">Thành viên thường</option>
+          <option value="vip">Khách hàng VIP</option>
+        </select>
+      </div>
+
+      <div class="filter-item">
         <label><i class="bi bi-layers"></i> Áp dụng cho</label>
         <select [(ngModel)]="filterApplyTo" (change)="organizeGroups()">
           <option value="">Toàn cửa hàng</option>
@@ -112,18 +121,18 @@
     <div *ngFor="let group of groupedPromotions" class="folder-group">
       
       <div class="folder-header" 
-           (click)="toggleGroup(group)"
-           style="cursor: pointer;"
-           cdkDropList 
-           [cdkDropListData]="group.items"
-           (cdkDropListDropped)="onDrop($event, group.groupName)">
+            (click)="toggleGroup(group)"
+            style="cursor: pointer;"
+            cdkDropList 
+            [cdkDropListData]="group.items"
+            (cdkDropListDropped)="onDrop($event, group.groupName)">
         
         <div class="folder-info">
           <input type="checkbox" 
-                 [(ngModel)]="group.selected" 
-                 (change)="toggleGroupSelection(group)"
-                 (click)="$event.stopPropagation()"
-                 class="group-checkbox">
+                  [(ngModel)]="group.selected" 
+                  (change)="toggleGroupSelection(group)"
+                  (click)="$event.stopPropagation()"
+                  class="group-checkbox">
 
           <div class="folder-click-area">
             <i class="bi" [ngClass]="group.isOpen ? 'bi-folder2-open' : 'bi-folder'"></i>
@@ -174,8 +183,8 @@
             </tr>
           </thead>
           <tbody cdkDropList 
-                 [cdkDropListData]="group.items" 
-                 (cdkDropListDropped)="onDrop($event, group.groupName)">
+                  [cdkDropListData]="group.items" 
+                  (cdkDropListDropped)="onDrop($event, group.groupName)">
             <tr *ngFor="let p of group.items" 
                 cdkDrag 
                 [cdkDragData]="p"
@@ -191,6 +200,14 @@
               <td class="col-name">
                 <div class="p-title">{{p.name}}</div>
                 <div class="p-code">{{p.code}}</div>
+                <div class="mini-ranks mt-1" *ngIf="p.allowedMemberRanks?.length > 0">
+                  <span *ngFor="let rank of p.allowedMemberRanks" 
+                        class="badge rounded-pill me-1" 
+                        [ngClass]="rank === 'vip' ? 'bg-warning text-dark' : 'bg-info text-dark'"
+                        style="font-size: 0.65rem;">
+                    {{ rank === 'vip' ? 'VIP' : 'Member' }}
+                  </span>
+                </div>
               </td>
               <td class="text-center">{{p.usage}}</td>
               <td class="text-center">

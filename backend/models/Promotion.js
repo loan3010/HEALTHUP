@@ -8,7 +8,7 @@ const PromotionSchema = new mongoose.Schema({
   // Nhóm khuyến mãi (Ví dụ: Chiến dịch Hè)
   groupName: { type: String, default: '' },
 
-  // TRẠNG THÁI KÍCH HOẠT
+  // TRẠNG THÁI KÍCH HOẠT (Mới thêm: Dùng để ẩn/hiện bên Client)
   isActive: { type: Boolean, default: true },
 
   // Loại khuyến mãi:
@@ -30,7 +30,7 @@ const PromotionSchema = new mongoose.Schema({
 
   discountType: {
     type: String,
-    enum: ['percent', 'fixed', 'freeship'],
+    enum: ['percent', 'fixed'],
     default: 'percent'
   },
 
