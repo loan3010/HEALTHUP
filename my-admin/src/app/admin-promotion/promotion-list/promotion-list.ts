@@ -30,18 +30,19 @@ export class PromotionList implements OnInit {
   appliedSearchText: string = '';  // Nội dung thực tế dùng để lọc (chỉ cập nhật khi nhấn Enter)
 
   // --- CÁC BIẾN BỘ LỌC ĐA NĂNG ---
-  filterDiscountType: string = ''; // fixed (cố định) | percent (phần trăm)
-  filterCategory: string = '';     // Map vào trường 'type': freeship | order
-  filterApplyTo: string = '';      // Map vào trường 'applyScope': all | category | product
+  filterDiscountType: string = ''; // fixed | percent
+  filterCategory: string = '';     // freeship | order
+  filterApplyTo: string = '';      // all | category | product
   filterStatus: string = '';       // upcoming | ongoing | expired
+  filterRank: string = '';         // all | member | vip
 
   promotions: any[] = []; // Nguồn dữ liệu gốc từ Server
   groupedPromotions: PromotionGroup[] = []; // Dữ liệu hiển thị sau khi lọc và gom nhóm
-  uniqueGroupNames: string[] = []; // Danh sách các nhóm hiện có (để đổ vào menu chọn)
+  uniqueGroupNames: string[] = []; // Danh sách các nhóm hiện có
 
   // Trạng thái hiển thị Modal/Menu
   isGroupModalOpen: boolean = false;
-  showMoveToMenu: boolean = false; // Trạng thái đóng mở menu "Chuyển vào nhóm"
+  showMoveToMenu: boolean = false; 
   tempGroupName: string = '';
 
   // --- HỆ THỐNG THÔNG BÁO TÙY CHỈNH ---
@@ -83,17 +84,18 @@ export class PromotionList implements OnInit {
             ...p,
             selected: false,
             status: trangThai, 
-            isActive: p.isActive !== undefined ? p.isActive : true, // Trạng thái kích hoạt
+            isActive: p.isActive !== undefined ? p.isActive : true, 
             usage: `${p.usedCount || 0}/${p.totalLimit || 0}`,
             start: ngayBD.toLocaleDateString('vi-VN'),
             end: ngayKT.toLocaleDateString('vi-VN'),
             groupName: p.groupName || '', 
-            updated: p.updatedAt ? new Date(p.updatedAt).toLocaleDateString('vi-VN') : ''
+            updated: p.updatedAt ? new Date(p.updatedAt).toLocaleDateString('vi-VN') : '',
+            allowedMemberRanks: Array.isArray(p.allowedMemberRanks) ? p.allowedMemberRanks : [] 
           };
         });
         
         this.organizeGroups();
-        this.updateUniqueGroups(); // Cập nhật danh sách nhóm hiện có
+        this.updateUniqueGroups(); 
       },
       error: (err) => {
         console.error('Lỗi tải dữ liệu:', err);
@@ -102,9 +104,6 @@ export class PromotionList implements OnInit {
     });
   }
 
-  /**
-   * Lấy danh sách tên các nhóm duy nhất (loại bỏ nhóm rỗng)
-   */
   updateUniqueGroups(): void {
     const names = this.promotions
       .map(p => p.groupName)
@@ -112,23 +111,20 @@ export class PromotionList implements OnInit {
     this.uniqueGroupNames = Array.from(new Set(names));
   }
 
-  /**
-   * Cập nhật trạng thái lọc từ các thẻ thống kê phía trên
-   */
   filterByStatus(status: string): void {
     this.filterStatus = status;
     this.organizeGroups();
   }
 
   /**
-   * HÀM QUAN TRỌNG: LỌC ĐA ĐIỀU KIỆN & CHIA FOLDER
+   * HÀM LỌC CHÍNH: Xử lý đa điều kiện (Lọc hạng nghiêm ngặt)
    */
   organizeGroups(): void {
     const currentStates = new Map<string, boolean>();
     this.groupedPromotions.forEach(g => currentStates.set(g.groupName, g.isOpen));
 
     const term = this.appliedSearchText.toLowerCase().trim();
-    const isAnyFilterActive = !!(term || this.filterDiscountType || this.filterCategory || this.filterApplyTo || this.filterStatus);
+    const isAnyFilterActive = !!(term || this.filterDiscountType || this.filterCategory || this.filterApplyTo || this.filterStatus || this.filterRank);
 
     const filteredList = this.promotions.filter(p => {
       const matchesSearch = !term || 
@@ -141,7 +137,22 @@ export class PromotionList implements OnInit {
       const matchesApply = !this.filterApplyTo || p.applyScope === this.filterApplyTo;
       const matchesStatus = !this.filterStatus || p.status === this.filterStatus;
 
-      return matchesSearch && matchesDiscount && matchesCategory && matchesApply && matchesStatus;
+      // ── LOGIC LỌC HẠNG NGHIÊM NGẶT ──
+      let matchesRank = true;
+      const ranks = p.allowedMemberRanks || [];
+
+      if (this.filterRank === 'all') {
+        // Chỉ hiện mã dành cho Mọi khách hàng (mảng rỗng)
+        matchesRank = ranks.length === 0;
+      } else if (this.filterRank === 'member') {
+        // Chỉ hiện mã có gán hạng member
+        matchesRank = ranks.includes('member');
+      } else if (this.filterRank === 'vip') {
+        // Chỉ hiện mã có gán hạng vip
+        matchesRank = ranks.includes('vip');
+      }
+
+      return matchesSearch && matchesDiscount && matchesCategory && matchesApply && matchesStatus && matchesRank;
     });
 
     const map = new Map<string, any[]>();
@@ -173,16 +184,13 @@ export class PromotionList implements OnInit {
     this.cdr.detectChanges();
   }
 
-  /**
-   * CHỨC NĂNG MỚI: Vô hiệu hóa hoặc Kích hoạt các khuyến mãi đã chọn
-   */
   toggleActiveStatus(status: boolean): void {
     const selectedPromos = this.promotions.filter(p => p.selected);
     if (selectedPromos.length === 0) return;
 
     let processed = 0;
     selectedPromos.forEach(p => {
-      this.promoService.capNhatKhuyenMai(p._id, { isActive: status }).subscribe({
+      this.promoService.suaKhuyenMai(p._id, { isActive: status }).subscribe({
         next: () => {
           processed++;
           if (processed === selectedPromos.length) {
@@ -195,9 +203,6 @@ export class PromotionList implements OnInit {
     });
   }
 
-  /**
-   * CHỨC NĂNG MỚI: Chuyển các khuyến mãi đã chọn vào một nhóm hiện có
-   */
   moveToGroup(targetName: string): void {
     const selectedIds = this.promotions.filter(p => p.selected).map(p => p._id);
     if (selectedIds.length === 0) return;
@@ -212,9 +217,6 @@ export class PromotionList implements OnInit {
     });
   }
 
-  /**
-   * Đóng/Mở nhóm khi click vào thanh tiêu đề
-   */
   toggleGroup(group: PromotionGroup): void {
     if (!group.isEditing) {
       group.isOpen = !group.isOpen;
@@ -233,10 +235,9 @@ export class PromotionList implements OnInit {
     this.filterCategory = '';
     this.filterApplyTo = '';
     this.filterStatus = '';
+    this.filterRank = ''; 
     this.organizeGroups(); 
   }
-
-  // --- CHỈNH SỬA TÊN NHÓM TẠI CHỖ ---
 
   startEditGroupName(group: PromotionGroup, event: Event): void {
     event.stopPropagation(); 
@@ -259,7 +260,7 @@ export class PromotionList implements OnInit {
         group.isEditing = false;
         this.taiDuLieu();
       },
-      error: (err) => {
+      error: () => {
         group.isEditing = false;
         this.showNotify('danger', 'Lỗi cập nhật', 'Không thể đổi tên nhóm.');
       }
@@ -271,8 +272,6 @@ export class PromotionList implements OnInit {
     group.tempName = group.groupName;
   }
 
-  // --- QUẢN LÝ CHỌN (CHECKBOX) ---
-
   toggleGroupSelection(group: PromotionGroup): void {
     group.items.forEach(p => p.selected = group.selected);
   }
@@ -280,8 +279,6 @@ export class PromotionList implements OnInit {
   updateGroupCheckboxState(group: PromotionGroup): void {
     group.selected = group.items.length > 0 && group.items.every(p => p.selected);
   }
-
-  // --- HỆ THỐNG THÔNG BÁO ---
 
   showNotify(type: 'success' | 'danger' | 'warning', title: string, message: string) {
     this.notify = {
@@ -370,7 +367,6 @@ export class PromotionList implements OnInit {
     });
   }
 
-  // --- GETTER THỐNG KÊ ---
   get totalCount() { return this.promotions.length; }
   get ongoingCount() { return this.promotions.filter(p => p.status === 'ongoing').length; }
   get upcomingCount() { return this.promotions.filter(p => p.status === 'upcoming').length; }

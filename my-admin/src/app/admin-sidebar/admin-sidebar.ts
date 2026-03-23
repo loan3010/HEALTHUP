@@ -12,7 +12,7 @@ export class AdminSidebar {
   @Input() isOpen: boolean = true;
   @Output() tabChange = new EventEmitter<string>();
 
-  activeTab: string = 'khuyen-mai';
+  activeTab: string = 'tong-quan';
 
   setActiveTab(tabName: string) {
     this.activeTab = tabName;
