@@ -1,0 +1,212 @@
+/* --- HỆ THỐNG ĐIỀU HƯỚNG (BREADCRUMB) --- */
+.breadcrumb {
+  font-size: 0.85rem; 
+  color: #666; 
+  margin-bottom: 25px;
+  display: flex; 
+  align-items: center; 
+  gap: 10px;
+}
+.breadcrumb span { cursor: pointer; transition: 0.2s; }
+.breadcrumb span:hover { color: #36873A; }
+.breadcrumb .separator { color: #ccc; }
+.breadcrumb .active { color: #333; font-weight: 700; cursor: default; }
+
+/* --- CONTAINER CHÍNH --- */
+.admin-banner-container {
+  padding: 20px;
+  min-height: 80vh;
+  animation: slideUp 0.4s ease-out;
+}
+
+/* --- HEADER SECTION --- */
+.banner-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.title-main { color: #36873A; font-weight: 800; font-size: 1.6rem; margin: 0; }
+.sub-text { color: #888; font-size: 0.9rem; margin: 5px 0 0; }
+
+.btn-add-banner {
+  background-color: #36873A; color: white; border: none; padding: 12px 24px;
+  border-radius: 10px; font-weight: 600; display: flex; align-items: center; gap: 10px;
+  transition: all 0.2s ease; cursor: pointer; box-shadow: 0 4px 10px rgba(54, 135, 58, 0.2);
+}
+.btn-add-banner:hover { background-color: #2e6f31; transform: translateY(-2px); }
+
+.divider { border: 0; border-top: 1px solid #eee; margin-bottom: 30px; }
+
+/* --- GRID LAYOUT --- */
+.banner-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 25px;
+}
+
+/* --- BANNER CARD (TỐI GIẢN) --- */
+.banner-card {
+  background: white; border-radius: 16px; overflow: hidden;
+  border: 1px solid #f0f0f0; transition: transform 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
+}
+.banner-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.08); }
+
+.pointer-cursor { cursor: pointer; }
+
+/* Handle kéo thả */
+.drag-handle {
+  position: absolute; top: 10px; right: 10px; z-index: 10;
+  background: rgba(0, 0, 0, 0.35); color: white; padding: 5px 8px;
+  border-radius: 8px; cursor: grab; transition: 0.2s; backdrop-filter: blur(4px);
+}
+.drag-handle:hover { background: rgba(0, 0, 0, 0.6); }
+.drag-handle:active { cursor: grabbing; }
+
+/* Ảnh Banner */
+.card-image-wrapper { position: relative; height: 160px; background-color: #f8f8f8; }
+.card-image-wrapper img { width: 100%; height: 100%; object-fit: cover; }
+
+.status-tag {
+  position: absolute; top: 10px; left: 10px; padding: 4px 10px;
+  border-radius: 6px; font-size: 0.65rem; font-weight: 700;
+  background: rgba(0, 0, 0, 0.6); color: white; text-transform: uppercase;
+}
+.status-tag.active { background: #36873A; }
+
+/* Body tối giản (Ngoài Grid) */
+.card-body-minimal { padding: 12px 15px; background: #fff; }
+.banner-title-text { font-size: 0.95rem; font-weight: 700; color: #333; margin: 0 0 10px; }
+
+/* --- FOOTER & ACTIONS --- */
+.card-footer-actions {
+  padding-top: 12px; border-top: 1px solid #f5f5f5;
+  display: flex; justify-content: space-between; align-items: center;
+}
+
+.btn-delete-icon {
+  background: #fff0f0; color: #d9534f; border: 1px solid #ffdbdb;
+  width: 36px; height: 36px; border-radius: 10px; cursor: pointer; transition: 0.2s;
+}
+.btn-delete-icon:hover { background: #d9534f; color: white; border-color: #d9534f; }
+
+.toggle-control { display: flex; align-items: center; gap: 8px; }
+.toggle-text { font-size: 0.8rem; font-weight: 600; color: #666; }
+
+/* --- HỆ THỐNG MODAL --- */
+.modal-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.5); z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(4px); animation: fadeIn 0.2s ease;
+}
+
+.modal-content {
+  background: white; width: 100%; max-width: 480px; border-radius: 20px;
+  overflow: hidden; position: relative; animation: slideIn 0.3s ease;
+}
+
+.modal-header-custom {
+  padding: 18px 25px; border-bottom: 1px solid #eee;
+  display: flex; justify-content: space-between; align-items: center;
+  background: #fcfdfc;
+}
+.modal-header-custom h4 { margin: 0; color: #36873A; font-weight: 800; font-size: 1.1rem; }
+
+.btn-close-modal {
+  background: none; border: none; font-size: 1.5rem; color: #999; cursor: pointer;
+}
+
+.modal-body-custom { padding: 25px; }
+
+/* Styles cho Modal Thông báo (Notification) */
+.modal-notification { max-width: 400px; }
+.notification-icon { font-size: 3.5rem; line-height: 1; }
+.notification-icon.success { color: #36873A; }
+.notification-icon.error { color: #d9534f; }
+.notification-icon.confirm { color: #f0ad4e; }
+.notification-icon.info { color: #5bc0de; }
+
+.btn-save.error, .btn-save.confirm { background-color: #d9534f; }
+.btn-save.error:hover, .btn-save.confirm:hover { background-color: #c9302c; }
+
+/* --- FORM CONTROLS TRONG MODAL --- */
+.form-group-custom { margin-bottom: 15px; display: flex; flex-direction: column; }
+.small-label {
+  font-size: 11px; font-weight: 700; color: #999;
+  text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;
+}
+
+.form-control-custom {
+  width: 100%; border: 1px solid #e8e8e8; border-radius: 10px; padding: 10px 14px;
+  font-size: 14px; color: #333; outline: none; transition: 0.2s; background: #fafafa;
+}
+.form-control-custom:focus { border-color: #36873A; background: #fff; box-shadow: 0 0 0 3px rgba(54, 135, 58, 0.1); }
+
+.date-range-wrapper { display: flex; gap: 12px; }
+.date-item { flex: 1; }
+
+.modal-footer-custom {
+  padding: 15px 25px; border-top: 1px solid #eee;
+  display: flex; justify-content: flex-end; gap: 12px; background: #fcfdfc;
+}
+
+.btn-cancel {
+  padding: 10px 20px; border-radius: 10px; border: 1px solid #ddd;
+  background: white; color: #666; font-weight: 600; cursor: pointer;
+}
+.btn-save {
+  padding: 10px 20px; border-radius: 10px; border: none;
+  background: #36873A; color: white; font-weight: 600; cursor: pointer;
+}
+.btn-save:hover { background: #2e6f31; }
+
+/* --- CUSTOM SWITCH --- */
+.switch { position: relative; display: inline-block; width: 40px; height: 22px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider {
+  position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #ccc; transition: .4s; border-radius: 24px;
+}
+.slider:before {
+  position: absolute; content: ""; height: 16px; width: 16px;
+  left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;
+}
+input:checked + .slider { background-color: #36873A; }
+input:checked + .slider:before { transform: translateX(18px); }
+
+/* --- ANGULAR CDK DRAG & DROP --- */
+.cdk-drag-preview {
+  box-shadow: 0 15px 30px rgba(0,0,0,0.2) !important;
+  opacity: 0.9; border-radius: 16px; overflow: hidden;
+}
+.cdk-drag-placeholder {
+  opacity: 0.1; border: 2px dashed #36873A; background: #f0f7f1; border-radius: 16px;
+}
+.cdk-drag-animating { transition: transform 250ms cubic-bezier(0, 0, 0.2, 1); }
+.banner-grid.cdk-drop-list-dragging .banner-card:not(.cdk-drag-placeholder) {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+/* --- TRẠNG THÁI TRỐNG --- */
+.empty-state {
+  text-align: center; padding: 80px 20px; border: 2px dashed #eee;
+  border-radius: 20px; color: #bbb;
+}
+.empty-state i { font-size: 3.5rem; margin-bottom: 10px; display: block; }
+
+/* --- ANIMATIONS --- */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

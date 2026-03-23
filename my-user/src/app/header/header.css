@@ -500,6 +500,22 @@
   animation: badge-pop 0.2s ease;
 }
 
+/* Chuông: neo badge rõ như giỏ — số đỏ hiện khi có Phản hồi tư vấn / thông báo khác chưa đọc */
+a.notif-bell-wrap {
+  text-decoration: none;
+  color: inherit;
+}
+.notif-bell-wrap {
+  min-width: 40px;
+  min-height: 40px;
+}
+.notif-bell-wrap .notif-bell-badge {
+  top: -2px;    /* Nhích xuống (cũ là -7px) */
+  right: 0px;   /* Nhích vào trong (cũ là -8px) */
+  z-index: 2;
+  border-width: 1.5px; /* Giảm độ dày viền trắng tí cho thanh thoát */
+}
+
 @keyframes badge-pop {
   0%   { transform: scale(0.6); }
   70%  { transform: scale(1.2); }

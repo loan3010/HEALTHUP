@@ -1,9 +1,11 @@
-import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit, inject, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminOrder, AdminOrderService } from './order.service';
 import { OrderDetail } from '../order-detail/order-detail';
 import { OrderFormComponent } from '../order-form/order-form';
+import { AdminNavBridgeService } from '../../admin-nav-bridge.service';
 
 @Component({
   selector: 'app-order',
@@ -54,9 +56,21 @@ export class Order implements OnInit, OnDestroy {
   private searchTimer: any;
   private refreshTimer: any;
 
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly navBridge = inject(AdminNavBridgeService);
+
   constructor(private orderService: AdminOrderService) {}
 
   ngOnInit(): void {
+    // Deep link từ thông báo admin (chuông).
+    this.navBridge.openOrderDetail$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((id: string) => {
+        if (!id) return;
+        this.isCreateFormOpen = false;
+        this.openDetail(id);
+      });
+
     this.loadOrders();
     // Tự refresh khi đang xem danh sách (không mở chi tiết / form tạo).
     this.refreshTimer = setInterval(() => {
@@ -108,7 +122,10 @@ export class Order implements OnInit, OnDestroy {
         this.pendingCount = Number(summary?.pendingCount ?? 0);
         this.shippingCount = Number(summary?.shippingCount ?? 0);
         this.returnRequestedCount = Number(summary?.returnRequestedCount ?? 0);
-        this.returnCompletedCount = Number(summary?.returnCompletedCount ?? 0);
+        // Luồng mới: `approved` là trạng thái kết thúc luôn.
+        // Dữ liệu cũ còn `completed` vẫn được tính vào cùng một nhóm "đã trả/hoàn".
+        this.returnCompletedCount =
+          Number(summary?.returnApprovedCount ?? 0) + Number(summary?.returnCompletedCount ?? 0);
         this.isLoading = false;
       },
       error: (err) => {
@@ -151,7 +168,7 @@ export class Order implements OnInit, OnDestroy {
     if (card === 'pending') this.statusFilter = 'pending';
     if (card === 'shipping') this.statusFilter = 'shipping';
     if (card === 'returnRequested') this.returnStatusFilter = 'requested';
-    if (card === 'returnCompleted') this.returnStatusFilter = 'completed';
+    if (card === 'returnCompleted') this.returnStatusFilter = 'approved';
 
     this.loadOrders(true);
   }
@@ -262,8 +279,9 @@ export class Order implements OnInit, OnDestroy {
       pending: 'Chờ xác nhận',
       confirmed: 'Chờ giao hàng',
       shipping: 'Đang giao',
+      delivery_failed: 'Giao thất bại',
       delivered: 'Đã giao',
-      cancelled: 'Đã hủy'
+      cancelled: 'Đã hủy',
     };
     return map[status] || status;
   }
@@ -283,7 +301,8 @@ export class Order implements OnInit, OnDestroy {
       requested: 'Yêu cầu hoàn/trả',
       approved: 'Đã chấp nhận hoàn',
       rejected: 'Từ chối hoàn',
-      completed: 'Đã hoàn/trả xong'
+      // Dữ liệu cũ còn `completed` coi như kết thúc (tương đương `approved`).
+      completed: 'Đã chấp nhận hoàn',
     };
     return map[returnStatus] || returnStatus;
   }

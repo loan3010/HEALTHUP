@@ -1,14 +1,16 @@
-<!-- ═══════════════════════════════════════════
-     BANNER SLIDER
-     ═══════════════════════════════════════════ -->
-<section class="banner-slider" (mouseenter)="resetTimer()" (mouseleave)="startTimer()">
+<section class="banner-slider" 
+         *ngIf="banners && banners.length > 0" 
+         (mouseenter)="resetTimer()" 
+         (mouseleave)="startTimer()">
 
   <div class="banner-track">
     <div
       class="banner-slide"
       *ngFor="let slide of banners; let i = index"
       [class.active]="i === currentBanner"
-      [style.backgroundImage]="'url(' + slide.image + ')'">
+      [style.backgroundImage]="'url(' + getBannerImageUrl(slide.imageUrl) + ')'"
+      (click)="onBannerClick(slide.linkUrl)"
+      style="cursor: pointer;">
 
       <div class="banner-overlay"></div>
 
@@ -17,42 +19,44 @@
           <i class="bi bi-leaf-fill me-2"></i>HealthUp — Sống khoẻ mỗi ngày
         </p>
         <h1 class="banner-title">{{ slide.title }}</h1>
-        <p class="banner-subtitle">{{ slide.subtitle }}</p>
-        <a
-          class="banner-btn"
-          [routerLink]="slide.btnLink"
-          [queryParams]="slide.btnQueryParams || {}">
-          {{ slide.btnLabel }}
+        <p class="banner-subtitle">
+          Khám phá những sản phẩm dinh dưỡng tự nhiên, cam kết chất lượng vì sức khỏe cộng đồng.
+        </p>
+        <a class="banner-btn">
+          Khám phá ngay
           <i class="bi bi-arrow-right ms-2"></i>
         </a>
       </div>
     </div>
   </div>
 
-  <button class="banner-arrow banner-prev" (click)="prevBanner()" aria-label="Slide trước">
-    <i class="bi bi-chevron-left"></i>
-  </button>
-  <button class="banner-arrow banner-next" (click)="nextBanner()" aria-label="Slide sau">
-    <i class="bi bi-chevron-right"></i>
-  </button>
+  <ng-container *ngIf="banners.length > 1">
+    <button class="banner-arrow banner-prev" 
+            (click)="prevBanner(); $event.stopPropagation()" 
+            aria-label="Hình ảnh trước">
+      <i class="bi bi-chevron-left"></i>
+    </button>
+    <button class="banner-arrow banner-next" 
+            (click)="nextBanner(); $event.stopPropagation()" 
+            aria-label="Hình ảnh sau">
+      <i class="bi bi-chevron-right"></i>
+    </button>
 
-  <div class="banner-footer">
-    <div class="banner-dots">
-      <button
-        class="banner-dot"
-        *ngFor="let slide of banners; let i = index"
-        [class.active]="i === currentBanner"
-        (click)="goToBanner(i)"
-        [attr.aria-label]="'Xem slide ' + (i + 1)">
-      </button>
+    <div class="banner-footer">
+      <div class="banner-dots">
+        <button
+          class="banner-dot"
+          *ngFor="let slide of banners; let i = index"
+          [class.active]="i === currentBanner"
+          (click)="goToBanner(i); $event.stopPropagation()"
+          [attr.aria-label]="'Chuyển đến biểu ngữ ' + (i + 1)">
+        </button>
+      </div>
     </div>
-  </div>
+  </ng-container>
 
 </section>
 
-<!-- ═══════════════════════════════════════════
-     TRUST STRIP
-     ═══════════════════════════════════════════ -->
 <div class="trust-strip py-3">
   <div class="container">
     <div class="row g-0 justify-content-center">
@@ -70,9 +74,6 @@
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════
-     DANH MỤC SẢN PHẨM
-     ═══════════════════════════════════════════ -->
 <section class="section-bg py-5">
   <div class="container">
     <div class="section-header">
@@ -102,9 +103,6 @@
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════
-     SẢN PHẨM BÁN CHẠY
-     ═══════════════════════════════════════════ -->
 <section class="section-bg py-5">
   <div class="container">
     <div class="section-header">
@@ -115,7 +113,6 @@
       <a class="link-more" routerLink="/product-listing-page">Xem thêm →</a>
     </div>
 
-    <!-- Skeleton -->
     <div class="row g-4" *ngIf="isLoading">
       <div class="col-12 col-sm-6 col-md-3" *ngFor="let s of [1,2,3,4]">
         <div class="product-card">
@@ -129,18 +126,17 @@
       </div>
     </div>
 
-    <!-- Danh sách -->
     <div class="row g-4" *ngIf="!isLoading">
       <div class="col-12 text-center py-5" *ngIf="featuredProducts.length === 0">
         <i class="bi bi-box-seam fs-1 text-secondary d-block mb-2"></i>
-        <p class="text-secondary">Chưa có sản phẩm nào.</p>
+        <p class="text-secondary">Hiện tại chưa có sản phẩm nổi bật.</p>
       </div>
 
       <div class="col-12 col-sm-6 col-md-3" *ngFor="let p of featuredProducts">
         <div class="product-card h-100" (click)="goToDetail(p._id)">
           <div class="product-img-wrap">
             <span class="badge-label badge-new" *ngIf="p.badge === 'new'">Mới</span>
-            <span class="badge-label badge-hot" *ngIf="p.badge === 'hot'">Hot</span>
+            <span class="badge-label badge-hot" *ngIf="p.badge === 'hot'">Nổi bật</span>
             <span class="badge-label badge-sale" *ngIf="p.sale">{{ p.sale }}</span>
 
             <img
@@ -148,7 +144,6 @@
               [alt]="p.name"
               (error)="$any($event.target).src = PLACEHOLDER_PRODUCT" />
 
-            <!-- Overlay hết hàng trên card -->
             <div class="oos-overlay" *ngIf="isOutOfStock(p)">
               <span class="oos-label">Tạm hết hàng</span>
             </div>
@@ -157,7 +152,7 @@
               class="btn-wishlist"
               [class.active]="isWishlisted(p._id)"
               (click)="toggleWishlist($event, p._id, p.name)"
-              [attr.aria-label]="isWishlisted(p._id) ? 'Bỏ yêu thích' : 'Thêm yêu thích'">
+              [attr.aria-label]="isWishlisted(p._id) ? 'Xóa khỏi yêu thích' : 'Thêm vào yêu thích'">
               <i class="bi"
                  [class.bi-heart-fill]="isWishlisted(p._id)"
                  [class.bi-heart]="!isWishlisted(p._id)"></i>
@@ -179,7 +174,6 @@
                   <span class="ms-1">({{ p.reviewCount || p.reviews || 0 }})</span>
                 </div>
               </div>
-              <!-- Disabled khi hết hàng -->
               <button
                 class="btn-add"
                 [disabled]="isOutOfStock(p)"
@@ -196,9 +190,6 @@
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════
-     PROMO BANNER
-     ═══════════════════════════════════════════ -->
 <section class="section-bg py-5">
   <div class="container">
     <div class="promo-banner p-5">
@@ -219,7 +210,7 @@
         <div class="col-lg-4 d-none d-lg-flex justify-content-end">
           <img
             [src]="categories[5].image"
-            alt="Combo Gym & Eat Clean"
+            alt="Ưu đãi Combo"
             class="img-fluid rounded-3 promo-img"
             [routerLink]="['/product-listing-page']"
             [queryParams]="{cat: 'Combo'}"
@@ -230,9 +221,6 @@
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════
-     BLOG
-     ═══════════════════════════════════════════ -->
 <section class="section-bg py-5">
   <div class="container">
     <div class="section-header">
@@ -243,7 +231,6 @@
       <a class="link-more" style="cursor:pointer;" (click)="goToAllBlogs()">Xem tất cả →</a>
     </div>
 
-    <!-- Skeleton -->
     <div class="row g-4" *ngIf="isBlogLoading">
       <div class="col-12 col-md-4" *ngFor="let s of [1,2,3]">
         <div class="blog-card">
@@ -257,7 +244,6 @@
       </div>
     </div>
 
-    <!-- Danh sách blog -->
     <div class="row g-4" *ngIf="!isBlogLoading">
       <div class="col-12 col-md-4" *ngFor="let post of blogPosts">
         <div class="blog-card h-100" (click)="goToBlogDetail(post._id || '')">
@@ -266,7 +252,7 @@
               [src]="getBlogImageUrl(post.coverImage)"
               [alt]="post.title"
               class="blog-cover-img"
-              (error)="$any($event.target).src='http://localhost:3000/images/blogs/placeholder.png'" />
+              (error)="$any($event.target).src = PLACEHOLDER_BLOG" />
           </div>
           <div class="p-3 d-flex flex-column flex-grow-1">
             <div class="blog-tag mb-1">{{ post.tag }}</div>

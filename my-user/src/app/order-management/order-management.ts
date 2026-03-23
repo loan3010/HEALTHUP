@@ -19,12 +19,12 @@ export class OrderManagement implements OnInit {
   activeTab             = 'all';
 
   tabs = [
-    { id: 'all',       label: 'Tất cả',        count: 0 },
-    { id: 'pending',   label: 'Chờ xác nhận',  count: 0 },
-    { id: 'confirmed', label: 'Chờ giao hàng', count: 0 },
-    { id: 'shipping',  label: 'Đang giao',      count: 0 },
-    { id: 'delivered', label: 'Đã giao',        count: 0 },
-    { id: 'cancelled', label: 'Đã hủy',         count: 0 },
+    { id: 'all', label: 'Tất cả', count: 0 },
+    { id: 'pending', label: 'Chờ xác nhận', count: 0 },
+    { id: 'in_transit', label: 'Đang vận chuyển', count: 0 },
+    { id: 'delivered', label: 'Đã giao', count: 0 },
+    { id: 'cancelled', label: 'Đã hủy', count: 0 },
+    { id: 'return', label: 'Đổi trả', count: 0 },
   ];
 
   constructor(
@@ -62,9 +62,19 @@ export class OrderManagement implements OnInit {
 
   updateTabCounts(): void {
     this.tabs.forEach(tab => {
-      tab.count = tab.id === 'all'
-        ? this.orders.length
-        : this.orders.filter(o => o.status === tab.id).length;
+      if (tab.id === 'all') {
+        tab.count = this.orders.length;
+        return;
+      }
+      if (tab.id === 'in_transit') {
+        tab.count = this.orders.filter(o => this.isInTransitStatus(o.status)).length;
+        return;
+      }
+      if (tab.id === 'return') {
+        tab.count = this.orders.filter(o => this.hasReturnRequest(o)).length;
+        return;
+      }
+      tab.count = this.orders.filter(o => o.status === tab.id).length;
     });
   }
 
@@ -72,7 +82,15 @@ export class OrderManagement implements OnInit {
 
   filterOrders(): void {
     let data = [...this.orders];
-    if (this.activeTab !== 'all') data = data.filter(o => o.status === this.activeTab);
+    if (this.activeTab !== 'all') {
+      if (this.activeTab === 'in_transit') {
+        data = data.filter(o => this.isInTransitStatus(o.status));
+      } else if (this.activeTab === 'return') {
+        data = data.filter(o => this.hasReturnRequest(o));
+      } else {
+        data = data.filter(o => o.status === this.activeTab);
+      }
+    }
     if (this.searchQuery.trim()) {
       const q = this.searchQuery.toLowerCase();
       data = data.filter(o =>
@@ -83,6 +101,24 @@ export class OrderManagement implements OnInit {
       );
     }
     this.filteredOrders = data; this.cdr.detectChanges();
+  }
+
+  // Nhóm trạng thái "Đang vận chuyển" gồm: chờ giao + đang giao + giao thất bại.
+  isInTransitStatus(status: string): boolean {
+    return ['confirmed', 'shipping', 'delivery_failed'].includes(status);
+  }
+
+  // Tab "Đổi trả" gom tất cả đơn đã phát sinh yêu cầu/duyệt/từ chối đổi trả.
+  hasReturnRequest(order: any): boolean {
+    const rs = String(order?.returnStatus || 'none');
+    return ['requested', 'approved', 'rejected', 'completed'].includes(rs);
+  }
+
+  getCardStatusLabel(order: any): string {
+    if (this.activeTab === 'in_transit' && this.isInTransitStatus(order?.status)) {
+      return 'Đang vận chuyển';
+    }
+    return this.getStatusLabel(order?.status);
   }
 
   goToDetail(orderId: string): void {
@@ -100,13 +136,14 @@ export class OrderManagement implements OnInit {
 
   getStatusLabel(status: string): string {
     const map: Record<string, string> = {
-      pending:         'Chờ xác nhận',
-      confirmed:       'Chờ giao hàng',
-      shipping:        'Đang giao',
-      delivered:       'Đã giao',
-      cancelled:       'Đã hủy',
-      pending_payment: 'Chờ thanh toán',
-      paid:            'Đã thanh toán',
+      pending:          'Chờ xác nhận',
+      confirmed:        'Chờ giao hàng',
+      shipping:         'Đang giao',
+      delivery_failed:  'Giao thất bại',
+      delivered:        'Đã giao',
+      cancelled:        'Đã hủy',
+      pending_payment:  'Chờ thanh toán',
+      paid:             'Đã thanh toán',
     };
     return map[status] || status;
   }

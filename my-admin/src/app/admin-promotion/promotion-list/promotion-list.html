@@ -36,21 +36,45 @@
                  placeholder="Nhập từ khóa và nhấn Enter để tìm kiếm...">
         </div>
         <button class="btn-reset-filter" (click)="resetFilters()" title="Thiết lập lại mặc định">
-          <i class="bi bi-arrow-counterclockwise"></i> Đặt lại
+          <i class="bi bi-arrow-counterclockwise"></i>
         </button>
       </div>
 
       <div class="action-group">
         <span class="count" *ngIf="selectedCount > 0">{{selectedCount}} đã chọn</span>
+        
         <button class="btn-tool" [disabled]="selectedCount !== 1" (click)="onEditClick()">
-          <i class="bi bi-pencil"></i> Chỉnh
+          <i class="bi bi-pencil"></i> Sửa
         </button>
+
+        <button class="btn-tool" [disabled]="selectedCount === 0" (click)="toggleActiveStatus(false)" title="Tạm ẩn bên Client">
+          <i class="bi bi-eye-slash"></i> Ẩn
+        </button>
+        <button class="btn-tool" [disabled]="selectedCount === 0" (click)="toggleActiveStatus(true)" title="Hiện lại bên Client">
+          <i class="bi bi-eye"></i> Hiện
+        </button>
+
         <button class="btn-tool text-danger" [disabled]="selectedCount === 0" (click)="confirmDeletePromotions()">
           <i class="bi bi-trash"></i> Xoá
         </button>
-        <button class="btn-tool btn-group-tool" [disabled]="selectedCount < 2" (click)="openGroupModal()">
-          <i class="bi bi-folder-plus"></i> Nhóm
-        </button>
+
+        <div class="group-dropdown-container">
+          <button class="btn-tool btn-group-tool" [disabled]="selectedCount === 0" (click)="showMoveToMenu = !showMoveToMenu">
+            <i class="bi bi-folder-symlink"></i> Chọn nhóm <i class="bi bi-chevron-down small"></i>
+          </button>
+          
+          <div class="dropdown-menu-custom shadow-lg" *ngIf="showMoveToMenu">
+            <div class="dropdown-header">Hành động</div>
+            <button class="dropdown-item" (click)="openGroupModal(); showMoveToMenu = false">
+              <i class="bi bi-plus-lg"></i> Tạo nhóm mới hoàn toàn...
+            </button>
+            
+            <div class="dropdown-header" *ngIf="uniqueGroupNames.length > 0">Nhóm hiện có</div>
+            <button class="dropdown-item" *ngFor="let name of uniqueGroupNames" (click)="moveToGroup(name)">
+              <i class="bi bi-folder2"></i> {{ name }}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -74,6 +98,15 @@
       </div>
 
       <div class="filter-item">
+        <label><i class="bi bi-person-vcard"></i> Hạng áp dụng</label>
+        <select [(ngModel)]="filterRank" (change)="organizeGroups()">
+          <option value="">Tất cả hạng</option>
+          <option value="member">Thành viên thường</option>
+          <option value="vip">Khách hàng VIP</option>
+        </select>
+      </div>
+
+      <div class="filter-item">
         <label><i class="bi bi-layers"></i> Áp dụng cho</label>
         <select [(ngModel)]="filterApplyTo" (change)="organizeGroups()">
           <option value="">Toàn cửa hàng</option>
@@ -88,18 +121,18 @@
     <div *ngFor="let group of groupedPromotions" class="folder-group">
       
       <div class="folder-header" 
-           (click)="toggleGroup(group)"
-           style="cursor: pointer;"
-           cdkDropList 
-           [cdkDropListData]="group.items"
-           (cdkDropListDropped)="onDrop($event, group.groupName)">
+            (click)="toggleGroup(group)"
+            style="cursor: pointer;"
+            cdkDropList 
+            [cdkDropListData]="group.items"
+            (cdkDropListDropped)="onDrop($event, group.groupName)">
         
         <div class="folder-info">
           <input type="checkbox" 
-                 [(ngModel)]="group.selected" 
-                 (change)="toggleGroupSelection(group)"
-                 (click)="$event.stopPropagation()"
-                 class="group-checkbox">
+                  [(ngModel)]="group.selected" 
+                  (change)="toggleGroupSelection(group)"
+                  (click)="$event.stopPropagation()"
+                  class="group-checkbox">
 
           <div class="folder-click-area">
             <i class="bi" [ngClass]="group.isOpen ? 'bi-folder2-open' : 'bi-folder'"></i>
@@ -142,21 +175,22 @@
           <thead>
             <tr>
               <th style="width: 50px;"></th>
-              <th style="width: 30%;" class="text-start">TÊN KHUYẾN MÃI</th>
+              <th style="width: 25%;" class="text-start">TÊN KHUYẾN MÃI</th>
               <th style="width: 15%;">LƯỢT DÙNG</th>
               <th style="width: 15%;">TRẠNG THÁI</th>
-              <th style="width: 20%;">HẠN DÙNG</th>
+              <th style="width: 15%;">HIỂN THỊ</th> <th style="width: 15%;">HẠN DÙNG</th>
               <th style="width: 15%;">CẬP NHẬT</th>
             </tr>
           </thead>
           <tbody cdkDropList 
-                 [cdkDropListData]="group.items" 
-                 (cdkDropListDropped)="onDrop($event, group.groupName)">
+                  [cdkDropListData]="group.items" 
+                  (cdkDropListDropped)="onDrop($event, group.groupName)">
             <tr *ngFor="let p of group.items" 
                 cdkDrag 
                 [cdkDragData]="p"
                 (click)="goEdit.emit(p)" 
-                [class.selected]="p.selected">
+                [class.selected]="p.selected"
+                [class.is-disabled]="!p.isActive">
               
               <div class="drag-placeholder" *cdkDragPlaceholder></div>
 
@@ -166,11 +200,24 @@
               <td class="col-name">
                 <div class="p-title">{{p.name}}</div>
                 <div class="p-code">{{p.code}}</div>
+                <div class="mini-ranks mt-1" *ngIf="p.allowedMemberRanks?.length > 0">
+                  <span *ngFor="let rank of p.allowedMemberRanks" 
+                        class="badge rounded-pill me-1" 
+                        [ngClass]="rank === 'vip' ? 'bg-warning text-dark' : 'bg-info text-dark'"
+                        style="font-size: 0.65rem;">
+                    {{ rank === 'vip' ? 'VIP' : 'Member' }}
+                  </span>
+                </div>
               </td>
               <td class="text-center">{{p.usage}}</td>
               <td class="text-center">
                 <span class="status-badge" [ngClass]="p.status">
                   {{ p.status === 'ongoing' ? 'Đang diễn ra' : (p.status === 'upcoming' ? 'Sắp diễn ra' : 'Đã kết thúc') }}
+                </span>
+              </td>
+              <td class="text-center">
+                <span class="badge" [ngClass]="p.isActive ? 'bg-success' : 'bg-secondary'">
+                  {{ p.isActive ? 'Công khai' : 'Đã ẩn' }}
                 </span>
               </td>
               <td class="text-center small-date">{{p.start}} - {{p.end}}</td>
@@ -194,7 +241,7 @@
   <div class="modal-overlay" *ngIf="isGroupModalOpen">
     <div class="group-modal shadow-lg">
       <div class="modal-header">
-        <h5><i class="bi bi-folder-plus"></i> Tạo nhóm khuyến mãi</h5>
+        <h5><i class="bi bi-folder-plus"></i> Tạo nhóm khuyến mãi mới</h5>
         <button class="btn-close" (click)="isGroupModalOpen = false">&times;</button>
       </div>
       <div class="modal-body">

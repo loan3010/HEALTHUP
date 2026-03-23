@@ -1,7 +1,34 @@
 const express = require('express');
+const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const router = express.Router();
 const Consulting = require('../models/Consulting');
 const Product = require('../models/Product');
+const Notification = require('../models/Notification');
+const { notifyAdminConsultingPending } = require('../services/adminNotificationService');
+const { emitNotificationRefresh } = require('../services/userAccountRealtime');
+
+function jwtSecret() {
+  return process.env.JWT_SECRET || 'secret_key';
+}
+
+/**
+ * Khách đăng nhập gửi câu hỏi — gắn userId để khi admin trả lời có thể push thông báo.
+ * Chấp nhận mọi token có userId trừ admin (token đăng nhập shop thường có role=user).
+ */
+function getUserIdFromBearer(req) {
+  const auth = req.headers.authorization || req.headers.Authorization || '';
+  if (!auth.startsWith('Bearer ')) return null;
+  try {
+    const decoded = jwt.verify(auth.slice(7), jwtSecret());
+    if (!decoded?.userId) return null;
+    if (decoded.role === 'admin') return null;
+    return String(decoded.userId);
+  } catch (_) {
+    /* token sai hoặc hết hạn — vẫn cho gửi câu hỏi như khách */
+  }
+  return null;
+}
 
 // --- DÀNH CHO KHÁCH HÀNG ---
 
@@ -9,12 +36,26 @@ const Product = require('../models/Product');
 router.post('/', async (req, res) => {
   try {
     const { productId, content, user } = req.body;
+    const authUserId = getUserIdFromBearer(req);
     const newQuestion = new Consulting({
       productId,
       content,
-      user: user || 'Khách hàng'
+      user: user || 'Khách hàng',
+      ...(authUserId && mongoose.Types.ObjectId.isValid(authUserId)
+        ? { userId: new mongoose.Types.ObjectId(authUserId) }
+        : {}),
     });
     await newQuestion.save();
+
+    // Chuông thông báo admin: có câu hỏi tư vấn chờ phản hồi (socket + lưu DB).
+    try {
+      const prod = await Product.findById(productId).select('name').lean();
+      const productName = prod?.name || 'Sản phẩm';
+      await notifyAdminConsultingPending(newQuestion, productName);
+    } catch (notifyErr) {
+      console.error('notifyAdminConsultingPending:', notifyErr?.message || notifyErr);
+    }
+
     res.status(201).json(newQuestion);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -123,16 +164,50 @@ router.get('/admin/summary', async (req, res) => {
 router.put('/:id/reply', async (req, res) => {
   try {
     const { answer, answeredBy } = req.body;
+    const prev = await Consulting.findById(req.params.id).lean();
+    if (!prev) return res.status(404).json({ error: 'Không tìm thấy câu hỏi' });
+
     const updated = await Consulting.findByIdAndUpdate(
       req.params.id,
-      { 
-        answer, 
+      {
+        answer,
         answeredBy: answeredBy || 'Quản trị viên',
         status: 'answered',
-        answerAt: new Date()
+        answerAt: new Date(),
       },
       { new: true }
     );
+    if (!updated) return res.status(404).json({ error: 'Không tìm thấy câu hỏi' });
+
+    // Chỉ lần đầu trả lời (pending → answered): tránh spam nếu admin sửa nội dung sau.
+    const isFirstReply = prev.status === 'pending';
+
+    // Thông báo cho khách đã đăng nhập lúc gửi câu hỏi (có userId) + real-time badge chuông.
+    if (isFirstReply && updated.userId) {
+      try {
+        const prod = await Product.findById(updated.productId).select('name').lean();
+        const pname = prod?.name ? String(prod.name) : 'sản phẩm';
+        const preview = String(answer || '').trim().slice(0, 120);
+        const msg =
+          preview.length > 0
+            ? `Cửa hàng đã trả lời câu hỏi của bạn về “${pname}”: ${preview}${String(answer || '').trim().length > 120 ? '…' : ''}`
+            : `Cửa hàng đã trả lời câu hỏi của bạn về “${pname}”.`;
+        const targetUserId = String(updated.userId);
+        await Notification.create({
+          userId: new mongoose.Types.ObjectId(targetUserId),
+          type: 'consulting',
+          title: 'Phản hồi tư vấn',
+          message: msg,
+          link: `/product-detail-page/${updated.productId}`,
+          icon: '💬',
+          productId: updated.productId,
+        });
+        emitNotificationRefresh(targetUserId);
+      } catch (notiErr) {
+        console.error('consulting reply notification:', notiErr?.message || notiErr);
+      }
+    }
+
     res.json(updated);
   } catch (err) {
     res.status(400).json({ error: err.message });

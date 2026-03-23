@@ -6,12 +6,22 @@ const PromotionSchema = new mongoose.Schema({
   description: { type: String },
   groupName:   { type: String, default: '' },
 
+  // Nhóm khuyến mãi (Ví dụ: Chiến dịch Hè)
+  groupName: { type: String, default: '' },
+
+  // TRẠNG THÁI KÍCH HOẠT (Mới thêm: Dùng để ẩn/hiện bên Client)
+  isActive: { type: Boolean, default: true },
+
+  // Loại khuyến mãi:
+  //   'order'    = mã giảm tiền hàng
+  //   'shipping' = mã giảm phí vận chuyển
   type: {
     type: String,
-    enum: ['order', 'shipping'],
+    enum: ['order', 'freeship'],
     default: 'order'
   },
 
+  // Trạng thái tự động theo thời gian
   status: {
     type: String,
     enum: ['upcoming', 'ongoing', 'expired'],
@@ -20,7 +30,7 @@ const PromotionSchema = new mongoose.Schema({
 
   discountType: {
     type: String,
-    enum: ['percent', 'fixed', 'freeship'],
+    enum: ['percent', 'fixed'],
     default: 'percent'
   },
 

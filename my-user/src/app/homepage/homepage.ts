@@ -28,13 +28,15 @@ export interface TrustItem {
   sub: string;
 }
 
+// Cấu hình Interface phù hợp với dữ liệu từ Database
 export interface BannerSlide {
-  image: string;
+  _id?: string;
+  imageUrl: string;
   title: string;
-  subtitle: string;
-  btnLabel: string;
-  btnLink: string;
-  btnQueryParams?: Record<string, string>;
+  linkUrl: string;
+  startDate?: Date | string | null;
+  endDate?: Date | string | null;
+  order?: number;
 }
 
 @Component({
@@ -60,48 +62,95 @@ export class HomepageComponent implements OnInit, OnDestroy {
   readonly PLACEHOLDER_PRODUCT = `${STATIC_BASE}/images/products/placeholder.png`;
   readonly PLACEHOLDER_BLOG    = `${STATIC_BASE}/images/blogs/placeholder.png`;
 
-  // ── BANNER SLIDER ─────────────────────────────────────────────────────────
+  // ── BANNER SLIDER (Dữ liệu thực tế từ API) ────────────────────────────────
+  banners: BannerSlide[] = [];
   currentBanner   = 0;
   isTransitioning = false;
   private bannerTimer: any;
   readonly BANNER_INTERVAL    = 5000;
   readonly TRANSITION_LOCK_MS = 700;
 
-  banners: BannerSlide[] = [
-    {
-      image:    `${STATIC_BASE}/images/banners/banner01.jpg`,
-      title:    'Thực phẩm tươi sạch',
-      subtitle: 'Nguyên liệu tự nhiên, không chất bảo quản — đồng hành cùng sức khoẻ mỗi ngày.',
-      btnLabel: 'Khám phá ngay',
-      btnLink:  '/product-listing-page',
-    },
-    {
-      image:    `${STATIC_BASE}/images/banners/banner02.jpg`,
-      title:    'Dinh dưỡng cân bằng',
-      subtitle: 'Granola & Hạt dinh dưỡng cao cấp cho lối sống năng động.',
-      btnLabel: 'Xem Granola',
-      btnLink:  '/product-listing-page',
-      btnQueryParams: { cat: 'Granola' },
-    },
-    {
-      image:    `${STATIC_BASE}/images/banners/banner03.jpg`,
-      title:    'Sống khoẻ mỗi ngày',
-      subtitle: 'Hơn 100 sản phẩm healthy được kiểm định chất lượng, giao nhanh toàn quốc.',
-      btnLabel: 'Mua ngay',
-      btnLink:  '/product-listing-page',
-    },
-    {
-      image:    `${STATIC_BASE}/images/banners/banner04.jpg`,
-      title:    'Combo tiết kiệm',
-      subtitle: 'Bộ đôi Granola + Hạt dinh dưỡng — giảm đến 25%.',
-      btnLabel: 'Xem combo',
-      btnLink:  '/product-listing-page',
-      btnQueryParams: { cat: 'Combo' },
-    },
-  ];
+  constructor(
+    private router: Router,
+    public  api: ApiService,
+    private cdr: ChangeDetectorRef
+  ) {}
+
+  ngOnInit(): void {
+    this.loadBanners();
+    this.loadFeaturedProducts();
+    this.loadBlogs();
+
+    this.wishlistSub = this.api.wishlist$.subscribe(list => {
+      this.wishlist = list;
+      this.cdr.detectChanges();
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.wishlistSub?.unsubscribe();
+    this.stopTimer();
+  }
+
+  /**
+   * Truy xuất danh sách banner và lọc theo thời hạn hiển thị
+   */
+  private loadBanners(): void {
+    this.api.getBanners().subscribe({
+      next: (res) => {
+        const hiện_tại = new Date();
+        
+        // Lọc banner dựa trên thời gian bắt đầu và kết thúc
+        this.banners = res.filter(b => {
+          const ngày_bắt_đầu = b.startDate ? new Date(b.startDate) : null;
+          const ngày_kết_thúc = b.endDate ? new Date(b.endDate) : null;
+
+          if (ngày_bắt_đầu && hiện_tại < ngày_bắt_đầu) return false;
+          if (ngày_kết_thúc && hiện_tại > ngày_kết_thúc) return false;
+          return true;
+        });
+
+        // Chỉ bắt đầu bộ đếm thời gian nếu có từ 2 banner trở lên
+        if (this.banners.length > 1) {
+          this.startTimer();
+        }
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Lỗi khi tải dữ liệu banner từ hệ thống:', err);
+      }
+    });
+  }
+
+  /**
+   * Xử lý URL hình ảnh banner
+   */
+  getBannerImageUrl(url: string): string {
+    if (!url) return this.PLACEHOLDER_PRODUCT;
+    return url.startsWith('http') ? url : `${STATIC_BASE}${url}`;
+  }
+
+  /**
+   * Xử lý sự kiện khi nhấn vào banner để điều hướng
+   */
+  onBannerClick(url: string | undefined): void {
+    if (!url || url.trim() === '') {
+      // Mặc định điều hướng về trang danh mục nếu không có URL cụ thể
+      this.router.navigate(['/product-listing-page']);
+      return;
+    }
+
+    if (url.startsWith('http')) {
+      // Mở liên kết bên ngoài trong tab mới
+      window.open(url, '_blank');
+    } else {
+      // Điều hướng nội bộ trong ứng dụng Angular
+      this.router.navigateByUrl(url);
+    }
+  }
 
   private goToSlide(index: number): void {
-    if (this.isTransitioning) return;
+    if (this.isTransitioning || this.banners.length === 0) return;
     this.isTransitioning = true;
     this.currentBanner   = (index + this.banners.length) % this.banners.length;
     this.cdr.detectChanges();
@@ -113,13 +162,23 @@ export class HomepageComponent implements OnInit, OnDestroy {
   goToBanner(i: number): void { this.goToSlide(i); this.resetTimer(); }
 
   startTimer(): void {
+    this.stopTimer();
     this.bannerTimer = setInterval(() => {
       this.goToSlide(this.currentBanner + 1);
     }, this.BANNER_INTERVAL);
   }
+
+  stopTimer(): void {
+    if (this.bannerTimer) {
+      clearInterval(this.bannerTimer);
+    }
+  }
+
   resetTimer(): void {
-    clearInterval(this.bannerTimer);
-    this.startTimer();
+    this.stopTimer();
+    if (this.banners.length > 1) {
+      this.startTimer();
+    }
   }
   // ──────────────────────────────────────────────────────────────────────────
 
@@ -131,7 +190,7 @@ export class HomepageComponent implements OnInit, OnDestroy {
   ];
 
   categories: Category[] = [
-    { name: 'Hạt dinh dưỡng', count: 'Xem tất cả', color: '#EAF2E3', image: `${STATIC_BASE}/images/products/black-bag-chia-500g.png`         },
+    { name: 'Hạt dinh dưỡng', count: 'Xem tất cả', color: '#EAF2E3', image: `${STATIC_BASE}/images/products/black-bag-chia-500g.png`          },
     { name: 'Granola',         count: 'Xem tất cả', color: '#FFF8EE', image: `${STATIC_BASE}/images/products/granola-500g-mix-flavors.png`    },
     { name: 'Trái cây sấy',   count: 'Xem tất cả', color: '#F5EEFF', image: `${STATIC_BASE}/images/products/chuoi-say-lanh.jpg`               },
     { name: 'Đồ ăn vặt',      count: 'Xem tất cả', color: '#FFF0E8', image: `${STATIC_BASE}/images/products/cheese-biscuit-baked-218g.png`   },
@@ -139,30 +198,7 @@ export class HomepageComponent implements OnInit, OnDestroy {
     { name: 'Combo',           count: 'Xem tất cả', color: '#FFF5E8', image: `${STATIC_BASE}/images/products/granola-matcha-combo-2x500g.png` },
   ];
 
-  constructor(
-    private router: Router,
-    public  api: ApiService,
-    private cdr: ChangeDetectorRef
-  ) {}
-
-  ngOnInit(): void {
-    this.loadFeaturedProducts();
-    this.loadBlogs();
-    this.startTimer();
-
-    this.wishlistSub = this.api.wishlist$.subscribe(list => {
-      this.wishlist = list;
-      this.cdr.detectChanges();
-    });
-  }
-
-  ngOnDestroy(): void {
-    this.wishlistSub?.unsubscribe();
-    clearInterval(this.bannerTimer);
-  }
-
   private loadFeaturedProducts(): void {
-    // Dùng sort=popular (theo sold) thay vì /featured (theo badge) để đồng bộ với admin
     this.api.getProducts({ sort: 'popular', limit: 8 }).subscribe({
       next:  (res) => { this.featuredProducts = res.products || []; this.isLoading = false; this.cdr.detectChanges(); },
       error: ()    => { this.isLoading = false; this.cdr.detectChanges(); },
@@ -198,20 +234,16 @@ export class HomepageComponent implements OnInit, OnDestroy {
     this.api.toggleWishlist(id, productName);
   }
 
-  // FIX: Kiểm tra hết hàng trước khi thêm vào giỏ
   isOutOfStock(product: any): boolean {
     if (!product) return true;
     if (product.isOutOfStock) return true;
 
-    // Có variants → kiểm tra tổng stock của tất cả variants
     if (Array.isArray(product.variants) && product.variants.length > 0) {
       const totalStock = product.variants.reduce(
         (sum: number, v: any) => sum + Number(v?.stock || 0), 0
       );
       return totalStock <= 0;
     }
-
-    // Không có variants → kiểm tra stock tổng
     return Number(product.stock || 0) <= 0;
   }
 
@@ -219,14 +251,13 @@ export class HomepageComponent implements OnInit, OnDestroy {
     event.stopPropagation();
     if (!product?._id) return;
 
-    // FIX: Chặn thêm vào giỏ nếu hết hàng
     if (this.isOutOfStock(product)) {
-      this.api.showToast('Sản phẩm này đã hết hàng.', 'error');
+      this.api.showToast('Sản phẩm hiện đã hết hàng.', 'error');
       return;
     }
 
     this.api.addToCart(product._id, 1, product.name).subscribe({
-      error: () => this.api.showToast('Không thể thêm vào giỏ hàng.', 'error'),
+      error: () => this.api.showToast('Không thể thêm sản phẩm vào giỏ hàng.', 'error'),
     });
   }
 

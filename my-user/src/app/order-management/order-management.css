@@ -208,10 +208,35 @@
   text-transform: none;
 }
 
+.shipping-sub-badge {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 999px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.shipping-sub-confirmed {
+  background: #DBEAFE;
+  color: #1D4ED8;
+}
+
+.shipping-sub-shipping {
+  background: #CFFAFE;
+  color: #0E7490;
+}
+
+.shipping-sub-delivery_failed {
+  background: #FFEDD5;
+  color: #C2410C;
+}
+
 /* Status variants */
 .status-pending         { background: #FFFBEB; color: #B45309; border-bottom: 1px solid #FDE68A; }
 .status-confirmed       { background: #EFF6FF; color: #1D4ED8; border-bottom: 1px solid #BFDBFE; }
 .status-shipping        { background: #F0FAFB; color: #0E7490; border-bottom: 1px solid #A5F3FC; }
+.status-delivery_failed { background: #FFF7ED; color: #C2410C; border-bottom: 1px solid #FDBA74; }
 .status-delivered       { background: #F0FDF4; color: #15803D; border-bottom: 1px solid #BBF7D0; }
 .status-cancelled       { background: #FFF5F5; color: #DC2626; border-bottom: 1px solid #FECACA; }
 .status-paid            { background: #F5F3FF; color: #7C3AED; border-bottom: 1px solid #DDD6FE; }

@@ -46,7 +46,7 @@
           class="hu-search-input"
           [(ngModel)]="searchText"
           (ngModelChange)="onSearch()"
-          placeholder="Tìm mã đơn, tên, SĐT, email..."
+          placeholder="Tìm mã đơn, mã KH, tên, SĐT, email..."
         />
       </div>
 
@@ -70,6 +70,7 @@
                 <option value="pending">Chờ xác nhận</option>
                 <option value="confirmed">Chờ giao hàng</option>
                 <option value="shipping">Đang giao</option>
+                <option value="delivery_failed">Giao thất bại</option>
                 <option value="delivered">Đã giao</option>
                 <option value="cancelled">Đã hủy</option>
               </select>
@@ -91,7 +92,6 @@
                 <option value="requested">Yêu cầu hoàn</option>
                 <option value="approved">Đã chấp nhận hoàn</option>
                 <option value="rejected">Từ chối hoàn</option>
-                <option value="completed">Đã hoàn xong</option>
               </select>
             </div>
             <div class="filter-row">
@@ -168,8 +168,9 @@
             <td class="mono">{{ order.orderCode || order._id.slice(-12).toUpperCase() }}</td>
             <td>{{ order.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
             <td>
-              <div class="name">{{ order.customer.fullName }}</div>
-              <div class="sub">{{ order.customer.phone }}</div>
+              <!-- Ưu tiên tài khoản đặt hàng; customer = người nhận (sổ địa chỉ khi checkout). -->
+              <div class="name">{{ order.buyerAccount?.username || order.customer.fullName }}</div>
+              <div class="sub">{{ order.buyerAccount?.phone || order.customer.phone }}</div>
             </td>
             <td>
               <span class="status-badge" [ngClass]="'status-' + order.status">{{ statusLabel(order.status) }}</span>

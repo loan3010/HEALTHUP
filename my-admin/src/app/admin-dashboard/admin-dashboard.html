@@ -28,7 +28,7 @@
   <div class="kpi-grid">
     <article class="kpi-card">
       <div class="kpi-label">Doanh thu</div>
-      <div class="kpi-value">{{ kpiRevenue | currency:'VND':'symbol':'1.0-0':'vi' }}</div>
+      <div class="kpi-value">{{ kpiRevenue | currency:'VND':'symbol':'1.0-0' }}</div>
       <div class="kpi-delta" [ngClass]="getDeltaClass(deltaRevenue)">{{ getDeltaText(deltaRevenue) }}</div>
     </article>
     <article class="kpi-card">
@@ -82,19 +82,19 @@
 
   <div class="three-cols">
     <div class="chart-card pie">
-      <div class="card-title">Tình trạng đơn hàng (all-time)</div>
+      <div class="card-title">Tình trạng đơn hàng (toàn thời gian)</div>
       <div class="chart-wrap pie-wrap">
         <canvas id="status-pie-chart"></canvas>
       </div>
     </div>
     <div class="chart-card pie">
-      <div class="card-title">Tình trạng khuyến mãi (all-time)</div>
+      <div class="card-title">Tình trạng khuyến mãi (toàn thời gian)</div>
       <div class="chart-wrap pie-wrap">
         <canvas id="promotion-pie-chart"></canvas>
       </div>
     </div>
     <div class="chart-card pie">
-      <div class="card-title">Tổng khách hàng (all-time)</div>
+      <div class="card-title">Tổng khách hàng (toàn thời gian)</div>
       <div class="chart-wrap pie-wrap">
         <canvas id="customer-pie-chart"></canvas>
       </div>
@@ -102,41 +102,74 @@
   </div>
 
   <div class="two-cols bottom">
-    <div class="table-card">
-      <div class="card-title">Đơn hàng gần đây</div>
+    <div class="table-card recent-orders-card">
+      <div class="table-card-head">
+        <h3 class="table-card-title">Đơn hàng gần đây</h3>
+        <button type="button" class="btn-dash-view-all" (click)="goToAllOrders()">Xem tất cả</button>
+      </div>
       <div class="table-responsive">
-        <table class="table table-sm align-middle mb-0">
+        <table class="table table-sm align-middle mb-0 recent-orders-table">
           <thead>
             <tr>
               <th>Mã đơn</th>
               <th>Khách hàng</th>
-              <th>Tổng tiền</th>
+              <th class="text-end">Tổng tiền</th>
               <th>Trạng thái</th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let o of recentOrders">
-              <td>{{ shortOrderId(o.orderId) }}</td>
+            <tr
+              *ngFor="let o of recentOrders"
+              class="dashboard-click-row"
+              tabindex="0"
+              [attr.title]="'Xem chi tiết đơn ' + displayRecentOrderCode(o)"
+              (click)="openOrderDetailFromRow(o.orderId)"
+              (keydown.enter)="openOrderDetailFromRow(o.orderId)"
+            >
+              <td class="mono-id">{{ displayRecentOrderCode(o) }}</td>
               <td>{{ o.customerName }}</td>
-              <td>{{ o.total | currency:'VND':'symbol':'1.0-0':'vi' }}</td>
-              <td>{{ o.status }}</td>
+              <td class="text-end amount-cell">{{ o.total | currency:'VND':'symbol':'1.0-0' }}</td>
+              <td>
+                <span class="order-status-pill" [ngClass]="orderStatusPillClass(o.statusLabel)">{{ o.statusLabel }}</span>
+              </td>
             </tr>
           </tbody>
         </table>
       </div>
     </div>
 
-    <div class="table-card">
-      <div class="title-flex">
-        <div class="card-title">Sản phẩm</div>
-        <div class="btn-group btn-group-sm">
-          <button type="button" class="btn" [class.btn-success]="topMode === 'best'" [class.btn-outline-secondary]="topMode !== 'best'" (click)="topMode = 'best'">Top bán chạy</button>
-          <button type="button" class="btn" [class.btn-success]="topMode === 'slow'" [class.btn-outline-secondary]="topMode !== 'slow'" (click)="topMode = 'slow'">Top bán chậm</button>
+    <div class="table-card products-spotlight-card">
+      <div class="products-spotlight-head">
+        <div class="products-spotlight-left">
+          <div class="products-main-title">Sản phẩm</div>
+          <div class="products-subtabs" role="tablist">
+            <button
+              type="button"
+              role="tab"
+              class="products-subtab"
+              [class.active]="topMode === 'best'"
+              [attr.aria-selected]="topMode === 'best'"
+              (click)="topMode = 'best'"
+            >
+              Bán chạy
+            </button>
+            <button
+              type="button"
+              role="tab"
+              class="products-subtab"
+              [class.active]="topMode === 'slow'"
+              [attr.aria-selected]="topMode === 'slow'"
+              (click)="topMode = 'slow'"
+            >
+              Bán chậm
+            </button>
+          </div>
         </div>
+        <button type="button" class="btn-dash-view-all" (click)="goToAllProducts()">Xem tất cả</button>
       </div>
 
       <div class="table-responsive">
-        <table class="table table-sm align-middle mb-0">
+        <table class="table table-sm align-middle mb-0 products-spotlight-table">
           <thead>
             <tr>
               <th>Sản phẩm</th>
@@ -145,7 +178,14 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let p of productRows">
+            <tr
+              *ngFor="let p of productRows"
+              class="dashboard-click-row"
+              tabindex="0"
+              title="Mở chỉnh sửa sản phẩm"
+              (click)="openProductEditorFromRow(p.productId)"
+              (keydown.enter)="openProductEditorFromRow(p.productId)"
+            >
               <td>{{ p.name }}</td>
               <td>{{ p.category }} <span *ngIf="p.variantLabel">/ {{ p.variantLabel }}</span></td>
               <td>{{ p.quantity }}</td>

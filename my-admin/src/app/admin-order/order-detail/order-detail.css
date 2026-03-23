@@ -135,10 +135,9 @@ h3, h4 { margin: 0 0 10px; }
   font-size: 0.75rem;
   font-weight: 700;
 }
-.tier-dong { background: #FFF3E0; color: #E65100; }
-.tier-bac  { background: #F3F4F6; color: #374151; }
-.tier-vang { background: #FFFBEA; color: #B8860B; }
-.tier-kim  { background: #EEF2FF; color: #4338CA; }
+.tier-member { background: #e8f5e9; color: #2e7d32; }
+.tier-vip { background: #fff3e0; color: #ef6c00; }
+.tier-none { background: #f3f4f6; color: #4b5563; }
 
 .actions {
   display: grid;
@@ -153,8 +152,184 @@ h3, h4 { margin: 0 0 10px; }
 .btn-main { background: #2fa333; color: #fff; }
 .btn-danger { background: #e14a4a; color: #fff; }
 .btn-sub { background: #edf7ed; color: #226c26; border: 1px solid #d4e9d5; }
+.btn-danger.outline {
+  background: #fff;
+  color: #c2410c;
+  border: 2px solid #fdba74;
+}
+
+.delivery-fail-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px dashed #fdba74;
+  border-radius: 8px;
+  background: #fffbeb;
+}
+.delivery-fail-box label { font-size: 0.78rem; font-weight: 700; color: #92400e; }
+.df-select, .df-textarea {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  padding: 8px;
+  font-size: 0.88rem;
+}
+.actions-hint.danger {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #b91c1c;
+  font-weight: 600;
+}
+.actions-hint.warn {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #b45309;
+  font-weight: 600;
+}
+
+.cancel-reason-admin {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed #e5e5e5;
+}
+.cancel-reason-admin .label {
+  display: block;
+  margin-bottom: 4px;
+}
+.cancel-reason-text {
+  display: block;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: #991b1b;
+  font-weight: 600;
+}
+.cancel-actor-chip {
+  display: inline-block;
+  margin-bottom: 6px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #fee2e2;
+  color: #9f1239;
+  border: 1px solid #fecaca;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.delivery-fail-box .df-hint {
+  margin: 0;
+  font-size: 0.74rem;
+  line-height: 1.35;
+  color: #9a3412;
+  font-weight: 600;
+}
+
+.status-confirm-field-hint {
+  margin: 0 0 4px;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.cancel-quick-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.cancel-quick-label {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #4b5563;
+  width: 100%;
+}
+.cancel-quick-chip {
+  border: 1px solid #d4e9d5;
+  background: #f4faf4;
+  color: #226c26;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.cancel-quick-chip:hover {
+  background: #e8f5e9;
+  border-color: #2fa333;
+}
+
+.status-confirm-inline-error {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
 
 .state-box { text-align: center; padding: 24px; color: #666; }
 .state-box.error { color: #d62828; }
 .spin { display: inline-block; animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* Modal xác nhận đổi trạng thái */
+.status-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1040;
+}
+.status-confirm-dialog {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(420px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+  border: 1px solid #e8e8e8;
+  z-index: 1050;
+}
+.status-confirm-title {
+  margin: 0 0 10px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #1a1a1a;
+}
+.status-confirm-text {
+  margin: 0 0 16px;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: #444;
+}
+.status-confirm-reject label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #92400e;
+  margin-bottom: 6px;
+}
+.status-confirm-textarea {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  padding: 10px;
+  font-size: 0.88rem;
+  margin-bottom: 12px;
+  resize: vertical;
+  min-height: 72px;
+}
+.status-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.status-confirm-cancel { min-width: 88px; }

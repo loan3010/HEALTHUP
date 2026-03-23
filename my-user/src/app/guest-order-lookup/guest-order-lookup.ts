@@ -35,6 +35,7 @@ export class GuestOrderLookup implements OnInit {
   imagePreviews: string[] = [];
   readonly MAX_IMAGES = 5;
   isSubmitting = false;
+  showConfirmSubmit = false;
   submitOkMsg = '';
 
   readonly REASONS = [
@@ -195,8 +196,22 @@ export class GuestOrderLookup implements OnInit {
 
   submitReturn(): void {
     if (!this.canSubmitReturn() || !this.order?._id) return;
+    if (this.showConfirmSubmit) return;
+    this.showConfirmSubmit = true;
+  }
+
+  cancelSubmitReturnConfirm(): void {
+    this.showConfirmSubmit = false;
+  }
+
+  confirmSubmitReturn(): void {
+    if (this.isSubmitting) return;
+    if (!this.order?._id) return;
+
+    this.showConfirmSubmit = false;
     this.isSubmitting = true;
     this.errorMsg = '';
+
     const items = this.returnLines.filter((x) => x.returnQty > 0);
     this.api
       .guestRequestReturn(String(this.order._id), {
@@ -231,6 +246,7 @@ export class GuestOrderLookup implements OnInit {
       pending: 'Chờ xác nhận',
       confirmed: 'Chờ giao',
       shipping: 'Đang giao',
+      delivery_failed: 'Giao thất bại',
       delivered: 'Đã giao',
       cancelled: 'Đã hủy',
     };

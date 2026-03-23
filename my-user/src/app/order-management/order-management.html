@@ -38,7 +38,14 @@
     <!-- STATUS BAR -->
     <div class="order-status" [ngClass]="'status-' + order.status">
       <span class="status-dot"></span>
-      {{ getStatusLabel(order.status) }}
+      {{ getCardStatusLabel(order) }}
+      <span
+        *ngIf="activeTab === 'in_transit' && isInTransitStatus(order.status)"
+        class="shipping-sub-badge"
+        [ngClass]="'shipping-sub-' + order.status"
+      >
+        {{ getStatusLabel(order.status) }}
+      </span>
       <span class="status-id">#{{ order.orderCode || order._id?.toString()?.substring(0, 8)?.toUpperCase() }}</span>
     </div>
 

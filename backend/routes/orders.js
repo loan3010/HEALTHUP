@@ -14,9 +14,20 @@ const Promotion = require('../models/Promotion');
 const OrderAuditLog = require('../models/OrderAuditLog');
 const Notification = require('../models/Notification');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
-const { buildCustomerListStatsMaps, statsForUser } = require('../helpers/customerOrderStats');
+const {
+  buildCustomerListStatsMaps,
+  statsForUser,
+  aggregateStatsForMatch,
+  membershipTierFromTotalSpent90d,
+} = require('../helpers/customerOrderStats');
 const { findOrCreateGuestUser } = require('../helpers/guestUser');
 const { isValidGuestCartSessionId } = require('../helpers/cartIdentity');
+const {
+  notifyAdminOrderPlaced,
+  notifyAdminOrderCancelled,
+  notifyAdminReturnRequested,
+} = require('../services/adminNotificationService');
+const { restoreInventoryForOrderIfNeeded } = require('../helpers/orderInventory');
 
 function jwtSecretOrders() {
   return process.env.JWT_SECRET || 'secret_key';
@@ -115,16 +126,19 @@ async function calcDiscountFromDB(voucherCode, subTotal, shippingFee) {
   return { discountAmount, discountOnType };
 }
 
-function getMembershipTier(totalSpent) {
-  if (!totalSpent || totalSpent <= 0) return 'Đồng';
-  if (totalSpent < 5_000_000)  return 'Đồng';
-  if (totalSpent < 10_000_000) return 'Bạc';
-  if (totalSpent < 20_000_000) return 'Vàng';
-  return 'Kim Cương';
-}
-
 function normalizePhone(phone) {
   return String(phone || '').replace(/\D/g, '');
+}
+
+async function refreshUserMembershipRealtime(userId) {
+  if (!userId || !mongoose.Types.ObjectId.isValid(String(userId))) return;
+  const uid = new mongoose.Types.ObjectId(String(userId));
+  const stats = await aggregateStatsForMatch(Order, { userId: uid });
+  const memberRank = membershipTierFromTotalSpent90d(stats.totalSpent90d);
+  await User.findByIdAndUpdate(uid, {
+    totalSpent: Number(stats.totalSpent || 0),
+    memberRank,
+  });
 }
 
 function formatVND(amount) {
@@ -139,16 +153,144 @@ function normalizeShippingPart(v) {
   return s;
 }
 
-const ORDER_STATUS  = ['pending', 'confirmed', 'shipping', 'delivered', 'cancelled'];
+const ORDER_STATUS = [
+  'pending',
+  'confirmed',
+  'shipping',
+  'delivery_failed',
+  'delivered',
+  'cancelled',
+];
 const RETURN_STATUS = ['none', 'requested', 'approved', 'rejected', 'completed'];
 
-const NEXT_STATUS = {
-  pending:   ['confirmed', 'cancelled'],
-  confirmed: ['shipping'],
-  shipping:  ['delivered'],
-  delivered: [],
-  cancelled: []
+const MAX_REDELIVERY_ATTEMPTS = 2;
+
+const DELIVERY_FAIL_PRESET_LABELS = {
+  no_contact: 'Không liên lạc được khách',
+  wrong_address: 'Sai địa chỉ',
+  customer_refused: 'Khách từ chối nhận',
+  reschedule: 'Khách hẹn giao ngày khác',
 };
+
+function deliveryPresetAllowsRedelivery(preset) {
+  const p = String(preset || '');
+  return p !== 'wrong_address' && p !== 'customer_refused';
+}
+
+const NEXT_STATUS = {
+  pending: ['confirmed', 'cancelled'],
+  confirmed: ['shipping', 'cancelled'],
+  shipping: ['delivered', 'delivery_failed'],
+  delivery_failed: ['shipping', 'cancelled'],
+  delivered: [],
+  cancelled: [],
+};
+
+function resolveDeliveryFailureReason(preset, detail) {
+  const p = String(preset || '').trim();
+  if (!p) {
+    return { ok: false, message: 'Vui lòng chọn lý do giao thất bại.' };
+  }
+  if (p === 'other') {
+    const d = String(detail || '').trim();
+    if (d.length < 2) {
+      return { ok: false, message: 'Vui lòng nhập lý do chi tiết (tối thiểu 2 ký tự).' };
+    }
+    return { ok: true, text: d, preset: 'other' };
+  }
+  const label = DELIVERY_FAIL_PRESET_LABELS[p];
+  if (!label) {
+    return { ok: false, message: 'Giá trị lý do giao thất bại không hợp lệ.' };
+  }
+  return { ok: true, text: label, preset: p };
+}
+
+async function notifyUserDeliveryFailed(order, reasonText) {
+  if (!order.userId) return;
+  try {
+    const canRedeliver = deliveryPresetAllowsRedelivery(order.deliveryFailurePreset);
+    const tail = canRedeliver
+      ? ' Shop có thể liên hệ hoặc sắp xếp giao lại.'
+      : ' Đơn không tiếp tục giao lại với lý do này — vui lòng liên hệ shop nếu cần.';
+    await Notification.create({
+      userId: order.userId,
+      title: 'Giao hàng không thành công',
+      message: `Đơn hàng ${order.orderCode}: ${reasonText}.${tail}`,
+      type: 'order',
+      orderId: order._id,
+      isRead: false,
+    });
+  } catch (e) {
+    console.error('notifyUserDeliveryFailed:', e);
+  }
+}
+
+async function notifyUserOrderCancelledRich(order) {
+  if (!order.userId) return;
+  try {
+    const online = ['momo', 'vnpay'].includes(String(order.paymentMethod));
+    let msg = `Đơn hàng ${order.orderCode} đã được hủy.`;
+    const cr = String(order.cancelReason || '').trim();
+    if (cr) {
+      msg += ` Lý do: ${cr}`;
+    }
+    if (online && order.refundStatus === 'pending') {
+      const gate = order.paymentMethod === 'momo' ? 'ví MoMo' : 'VNPay';
+      msg += ` Số tiền ${formatVND(order.total)} đang được xử lý hoàn qua ${gate} (ước tính 3–7 ngày làm việc).`;
+    }
+    await Notification.create({
+      userId: order.userId,
+      title: 'Đơn hàng đã hủy',
+      message: msg,
+      type: 'order',
+      orderId: order._id,
+      isRead: false,
+    });
+  } catch (e) {
+    console.error('notifyUserOrderCancelledRich:', e);
+  }
+}
+
+/**
+ * Suy luận nguồn hủy cho dữ liệu cũ chưa có `cancelledByType`.
+ * Ưu tiên audit log admin, sau đó fallback theo mẫu câu lý do hủy.
+ */
+async function resolveCancelledActor(orderLike) {
+  const currentType = String(orderLike?.cancelledByType || '').toLowerCase();
+  const currentId = String(orderLike?.cancelledById || '').trim();
+  if (currentType && currentType !== 'unknown') {
+    return { cancelledByType: currentType, cancelledById: currentId };
+  }
+
+  // Nếu có log đổi trạng thái sang cancelled bởi admin => chắc chắn admin hủy.
+  try {
+    const log = await OrderAuditLog.findOne({
+      orderId: orderLike?._id,
+      action: 'status_change',
+      toValue: 'cancelled',
+    })
+      .sort({ createdAt: -1 })
+      .select('adminId')
+      .lean();
+    if (log?.adminId) {
+      return { cancelledByType: 'admin', cancelledById: String(log.adminId) };
+    }
+  } catch (_) {}
+
+  // Fallback mềm theo nội dung lý do.
+  const reason = String(orderLike?.cancelReason || '').toLowerCase();
+  if (reason.includes('khách')) {
+    return {
+      cancelledByType: 'customer',
+      cancelledById: String(orderLike?.userId || '').trim(),
+    };
+  }
+  if (reason.includes('shop') || reason.includes('cửa hàng') || reason.includes('hết hàng')) {
+    return { cancelledByType: 'admin', cancelledById: '' };
+  }
+
+  return { cancelledByType: 'unknown', cancelledById: '' };
+}
 
 function parseDateStart(d) {
   const dt = new Date(`${d}T00:00:00.000Z`);
@@ -160,7 +302,7 @@ function parseDateEnd(d) {
   return Number.isNaN(dt.getTime()) ? null : dt;
 }
 
-function buildAdminOrderFilter(query) {
+function buildAdminOrderFilter(query, customerUserIds = []) {
   const filter = {};
   const and = [];
 
@@ -168,8 +310,15 @@ function buildAdminOrderFilter(query) {
     filter.status = String(query.status);
   }
 
-  if (RETURN_STATUS.includes(String(query.returnStatus || ''))) {
-    filter.returnStatus = String(query.returnStatus);
+  const rs = String(query.returnStatus || '');
+  if (RETURN_STATUS.includes(rs)) {
+    // Luồng mới: 'approved' là trạng thái kết thúc.
+    // Dữ liệu cũ có thể còn 'completed', nên coi nó như 'approved' khi lọc.
+    if (rs === 'approved' || rs === 'completed') {
+      filter.returnStatus = { $in: ['approved', 'completed'] };
+    } else {
+      filter.returnStatus = rs;
+    }
   }
 
   if (['cod', 'momo', 'vnpay'].includes(String(query.paymentMethod || ''))) {
@@ -192,10 +341,17 @@ function buildAdminOrderFilter(query) {
   const keyword = String(query.search || '').trim();
   if (keyword) {
     const rx = new RegExp(keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+    const normalizedUserIds = Array.isArray(customerUserIds)
+      ? customerUserIds
+          .map((id) => String(id || '').trim())
+          .filter((id) => mongoose.Types.ObjectId.isValid(id))
+          .map((id) => new mongoose.Types.ObjectId(id))
+      : [];
     and.push({
       $or: [
         { orderCode: rx },
         { _id: mongoose.Types.ObjectId.isValid(keyword) ? new mongoose.Types.ObjectId(keyword) : null },
+        normalizedUserIds.length ? { userId: { $in: normalizedUserIds } } : null,
         { 'customer.fullName': rx },
         { 'customer.phone': rx },
         { 'customer.email': rx }
@@ -212,6 +368,36 @@ function getAdminSort(sortBy, sortDir) {
   const allowed = ['createdAt', 'total', 'status', 'paymentMethod', 'orderCode'];
   const by      = allowed.includes(String(sortBy || '')) ? String(sortBy) : 'createdAt';
   return { [by]: dir, _id: -1 };
+}
+
+async function attachBuyerAccountToOrders(orders) {
+  if (!Array.isArray(orders) || !orders.length) return orders;
+  const idSet = new Set();
+  for (const o of orders) {
+    if (o.userId && mongoose.Types.ObjectId.isValid(String(o.userId))) {
+      idSet.add(String(o.userId));
+    }
+  }
+  if (!idSet.size) {
+    return orders.map((o) => ({ ...o, buyerAccount: null }));
+  }
+  const users = await User.find({ _id: { $in: [...idSet] } })
+    .select('username phone email')
+    .lean();
+  const byId = new Map(users.map((u) => [String(u._id), u]));
+  return orders.map((o) => {
+    const u = o.userId ? byId.get(String(o.userId)) : null;
+    return {
+      ...o,
+      buyerAccount: u
+        ? {
+            username: String(u.username || ''),
+            phone: String(u.phone || ''),
+            email: String(u.email || ''),
+          }
+        : null,
+    };
+  });
 }
 
 async function generateNextOrderCode() {
@@ -254,6 +440,12 @@ async function persistOrderReturnRequest(order, { reason, note, parsedItems, fil
     toValue:   'requested',
     note:      `Yêu cầu: ${reason}${note ? ' — ' + note : ''}`,
   });
+
+  try {
+    await notifyAdminReturnRequested(order);
+  } catch (e) {
+    console.error('Admin notify return_requested:', e);
+  }
 }
 
 async function prepareOrderFromRequestBody(body, opts = {}) {
@@ -558,21 +750,10 @@ router.post('/', async (req, res) => {
       guestCartSessionId
     );
 
-    // ── Cập nhật hạng thành viên sau khi đặt hàng thành công ──
+    // Đơn mới mặc định chưa delivered nên thường chưa đổi hạng, nhưng vẫn refresh real-time để luôn đồng bộ.
     if (order.userId) {
       try {
-        const agg = await Order.aggregate([
-          {
-            $match: {
-              userId: new mongoose.Types.ObjectId(String(order.userId)),
-              status: { $in: ['pending', 'confirmed', 'shipping', 'delivered'] }
-            }
-          },
-          { $group: { _id: null, total: { $sum: '$total' } } }
-        ]);
-        const totalSpent = agg[0]?.total || 0;
-        const memberRank = totalSpent >= 5_000_000 ? 'vip' : 'member';
-        await User.findByIdAndUpdate(order.userId, { totalSpent, memberRank });
+        await refreshUserMembershipRealtime(order.userId);
       } catch (e) {
         console.error('Cập nhật hạng thành viên thất bại:', e);
       }
@@ -598,6 +779,12 @@ router.post('/', async (req, res) => {
       } catch (e) {
         console.error('Tạo notification thất bại:', e);
       }
+    }
+
+    try {
+      await notifyAdminOrderPlaced(order);
+    } catch (e) {
+      console.error('Admin notify order_new:', e);
     }
 
     return res.status(201).json({ orderId: order._id, orderCode: order.orderCode });
@@ -650,7 +837,14 @@ router.get('/admin/list', authenticateToken, requireAdmin, async (req, res) => {
     const page  = Math.max(1, Number(req.query.page  || 1));
     const limit = Math.min(100, Math.max(1, Number(req.query.limit || 50)));
     const skip  = (page - 1) * limit;
-    const filter = buildAdminOrderFilter(req.query);
+    const keyword = String(req.query.search || '').trim();
+    let customerUserIds = [];
+    if (keyword) {
+      const rx = new RegExp(keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      const users = await User.find({ role: 'user', customerID: rx }).select('_id').lean();
+      customerUserIds = users.map((u) => String(u._id || ''));
+    }
+    const filter = buildAdminOrderFilter(req.query, customerUserIds);
     const sort   = getAdminSort(req.query.sortBy, req.query.sortDir);
 
     const [data, total, globalStats] = await Promise.all([
@@ -678,7 +872,8 @@ router.get('/admin/list', authenticateToken, requireAdmin, async (req, res) => {
       returnRejectedCount: 0, returnCompletedCount: 0
     };
 
-    return res.json({ data, total, page, totalPages: Math.ceil(total / limit) || 1, summary });
+    const dataWithBuyers = await attachBuyerAccountToOrders(data);
+    return res.json({ data: dataWithBuyers, total, page, totalPages: Math.ceil(total / limit) || 1, summary });
   } catch (err) {
     return res.status(400).json({ message: err.message || 'Không thể tải danh sách đơn hàng' });
   }
@@ -762,15 +957,37 @@ router.get('/admin/:id', authenticateToken, requireAdmin, async (req, res) => {
     } else {
       const k = normalizePhone(order.customer?.phone);
       stats = k
-        ? (statsMaps.byPhoneNorm.get(k) || { totalOrders: 0, totalSpent: 0, hasProvisionalSpend: false })
-        : { totalOrders: 0, totalSpent: 0, hasProvisionalSpend: false };
+        ? (statsMaps.byPhoneNorm.get(k) || { totalOrders: 0, totalSpent: 0, totalSpent90d: 0, hasProvisionalSpend: false })
+        : { totalOrders: 0, totalSpent: 0, totalSpent90d: 0, hasProvisionalSpend: false };
     }
+
+    const totalOrders = stats.totalOrders;
+    const totalSpent = stats.totalSpent;
+
+    // Tài khoản đặt hàng (khác customer = người nhận trên đơn).
+    const buyerAccount = user
+      ? {
+          username: String(user.username || ''),
+          phone: String(user.phone || ''),
+          email: String(user.email || ''),
+        }
+      : null;
+
+    const cancelActor =
+      String(order.status || '') === 'cancelled'
+        ? await resolveCancelledActor(order)
+        : {
+            cancelledByType: String(order.cancelledByType || 'unknown'),
+            cancelledById: String(order.cancelledById || ''),
+          };
 
     return res.json({
       ...order,
+      ...cancelActor,
+      buyerAccount,
       customerSummary: {
         customerID:          user?.customerID || '',
-        membershipTier:      getMembershipTier(stats.totalSpent),
+        membershipTier:      membershipTierFromTotalSpent90d(stats.totalSpent90d),
         totalOrders:         stats.totalOrders,
         totalSpent:          stats.totalSpent,
         hasProvisionalSpend: stats.hasProvisionalSpend,
@@ -784,7 +1001,7 @@ router.get('/admin/:id', authenticateToken, requireAdmin, async (req, res) => {
 // ======================= ADMIN UPDATE STATUS =======================
 router.patch('/admin/:id/status', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const { status, note } = req.body;
+    const { status, note, deliveryFailurePreset, deliveryFailureDetail, cancelReason: cancelReasonRaw } = req.body;
     if (!ORDER_STATUS.includes(status)) {
       return res.status(400).json({ message: 'Status không hợp lệ' });
     }
@@ -805,57 +1022,98 @@ router.patch('/admin/:id/status', authenticateToken, requireAdmin, async (req, r
       });
     }
 
+    if (current === 'shipping' && status === 'delivery_failed') {
+      const r = resolveDeliveryFailureReason(deliveryFailurePreset, deliveryFailureDetail);
+      if (!r.ok) return res.status(400).json({ message: r.message });
+      order.deliveryFailureReason = r.text;
+      order.deliveryFailurePreset = r.preset;
+    }
+
+    if (current === 'delivery_failed' && status === 'shipping') {
+      if (!deliveryPresetAllowsRedelivery(order.deliveryFailurePreset)) {
+        return res.status(400).json({
+          message:
+            'Lý do giao thất bại (sai địa chỉ / khách từ chối nhận) không cho phép giao lại. Vui lòng hủy đơn.',
+        });
+      }
+      const attempts = Number(order.redeliveryAttempts || 0);
+      if (attempts >= MAX_REDELIVERY_ATTEMPTS) {
+        return res.status(400).json({
+          message: `Đã giao lại tối đa ${MAX_REDELIVERY_ATTEMPTS} lần. Chỉ có thể hủy đơn.`,
+        });
+      }
+      order.redeliveryAttempts = attempts + 1;
+    }
+
+    if (status === 'cancelled') {
+      const cancelReason = String(cancelReasonRaw ?? '').trim().slice(0, 2000);
+      const mustExplain = current === 'pending' || current === 'confirmed';
+      if (mustExplain && cancelReason.length < 3) {
+        return res.status(400).json({
+          message: 'Hủy đơn trước khi giao hàng cần kèm lý do (tối thiểu 3 ký tự).',
+        });
+      }
+      order.cancelReason = cancelReason;
+      // Admin hủy đơn: ghi rõ nguồn + actor để UI phân biệt được.
+      order.cancelledByType = 'admin';
+      order.cancelledById = String(req.user?.userId || '').trim();
+      await restoreInventoryForOrderIfNeeded(order);
+      const pm = String(order.paymentMethod || '');
+      if (['momo', 'vnpay'].includes(pm) && order.refundStatus !== 'completed') {
+        order.refundStatus = 'pending';
+      }
+    }
+
     order.status = status;
     await order.save();
 
     await OrderAuditLog.create({
-      orderId:   order._id,
-      adminId:   String(req.user?.userId || 'unknown-admin'),
-      action:    'status_change',
+      orderId: order._id,
+      adminId: String(req.user?.userId || 'unknown-admin'),
+      action: 'status_change',
       fromValue: current,
-      toValue:   status,
-      note:      String(note || '')
+      toValue: status,
+      note:
+        status === 'delivery_failed'
+          ? `${String(note || '')} | Lý do: ${order.deliveryFailureReason}`.trim()
+          : status === 'cancelled' && order.cancelReason
+            ? `${String(note || '')} | Lý do hủy: ${order.cancelReason}`.trim()
+            : String(note || ''),
     });
 
-    // ── Khi đơn chuyển sang delivered: cập nhật lại hạng thành viên ──
-    if (status === 'delivered' && order.userId) {
+    // Đổi trạng thái đơn có thể ảnh hưởng tổng chi tiêu hợp lệ theo 90 ngày => refresh real-time.
+    if (order.userId) {
       try {
-        const agg = await Order.aggregate([
-          {
-            $match: {
-              userId: new mongoose.Types.ObjectId(String(order.userId)),
-              status: 'delivered'
-            }
-          },
-          { $group: { _id: null, total: { $sum: '$total' } } }
-        ]);
-        const totalSpent = agg[0]?.total || 0;
-        const memberRank = totalSpent >= 5_000_000 ? 'vip' : 'member';
-        await User.findByIdAndUpdate(order.userId, { totalSpent, memberRank });
+        await refreshUserMembershipRealtime(order.userId);
       } catch (e) {
         console.error('Cập nhật hạng thành viên thất bại:', e);
       }
     }
 
     if (order.userId) {
-      try {
-        const statusLabel = {
-          confirmed: 'đã được xác nhận ✅',
-          shipping:  'đang được giao 🚚',
-          delivered: 'đã giao thành công 🎉',
-          cancelled: 'đã bị hủy ❌',
-        }[status] || status;
+      if (status === 'delivery_failed') {
+        await notifyUserDeliveryFailed(order, order.deliveryFailureReason);
+      } else if (status === 'cancelled') {
+        await notifyUserOrderCancelledRich(order);
+      } else {
+        try {
+          const statusLabel = {
+            confirmed: 'đã được xác nhận ✅',
+            shipping: 'đang được giao 🚚',
+            delivered: 'đã giao thành công 🎉',
+          }[status] || status;
 
-        await Notification.create({
-          userId:  order.userId,
-          title:   `Cập nhật đơn hàng`,
-          message: `Đơn hàng ${order.orderCode} ${statusLabel}`,
-          type:    'order',
-          orderId: order._id,
-          isRead:  false,
-        });
-      } catch (e) {
-        console.error('Tạo notification thất bại:', e);
+          await Notification.create({
+            userId: order.userId,
+            title: `Cập nhật đơn hàng`,
+            message: `Đơn hàng ${order.orderCode} ${statusLabel}`,
+            type: 'order',
+            orderId: order._id,
+            isRead: false,
+          });
+        } catch (e) {
+          console.error('Tạo notification thất bại:', e);
+        }
       }
     }
 
@@ -888,7 +1146,8 @@ router.patch('/admin/:id/return-status', authenticateToken, requireAdmin, async 
     const returnFlow = {
       none:      [],
       requested: ['approved', 'rejected'],
-      approved:  ['completed'],
+      // Luồng mới: không còn bước 'completed'. 'approved' là xong.
+      approved:  [],
       rejected:  [],
       completed: []
     };
@@ -914,10 +1173,19 @@ router.patch('/admin/:id/return-status', authenticateToken, requireAdmin, async 
         req.body.returnRejectionReason ?? req.body.note ?? ''
       ).trim().slice(0, 2000);
     }
-    if (returnStatus === 'completed') {
+    if (returnStatus === 'approved' || returnStatus === 'completed') {
       order.returnCompletedAt = new Date();
     }
     await order.save();
+
+    // 'approved' (và 'completed' cũ) sẽ loại đơn này khỏi tổng tích lũy hợp lệ => refresh hạng ngay.
+    if (order.userId) {
+      try {
+        await refreshUserMembershipRealtime(order.userId);
+      } catch (e) {
+        console.error('Cập nhật hạng thành viên sau return thất bại:', e);
+      }
+    }
 
     await OrderAuditLog.create({
       orderId:   order._id,
@@ -927,6 +1195,25 @@ router.patch('/admin/:id/return-status', authenticateToken, requireAdmin, async 
       toValue:   returnStatus,
       note:      String(note || '')
     });
+
+    if (returnStatus === 'rejected' && order.userId) {
+      try {
+        const shopReason = String(order.returnRejectionReason || '').trim();
+        const msg = shopReason
+          ? `Đơn ${order.orderCode}: ${shopReason}`
+          : `Đơn ${order.orderCode}: Shop đã từ chối yêu cầu hoàn / trả hàng.`;
+        await Notification.create({
+          userId: order.userId,
+          title: 'Yêu cầu hoàn hàng không được chấp nhận',
+          message: msg,
+          type: 'order',
+          orderId: order._id,
+          isRead: false,
+        });
+      } catch (e) {
+        console.error('Tạo notification từ chối hoàn:', e);
+      }
+    }
 
     return res.json(order);
   } catch (err) {
@@ -1059,38 +1346,76 @@ router.get('/:id', async (req, res) => {
     }
 
     if (!order) return res.status(404).json({ message: 'Order not found' });
-    return res.json(order);
+    const plain = typeof order.toObject === 'function' ? order.toObject() : order;
+    const cancelActor =
+      String(plain.status || '') === 'cancelled'
+        ? await resolveCancelledActor(plain)
+        : {
+            cancelledByType: String(plain.cancelledByType || 'unknown'),
+            cancelledById: String(plain.cancelledById || ''),
+          };
+    return res.json({ ...plain, ...cancelActor });
   } catch (err) {
     return res.status(500).json({ message: 'Server error' });
   }
 });
 
-// ======================= UPDATE STATUS =======================
+// ======================= UPDATE STATUS (user tự hủy) =======================
 
 router.patch('/:id/status', async (req, res) => {
   try {
-    const { status } = req.body;
-    const allowed = ['pending', 'confirmed', 'shipping', 'delivered', 'cancelled'];
+    const { status, cancelReason: userCancelReason } = req.body;
+    const allowed = [
+      'pending',
+      'confirmed',
+      'shipping',
+      'delivery_failed',
+      'delivered',
+      'cancelled',
+    ];
     if (!allowed.includes(status)) {
       return res.status(400).json({ message: 'Status không hợp lệ' });
     }
 
-    const order = await Order.findByIdAndUpdate(
-      req.params.id, { status }, { new: true }
-    );
+    const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
 
-    if (status === 'cancelled' && order.userId) {
+    const prev = order.status;
+    if (prev === status) {
+      return res.status(400).json({ message: 'Đơn hàng đã ở trạng thái này' });
+    }
+
+    if (status === 'cancelled' && prev !== 'pending') {
+      return res.status(400).json({ message: 'Chỉ có thể hủy đơn đang chờ xác nhận' });
+    }
+
+    if (status === 'cancelled') {
+      const fromUser = String(userCancelReason || '').trim().slice(0, 2000);
+      order.cancelReason =
+        fromUser.length >= 2 ? fromUser : 'Khách hàng hủy đơn (chờ xác nhận).';
+      // Khách hủy đơn: ưu tiên userId từ token, fallback sang owner của đơn.
+      order.cancelledByType = 'customer';
+      order.cancelledById = String(req.user?.userId || order.userId || '').trim();
+      await restoreInventoryForOrderIfNeeded(order);
+      const pm = String(order.paymentMethod || '');
+      if (['momo', 'vnpay'].includes(pm) && order.refundStatus !== 'completed') {
+        order.refundStatus = 'pending';
+      }
+    }
+
+    order.status = status;
+    await order.save();
+
+    if (status === 'cancelled') {
       try {
-        await Notification.create({
-          userId:  order.userId,
-          title:   '❌ Đơn hàng đã bị hủy',
-          message: `Đơn hàng ${order.orderCode} đã được hủy thành công`,
-          type:    'order',
-          orderId: order._id,
-          isRead:  false,
-        });
-      } catch (e) {}
+        await notifyAdminOrderCancelled(order);
+      } catch (e) {
+        console.error('Admin notify order_cancelled:', e);
+      }
+    }
+
+    if (status === 'cancelled' && order.userId) {
+      await notifyUserOrderCancelledRich(order);
     }
 
     res.json(order);

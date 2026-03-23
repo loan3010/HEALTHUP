@@ -6,7 +6,7 @@ const Promotion = require('../models/Promotion');
 const User      = require('../models/User');
 const { optionalAuth } = require('../middleware/auth');
 
-// 1. Lấy danh sách: GET /api/promotions
+// 1. Lấy danh sách: GET /api/promotions (Dành cho Admin xem tất cả)
 router.get('/', promoCtrl.getAllPromotions);
 
 // 2. Tạo mới: POST /api/promotions
@@ -35,7 +35,12 @@ router.post('/apply', optionalAuth, async (req, res) => {
       return res.status(404).json({ valid: false, message: 'Mã voucher không tồn tại' });
     }
 
-    // Kiểm tra trạng thái
+    // --- KIỂM TRA QUYỀN HIỂN THỊ (Mới thêm) ---
+    if (promo.isActive === false) {
+      return res.status(400).json({ valid: false, message: 'Voucher này hiện đang tạm ngưng sử dụng' });
+    }
+
+    // Kiểm tra trạng thái expired
     if (promo.status === 'expired') {
       return res.status(400).json({ valid: false, message: 'Voucher đã hết hạn' });
     }
@@ -103,6 +108,7 @@ router.post('/apply', optionalAuth, async (req, res) => {
     }
 
     return res.json({
+      
       valid:         true,
       code:          promo.code,
       name:          promo.name,
@@ -135,12 +141,14 @@ router.get('/available', optionalAuth, async (req, res) => {
     }
 
     const all = await Promotion.find({
+      isActive: true, // <--- QUAN TRỌNG: Chỉ lấy voucher đang công khai
       status: 'ongoing',
       $or: [
         { totalLimit: 0 },
         { $expr: { $lt: ['$usedCount', '$totalLimit'] } }
       ]
     })
+    
     .select('code name description type discountType discountValue minOrder maxDiscount startDate endDate allowedMemberRanks')
     .lean();
 
@@ -168,7 +176,7 @@ router.get('/available', optionalAuth, async (req, res) => {
   }
 });
 
-// 3. Gom nhóm hàng loạt (phải trước :id)
+// 3. Gom nhóm hàng loạt (Phải để trước :id để tránh bị nhầm là param)
 router.put('/bulk-group', promoCtrl.bulkGroupPromotions);
 
 // 4. Cập nhật lẻ: PUT /api/promotions/:id

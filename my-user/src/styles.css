@@ -50,3 +50,37 @@ img[src*="assets/images/products"] {
 ::-webkit-scrollbar-track { background: #f1f1f1; }
 ::-webkit-scrollbar-thumb { background: #7FB069; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #2D5016; }
+
+/* ================================================
+   HIỆU ỨNG CHUYỂN TRANG (VIEW TRANSITIONS API)
+   Dành cho Angular Router withViewTransitions()
+   ================================================ */
+
+/* Tùy chỉnh tốc độ và kiểu chuyển cảnh tổng thể */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.4s;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Hiệu ứng trượt nhẹ từ dưới lên cho trang mới */
+@keyframes hu-slide-up {
+  from { 
+    transform: translateY(10px); 
+    opacity: 0; 
+  }
+  to { 
+    transform: translateY(0); 
+    opacity: 1; 
+  }
+}
+
+/* Áp dụng hiệu ứng cho trang đang đi vào */
+::view-transition-new(root) {
+  animation-name: hu-slide-up;
+}
+
+/* Trang cũ sẽ mờ dần (opacity) mặc định của trình duyệt */
+::view-transition-old(root) {
+  /* Giữ nguyên mặc định hoặc có thể thêm animation-name: fade-out nếu muốn */
+}

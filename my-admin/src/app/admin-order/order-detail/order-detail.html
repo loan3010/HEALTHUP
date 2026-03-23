@@ -21,10 +21,32 @@
             <div>
               <div class="label">Trạng thái đơn hàng</div>
               <span class="badge">{{ statusLabel }}</span>
+              <div class="cancel-reason-admin" *ngIf="order.status === 'cancelled' && order.cancelReason">
+                <span class="cancel-actor-chip">{{ cancelActorLabel }}</span>
+                <span class="label">Lý do hủy (hiển thị cho khách)</span>
+                <span class="cancel-reason-text">{{ order.cancelReason }}</span>
+              </div>
             </div>
             <div>
               <div class="label">Phương thức thanh toán</div>
               <span class="badge gray">{{ paymentLabel(order.paymentMethod) }}</span>
+            </div>
+            <!-- Chỉ hiện khi đơn đang «giao lỗi» hoặc «giao lại» — không hiện khi đã giao thành công dù DB còn chuỗi cũ -->
+            <div *ngIf="showDeliveryFailureReasonBlock">
+              <div class="label">Lý do giao thất bại (lần gần nhất)</div>
+              <span class="badge warn">{{ order.deliveryFailureReason }}</span>
+            </div>
+            <div *ngIf="order.status === 'delivery_failed'">
+              <div class="label">Đã giao lại</div>
+              <span class="badge gray">{{ order.redeliveryAttempts || 0 }} / {{ maxRedeliveryAttempts }} lần</span>
+            </div>
+            <div *ngIf="order.refundStatus === 'pending'">
+              <div class="label">Hoàn tiền</div>
+              <span class="badge warn">Đang xử lý (MoMo/VNPay)</span>
+            </div>
+            <div *ngIf="order.refundStatus === 'completed'">
+              <div class="label">Hoàn tiền</div>
+              <span class="badge gray">Đã hoàn</span>
             </div>
             <!-- Đã giao nhưng khách chưa gửi yêu cầu trên app — admin không tự tạo requested -->
             <div *ngIf="order.status === 'delivered' && (!order.returnStatus || order.returnStatus === 'none')">
@@ -128,15 +150,16 @@
 
       <section class="right">
         <div class="card">
-          <h4>Thông tin người mua</h4>
-          <div class="line"><span>{{ order.customer.fullName }}</span></div>
-          <div class="line"><span>{{ order.customer.phone }}</span></div>
-          <div class="line"><span>{{ order.customer.email || '—' }}</span></div>
-          <div class="line"><label>ID khách hàng</label><strong>{{ order.customerSummary?.customerID || 'KH0000' }}</strong></div>
+          <h4>Thông tin người mua (tài khoản)</h4>
+          <!-- buyerAccount = User đăng nhập đặt đơn; không có thì guest → hiện customer như trước. -->
+          <div class="line"><label>Họ tên</label><strong>{{ order.buyerAccount?.username || order.customer.fullName }}</strong></div>
+          <div class="line"><label>Số điện thoại</label><strong>{{ order.buyerAccount?.phone || order.customer.phone }}</strong></div>
+          <div class="line"><label>Email</label><strong>{{ order.buyerAccount?.email || order.customer.email || '—' }}</strong></div>
+          <div class="line"><label>ID khách hàng</label><strong>{{ displayCustomerId() }}</strong></div>
           <div class="line">
             <label>Hạng thành viên</label>
-            <span class="tier-badge" [ngClass]="getTierClass(order.customerSummary?.membershipTier || 'Đồng')">
-              {{ order.customerSummary?.membershipTier || 'Đồng' }}
+            <span class="tier-badge" [ngClass]="getTierClass(displayMembershipTier())">
+              {{ tierLabel(displayMembershipTier()) }}
             </span>
             <span class="tier-provisional" *ngIf="order.customerSummary?.hasProvisionalSpend">(tạm — đang có đơn chờ hoàn)</span>
           </div>
@@ -155,54 +178,114 @@
           <h4>Thông tin đơn hàng</h4>
           <div class="line"><label>Số lượng sản phẩm</label><strong>{{ itemCount }}</strong></div>
           <div class="line"><label>Tổng tiền hàng</label><strong>{{ formatMoney(order.subTotal) }}</strong></div>
-          <div class="line" *ngIf="order.discountOnItems > 0">
-            <label>Giảm tiền hàng</label>
-            <strong class="discount-value">-{{ formatMoney(order.discountOnItems) }}</strong>
-          </div>
+          <div class="line"><label>Giảm giá</label><strong>{{ formatMoney(order.discount) }}</strong></div>
           <div class="line"><label>Phí vận chuyển</label><strong>{{ formatMoney(order.shippingFee) }}</strong></div>
-          <div class="line" *ngIf="order.discountOnShipping > 0">
-            <label>Giảm phí vận chuyển</label>
-            <strong class="discount-value">-{{ formatMoney(order.discountOnShipping) }}</strong>
-          </div>
-          <div class="line" *ngIf="order.discount > 0">
-            <label>Tổng giảm giá</label>
-            <strong class="discount-value">-{{ formatMoney(order.discount) }}</strong>
-          </div>
-          <div class="line" *ngIf="order.voucherCode">
-            <label>Mã voucher hàng</label><strong>{{ order.voucherCode }}</strong>
-          </div>
-          <div class="line" *ngIf="order.shipVoucherCode">
-            <label>Mã voucher ship</label><strong>{{ order.shipVoucherCode }}</strong>
-          </div>
           <div class="line"><label>Ghi chú đơn hàng</label><strong>{{ order.customer.note || 'Không có' }}</strong></div>
           <div class="line total"><label>Thành tiền</label><strong>{{ formatMoney(order.total) }}</strong></div>
         </div>
 
         <div class="card actions">
-          <button class="btn-main" *ngIf="canConfirm()" [disabled]="actionLoading" (click)="setStatus('confirmed')">
+          <button class="btn-main" *ngIf="canConfirm()" [disabled]="actionLoading" (click)="requestSetStatus('confirmed')">
             Xác nhận đơn hàng
           </button>
-          <button class="btn-main" *ngIf="canStartShipping()" [disabled]="actionLoading" (click)="setStatus('shipping')">
+          <button class="btn-main" *ngIf="canStartShipping()" [disabled]="actionLoading" (click)="requestSetStatus('shipping')">
             Bắt đầu giao hàng
           </button>
-          <button class="btn-main" *ngIf="canDeliver()" [disabled]="actionLoading" (click)="setStatus('delivered')">
+          <button class="btn-main" *ngIf="canDeliver()" [disabled]="actionLoading" (click)="requestSetStatus('delivered')">
             Xác nhận đã giao
           </button>
-          <button class="btn-danger" *ngIf="canCancel()" [disabled]="actionLoading" (click)="setStatus('cancelled')">
+
+          <button type="button" class="btn-danger outline" *ngIf="canMarkDeliveryFailed()" [disabled]="actionLoading"
+            (click)="toggleDeliveryFailForm()">
+            {{ showDeliveryFailForm ? 'Đóng' : 'Giao thất bại' }}
+          </button>
+          <div class="delivery-fail-box" *ngIf="showDeliveryFailForm && canMarkDeliveryFailed()">
+            <label>Lý do</label>
+            <select class="df-select" [(ngModel)]="deliveryFailPreset" name="dfPreset">
+              <option value="">— Chọn —</option>
+              <option value="no_contact">Không liên lạc được khách</option>
+              <option value="wrong_address">Sai địa chỉ</option>
+              <option value="customer_refused">Khách từ chối nhận</option>
+              <option value="other">Lý do khác (nhập tay)</option>
+            </select>
+            <textarea *ngIf="deliveryFailPreset === 'other'" class="df-textarea" rows="2"
+              [(ngModel)]="deliveryFailDetail" name="dfDetail" placeholder="Nhập lý do..."></textarea>
+            <button type="button" class="btn-danger" [disabled]="actionLoading" (click)="requestDeliveryFailedConfirm()">
+              Xác nhận giao thất bại
+            </button>
+          </div>
+
+          <button class="btn-main" *ngIf="canRedeliver()" [disabled]="actionLoading" (click)="requestSetStatus('shipping')">
+            Giao lại (còn {{ maxRedeliveryAttempts - (order.redeliveryAttempts || 0) }} lượt)
+          </button>
+          <p class="actions-hint warn" *ngIf="showRedeliveryBlockedByPresetHint">
+            Lý do giao thất bại hiện tại không cho phép giao lại — chỉ có thể hủy đơn.
+          </p>
+          <p class="actions-hint danger" *ngIf="order?.status === 'delivery_failed' && !canRedeliver() && !showRedeliveryBlockedByPresetHint">
+            Đã hết lượt giao lại — chỉ có thể hủy đơn.
+          </p>
+
+          <button class="btn-danger" *ngIf="canCancel()" [disabled]="actionLoading" (click)="requestSetStatus('cancelled')">
             Hủy đơn hàng
           </button>
 
-          <button class="btn-sub" *ngIf="canApproveReturn()" [disabled]="actionLoading" (click)="setReturnStatus('approved')">
+          <button class="btn-sub" *ngIf="canApproveReturn()" [disabled]="actionLoading" (click)="requestReturnStatus('approved')">
             Chấp nhận hoàn hàng
           </button>
-          <button class="btn-danger outline" *ngIf="canRejectReturn()" [disabled]="actionLoading" (click)="setReturnStatus('rejected')">
+          <button class="btn-danger outline" *ngIf="canRejectReturn()" [disabled]="actionLoading" (click)="requestReturnStatus('rejected')">
             Từ chối yêu cầu hoàn
-          </button>
-          <button class="btn-sub" *ngIf="canCompleteReturn()" [disabled]="actionLoading" (click)="setReturnStatus('completed')">
-            Xác nhận đã trả/hoàn xong
           </button>
         </div>
       </section>
     </div>
   </ng-container>
+
+  <!-- Modal xác nhận trước khi đổi trạng thái (tránh bấm nhầm). -->
+  <div class="status-confirm-backdrop" *ngIf="statusConfirmVisible" (click)="closeStatusConfirm()" role="presentation"></div>
+  <div class="status-confirm-dialog" *ngIf="statusConfirmVisible" role="dialog" aria-modal="true" [attr.aria-labelledby]="'status-confirm-title'">
+    <h3 id="status-confirm-title" class="status-confirm-title">{{ confirmModalTitle() }}</h3>
+    <p class="status-confirm-text">{{ confirmModalMessage() }}</p>
+    <div class="status-confirm-reject" *ngIf="showCancelReasonInModal">
+      <label for="cancelReasonDraft">{{ cancelReasonFieldLabel() }}</label>
+      <div class="cancel-quick-row" *ngIf="cancelQuickReasons.length">
+        <span class="cancel-quick-label">Chọn nhanh:</span>
+        <button
+          type="button"
+          class="cancel-quick-chip"
+          *ngFor="let q of cancelQuickReasons"
+          (click)="applyCancelQuickReason(q.text)">
+          {{ q.label }}
+        </button>
+      </div>
+      <textarea
+        id="cancelReasonDraft"
+        class="status-confirm-textarea"
+        rows="3"
+        [(ngModel)]="cancelReasonDraft"
+        (ngModelChange)="confirmModalInlineError = ''"
+        name="cancelReasonDraft"
+        [placeholder]="cancelReasonRequired ? 'Bắt buộc: ghi rõ lý do hủy cho khách xem…' : 'Có thể bổ sung lý do hủy (hiển thị cho khách)…'"></textarea>
+      <p class="status-confirm-field-hint" *ngIf="cancelReasonRequired">Bắt buộc khi hủy đơn chưa bắt đầu giao hàng (tối thiểu 3 ký tự).</p>
+    </div>
+    <div class="status-confirm-reject" *ngIf="showReturnRejectInModal">
+      <label for="returnRejectReason">Lý do từ chối</label>
+      <textarea
+        id="returnRejectReason"
+        class="status-confirm-textarea"
+        rows="3"
+        [(ngModel)]="returnRejectReasonDraft"
+        (ngModelChange)="confirmModalInlineError = ''"
+        name="returnRejectReason"
+        placeholder="Nhập lý do từ chối yêu cầu hoàn…"></textarea>
+    </div>
+    <p class="status-confirm-inline-error" *ngIf="confirmModalInlineError">{{ confirmModalInlineError }}</p>
+    <div class="status-confirm-actions">
+      <button type="button" class="btn-sub status-confirm-cancel" [disabled]="actionLoading" (click)="closeStatusConfirm()">
+        Hủy
+      </button>
+      <button type="button" class="btn-main" [disabled]="actionLoading" (click)="confirmStatusAction()">
+        {{ actionLoading ? 'Đang xử lý…' : 'Xác nhận' }}
+      </button>
+    </div>
+  </div>
 </div>

@@ -21,13 +21,18 @@ export class PromotionForm implements OnInit {
   selectedCatNameForProd: string = '';
   errorMessage: string = '';
 
+  // BIẾN QUAN TRỌNG: Điều khiển chế độ Freeship trên giao diện
+  isFreeshipMode: boolean = false;
+
   formData: any = {
     name: '',
     code: '',
     description: '',
-    type: 'order',
-    status: 'upcoming',
-    discountType: 'percent',
+    groupName: '',
+    isActive: true,
+    type: 'order',      // Khớp Schema: 'order' | 'freeship'
+    status: 'upcoming', // 'upcoming' | 'ongoing' | 'expired'
+    discountType: 'percent', 
     discountValue: 0,
     minOrder: 0,
     maxDiscount: 0,
@@ -36,10 +41,10 @@ export class PromotionForm implements OnInit {
     totalLimit: 100,
     userLimit: 1,
     firstOrderOnly: false,
-    applyScope: 'all',
+    applyScope: 'all',  // 'all' | 'category' | 'product'
     appliedCategoryIds: [],
     appliedProductIds: [],
-    allowedMemberRanks: []   // ← MỚI
+    allowedMemberRanks: [] // Trường mới bà vừa thêm
   };
 
   constructor(private promoService: PromotionService) {}
@@ -48,12 +53,17 @@ export class PromotionForm implements OnInit {
     this.taiDuLieuPhu();
 
     if (this.mode === 'edit' && this.promoData) {
+      // Nhận diện nếu đây là mã Freeship 100% để bật công tắc giao diện
+      if (this.promoData.type === 'freeship' && this.promoData.discountValue === 100) {
+        this.isFreeshipMode = true;
+      }
+
       this.formData = {
         ...this.promoData,
         applyScope: this.promoData.applyScope || 'all',
         appliedCategoryIds: (this.promoData.appliedCategoryIds || []).map((id: any) => id?.$oid || id),
         appliedProductIds:  (this.promoData.appliedProductIds  || []).map((id: any) => id?.$oid || id),
-        allowedMemberRanks: this.promoData.allowedMemberRanks || [],   // ← MỚI
+        allowedMemberRanks: this.promoData.allowedMemberRanks || [],
         startDate: this.dinhDangNgay(this.promoData.startDate),
         endDate:   this.dinhDangNgay(this.promoData.endDate)
       };
@@ -73,8 +83,7 @@ export class PromotionForm implements OnInit {
             this.selectedCatNameForProd = this.categories[0].name;
           }
         }
-      },
-      error: (err) => console.error('Lỗi lấy danh mục:', err)
+      }
     });
 
     this.promoService.layDanhSachSanPham(1000).subscribe({
@@ -84,8 +93,7 @@ export class PromotionForm implements OnInit {
           ...prod,
           _id: prod._id?.$oid || prod._id
         }));
-      },
-      error: (err) => console.error('Lỗi lấy sản phẩm:', err)
+      }
     });
   }
 
@@ -104,11 +112,8 @@ export class PromotionForm implements OnInit {
     const targetList = type === 'category' ? 'appliedCategoryIds' : 'appliedProductIds';
     if (!this.formData[targetList]) this.formData[targetList] = [];
     const index = this.formData[targetList].indexOf(id);
-    if (index > -1) {
-      this.formData[targetList].splice(index, 1);
-    } else {
-      this.formData[targetList].push(id);
-    }
+    if (index > -1) this.formData[targetList].splice(index, 1);
+    else this.formData[targetList].push(id);
   }
 
   isSelected(id: string, type: 'category' | 'product'): boolean {
@@ -116,7 +121,9 @@ export class PromotionForm implements OnInit {
     return this.formData[targetList] ? this.formData[targetList].includes(id) : false;
   }
 
-  // ── MỚI: Toggle hạng thành viên ──
+  /**
+   * Xử lý chọn/bỏ chọn hạng thành viên
+   */
   toggleRank(rank: string): void {
     if (!this.formData.allowedMemberRanks) this.formData.allowedMemberRanks = [];
     const idx = this.formData.allowedMemberRanks.indexOf(rank);
@@ -139,15 +146,20 @@ export class PromotionForm implements OnInit {
     return isNaN(d.getTime()) ? '' : d.toISOString().split('T')[0];
   }
 
+  /**
+   * HÀM LƯU DỮ LIỆU: Đã đồng bộ với Schema mới (freeship)
+   */
   onSave(): void {
-    this.errorMessage = '';
+    this.errorMessage = ''; 
     const f = this.formData;
 
+    // 1. Kiểm tra thông tin bắt buộc
     if (!f.code?.trim() || !f.name?.trim() || !f.startDate || !f.endDate || !f.type || !f.status || !f.discountType || !f.applyScope) {
       this.errorMessage = 'Vui lòng điền đầy đủ các thông tin bắt buộc có dấu (*).';
       return;
     }
 
+    // 2. Kiểm tra logic dữ liệu
     if (f.totalLimit <= 0 || f.userLimit <= 0) {
       this.errorMessage = 'Tổng giới hạn và giới hạn mỗi khách phải lớn hơn 0.';
       return;
@@ -158,36 +170,48 @@ export class PromotionForm implements OnInit {
       return;
     }
 
-    if (f.discountType === 'percent' && f.discountValue > 100) {
-      this.errorMessage = 'Giảm giá theo phần trăm không được vượt quá 100%.';
-      f.discountValue = 100;
-      return;
-    }
-
     if (f.endDate < f.startDate) {
-      this.errorMessage = 'Ngày kết thúc không được diễn ra trước ngày bắt đầu.';
+      this.errorMessage = 'Ngày kết thúc không được nhỏ hơn ngày bắt đầu.';
       return;
     }
 
-    const submitData = { ...this.formData };
+    // 3. Clone dữ liệu để xử lý trung gian
+    let submitData = { ...this.formData };
 
+    // 4. XỬ LÝ LOGIC FREESHIP (Ép kiểu chuẩn theo Schema Backend)
+    if (this.isFreeshipMode) {
+      submitData.type = 'freeship'; // <--- Chỉnh từ 'shipping' sang 'freeship'
+      submitData.discountType = 'percent';
+      submitData.discountValue = 100;
+    }
+
+    // 5. ÉP KIỂU VÀ LÀM SẠCH DỮ LIỆU
+    submitData.discountValue = Number(submitData.discountValue);
+    submitData.minOrder = Number(submitData.minOrder);
+    submitData.maxDiscount = Number(submitData.maxDiscount);
+    submitData.totalLimit = Number(submitData.totalLimit);
+    submitData.userLimit = Number(submitData.userLimit);
+    submitData.code = submitData.code.trim().toUpperCase();
+
+    // 6. Xử lý mảng ID theo phạm vi áp dụng
     if (submitData.applyScope === 'all') {
       submitData.appliedCategoryIds = [];
       submitData.appliedProductIds  = [];
     } else if (submitData.applyScope === 'category') {
       submitData.appliedProductIds = [];
       if (submitData.appliedCategoryIds.length === 0) {
-        this.errorMessage = 'Vui lòng chọn ít nhất một danh mục áp dụng.';
+        this.errorMessage = 'Hãy chọn ít nhất một danh mục áp dụng.';
         return;
       }
     } else if (submitData.applyScope === 'product') {
       submitData.appliedCategoryIds = [];
       if (submitData.appliedProductIds.length === 0) {
-        this.errorMessage = 'Vui lòng chọn ít nhất một sản phẩm áp dụng.';
+        this.errorMessage = 'Hãy chọn ít nhất một sản phẩm áp dụng.';
         return;
       }
     }
 
+    // 7. Gọi API
     const request = this.mode === 'add'
       ? this.promoService.themKhuyenMai(submitData)
       : this.promoService.suaKhuyenMai(submitData._id, submitData);
@@ -198,17 +222,24 @@ export class PromotionForm implements OnInit {
         this.goBack.emit();
       },
       error: (loi: any) => {
-        console.error('Lỗi khi lưu dữ liệu:', loi);
-        this.errorMessage = 'Không thể lưu thay đổi. Vui lòng kiểm tra mã khuyến mãi có bị trùng không hoặc kết nối mạng.';
+        console.error('Lỗi Backend:', loi);
+        if (loi.status === 400) {
+          this.errorMessage = 'Dữ liệu không hợp lệ. Hãy kiểm tra lại mã voucher hoặc các hạng mục bắt buộc.';
+        } else {
+          this.errorMessage = 'Hệ thống đang bận, vui lòng thử lại sau.';
+        }
       }
     });
   }
 
   private datLaiBieuMau(): void {
+    this.isFreeshipMode = false;
     this.formData = {
       name: '',
       code: '',
       description: '',
+      groupName: '',
+      isActive: true,
       type: 'order',
       status: 'upcoming',
       discountType: 'percent',
@@ -223,7 +254,7 @@ export class PromotionForm implements OnInit {
       applyScope: 'all',
       appliedCategoryIds: [],
       appliedProductIds: [],
-      allowedMemberRanks: []   // ← MỚI
+      allowedMemberRanks: []
     };
     this.errorMessage = '';
   }

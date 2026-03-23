@@ -9,7 +9,6 @@
   </button>
 
 <div class="od-page">
-  
 
   <!-- ===== SIDEBAR ===== -->
   <aside class="od-sidebar">
@@ -52,7 +51,6 @@
     <!-- Nội dung đơn hàng -->
     <div *ngIf="!loading && order">
 
-      
       <div class="od-box">
 
         <!-- Header -->
@@ -64,6 +62,19 @@
           <span class="status-badge" [ngClass]="'status-' + order.status">
             {{ getStatusLabel(order.status) }}
           </span>
+        </div>
+
+        <!-- ✅ Giữ lại từ main: hiển thị lý do hủy / giao thất bại -->
+        <div class="od-status-col" *ngIf="order.status === 'cancelled' || order.status === 'delivery_failed'">
+          <p class="od-cancel-reason" *ngIf="order.status === 'cancelled' && order.cancelReason">
+            <span class="od-cancel-actor">{{ getCancelActorLabel(order) }}</span>
+            <span class="od-cancel-reason-label">Lý do hủy</span>
+            <span class="od-cancel-reason-text">{{ order.cancelReason }}</span>
+          </p>
+          <p class="od-cancel-reason" *ngIf="order.status === 'delivery_failed' && order.deliveryFailureReason">
+            <span class="od-cancel-reason-label">Lý do giao thất bại (lần gần nhất)</span>
+            <span class="od-cancel-reason-text">{{ order.deliveryFailureReason }}</span>
+          </p>
         </div>
 
         <!-- Info grid -->

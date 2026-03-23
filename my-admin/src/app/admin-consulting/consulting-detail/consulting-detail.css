@@ -147,7 +147,7 @@
   display: flex; align-items: center; gap: 6px;
 }
 
-/* Badge thống kê đánh giá (Mới bổ sung cho Admin) */
+/* Badge thống kê đánh giá */
 .badge.bg-success.bg-opacity-10 {
   background-color: rgba(46, 125, 50, 0.1) !important;
   color: #2e7d32 !important;
@@ -173,11 +173,11 @@
 }
 .btn-delete-q:hover { background-color: #ff4d4d; color: white; }
 
-/* --- HỆ THỐNG MODAL (CHUYÊN NGHIỆP & CĂN GIỮA) --- */
+/* --- HỆ THỐNG MODAL (TỐI ƯU KHÔNG GIAN) --- */
 .modal-overlay-consult {
   position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-  background: rgba(0,0,0,0.5); 
-  backdrop-filter: blur(8px);
+  background: rgba(0,0,0,0.4); 
+  backdrop-filter: blur(4px);
   display: flex; 
   align-items: center; 
   justify-content: center; 
@@ -186,74 +186,212 @@
 
 .modal-reply {
   background: white; 
-  border-radius: 20px; 
-  width: 600px; 
-  max-width: 90%;
-  box-shadow: 0 25px 70px rgba(0,0,0,0.2); 
-  animation: fadeInScale 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+  border-radius: 12px; 
+  width: 550px; 
+  max-width: 95%;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.15); 
+  animation: fadeInScale 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94); 
   overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 
-/* Header Modal */
+/* Header Modal - Thu nhỏ padding */
 .modal-header { 
-  padding: 20px 30px; 
-  border-bottom: 1px solid #f0f0f0; 
+  padding: 16px 24px; 
+  border-bottom: 1px solid #f1f1f1; 
   display: flex; 
   justify-content: space-between; 
   align-items: center;
   background: #fff;
 }
-.modal-title { font-size: 1.3rem; font-weight: 800; color: #333; margin: 0; }
-.btn-close-modal { background: none; border: none; font-size: 2rem; color: #ccc; cursor: pointer; transition: 0.2s; line-height: 1; }
-.btn-close-modal:hover { color: #ff4d4d; }
+.modal-title { font-size: 1.15rem; font-weight: 700; color: #222; margin: 0; }
+.btn-close-modal { background: none; border: none; font-size: 1.5rem; color: #aaa; cursor: pointer; transition: 0.2s; line-height: 1; }
+.btn-close-modal:hover { color: #d32f2f; }
 
-/* Body Modal */
-.modal-body { padding: 30px; max-height: 75vh; overflow-y: auto; }
-.q-preview-box { background: #f8fcf8; border-left: 4px solid var(--color-primary); padding: 18px; border-radius: 12px; margin-bottom: 25px; }
-.q-label-mini { font-size: 0.75rem; font-weight: 800; color: var(--color-primary); letter-spacing: 1px; margin-bottom: 5px; display: block; }
+/* Body Modal - Thu nhỏ padding */
+.modal-body { padding: 24px; max-height: 80vh; overflow-y: auto; }
 
-.reply-input-group label { display: block; font-weight: 700; color: #444; margin-bottom: 10px; }
+/* Preview box - Tối giản hóa */
+.q-preview-box { 
+  background: #f9f9f9; 
+  border-left: 3px solid var(--color-primary); 
+  padding: 12px 16px; 
+  border-radius: 8px; 
+  margin-bottom: 20px; 
+}
+.q-label-mini { font-size: 0.7rem; font-weight: 700; color: #666; letter-spacing: 0.5px; margin-bottom: 4px; display: block; }
+
+/* Input group */
+.reply-input-group label { display: block; font-size: 0.9rem; font-weight: 600; color: #333; margin-bottom: 8px; }
 .reply-input-group textarea {
-  width: 100%; padding: 15px; border: 1.5px solid #eee; border-radius: 12px;
-  outline: none; font-size: 1rem; background: #fafafa; transition: 0.2s; resize: vertical;
+  width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px;
+  outline: none; font-size: 0.95rem; background: #fff; transition: border-color 0.2s; resize: vertical;
 }
-.reply-input-group textarea:focus { border-color: var(--color-primary); background: white; box-shadow: 0 0 0 4px rgba(54, 135, 58, 0.05); }
+.reply-input-group textarea:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(54, 135, 58, 0.1); }
 
-/* Footer Modal */
-.modal-footer { padding: 20px 30px; background: #fcfdfc; display: flex; justify-content: flex-end; gap: 15px; border-top: 1px solid #f0f0f0; }
-.btn-cancel { padding: 10px 25px; border: 1px solid #ddd; background: white; border-radius: 10px; font-weight: 700; color: #666; cursor: pointer; transition: 0.2s; }
-.btn-cancel:hover { background: #f5f5f5; }
-.btn-send { padding: 10px 30px; background: var(--color-primary); color: white; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; transition: 0.3s; }
-.btn-send:hover:not(:disabled) { background: var(--color-accent); transform: translateY(-2px); }
-.btn-send:disabled { opacity: 0.5; cursor: not-allowed; }
+/* Footer Modal - Thu nhỏ padding */
+.modal-footer { 
+  padding: 16px 24px; 
+  background: #fafafa; 
+  display: flex; 
+  justify-content: flex-end; 
+  gap: 12px; 
+  border-top: 1px solid #f1f1f1; 
+}
+.btn-cancel { padding: 8px 20px; border: 1px solid #ccc; background: white; border-radius: 6px; font-weight: 600; color: #555; cursor: pointer; font-size: 0.9rem; }
+.btn-cancel:hover { background: #eee; }
+.btn-send { padding: 8px 24px; background: var(--color-primary); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.9rem; }
+.btn-send:hover:not(:disabled) { background: var(--color-accent); }
+.btn-send:disabled { opacity: 0.4; cursor: not-allowed; }
 
-/* --- MODAL XÁC NHẬN XÓA (RIÊNG BIỆT) --- */
-.delete-modal { width: 480px !important; }
+/* =====================================================================
+    SYSTEM MODALS — Premium Admin Design (Ultra Modern)
+   ===================================================================== */
+
+.modal-overlay-consult {
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+  background: rgba(15, 23, 42, 0.4); /* Màu xanh đen mờ */
+  backdrop-filter: blur(12px); /* Tăng độ nhòe nền cực sang */
+  display: flex; align-items: center; justify-content: center;
+  z-index: 99999;
+}
+
+.modal-reply {
+  background: #ffffff;
+  border-radius: 20px; /* Bo góc mềm mại hơn */
+  width: 550px; max-width: 95%;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 
+    0 10px 15px -3px rgba(0, 0, 0, 0.05),
+    0 25px 50px -12px rgba(0, 0, 0, 0.15); /* Đổ bóng đa tầng tạo chiều sâu */
+  animation: modalBounce 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  overflow: hidden;
+}
+
+/* --- MODAL XÁC NHẬN XÓA (PREMIUM RED THEME) --- */
+.delete-modal { 
+  width: 460px !important; 
+  border-top: 6px solid #ef4444; /* Tạo điểm nhấn màu đỏ ở đỉnh */
+}
+
+.alert-light.border {
+  background-color: #fef2f2; /* Nền đỏ cực nhạt */
+  border: 1px dashed #fca5a5 !important; /* Viền đứt nét tinh tế */
+  border-radius: 12px;
+  padding: 16px;
+  margin: 15px 0;
+}
+
+/* Styling cho Select box - Chỉnh lại cho hiện đại */
+.form-select.form-select-sm {
+  border-radius: 10px;
+  border: 1.5px solid #e2e8f0;
+  padding: 10px 15px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #334155;
+  background-color: #f8fafc;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1.25rem;
+}
+
+.form-select:focus {
+  border-color: #ef4444;
+  background-color: #fff;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+}
+
 .btn-danger-confirm { 
-  background: #dc3545 !important; 
-  color: white !important; 
-  border: none !important; 
-  padding: 10px 25px; 
-  border-radius: 10px; 
-  font-weight: 700; 
-  cursor: pointer; 
-  transition: 0.3s;
+  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%) !important;
+  color: white !important;
+  border: none !important;
+  padding: 12px 28px;
+  border-radius: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(185, 28, 28, 0.2);
 }
-.btn-danger-confirm:hover { background: #bb2d3b !important; transform: translateY(-2px); }
+.btn-danger-confirm:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(185, 28, 28, 0.3);
+}
 
-/* --- MODAL THÀNH CÔNG --- */
-.modal-success { background: white; border-radius: 25px; width: 400px; padding: 45px 30px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
-.success-icon { width: 75px; height: 75px; background: #e8f5e9; color: #2e7d32; font-size: 3rem; display: flex; align-items: center; justify-content: center; border-radius: 50%; margin: 0 auto 20px; }
-.btn-ok { width: 100%; padding: 12px; background: var(--color-primary); color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; transition: 0.3s; }
-.btn-ok:hover { background: #235926; }
+/* --- MODAL THÀNH CÔNG (ELEGANT GREEN) --- */
+.modal-success { 
+  background: #ffffff;
+  border-radius: 24px;
+  width: 380px;
+  padding: 40px 30px;
+  text-align: center;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+  animation: modalBounce 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
 
+.success-icon { 
+  width: 80px; height: 80px;
+  background: #f0fdf4; /* Màu xanh bạc hà cực nhạt */
+  color: #16a34a;
+  font-size: 2.5rem;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; margin: 0 auto 24px;
+  border: 4px solid #dcfce7;
+  animation: pulseGreen 2s infinite;
+}
+
+.btn-ok { 
+  width: 100%; padding: 14px;
+  background: #1e293b; /* Màu xanh than đậm cực sang */
+  color: white;
+  border: none; border-radius: 14px;
+  font-weight: 700; cursor: pointer;
+  transition: all 0.3s ease;
+}
+.btn-ok:hover {
+  background: #0f172a;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* --- KEYFRAMES --- */
+@keyframes modalBounce {
+  from { opacity: 0; transform: scale(0.9) translateY(20px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes pulseGreen {
+  0% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.2); }
+  70% { box-shadow: 0 0 0 15px rgba(22, 163, 74, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+}
+
+/* Các Button chung (Quay lại, Hủy) */
+.btn-cancel {
+  padding: 12px 24px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  color: #64748b;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+.btn-cancel:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
 /* --- UTILS & HIỆU ỨNG --- */
 .text-total { color: var(--color-accent) !important; }
 .text-warning { color: #f39c12 !important; }
 .text-success { color: var(--color-primary) !important; }
 
 @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes fadeInScale { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+@keyframes fadeInScale { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }

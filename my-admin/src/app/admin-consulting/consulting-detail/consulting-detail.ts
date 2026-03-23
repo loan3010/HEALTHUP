@@ -1,4 +1,14 @@
-import { Component, Input, Output, EventEmitter, OnInit, ChangeDetectorRef, HostListener } from '@angular/core';
+import {
+  Component,
+  Input,
+  Output,
+  EventEmitter,
+  OnInit,
+  OnChanges,
+  SimpleChanges,
+  ChangeDetectorRef,
+  HostListener,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../services/api.service';
@@ -30,9 +40,20 @@ export class ConsultingDetail implements OnInit {
   activeQuestion: any = null;
   replyText: string = '';
 
-  // Trạng thái điều khiển Modal Xác nhận xóa
+  // --- LOGIC XÓA KÈM LÝ DO ---
   isDeleteModalOpen = false;
-  pendingDeleteId: string = '';
+  pendingDeleteQuestion: any = null; // Lưu nguyên object để lấy userId và nội dung
+  selectedDeleteReason: string = ''; // Lý do Admin chọn
+  
+  // Danh sách các nhãn lý do xóa có sẵn
+  readonly deleteReasons = [
+    'Ngôn từ thô tục / Không phù hợp',
+    'Nội dung Spam / Quảng cáo',
+    'Hỏi không liên quan đến sản phẩm',
+    'Vi phạm chính sách bảo mật (SĐT, địa chỉ...)',
+    'Câu hỏi trùng lặp / Đã có câu trả lời',
+    'Nội dung sai lệch về y khoa'
+  ];
 
   // Thống kê chỉ số tư vấn cho sản phẩm
   stats = {
@@ -69,6 +90,20 @@ export class ConsultingDetail implements OnInit {
   }
 
   /**
+   * Khi admin mở sản phẩm khác từ chuông thông báo (cùng tab chi tiết) — tải lại câu hỏi.
+   */
+  ngOnChanges(changes: SimpleChanges): void {
+    const p = changes['product'];
+    if (!p || p.isFirstChange()) return;
+    const prevId = p.previousValue?._id != null ? String(p.previousValue._id) : '';
+    const curId = p.currentValue?._id != null ? String(p.currentValue._id) : '';
+    if (curId && curId !== prevId) {
+      this.searchText = '';
+      this.loadQuestions();
+    }
+  }
+
+  /**
    * Xử lý đóng các menu lựa chọn khi người dùng nhấn ngoài vùng tương tác
    */
   @HostListener('document:click', ['$event'])
@@ -85,8 +120,6 @@ export class ConsultingDetail implements OnInit {
     this.isLoading = true;
     this.api.getConsultingQuestions(this.product._id, { filter: 'all' }).subscribe({
       next: (res: any) => {
-        // Chuẩn hóa định dạng thời gian cho câu hỏi và phản hồi của quản trị viên
-        // Đồng thời ánh xạ thêm 2 trường đánh giá (Like/Dislike)
         this.questions = (res.questions || []).map((q: any) => ({
           ...q,
           time: q.createdAt ? new Date(q.createdAt).toLocaleString('vi-VN') : 'N/A',
@@ -96,7 +129,7 @@ export class ConsultingDetail implements OnInit {
         }));
         
         this.stats = res.stats || { total: 0, pending: 0, answered: 0 };
-        this.applyFilters(); // Cập nhật danh sách hiển thị
+        this.applyFilters(); 
         this.isLoading = false;
         this.cdr.detectChanges();
       },
@@ -114,7 +147,6 @@ export class ConsultingDetail implements OnInit {
   applyFilters(): void {
     let temp = [...this.questions];
 
-    // 1. Lọc dữ liệu theo từ khóa (Nội dung câu hỏi hoặc tên khách hàng)
     const term = this.searchText.toLowerCase().trim();
     if (term) {
       temp = temp.filter(q => 
@@ -123,7 +155,6 @@ export class ConsultingDetail implements OnInit {
       );
     }
 
-    // 2. Sắp xếp danh sách theo tiêu chí thời gian được chọn
     temp.sort((a, b) => {
       const dateA = new Date(a.createdAt).getTime();
       const dateB = new Date(b.createdAt).getTime();
@@ -154,17 +185,16 @@ export class ConsultingDetail implements OnInit {
   }
 
   /**
-   * Xác nhận và gửi nội dung phản hồi kèm thông tin người trả lời về hệ thống máy chủ
+   * Xác nhận và gửi nội dung phản hồi
    */
   confirmReply(): void {
     if (!this.replyText.trim() || !this.activeQuestion) return;
 
-    // Truyền this.currentAdminName để lấy linh động tên Admin
     this.api.replyConsultingQuestion(this.activeQuestion._id, this.replyText.trim(), this.currentAdminName).subscribe({
       next: (res: any) => {
         this.isModalOpen = false;
         this.isSuccessModalOpen = true;
-        this.loadQuestions(); // Đồng bộ lại toàn bộ danh sách để cập nhật thông tin mới nhất
+        this.loadQuestions(); 
       },
       error: (err: any) => {
         console.error('Lỗi xử lý gửi phản hồi:', err);
@@ -174,30 +204,37 @@ export class ConsultingDetail implements OnInit {
   }
 
   /**
-   * Mở Modal xác nhận xóa và lưu giữ định danh câu hỏi cần xử lý
+   * Mở Modal xác nhận xóa kèm chọn lý do
    */
-  openDeleteModal(id: string): void {
-    if (!id) return;
-    this.pendingDeleteId = id;
+  openDeleteModal(question: any): void {
+    if (!question) return;
+    this.pendingDeleteQuestion = question;
+    this.selectedDeleteReason = this.deleteReasons[0]; // Mặc định chọn lý do đầu tiên
     this.isDeleteModalOpen = true;
     this.cdr.detectChanges();
   }
 
   /**
-   * Thực hiện lệnh xóa vĩnh viễn dữ liệu câu hỏi sau khi có xác nhận cuối cùng
+   * Thực hiện lệnh xóa vĩnh viễn và gửi thông báo lý do cho khách hàng
    */
   confirmDelete(): void {
-    if (!this.pendingDeleteId) {
-      console.warn('Yêu cầu không hợp lệ: Không tìm thấy ID dữ liệu.');
-      return;
-    }
+    if (!this.pendingDeleteQuestion) return;
 
-    this.api.deleteConsultingQuestion(this.pendingDeleteId).subscribe({
+    // CẬP NHẬT: Thêm productId vào payload để gửi sang API
+    const payload = {
+      questionId: this.pendingDeleteQuestion._id,
+      userId: this.pendingDeleteQuestion.userId, 
+      productName: this.product.name || 'Sản phẩm',
+      reason: this.selectedDeleteReason,
+      productId: this.product._id // <--- TRƯỜNG QUAN TRỌNG NHẤT ĐỂ CHUYỂN TRANG
+    };
+
+    this.api.deleteConsultingQuestion(payload).subscribe({
       next: (res: any) => {
         this.isDeleteModalOpen = false;
-        this.pendingDeleteId = '';
-        this.api.showToast('Đã xóa dữ liệu thành công.', 'success');
-        this.loadQuestions(); // Cập nhật lại chỉ số thống kê và danh sách câu hỏi
+        this.pendingDeleteQuestion = null;
+        this.api.showToast('Đã xóa câu hỏi và gửi thông báo cho khách!', 'success');
+        this.loadQuestions(); 
       },
       error: (err: any) => {
         console.error('Lỗi khi thực hiện xóa dữ liệu:', err);
@@ -215,7 +252,8 @@ export class ConsultingDetail implements OnInit {
     this.isDeleteModalOpen = false;
     this.activeQuestion = null;
     this.replyText = '';
-    this.pendingDeleteId = '';
+    this.pendingDeleteQuestion = null;
+    this.selectedDeleteReason = '';
     this.cdr.detectChanges();
   }
 }

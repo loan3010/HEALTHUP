@@ -115,12 +115,22 @@ export class OrderDetail implements OnInit {
       pending:         'Chờ xác nhận',
       confirmed:       'Chờ giao hàng',
       shipping:        'Đang giao',
+      delivery_failed: 'Giao thất bại',
       delivered:       'Đã giao',
       cancelled:       'Đã hủy',
       pending_payment: 'Chờ thanh toán',
       paid:            'Đã thanh toán',
     };
     return map[status] || status;
+  }
+
+  /** Nhãn nguồn hủy để khách biết đơn do ai thực hiện hủy. */
+  getCancelActorLabel(order: any): string {
+    const by = String(order?.cancelledByType || '').toLowerCase();
+    if (by === 'customer') return 'Bạn đã hủy đơn này';
+    if (by === 'admin') return 'Shop đã hủy đơn này';
+    if (by === 'system') return 'Hệ thống đã hủy đơn này';
+    return 'Đơn đã bị hủy';
   }
 
   getPaymentLabel(method: string): string {

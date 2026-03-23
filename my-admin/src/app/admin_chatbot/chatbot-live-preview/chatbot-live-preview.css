@@ -230,8 +230,14 @@
 }
 
 .a-body { display: flex; flex-direction: column; gap: 6px; }
-.a-row { display: flex; justify-content: space-between; font-size: 0.75rem; }
-.a-row span { color: #888; }
+.a-row { 
+  display: flex; 
+  justify-content: space-between; 
+  font-size: 0.75rem; 
+  gap: 10px; /* Thêm khoảng cách nhẹ cho các dòng dài như Keywords */
+}
+.a-row span { color: #888; flex-shrink: 0; }
+.a-row strong { text-align: right; word-break: break-word; } /* Đảm bảo từ khóa dài không bị tràn */
 .text-success { color: #2e7d32 !important; font-weight: 800; }
 .text-accent { color: #36873A !important; font-weight: 700; }
 

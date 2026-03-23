@@ -12,10 +12,18 @@ export class AdminSidebar {
   @Input() isOpen: boolean = true;
   @Output() tabChange = new EventEmitter<string>();
 
-  activeTab: string = 'khuyen-mai';
+  activeTab: string = 'tong-quan';
 
   setActiveTab(tabName: string) {
     this.activeTab = tabName;
     this.tabChange.emit(tabName);
+  }
+
+  /**
+   * Đồng bộ highlight sidebar khi đổi tab từ code (vd. thông báo mở đơn hàng).
+   * Không emit tabChange — tránh vòng lặp với parent.
+   */
+  setActiveTabSilent(tabName: string): void {
+    this.activeTab = tabName;
   }
 }

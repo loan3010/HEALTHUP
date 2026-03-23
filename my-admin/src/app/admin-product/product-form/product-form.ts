@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -14,6 +14,7 @@ import {
   FIXED_VARIANT_PRESETS,
   emptyFixedClassificationSlots
 } from '../fixed-variant-presets';
+import { AdminAlertModalService } from '../../admin-alert-modal/admin-alert-modal.service';
 
 @Component({
   selector: 'app-product-form',
@@ -22,9 +23,10 @@ import {
   templateUrl: './product-form.html',
   styleUrls: ['./product-form.css']
 })
-export class ProductFormComponent implements OnInit {
+export class ProductFormComponent implements OnInit, OnChanges {
   readonly staticBase = ADMIN_STATIC_BASE;
   readonly maxSlots = MAX_CLASSIFICATION_SLOTS;
+  readonly maxGalleryImages = 5;
   /** preset meta — dùng template (icon, hint). */
   readonly fixedPresets = FIXED_VARIANT_PRESETS;
 
@@ -37,8 +39,6 @@ export class ProductFormComponent implements OnInit {
   formData: Product = this.emptyForm();
   isEditMode = false;
   isSaving = false;
-  showNewCategoryInput = false;
-  newCategory = '';
   categoryOptions: string[] = [];
   variants: ProductVariant[] = [];
   nutritions: ProductNutrition[] = [];
@@ -53,7 +53,8 @@ export class ProductFormComponent implements OnInit {
 
   constructor(
     private productService: ProductService,
-    private http: HttpClient
+    private http: HttpClient,
+    private adminAlert: AdminAlertModalService
   ) {}
 
   ngOnInit(): void {
@@ -82,11 +83,22 @@ export class ProductFormComponent implements OnInit {
     this.formData.isOutOfStock = !!this.formData.isOutOfStock;
   }
 
+  /** Cha tải lại danh mục (async) — luôn đồng bộ dropdown. */
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['categories']) {
+      this.setupCategoryOptions();
+    }
+  }
+
   emptyForm(): Product {
     return {
       sku: '',
       name: '',
       cat: '',
+      // Chỉ hiển thị trên form — backend tự cập nhật khi có đơn / review.
+      sold: 0,
+      rating: 0,
+      reviewCount: 0,
       price: 0,
       oldPrice: 0,
       stock: 0,
@@ -112,22 +124,26 @@ export class ProductFormComponent implements OnInit {
     this.normalizeBeforeSave();
     const rowErr = this.validateVariantRowsBeforeSubmit();
     if (rowErr) {
-      alert(rowErr);
+      this.adminAlert.show({ title: 'Kiểm tra biến thể', message: rowErr, isError: true });
       return;
     }
     const roleErr = this.validateSlotRolesClient();
     if (roleErr) {
-      alert(roleErr);
+      this.adminAlert.show({ title: 'Phân loại', message: roleErr, isError: true });
       return;
     }
     const qErr = this.validateVariantQuantityKindForForm();
     if (qErr) {
-      alert(qErr);
+      this.adminAlert.show({ title: 'Số lượng / đơn vị', message: qErr, isError: true });
       return;
     }
     const usingVariants = this.variants.length > 0;
     if (!this.formData.name || !this.formData.cat || (!usingVariants && !this.formData.price)) {
-      alert('Vui lòng điền đầy đủ các trường bắt buộc!');
+      this.adminAlert.show({
+        title: 'Thiếu thông tin',
+        message: 'Vui lòng điền đầy đủ các trường bắt buộc.',
+        isError: true,
+      });
       return;
     }
     this.isSaving = true;
@@ -141,7 +157,9 @@ export class ProductFormComponent implements OnInit {
           console.error(err);
           this.isSaving = false;
           const msg = err?.error?.message || err?.error?.error;
-          if (msg) alert(String(msg));
+          if (msg) {
+            this.adminAlert.show({ title: 'Lỗi lưu', message: String(msg), isError: true });
+          }
         }
       });
     } else {
@@ -154,42 +172,42 @@ export class ProductFormComponent implements OnInit {
           console.error(err);
           this.isSaving = false;
           const msg = err?.error?.message || err?.error?.error;
-          if (msg) alert(String(msg));
+          if (msg) {
+            this.adminAlert.show({ title: 'Lỗi lưu', message: String(msg), isError: true });
+          }
         }
       });
     }
   }
 
+  /** Số đã bán — chỉ đọc, đồng bộ từ server / đơn hàng. */
+  displayStatSold(): string {
+    const n = Number(this.formData.sold ?? 0);
+    return Number.isFinite(n) ? String(Math.max(0, Math.floor(n))) : '0';
+  }
+
+  /** Điểm TB đánh giá — chỉ đọc, API review cập nhật. */
+  displayStatRating(): string {
+    const r = Number(this.formData.rating ?? 0);
+    if (!Number.isFinite(r) || r <= 0) return '0';
+    return r.toFixed(1);
+  }
+
+  /** Số lượt đánh giá — chỉ đọc. */
+  displayStatReviewCount(): string {
+    const n = Number(this.formData.reviewCount ?? 0);
+    return Number.isFinite(n) ? String(Math.max(0, Math.floor(n))) : '0';
+  }
+
+  /**
+   * Dropdown: chỉ danh mục active từ API.
+   * Nếu SP đang có `cat` thuộc DM đã vô hiệu — vẫn hiện một dòng để không mất dữ liệu khi lưu.
+   */
   setupCategoryOptions(): void {
     const fromParent = (this.categories || []).map((c) => String(c || '').trim()).filter(Boolean);
     const fromProduct = String(this.formData.cat || '').trim();
-    const merged = [...fromParent, ...(fromProduct ? [fromProduct] : [])];
+    const merged = [...fromParent, ...(fromProduct && !fromParent.includes(fromProduct) ? [fromProduct] : [])];
     this.categoryOptions = Array.from(new Set(merged));
-  }
-
-  onCategorySelectionChange(): void {
-    if (this.formData.cat === '__new__') {
-      this.showNewCategoryInput = true;
-      this.newCategory = '';
-      return;
-    }
-    this.showNewCategoryInput = false;
-  }
-
-  addNewCategory(): void {
-    const cat = String(this.newCategory || '').trim();
-    if (!cat) return;
-    if (!this.categoryOptions.includes(cat)) this.categoryOptions.push(cat);
-    this.formData.cat = cat;
-    this.showNewCategoryInput = false;
-    this.newCategory = '';
-  }
-
-  cancelNewCategory(): void {
-    this.showNewCategoryInput = false;
-    if (this.formData.cat === '__new__') {
-      this.formData.cat = this.product?.cat || '';
-    }
   }
 
   /** Toggle “Hiển thị trên shop” — lưu `isHidden` trong Mongo. */
@@ -1033,9 +1051,43 @@ export class ProductFormComponent implements OnInit {
 
   imagePreview: string[] = [];
 
+  /**
+   * Sau khi đóng hộp thoại chọn file (Chọn hoặc Hủy), Chrome/Windows đôi khi bắn thêm một click "ma"
+   * trúng nút Quay lại / HỦY ở component cha → vô tình đóng form. Giữ cờ ngắn để cha bỏ qua đóng editor.
+   */
+  private filePickerGhostGuardUntil = 0;
+
+  /** Gọi từ (cancel) trên input file, hoặc ngay kể từ (change) sau khi hộp thoại đã đóng. */
+  onNativeFilePickerDismissed(): void {
+    this.filePickerGhostGuardUntil = Date.now() + 480;
+  }
+
+  /** Cha (trang danh sách + editor) gọi trước khi đóng editor — tránh nuốt click thật của user sau guard. */
+  isFilePickerGhostGuardActive(): boolean {
+    return Date.now() < this.filePickerGhostGuardUntil;
+  }
+
   onImageSelect(event: any): void {
-    const file = event.target.files[0];
-    if (!file) return;
+    const input = event.target as HTMLInputElement;
+    const file = input?.files?.[0];
+    // Một số trình duyệt vẫn fire change khi user hủy (danh sách file rỗng).
+    if (!file) {
+      this.onNativeFilePickerDismissed();
+      input.value = '';
+      return;
+    }
+
+    this.onNativeFilePickerDismissed();
+
+    if ((this.formData.images?.length || 0) >= this.maxGalleryImages) {
+      this.adminAlert.show({
+        title: 'Giới hạn ảnh',
+        message: `Chỉ được tối đa ${this.maxGalleryImages} ảnh chung cho sản phẩm.`,
+        isError: true
+      });
+      input.value = '';
+      return;
+    }
 
     const formData = new FormData();
     formData.append('image', file);
@@ -1045,9 +1097,14 @@ export class ProductFormComponent implements OnInit {
         if (!this.formData.images) this.formData.images = [];
         this.formData.images.push(res.url);
         this.imagePreview.push(this.staticBase + res.url);
+        input.value = '';
       },
       error: (err) => console.error(err)
     });
+  }
+
+  canAddGalleryImage(): boolean {
+    return (this.formData.images?.length || 0) < this.maxGalleryImages;
   }
 
   removeImage(index: number): void {
@@ -1056,16 +1113,32 @@ export class ProductFormComponent implements OnInit {
   }
 
   onVariantImageSelect(index: number, event: any): void {
-    const file = event?.target?.files?.[0];
-    if (!file || !this.variants[index]) return;
+    const input = event?.target as HTMLInputElement | undefined;
+    const file = input?.files?.[0];
+    if (!file || !this.variants[index]) {
+      if (!file && input) {
+        this.onNativeFilePickerDismissed();
+        input.value = '';
+      }
+      return;
+    }
+
+    this.onNativeFilePickerDismissed();
+
     const fd = new FormData();
     fd.append('image', file);
     this.http.post<{ url: string }>(`${ADMIN_API_BASE}/products/upload-image`, fd).subscribe({
       next: (res) => {
         this.variants[index].image = res.url;
+        if (input) input.value = '';
       },
       error: (err) => console.error(err)
     });
+  }
+
+  removeVariantImage(index: number): void {
+    if (!this.variants[index]) return;
+    this.variants[index].image = '';
   }
 
   variantImagePreview(v: ProductVariant): string {

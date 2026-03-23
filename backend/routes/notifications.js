@@ -4,6 +4,11 @@ const jwt = require('jsonwebtoken');
 const router = express.Router();
 const Notification = require('../models/Notification');
 
+/** Phải trùng auth.js / consulting — nếu thiếu env, verify không lỗi. */
+function jwtSecret() {
+  return process.env.JWT_SECRET || 'secret_key';
+}
+
 function getUserId(req) {
   const fromHeader = req.header('x-user-id');
   if (fromHeader) return fromHeader;
@@ -14,9 +19,12 @@ function getUserId(req) {
   if (auth.startsWith('Bearer ')) {
     try {
       const token = auth.slice(7);
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      return decoded._id || decoded.id || decoded.userId;
-    } catch { return null; }
+      const decoded = jwt.verify(token, jwtSecret());
+      const uid = decoded._id || decoded.id || decoded.userId;
+      return uid != null ? String(uid) : null;
+    } catch {
+      return null;
+    }
   }
 
   return null;
@@ -40,18 +48,23 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST — tạo thông báo mới
+// POST — tạo thông báo mới (CẬP NHẬT: Thêm orderId và productId)
 router.post('/', async (req, res) => {
   try {
-    const { userId, type, title, message, link, icon } = req.body;
+    const { userId, type, title, message, link, icon, orderId, productId } = req.body;
 
     if (!userId || !mongoose.Types.ObjectId.isValid(userId))
       return res.status(400).json({ message: 'userId invalid' });
 
     const noti = await Notification.create({
-      userId, type, title, message,
+      userId, 
+      type: type || 'order', 
+      title, 
+      message,
       link: link || '',
       icon: icon || '🔔',
+      orderId: orderId || null,
+      productId: productId || null
     });
 
     res.status(201).json(noti);
