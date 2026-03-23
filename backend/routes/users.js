@@ -1,6 +1,8 @@
 const router = require('express').Router();
 const bcrypt = require('bcrypt');
-const User = require('../models/User');
+const mongoose = require('mongoose');
+const User  = require('../models/User');
+const Order = require('../models/Order');
 const { authenticateToken } = require('../middleware/auth');
 
 // ─────────────────────────────────────────
@@ -8,7 +10,6 @@ const { authenticateToken } = require('../middleware/auth');
 // ─────────────────────────────────────────
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
-    // Chỉ cho phép user xem chính mình (hoặc admin)
     if (req.user.userId !== req.params.id && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Không có quyền truy cập' });
     }
@@ -16,15 +17,35 @@ router.get('/:id', authenticateToken, async (req, res) => {
     const user = await User.findById(req.params.id).select('-passwordHash').lean();
     if (!user) return res.status(404).json({ message: 'Không tìm thấy user' });
 
+    // Tính lại totalSpent từ lịch sử đơn delivered (tránh lỗi dữ liệu cũ)
+    const agg = await Order.aggregate([
+      {
+        $match: {
+          userId: new mongoose.Types.ObjectId(String(req.params.id)),
+          status: 'delivered'
+        }
+      },
+      { $group: { _id: null, total: { $sum: '$total' } } }
+    ]);
+    const totalSpent = agg[0]?.total || 0;
+    const memberRank = totalSpent >= 5_000_000 ? 'vip' : 'member';
+
+    // Cập nhật lại DB nếu lệch (chạy ngầm, không block response)
+    if (totalSpent !== (user.totalSpent || 0) || memberRank !== (user.memberRank || 'member')) {
+      User.findByIdAndUpdate(req.params.id, { totalSpent, memberRank }).catch(() => {});
+    }
+
     res.json({
-      id:       String(user._id),
-      username: user.username,
-      phone:    user.phone,
-      email:    user.email || '',
-      dob:      user.dob || '',
-      gender:   user.gender || 'male',
-      address:  user.address || '',
-      role:     user.role,
+      id:         String(user._id),
+      username:   user.username,
+      phone:      user.phone,
+      email:      user.email || '',
+      dob:        user.dob || '',
+      gender:     user.gender || 'male',
+      address:    user.address || '',
+      role:       user.role,
+      memberRank,
+      totalSpent,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -36,32 +57,22 @@ router.get('/:id', authenticateToken, async (req, res) => {
 // ─────────────────────────────────────────────────
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
-    // Chỉ cho phép user sửa chính mình (hoặc admin)
     if (req.user.userId !== req.params.id && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Không có quyền chỉnh sửa' });
     }
 
     const { username, email, phone, dob, gender, address } = req.body;
 
-    // Kiểm tra username trùng (nếu đổi)
     if (username) {
-      const exists = await User.findOne({
-        username,
-        _id: { $ne: req.params.id }
-      });
+      const exists = await User.findOne({ username, _id: { $ne: req.params.id } });
       if (exists) return res.status(409).json({ message: 'Tên tài khoản đã tồn tại' });
     }
 
-    // Kiểm tra email trùng (nếu đổi)
     if (email) {
-      const exists = await User.findOne({
-        email: email.toLowerCase(),
-        _id: { $ne: req.params.id }
-      });
+      const exists = await User.findOne({ email: email.toLowerCase(), _id: { $ne: req.params.id } });
       if (exists) return res.status(409).json({ message: 'Email đã tồn tại' });
     }
 
-    // Chỉ update các field được phép — không cho đổi password/role ở đây
     const updateData = {};
     if (username !== undefined) updateData.username = username.trim();
     if (email     !== undefined) updateData.email    = email.trim().toLowerCase();
@@ -79,7 +90,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
     if (!updated) return res.status(404).json({ message: 'Không tìm thấy user' });
 
     res.json({
-      message:  'Cập nhật thành công',
+      message: 'Cập nhật thành công',
       user: {
         id:       String(updated._id),
         username: updated.username,
@@ -102,7 +113,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────
-// PUT /api/users/:id/change-password  →  Đổi mật khẩu
+// PUT /api/users/:id/change-password
 // ─────────────────────────────────────────────────
 router.put('/:id/change-password', authenticateToken, async (req, res) => {
   try {
@@ -130,11 +141,8 @@ router.put('/:id/change-password', authenticateToken, async (req, res) => {
   }
 });
 
-module.exports = router;
-
-
 // ─────────────────────────────────────────────────────
-// GET /api/users/:id/wishlist  →  Lấy danh sách yêu thích
+// GET /api/users/:id/wishlist
 // ─────────────────────────────────────────────────────
 router.get('/:id/wishlist', authenticateToken, async (req, res) => {
   try {
@@ -155,7 +163,7 @@ router.get('/:id/wishlist', authenticateToken, async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────
-// POST /api/users/:id/wishlist  →  Thêm sản phẩm yêu thích
+// POST /api/users/:id/wishlist
 // ─────────────────────────────────────────────────────
 router.post('/:id/wishlist', authenticateToken, async (req, res) => {
   try {
@@ -166,7 +174,6 @@ router.post('/:id/wishlist', authenticateToken, async (req, res) => {
     const { productId } = req.body;
     if (!productId) return res.status(400).json({ message: 'Thiếu productId' });
 
-    // $addToSet: không thêm trùng
     await User.findByIdAndUpdate(
       req.params.id,
       { $addToSet: { wishlist: productId } }
@@ -179,7 +186,7 @@ router.post('/:id/wishlist', authenticateToken, async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────
-// DELETE /api/users/:id/wishlist/:productId  →  Xóa khỏi yêu thích
+// DELETE /api/users/:id/wishlist/:productId
 // ─────────────────────────────────────────────────────
 router.delete('/:id/wishlist/:productId', authenticateToken, async (req, res) => {
   try {
@@ -199,7 +206,7 @@ router.delete('/:id/wishlist/:productId', authenticateToken, async (req, res) =>
 });
 
 // ═══════════════════════════════════════════════════════
-// ADDRESS ROUTES — lưu trong User.addresses (giống wishlist)
+// ADDRESS ROUTES
 // ═══════════════════════════════════════════════════════
 
 // GET /api/users/:id/addresses
@@ -216,7 +223,7 @@ router.get('/:id/addresses', authenticateToken, async (req, res) => {
   }
 });
 
-// POST /api/users/:id/addresses — thêm địa chỉ mới
+// POST /api/users/:id/addresses
 router.post('/:id/addresses', authenticateToken, async (req, res) => {
   try {
     if (req.user.userId !== req.params.id) {
@@ -230,14 +237,11 @@ router.post('/:id/addresses', authenticateToken, async (req, res) => {
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: 'Không tìm thấy user' });
 
-    // Nếu set default → bỏ default các cái cũ
     if (isDefault) {
       user.addresses.forEach(a => a.isDefault = false);
     }
 
-    // Nếu chưa có địa chỉ nào → tự động set default
     const autoDefault = isDefault || user.addresses.length === 0;
-
     user.addresses.push({ name, phone, address, isDefault: autoDefault });
     await user.save();
 
@@ -248,7 +252,7 @@ router.post('/:id/addresses', authenticateToken, async (req, res) => {
   }
 });
 
-// PUT /api/users/:id/addresses/:addrId — cập nhật địa chỉ
+// PUT /api/users/:id/addresses/:addrId
 router.put('/:id/addresses/:addrId', authenticateToken, async (req, res) => {
   try {
     if (req.user.userId !== req.params.id) {
@@ -276,7 +280,7 @@ router.put('/:id/addresses/:addrId', authenticateToken, async (req, res) => {
   }
 });
 
-// DELETE /api/users/:id/addresses/:addrId — xóa địa chỉ
+// DELETE /api/users/:id/addresses/:addrId
 router.delete('/:id/addresses/:addrId', authenticateToken, async (req, res) => {
   try {
     if (req.user.userId !== req.params.id) {
@@ -289,7 +293,6 @@ router.delete('/:id/addresses/:addrId', authenticateToken, async (req, res) => {
       a => a._id.toString() !== req.params.addrId
     );
 
-    // Nếu xóa hết hoặc xóa mất default → set default cho cái đầu tiên
     if (user.addresses.length > 0 && !user.addresses.some(a => a.isDefault)) {
       user.addresses[0].isDefault = true;
     }
@@ -301,7 +304,7 @@ router.delete('/:id/addresses/:addrId', authenticateToken, async (req, res) => {
   }
 });
 
-// PUT /api/users/:id/addresses/:addrId/set-default — đặt mặc định
+// PUT /api/users/:id/addresses/:addrId/set-default
 router.put('/:id/addresses/:addrId/set-default', authenticateToken, async (req, res) => {
   try {
     if (req.user.userId !== req.params.id) {

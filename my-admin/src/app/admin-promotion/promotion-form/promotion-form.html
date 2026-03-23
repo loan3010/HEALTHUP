@@ -24,7 +24,7 @@
         <label>Loại khuyến mãi <span class="required">*</span></label>
         <select [(ngModel)]="formData.type">
           <option value="order">Tiền hàng</option>
-          <option value="freeship">Phí vận chuyển</option>
+          <option value="shipping">Phí vận chuyển</option>
         </select>
       </div>
       <div class="form-group">
@@ -43,13 +43,13 @@
           <option value="fixed">Số tiền cố định (đ)</option>
         </select>
       </div>
-      
+
       <div class="form-group">
         <label>Giá trị giảm <span class="required">*</span></label>
         <div class="input-with-suffix">
-          <input type="number" 
-                 [(ngModel)]="formData.discountValue" 
-                 [min]="0" 
+          <input type="number"
+                 [(ngModel)]="formData.discountValue"
+                 [min]="0"
                  [max]="formData.discountType === 'percent' ? 100 : null"
                  placeholder="0">
           <span class="suffix">{{ formData.discountType === 'percent' ? '%' : 'đ' }}</span>
@@ -60,10 +60,10 @@
         <label>Giá trị đơn hàng tối thiểu (đ)</label>
         <input type="number" [(ngModel)]="formData.minOrder" placeholder="0">
       </div>
-      
+
       <div class="form-group">
         <label>Giảm tối đa (đ)</label>
-        <input type="number" [(ngModel)]="formData.maxDiscount" 
+        <input type="number" [(ngModel)]="formData.maxDiscount"
                [disabled]="formData.discountType === 'fixed'"
                [placeholder]="formData.discountType === 'fixed' ? 'Không áp dụng' : '0'">
       </div>
@@ -96,6 +96,26 @@
       <label for="firstOrder">Chỉ áp dụng cho đơn hàng đầu tiên</label>
     </div>
 
+    <!-- ── MỚI: Hạng thành viên được áp dụng ── -->
+    <div class="form-group full-width mt-3">
+      <label>Hạng thành viên được áp dụng</label>
+      <p class="form-hint">Để trống = tất cả mọi khách đều dùng được</p>
+      <div class="rank-checkbox-group">
+        <label class="rank-option">
+          <input type="checkbox"
+                 [checked]="formData.allowedMemberRanks?.includes('member')"
+                 (change)="toggleRank('member')">
+          <span class="rank-badge rank-member">Thành viên</span>
+        </label>
+        <label class="rank-option">
+          <input type="checkbox"
+                 [checked]="formData.allowedMemberRanks?.includes('vip')"
+                 (change)="toggleRank('vip')">
+          <span class="rank-badge rank-vip">⭐ VIP</span>
+        </label>
+      </div>
+    </div>
+
     <hr class="form-divider" />
 
     <div class="form-group full-width">
@@ -111,8 +131,8 @@
       <label class="sub-label">Chọn các danh mục áp dụng:</label>
       <div class="scroll-list shadow-sm">
         <div *ngFor="let cat of categories" class="item-check">
-          <input type="checkbox" 
-                 [id]="'cat-' + cat._id" 
+          <input type="checkbox"
+                 [id]="'cat-' + cat._id"
                  [checked]="isSelected(cat._id, 'category')"
                  (change)="toggleSelection(cat._id, 'category')">
           <label [for]="'cat-' + cat._id">{{ cat.name }}</label>
@@ -124,25 +144,24 @@
       <label class="sub-label">Chọn sản phẩm theo từng danh mục:</label>
       <div class="product-selection-grid">
         <div class="category-sidebar">
-          <div *ngFor="let cat of categories" 
-               class="cat-item" 
+          <div *ngFor="let cat of categories"
+               class="cat-item"
                [class.active]="selectedCatNameForProd === cat.name"
                (click)="chonDanhMucDeLoc(cat.name)">
             {{ cat.name }}
           </div>
         </div>
-
         <div class="scroll-list product-list shadow-sm">
           <div *ngIf="filteredProductsByCat.length === 0" class="no-data p-3">
             Không có sản phẩm nào trong danh mục này.
           </div>
           <div *ngFor="let prod of filteredProductsByCat" class="item-check">
-            <input type="checkbox" 
-                   [id]="'prod-' + prod._id" 
+            <input type="checkbox"
+                   [id]="'prod-' + prod._id"
                    [checked]="isSelected(prod._id, 'product')"
                    (change)="toggleSelection(prod._id, 'product')">
             <label [for]="'prod-' + prod._id">
-              {{ prod.name }} 
+              {{ prod.name }}
               <span class="text-danger ms-1" *ngIf="prod.price">({{ prod.price | number }}đ)</span>
             </label>
           </div>

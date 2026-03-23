@@ -90,13 +90,9 @@ export class OrderManagement implements OnInit {
     this.router.navigate(['/profile/order-detail', orderId]);
   }
 
-  // ✅ Navigate đến order-review với productId của SP đầu tiên
   goToReview(order: any): void {
-    const firstItem = order?.items?.[0];
-    if (!firstItem?.productId) return;
-    this.router.navigate(['/profile/order-review'], {
-      queryParams: { productId: String(firstItem.productId) }
-    });
+    if (order?.status !== 'delivered') return;
+    this.router.navigate(['/profile/order-review']);
   }
 
   formatCurrency(price: number): string {
@@ -105,11 +101,14 @@ export class OrderManagement implements OnInit {
 
   getStatusLabel(status: string): string {
     const map: Record<string, string> = {
-      pending: 'Chờ xác nhận', confirmed: 'Chờ giao hàng',
-      shipping: 'Đang giao',
-      delivery_failed: 'Giao thất bại',
-      delivered: 'Đã giao', cancelled: 'Đã hủy',
-      pending_payment: 'Chờ thanh toán', paid: 'Đã thanh toán',
+      pending:          'Chờ xác nhận',
+      confirmed:        'Chờ giao hàng',
+      shipping:         'Đang giao',
+      delivery_failed:  'Giao thất bại',
+      delivered:        'Đã giao',
+      cancelled:        'Đã hủy',
+      pending_payment:  'Chờ thanh toán',
+      paid:             'Đã thanh toán',
     };
     return map[status] || status;
   }
@@ -120,8 +119,19 @@ export class OrderManagement implements OnInit {
     const total = order.items.length;
     order.items.forEach((item: any) => {
       this.api.addToCart(item.productId, item.quantity, item.name).subscribe({
-        next: () => { done++; if (done + fail === total) this.api.showToast(fail === 0 ? 'Đã thêm lại tất cả sản phẩm vào giỏ hàng!' : `Thêm được ${done}/${total} sản phẩm.`, fail === 0 ? 'success' : 'info'); },
-        error: () => { fail++; if (done + fail === total) this.api.showToast(`Thêm được ${done}/${total} sản phẩm.`, 'info'); }
+        next: () => {
+          done++;
+          if (done + fail === total)
+            this.api.showToast(
+              fail === 0 ? 'Đã thêm lại tất cả sản phẩm vào giỏ hàng!' : `Thêm được ${done}/${total} sản phẩm.`,
+              fail === 0 ? 'success' : 'info'
+            );
+        },
+        error: () => {
+          fail++;
+          if (done + fail === total)
+            this.api.showToast(`Thêm được ${done}/${total} sản phẩm.`, 'info');
+        }
       });
     });
   }
