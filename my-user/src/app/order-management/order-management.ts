@@ -148,21 +148,45 @@ export class OrderManagement implements OnInit {
     return map[status] || status;
   }
 
+  // ✅ Mua lại — tự động tìm đúng productId từ nhiều field có thể có
   reorder(order: any): void {
     if (!order?.items?.length) return;
+
+    console.log('ORDER ITEMS:', order.items); // debug — xóa sau khi fix xong
+
     let done = 0, fail = 0;
     const total = order.items.length;
+
     order.items.forEach((item: any) => {
-      this.api.addToCart(item.productId, item.quantity, item.name).subscribe({
+      // Thử lấy productId từ nhiều field backend có thể trả về
+      const productId =
+        (typeof item.productId === 'object' ? item.productId?._id : item.productId) ||
+        item.product?._id ||
+        item.product ||
+        item._id;
+
+      console.log('productId resolved:', productId, '| item:', item); // debug
+
+      if (!productId) {
+        fail++;
+        if (done + fail === total)
+          this.api.showToast(`Thêm được ${done}/${total} sản phẩm.`, 'info');
+        return;
+      }
+
+      this.api.addToCart(productId, item.quantity, item.name).subscribe({
         next: () => {
           done++;
           if (done + fail === total)
             this.api.showToast(
-              fail === 0 ? 'Đã thêm lại tất cả sản phẩm vào giỏ hàng!' : `Thêm được ${done}/${total} sản phẩm.`,
+              fail === 0
+                ? 'Đã thêm lại tất cả sản phẩm vào giỏ hàng! 🛒'
+                : `Thêm được ${done}/${total} sản phẩm.`,
               fail === 0 ? 'success' : 'info'
             );
         },
-        error: () => {
+        error: (err) => {
+          console.error('addToCart lỗi:', err); // debug
           fail++;
           if (done + fail === total)
             this.api.showToast(`Thêm được ${done}/${total} sản phẩm.`, 'info');
@@ -177,5 +201,11 @@ export class OrderManagement implements OnInit {
       next: () => { this.loadOrders(); this.api.showToast('Đơn hàng đã được hủy.', 'info'); },
       error: () => { this.api.showToast('Không thể hủy đơn hàng. Vui lòng thử lại.', 'error'); }
     });
+  }
+
+  // ✅ Mở chatbot khi bấm "Liên hệ người bán"
+  contactSeller(): void {
+    const chatBtn = document.querySelector('.hu-chat-button') as HTMLElement;
+    if (chatBtn) chatBtn.click();
   }
 }

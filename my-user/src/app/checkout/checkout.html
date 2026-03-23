@@ -46,39 +46,48 @@
             <span class="ab-error" *ngIf="showAddrFieldError('phone')">Số điện thoại không hợp lệ</span>
           </div>
         </div>
+
+        <!-- ✅ FIX: Dùng [ngValue] thay [value] để so sánh đúng kiểu number -->
         <div class="ab-field">
           <label>Tỉnh / Thành phố <span class="req">*</span></label>
           <div class="ab-select-wrap">
             <select class="ab-input ab-select" formControlName="province" (change)="onProvinceChange()">
-              <option value="">-- Chọn Tỉnh/Thành phố --</option>
-              <option *ngFor="let p of provinces" [value]="p.code">{{ p.name }}</option>
+              <option [ngValue]="''">-- Chọn Tỉnh/Thành phố --</option>
+              <option *ngFor="let p of provinces" [ngValue]="p.code">{{ p.name }}</option>
             </select>
             <span class="ab-select-spinner" *ngIf="loadingProvinces"></span>
           </div>
           <span class="ab-error" *ngIf="showAddrFieldError('province')">Vui lòng chọn tỉnh/thành phố</span>
         </div>
+
         <div class="ab-field">
           <label>Quận / Huyện <span class="req">*</span></label>
           <div class="ab-select-wrap">
-            <select class="ab-input ab-select" formControlName="district" (change)="onDistrictChange()" [disabled]="!districts.length">
-              <option value="">-- Chọn Quận/Huyện --</option>
-              <option *ngFor="let d of districts" [value]="d.code">{{ d.name }}</option>
+            <!-- ✅ FIX: [ngValue] + bỏ [disabled] dùng attr.disabled để tránh lỗi reactive form -->
+            <select class="ab-input ab-select" formControlName="district" (change)="onDistrictChange()"
+                    [attr.disabled]="!districts.length ? true : null">
+              <option [ngValue]="''">-- Chọn Quận/Huyện --</option>
+              <option *ngFor="let d of districts" [ngValue]="d.code">{{ d.name }}</option>
             </select>
             <span class="ab-select-spinner" *ngIf="loadingDistricts"></span>
           </div>
           <span class="ab-error" *ngIf="showAddrFieldError('district')">Vui lòng chọn quận/huyện</span>
         </div>
+
         <div class="ab-field">
           <label>Phường / Xã <span class="req">*</span></label>
           <div class="ab-select-wrap">
-            <select class="ab-input ab-select" formControlName="ward" (change)="onWardChange()" [disabled]="!wards.length">
-              <option value="">-- Chọn Phường/Xã --</option>
-              <option *ngFor="let w of wards" [value]="w.code">{{ w.name }}</option>
+            <!-- ✅ FIX: [ngValue] + bỏ [disabled] dùng attr.disabled -->
+            <select class="ab-input ab-select" formControlName="ward" (change)="onWardChange()"
+                    [attr.disabled]="!wards.length ? true : null">
+              <option [ngValue]="''">-- Chọn Phường/Xã --</option>
+              <option *ngFor="let w of wards" [ngValue]="w.code">{{ w.name }}</option>
             </select>
             <span class="ab-select-spinner" *ngIf="loadingWards"></span>
           </div>
           <span class="ab-error" *ngIf="showAddrFieldError('ward')">Vui lòng chọn phường/xã</span>
         </div>
+
         <div class="ab-field">
           <label>Số nhà, tên đường <span class="req">*</span></label>
           <input type="text" class="ab-input" formControlName="street" placeholder="VD: 123 Nguyễn Huệ" />
@@ -388,7 +397,7 @@
               <div class="co-opt-title">Giao tiêu chuẩn</div>
               <div class="co-opt-sub">2–4 ngày làm việc</div>
             </div>
-            <div class="co-opt-price">{{ vnd(shippingFee()) }}</div>
+            <div class="co-opt-price">{{ vnd(standardFee()) }}</div>
           </label>
           <label class="co-opt" [class.selected]="shippingMethod() === 'express'">
             <input type="radio" [checked]="shippingMethod() === 'express'" (change)="setShipping('express')" />
@@ -397,7 +406,7 @@
               <div class="co-opt-title">Giao nhanh <span class="co-badge">Ưu tiên</span></div>
               <div class="co-opt-sub">1–2 ngày làm việc</div>
             </div>
-            <div class="co-opt-price">{{ vnd(30000) }}</div>
+            <div class="co-opt-price">{{ vnd(expressFee()) }}</div>
           </label>
         </div>
       </div>
