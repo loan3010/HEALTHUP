@@ -3,7 +3,11 @@ const Order = require('../models/Order');
 const Product = require('../models/Product');
 const Promotion = require('../models/Promotion');
 const User = require('../models/User');
-const { buildCustomerListStatsMaps, statsForUser } = require('../helpers/customerOrderStats');
+const {
+  buildCustomerListStatsMaps,
+  statsForUser,
+  membershipTierFromTotalSpent90d,
+} = require('../helpers/customerOrderStats');
 
 const TZ = 'Asia/Ho_Chi_Minh';
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -130,14 +134,6 @@ function orderMatch(from, to) {
     },
     status: { $ne: 'cancelled' },
   };
-}
-
-function getMembershipTier(totalSpent) {
-  if (!totalSpent || totalSpent <= 0) return 'Đồng';
-  if (totalSpent < 5_000_000) return 'Đồng';
-  if (totalSpent < 10_000_000) return 'Bạc';
-  if (totalSpent < 20_000_000) return 'Vàng';
-  return 'Kim Cương';
 }
 
 /**
@@ -333,11 +329,12 @@ async function buildDashboardData({ preset, from, to }) {
       revenue: Number(r.revenue || 0),
     }));
 
-    const tierMap = { Đồng: 0, Bạc: 0, Vàng: 0, 'Kim Cương': 0 };
+    const tierMap = { 'Thành viên': 0, VIP: 0 };
     users.forEach((u) => {
       const s = statsForUser(u, customerStatsMaps);
-      const tier = getMembershipTier(s.totalSpent || 0);
-      tierMap[tier] += 1;
+      const tier = membershipTierFromTotalSpent90d(s.totalSpent90d || 0);
+      const label = tier === 'vip' ? 'VIP' : 'Thành viên';
+      tierMap[label] += 1;
     });
 
     return {

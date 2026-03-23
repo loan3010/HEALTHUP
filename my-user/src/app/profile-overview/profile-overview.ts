@@ -26,7 +26,7 @@ export class ProfileOverview implements OnInit {
   readonly VIP_THRESHOLD = 5_000_000;
 
   get memberRankLabel(): string {
-    return this.memberRank === 'vip' ? '⭐ VIP' : 'Thành viên';
+    return this.memberRank === 'vip' ? ' VIP' : 'Thành viên';
   }
 
   get rankProgressPercent(): number {

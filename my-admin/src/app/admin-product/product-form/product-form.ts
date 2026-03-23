@@ -26,6 +26,7 @@ import { AdminAlertModalService } from '../../admin-alert-modal/admin-alert-moda
 export class ProductFormComponent implements OnInit, OnChanges {
   readonly staticBase = ADMIN_STATIC_BASE;
   readonly maxSlots = MAX_CLASSIFICATION_SLOTS;
+  readonly maxGalleryImages = 5;
   /** preset meta — dùng template (icon, hint). */
   readonly fixedPresets = FIXED_VARIANT_PRESETS;
 
@@ -1078,6 +1079,16 @@ export class ProductFormComponent implements OnInit, OnChanges {
 
     this.onNativeFilePickerDismissed();
 
+    if ((this.formData.images?.length || 0) >= this.maxGalleryImages) {
+      this.adminAlert.show({
+        title: 'Giới hạn ảnh',
+        message: `Chỉ được tối đa ${this.maxGalleryImages} ảnh chung cho sản phẩm.`,
+        isError: true
+      });
+      input.value = '';
+      return;
+    }
+
     const formData = new FormData();
     formData.append('image', file);
 
@@ -1086,9 +1097,14 @@ export class ProductFormComponent implements OnInit, OnChanges {
         if (!this.formData.images) this.formData.images = [];
         this.formData.images.push(res.url);
         this.imagePreview.push(this.staticBase + res.url);
+        input.value = '';
       },
       error: (err) => console.error(err)
     });
+  }
+
+  canAddGalleryImage(): boolean {
+    return (this.formData.images?.length || 0) < this.maxGalleryImages;
   }
 
   removeImage(index: number): void {
@@ -1114,9 +1130,15 @@ export class ProductFormComponent implements OnInit, OnChanges {
     this.http.post<{ url: string }>(`${ADMIN_API_BASE}/products/upload-image`, fd).subscribe({
       next: (res) => {
         this.variants[index].image = res.url;
+        if (input) input.value = '';
       },
       error: (err) => console.error(err)
     });
+  }
+
+  removeVariantImage(index: number): void {
+    if (!this.variants[index]) return;
+    this.variants[index].image = '';
   }
 
   variantImagePreview(v: ProductVariant): string {

@@ -36,6 +36,7 @@ export class ReturnManagement implements OnInit {
   returnReason = '';
   returnNote = '';
   isSubmitting = false;
+  showConfirmSubmit = false;
 
   // ✅ MỚI: Ảnh minh chứng
   selectedImages: File[] = [];
@@ -209,6 +210,21 @@ export class ReturnManagement implements OnInit {
 
   submitReturn(): void {
     if (!this.canSubmit || this.isSubmitting) return;
+    // Hiện modal xác nhận trước khi gửi request.
+    // Mục tiêu: tránh khách bấm nhầm và muốn "hủy yêu cầu" sau đó.
+    if (this.showConfirmSubmit) return;
+    this.showConfirmSubmit = true;
+  }
+
+  cancelSubmitReturnConfirm(): void {
+    this.showConfirmSubmit = false;
+  }
+
+  confirmSubmitReturn(): void {
+    if (this.isSubmitting) return;
+    if (!this.selectedOrder?._id) return;
+
+    this.showConfirmSubmit = false;
     this.isSubmitting = true;
 
     this.api.requestReturn(this.selectedOrder._id, {
@@ -252,7 +268,8 @@ export class ReturnManagement implements OnInit {
       requested: 'Chờ xử lý',
       approved:  'Đã chấp nhận hoàn',
       rejected:  'Từ chối hoàn',
-      completed: 'Hoàn thành',
+      // Dữ liệu cũ: coi `completed` như `approved` vì luồng mới không còn bước `completed`.
+      completed: 'Đã chấp nhận hoàn',
     };
     const key = String(status || '').trim();
     return map[key] || key || '—';

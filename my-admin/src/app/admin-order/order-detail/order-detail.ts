@@ -221,7 +221,8 @@ export class OrderDetail implements OnChanges {
       const lines: Partial<Record<AdminReturnStatus, string>> = {
         approved: 'Chấp nhận yêu cầu hoàn / trả hàng của khách?',
         rejected: 'Từ chối yêu cầu hoàn / trả? Nhập lý do ở ô bên dưới.',
-        completed: 'Xác nhận đã hoàn tiền / xử lý trả hàng xong?',
+        // Luồng mới bỏ bước `completed`. Trường hợp dữ liệu cũ còn `completed` thì vẫn hiển thị nhãn tương đương `approved`.
+        completed: 'Đã chấp nhận hoàn (cũ).',
       };
       return lines[p.next] || 'Cập nhật trạng thái trả hàng / hoàn tiền?';
     }
@@ -369,8 +370,8 @@ export class OrderDetail implements OnChanges {
   }
 
   /**
-   * Admin chỉ chuyển: requested→approved|rejected, approved→completed.
-   * Bước requested chỉ do khách gửi qua API request-return.
+   * Admin chỉ chuyển: requested→approved|rejected.
+   * Với luồng mới thì `approved` là trạng thái kết thúc luôn.
    */
   /** Mở modal xác nhận trước khi đổi trạng thái hoàn / trả. */
   requestReturnStatus(next: AdminReturnStatus): void {
@@ -438,14 +439,12 @@ export class OrderDetail implements OnChanges {
     return map[m] || m;
   }
 
+  tierLabel(tier: string): string {
+    return String(tier || '').toLowerCase() === 'vip' ? 'VIP' : 'Thành viên';
+  }
+
   getTierClass(tier: string): string {
-    const map: Record<string, string> = {
-      'Đồng': 'tier-dong',
-      'Bạc': 'tier-bac',
-      'Vàng': 'tier-vang',
-      'Kim Cương': 'tier-kim'
-    };
-    return map[tier] || 'tier-dong';
+    return String(tier || '').toLowerCase() === 'vip' ? 'tier-vip' : 'tier-member';
   }
 
   formatMoney(value: number): string {
@@ -501,10 +500,6 @@ export class OrderDetail implements OnChanges {
   canRejectReturn(): boolean {
     return this.order?.status === 'delivered' && this.order?.returnStatus === 'requested';
   }
-  /** Đã nhận hàng trả & hoàn tiền — chỉ sau khi đã chấp nhận (approved). */
-  canCompleteReturn(): boolean {
-    return this.order?.status === 'delivered' && this.order?.returnStatus === 'approved';
-  }
 
   /** Nhãn hiển thị cột trả/hoàn + khối chi tiết. */
   returnFlowLabel(rs: string | undefined): string {
@@ -513,7 +508,8 @@ export class OrderDetail implements OnChanges {
       requested: 'Yêu cầu hoàn/trả',
       approved: 'Đã chấp nhận hoàn',
       rejected: 'Từ chối hoàn',
-      completed: 'Đã hoàn tiền / trả xong',
+      // Dữ liệu cũ: `completed` coi như `approved` (kết thúc).
+      completed: 'Đã chấp nhận hoàn',
     };
     return map[rs || 'none'] || (rs || '');
   }

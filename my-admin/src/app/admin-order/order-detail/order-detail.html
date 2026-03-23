@@ -157,8 +157,8 @@
           <div class="line"><label>ID khách hàng</label><strong>{{ order.customerSummary?.customerID || 'KH0000' }}</strong></div>
           <div class="line">
             <label>Hạng thành viên</label>
-            <span class="tier-badge" [ngClass]="getTierClass(order.customerSummary?.membershipTier || 'Đồng')">
-              {{ order.customerSummary?.membershipTier || 'Đồng' }}
+            <span class="tier-badge" [ngClass]="getTierClass(order.customerSummary?.membershipTier || 'member')">
+              {{ tierLabel(order.customerSummary?.membershipTier || 'member') }}
             </span>
             <span class="tier-provisional" *ngIf="order.customerSummary?.hasProvisionalSpend">(tạm — đang có đơn chờ hoàn)</span>
           </div>
@@ -233,9 +233,6 @@
           </button>
           <button class="btn-danger outline" *ngIf="canRejectReturn()" [disabled]="actionLoading" (click)="requestReturnStatus('rejected')">
             Từ chối yêu cầu hoàn
-          </button>
-          <button class="btn-sub" *ngIf="canCompleteReturn()" [disabled]="actionLoading" (click)="requestReturnStatus('completed')">
-            Xác nhận đã trả/hoàn xong
           </button>
         </div>
       </section>
