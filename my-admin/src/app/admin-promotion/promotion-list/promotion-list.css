@@ -38,14 +38,13 @@
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04); 
   border: 1px solid #f0f0f0; 
   cursor: pointer;
-  transition: var(--transition); /* Hiệu ứng chuyển động mượt mà */
+  transition: var(--transition);
 }
 
-/* Hiệu ứng HOVER đúng như bà yêu cầu */
 .s-card:hover {
-  background-color: #f1f8f1 !important; /* Tông màu xanh nhạt như ảnh */
-  border-color: #c8e6c9 !important;    /* Viền xanh nhạt đồng bộ */
-  transform: translateY(-5px);         /* Nhấc nhẹ thẻ lên tạo chiều sâu */
+  background-color: #f1f8f1 !important; 
+  border-color: #c8e6c9 !important;    
+  transform: translateY(-5px);         
   box-shadow: 0 8px 25px rgba(54, 135, 58, 0.08);
 }
 
@@ -63,7 +62,6 @@
   color: #333; 
 }
 
-/* Các lớp màu sắc giữ nguyên để không bị hover làm đổi màu số */
 .text-danger { color: #d9534f !important; }
 .text-success { color: #28a745 !important; }
 .text-warning { color: #f39c12 !important; }
@@ -119,7 +117,6 @@
 }
 .btn-reset-filter:hover { background: #e9ecef; color: #333; }
 
-/* Filter Bar tầng dưới */
 .filter-bar {
   display: flex;
   gap: 20px;
@@ -177,6 +174,64 @@
 .btn-tool:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); }
 .btn-tool:hover:not(:disabled) { border-color: #ccc; background-color: #fcfdfc; }
 
+/* ============================================
+   MỚI: MENU CHUYỂN VÀO NHÓM (DROPDOWN)
+   ============================================ */
+.group-dropdown-container {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-menu-custom {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 1000;
+  background-color: #fff;
+  min-width: 240px;
+  padding: 8px 0;
+  margin-top: 8px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+  animation: fadeInDown 0.2s ease-out;
+}
+
+.dropdown-header {
+  padding: 8px 15px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #999;
+  text-transform: uppercase;
+  background: #f8f9fa;
+  letter-spacing: 0.5px;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 15px;
+  border: none;
+  background: none;
+  text-align: left;
+  font-size: 0.9rem;
+  color: #444;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.dropdown-item:hover {
+  background-color: #f1f8f1;
+  color: var(--color-primary);
+}
+
+.dropdown-item i {
+  font-size: 1.1rem;
+  color: var(--color-primary);
+}
+
 /* --- BẢNG DỮ LIỆU & HOVER --- */
 .promo-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 .promo-table th { 
@@ -196,6 +251,16 @@
 .promo-table tbody tr { cursor: pointer; transition: background-color 0.2s ease; }
 .promo-table tbody tr:hover { background-color: #f1f8f1 !important; }
 tr.selected { background-color: #e8f5e9 !important; }
+
+/* Trạng thái bị vô hiệu hóa (Ẩn) */
+tr.is-disabled {
+  background-color: #fafafa;
+  opacity: 0.7;
+}
+tr.is-disabled .p-title {
+  color: #999;
+  text-decoration: line-through;
+}
 
 /* --- FOLDER UI & INLINE EDIT --- */
 .folder-group { background: white; border-radius: 12px; overflow: hidden; border: 1px solid #eee; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
@@ -225,6 +290,17 @@ tr.selected { background-color: #e8f5e9 !important; }
 .status-badge.ongoing { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
 .status-badge.upcoming { background: #fff3e0; color: #ef6c00; border: 1px solid #ffe0b2; }
 .status-badge.expired { background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
+
+/* Badge cho trạng thái isActive */
+.badge {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.bg-success { background-color: #28a745; color: white; }
+.bg-secondary { background-color: #adb5bd; color: white; }
 
 .small-date { font-size: 0.8rem; color: #666; }
 
@@ -272,6 +348,7 @@ tr.selected { background-color: #e8f5e9 !important; }
 /* --- ANIMATIONS --- */
 @keyframes zoomIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeInDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
 /* Drag & Drop Placeholder */
 .drag-placeholder { opacity: 0.3; background: #e8f5e9; border: 2px dashed var(--color-primary); height: 55px; border-radius: 8px; margin: 5px 0; }

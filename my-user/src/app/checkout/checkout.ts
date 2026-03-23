@@ -40,7 +40,6 @@ export interface VoucherInfo {
   discountValue: number;
   minOrder?: number;
   maxDiscount?: number;
-  // FIX: thêm 2 field mới từ /available
   eligible?: boolean;
   ineligibleReason?: string;
   vipOnly?: boolean;
@@ -111,11 +110,9 @@ export class Checkout implements OnInit {
   // ── Hạng thành viên ──
   userRank    = signal<string>('member');
   totalSpent  = signal<number>(0);
-  // FIX: dùng recentSpent (3 tháng) cho progress bar hạng VIP
   recentSpent = signal<number>(0);
   showRankTooltip = false;
 
-  // FIX: progress bar dùng recentSpent/2.000.000 thay vì totalSpent/5.000.000
   rankProgressPercent = computed(() =>
     Math.min(100, Math.round((this.recentSpent() / 2_000_000) * 100))
   );
@@ -209,11 +206,11 @@ export class Checkout implements OnInit {
     const r = this.orderVoucherResult();
     if (!r?.valid || !r.code) return undefined;
     return {
-      code:         r.code,
-      name:         r.name ?? '',
-      description:  r.description,
-      type:         r.type,
-      discountType: r.discountType as any,
+      code:          r.code,
+      name:          r.name ?? '',
+      description:   r.description,
+      type:          r.type,
+      discountType:  r.discountType as any,
       discountValue: r.discountValue ?? 0,
     };
   }
@@ -222,11 +219,11 @@ export class Checkout implements OnInit {
     const r = this.shipVoucherResult();
     if (!r?.valid || !r.code) return undefined;
     return {
-      code:         r.code,
-      name:         r.name ?? '',
-      description:  r.description,
-      type:         r.type,
-      discountType: r.discountType as any,
+      code:          r.code,
+      name:          r.name ?? '',
+      description:   r.description,
+      type:          r.type,
+      discountType:  r.discountType as any,
       discountValue: r.discountValue ?? 0,
     };
   }
@@ -276,7 +273,6 @@ export class Checkout implements OnInit {
     return new HttpHeaders({ Authorization: `Bearer ${this.token}` });
   }
 
-  // FIX: lưu thêm recentSpent
   private loadUserRank(): void {
     this.http.get<any>(`${this.API_BASE}/users/${this.userId}`, { headers: this.headers })
       .subscribe({
@@ -493,7 +489,6 @@ export class Checkout implements OnInit {
   // VOUCHER
   // ══════════════════════════════════════
 
-  // FIX: isVoucherEligible dùng field eligible từ server thay vì tự tính
   isVoucherEligible(v: VoucherInfo): boolean {
     if (v.eligible === false) return false;
     return this.subTotal() >= (v.minOrder ?? 0);
@@ -534,7 +529,6 @@ export class Checkout implements OnInit {
     this.cdr.detectChanges();
   }
 
-  // FIX: truyền cartProductIds lên server khi apply
   applyVoucher(forType: 'order' | 'shipping'): void {
     if (!this.canUseVouchers) return;
 
@@ -557,17 +551,11 @@ export class Checkout implements OnInit {
     }
     this.cdr.detectChanges();
 
-    // FIX: thêm cartProductIds vào body
     const cartProductIds = this.items().map(i => i.productId);
 
     this.http.post<ApplyVoucherResult>(
       `${this.API_BASE}/promotions/apply`,
-      {
-        code,
-        subTotal:       this.subTotal(),
-        shippingFee:    this.shippingFee(),
-        cartProductIds,                     // <-- FIX
-      },
+      { code, subTotal: this.subTotal(), shippingFee: this.shippingFee(), cartProductIds },
       { headers: this.headers }
     ).subscribe({
       next: (res) => {
@@ -624,7 +612,6 @@ export class Checkout implements OnInit {
     this.cdr.detectChanges();
   }
 
-  // FIX: truyền subTotal, shippingFee, cartProductIds vào /available
   openVoucherModal(forType: 'order' | 'shipping'): void {
     if (!this.canUseVouchers) return;
     this.voucherModalFor   = forType;
@@ -640,22 +627,43 @@ export class Checkout implements OnInit {
       {
         headers: this.headers,
         params: {
-          subTotal:       String(this.subTotal()),
-          shippingFee:    String(this.shippingFee()),
-          cartProductIds,                           // <-- FIX
+          subTotal:    String(this.subTotal()),
+          shippingFee: String(this.shippingFee()),
+          cartProductIds,
         }
       }
     ).subscribe({
       next: (list) => {
-        // FIX: server đã sort + gắn eligible, chỉ cần filter theo type
         const filtered = (list || []).filter(v =>
           forType === 'shipping' ? v.type === 'shipping' : v.type === 'order'
         );
 
-        const eligible = filtered.filter(v => v.eligible !== false);
-        if (eligible.length > 0) this.bestVoucherCode.set(eligible[0].code);
+        const eligible   = filtered.filter(v => v.eligible !== false);
+        const ineligible = filtered.filter(v => v.eligible === false);
 
-        this.availableVouchers.set(filtered);
+        // Tìm voucher tiết kiệm nhiều nhất
+        let bestCode = '';
+        if (eligible.length > 0) {
+          const best = eligible.reduce((prev, curr) =>
+            this.calcVoucherSaving(curr) > this.calcVoucherSaving(prev) ? curr : prev
+          );
+          bestCode = best.code;
+          this.bestVoucherCode.set(bestCode);
+        }
+
+        // Sắp xếp eligible: voucher tốt nhất lên đầu, còn lại sort theo saving giảm dần
+        const sortedEligible = eligible.sort((a, b) => {
+          if (a.code === bestCode) return -1;
+          if (b.code === bestCode) return  1;
+          return this.calcVoucherSaving(b) - this.calcVoucherSaving(a);
+        });
+
+        // Ineligible sort theo minOrder tăng dần (gần đủ điều kiện lên trước)
+        const sortedIneligible = ineligible.sort((a, b) =>
+          (a.minOrder ?? 0) - (b.minOrder ?? 0)
+        );
+
+        this.availableVouchers.set([...sortedEligible, ...sortedIneligible]);
         this.isLoadingVouchers = false;
         this.cdr.detectChanges();
       },
@@ -796,7 +804,6 @@ export class Checkout implements OnInit {
         this.successOrderCode.set(String(res?.orderCode || ''));
         this.showSuccess.set(true);
 
-        // Reload hạng sau khi đặt hàng
         if (this.userId && this.token) this.loadUserRank();
 
         this.api.refreshUnreadCount();

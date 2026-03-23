@@ -20,9 +20,11 @@ const CategorySchema = new mongoose.Schema({
 
   order: { type: Number, default: 0 },
 
-  // Trạng thái hoạt động [cite: 2025-12-21]
-
+  // Trạng thái hoạt động — false = vô hiệu hóa (user site không thấy trong danh sách DM).
   isActive: { type: Boolean, default: true },
+
+  /** Ghi nhận thời điểm vô hiệu hóa (tuỳ chọn, phục vụ audit). */
+  deactivatedAt: { type: Date, default: null },
 
   // Số lượng sản phẩm trong danh mục [cite: 2025-12-21]
 
@@ -48,6 +50,8 @@ const CategorySchema = new mongoose.Schema({
 
 });
 
-
+// Một slug / một tên — chuẩn hóa quản lý danh mục.
+CategorySchema.index({ slug: 1 }, { unique: true });
+CategorySchema.index({ name: 1 }, { unique: true });
 
 module.exports = mongoose.model('Category', CategorySchema);

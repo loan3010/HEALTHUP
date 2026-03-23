@@ -47,6 +47,15 @@
     </li>
 
     <li class="nav-item">
+  <a href="javascript:void(0)" class="nav-link" 
+     [class.active]="activeTab === 'banner'" 
+     (click)="setActiveTab('banner')">
+    <i class="bi bi-image"></i>
+    <span>Banner</span>
+  </a>
+</li>
+
+    <li class="nav-item">
       <a href="javascript:void(0)" class="nav-link" 
          [class.active]="activeTab === 'blog'" 
          (click)="setActiveTab('blog')">

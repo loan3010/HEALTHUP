@@ -70,6 +70,7 @@
                 <option value="pending">Chờ xác nhận</option>
                 <option value="confirmed">Chờ giao hàng</option>
                 <option value="shipping">Đang giao</option>
+                <option value="delivery_failed">Giao thất bại</option>
                 <option value="delivered">Đã giao</option>
                 <option value="cancelled">Đã hủy</option>
               </select>
@@ -168,8 +169,9 @@
             <td class="mono">{{ order.orderCode || order._id.slice(-12).toUpperCase() }}</td>
             <td>{{ order.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
             <td>
-              <div class="name">{{ order.customer.fullName }}</div>
-              <div class="sub">{{ order.customer.phone }}</div>
+              <!-- Ưu tiên tài khoản đặt hàng; customer = người nhận (sổ địa chỉ khi checkout). -->
+              <div class="name">{{ order.buyerAccount?.username || order.customer.fullName }}</div>
+              <div class="sub">{{ order.buyerAccount?.phone || order.customer.phone }}</div>
             </td>
             <td>
               <span class="status-badge" [ngClass]="'status-' + order.status">{{ statusLabel(order.status) }}</span>

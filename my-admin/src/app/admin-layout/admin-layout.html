@@ -4,8 +4,9 @@
 
   <div class="main-body">
     
-    <app-admin-sidebar 
-      [isOpen]="isSidebarOpen" 
+    <app-admin-sidebar
+      #sideNav
+      [isOpen]="isSidebarOpen"
       (tabChange)="onTabChange($event)">
     </app-admin-sidebar>
 
@@ -26,6 +27,10 @@
 
         <div *ngSwitchCase="'don-hang'">
           <app-order></app-order>
+        </div>
+
+        <div *ngSwitchCase="'banner'">
+          <app-admin-banner></app-admin-banner>
         </div>
 
         <div *ngSwitchCase="'khuyen-mai'">
@@ -55,4 +60,7 @@
     </main>
 
   </div>
+
+  <!-- Thay toàn bộ alert() trình duyệt bằng modal (service: AdminAlertModalService). -->
+  <app-admin-alert-modal />
 </div>

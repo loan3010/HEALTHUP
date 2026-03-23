@@ -60,6 +60,15 @@ export class ApiService {
         this.refreshUnreadCount();
       }
     }, 30000);
+
+    // Khi quay lại tab: đồng bộ chuông (socket có thể bỏ lỡ sự kiện).
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && this.getUserId() && this.getToken()) {
+          this.refreshUnreadCount();
+        }
+      });
+    }
   }
 
   // ════════════════════════════════════════════════════════════════════════════
@@ -375,8 +384,15 @@ export class ApiService {
   /**
    * Khách hàng gửi câu hỏi mới
    */
+  /**
+   * Gửi câu hỏi tư vấn. Nếu đã đăng nhập — gửi kèm Bearer để backend lưu userId (nhận thông báo khi admin trả lời).
+   */
   submitConsultingQuestion(data: { productId: string; content: string; user: string }): Observable<any> {
-    return this.http.post<any>(`${API_BASE}/consulting`, data);
+    const token = this.getToken();
+    const headers = token
+      ? new HttpHeaders({ Authorization: `Bearer ${token}` })
+      : new HttpHeaders();
+    return this.http.post<any>(`${API_BASE}/consulting`, data, { headers });
   }
 
   /**
@@ -407,6 +423,17 @@ export class ApiService {
    */
   deleteConsultingQuestion(id: string): Observable<any> {
     return this.http.delete(`${API_BASE}/consulting/${id}`);
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════
+  //  Banner APIs
+  // ════════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Truy xuất danh sách banner đang hoạt động để hiển thị Slider
+   */
+  getBanners(): Observable<any[]> {
+    return this.http.get<any[]>(`${API_BASE}/banners/active`);
   }
 
   // ════════════════════════════════════════════════════════════════════════════

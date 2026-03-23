@@ -12,6 +12,9 @@ const NotificationSchema = new mongoose.Schema({
   // ✅ Thêm orderId để navigate sang order-detail
   orderId: { type: mongoose.Schema.Types.ObjectId, ref: 'Order', default: null },
 
+  /** Sản phẩm (thông báo tư vấn — mở trang chi tiết SP). */
+  productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', default: null },
+
 }, { timestamps: true });
 
 module.exports = mongoose.model('Notification', NotificationSchema);

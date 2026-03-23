@@ -37,7 +37,6 @@ const OrderSchema = new mongoose.Schema(
       phone:    { type: String, required: true, trim: true },
       email:    { type: String, default: '', trim: true },
       address:  { type: String, required: true, trim: true },
-      // Khách checkout một ô địa chỉ đầy đủ có thể không tách tỉnh/huyện/xã — lưu rỗng, chi tiết nằm ở address.
       province: { type: String, default: '', trim: true },
       district: { type: String, default: '', trim: true },
       ward:     { type: String, default: '', trim: true },
@@ -60,10 +59,42 @@ const OrderSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ['pending', 'confirmed', 'shipping', 'delivered', 'cancelled'],
+      enum: ['pending', 'confirmed', 'shipping', 'delivery_failed', 'delivered', 'cancelled'],
       default: 'pending'
     },
 
+    /**
+     * Lý do hủy đơn (admin / hệ thống ghi nhận) — hiển thị cho khách ở chi tiết đơn.
+     * Hủy trước khi giao: bắt buộc có khi admin hủy; khách tự hủy pending có thể là chuỗi mặc định.
+     */
+    cancelReason: { type: String, default: '', trim: true, maxlength: 2000 },
+
+    /** Đã hoàn kho khi hủy (tránh hoàn trùng). Đơn mới: false; trừ kho lúc tạo đơn. */
+    inventoryReleased: { type: Boolean, default: false },
+
+    /**
+     * Hoàn tiền online sau hủy: none → pending (chờ xử lý thủ công / cổng).
+     * completed khi kế toán xác nhận (có thể cập nhật sau qua tool khác).
+     */
+    refundStatus: {
+      type: String,
+      enum: ['none', 'pending', 'completed'],
+      default: 'none'
+    },
+
+    /** Lý do giao thất bại (chuỗi hiển thị cho admin & thông báo khách). */
+    deliveryFailureReason: { type: String, default: '', trim: true, maxlength: 2000 },
+    deliveryFailurePreset: {
+      type: String,
+      enum: ['', 'no_contact', 'wrong_address', 'customer_refused', 'reschedule', 'other'],
+      default: ''
+    },
+
+    /** Số lần đã chọn "Giao lại" từ delivery_failed → shipping (tối đa 2). */
+    redeliveryAttempts: { type: Number, default: 0, min: 0 },
+
+    // Theo dõi quy trình trả hàng/hoàn tiền tách biệt với status giao hàng.
+    // none → requested → approved | rejected | completed (trực tiếp); approved → completed.
     returnStatus: {
       type: String,
       enum: ['none', 'requested', 'approved', 'rejected', 'completed'],

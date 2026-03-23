@@ -10,7 +10,7 @@ export class PromotionService {
 
   constructor(private http: HttpClient) { }
 
-  // --- QUẢN LÝ KHUYẾN MÃI ---
+  // --- QUẢN LÝ KHUYẾN MÃI (CRUD) ---
 
   layDanhSach(): Observable<any[]> {
     return this.http.get<any[]>(this.apiNguon);
@@ -24,6 +24,15 @@ export class PromotionService {
     return this.http.put(`${this.apiNguon}/${id}`, duLieu);
   }
 
+  /**
+   * Cập nhật một hoặc một vài trường dữ liệu (Ví dụ: trạng thái isActive)
+   * @param id ID của chương trình khuyến mãi
+   * @param duLieu Dữ liệu cần cập nhật một phần (ví dụ: { isActive: false })
+   */
+  capNhatKhuyenMai(id: string, duLieu: any): Observable<any> {
+    return this.http.put(`${this.apiNguon}/${id}`, duLieu);
+  }
+
   xoaKhuyenMai(id: string): Observable<any> {
     return this.http.delete(`${this.apiNguon}/${id}`);
   }
@@ -34,7 +43,7 @@ export class PromotionService {
    * @param groupName Tên nhóm muốn đặt (để trống nếu muốn xóa khỏi nhóm)
    */
   nhomKhuyenMai(ids: string[], groupName: string): Observable<any> {
-    // Gọi đến API bulk-group để xử lý cập nhật mảng ID cho nhanh
+    // Gọi đến API bulk-group để xử lý cập nhật mảng ID hàng loạt
     return this.http.put(`${this.apiNguon}/bulk-group`, { ids, groupName });
   }
 

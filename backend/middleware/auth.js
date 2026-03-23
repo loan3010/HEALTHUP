@@ -37,6 +37,8 @@ exports.authenticateToken = async (req, res, next) => {
         return res.status(403).json({
           message: 'Tài khoản của bạn đã bị vô hiệu hóa',
           deactivationReason: String(u.deactivationReason || '').trim(),
+          /** Client (interceptor) nhận biết để bật overlay + đăng xuất — không nhầm 403 khác. */
+          accountDisabled: true,
         });
       }
     }

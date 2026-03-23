@@ -7,33 +7,30 @@
     <div class="po-rank-info">
       <div class="po-rank-name">{{ user.username }}</div>
       <span class="po-rank-badge" [class.po-badge-member]="memberRank === 'member'" [class.po-badge-vip]="memberRank === 'vip'">
-        <i class="bi" [class.bi-person-fill]="memberRank === 'member'" [class.bi-star-fill]="memberRank === 'vip'"></i>
+        <i class="bi bi-person-fill" *ngIf="memberRank === 'member'"></i>
+        <i class="bi bi-star-fill po-star-orange" *ngIf="memberRank === 'vip'"></i>
         {{ memberRankLabel }}
       </span>
     </div>
   </div>
 
   <div class="po-rank-right">
-    <div class="po-rank-progress-section" *ngIf="memberRank === 'member'">
+    <!-- Thanh tiến trình: luôn hiển thị cho cả member lẫn VIP -->
+    <div class="po-rank-progress-section">
       <div class="po-rank-progress-header">
         <span class="po-rank-spent-label">Tổng đơn đã giao:</span>
         <span class="po-rank-spent-value">{{ vnd(totalSpent) }}</span>
-        <!-- FIX: ngưỡng VIP = 2.000.000₫ -->
-        <span class="po-rank-target-label">/ {{ vnd(VIP_THRESHOLD) }} để lên VIP</span>
+        <span class="po-rank-target-label" *ngIf="memberRank === 'member'">
+          / {{ vnd(VIP_THRESHOLD) }} để lên VIP
+        </span>
       </div>
       <div class="po-rank-bar">
         <div class="po-rank-bar-fill" [style.width]="rankProgressPercent + '%'"></div>
       </div>
-      <!-- FIX: text đúng yêu cầu, không có chữ "thêm" -->
-      <div class="po-rank-remain" *ngIf="rankProgressRemain > 0">
-        Mua {{ vnd(rankProgressRemain) }} trong 3 tháng gần nhất để lên hạng VIP
+      <div class="po-rank-remain" *ngIf="memberRank === 'member' && rankProgressRemain > 0">
+        Mua <strong>{{ vnd(rankProgressRemain) }}</strong> trong 3 tháng gần nhất để lên hạng VIP
       </div>
-    </div>
-
-    <div class="po-rank-vip-header" *ngIf="memberRank === 'vip'">
-      <span class="po-rank-spent-label">Tổng đơn đã giao:</span>
-      <span class="po-rank-spent-value">{{ vnd(totalSpent) }}</span>
-      <div class="po-rank-vip-msg">
+      <div class="po-rank-vip-msg" *ngIf="memberRank === 'vip'">
         <i class="bi bi-patch-check-fill"></i> Bạn đang ở hạng cao nhất!
       </div>
     </div>
@@ -52,7 +49,9 @@
       <div class="po-rank-perk-divider"><i class="bi bi-chevron-right"></i></div>
       <div class="po-rank-perk-col" [class.perk-col-active]="memberRank === 'vip'" [class.perk-col-vip]="memberRank === 'vip'">
         <div class="po-rank-perk-title">
-          <span class="po-perk-badge po-badge-vip"><i class="bi bi-star-fill"></i> VIP</span>
+          <span class="po-perk-badge po-badge-vip">
+            <i class="bi bi-star-fill po-star-orange"></i> VIP
+          </span>
           <span class="po-current-tag po-tag-vip" *ngIf="memberRank === 'vip'">Hiện tại</span>
         </div>
         <ul class="po-perk-list">

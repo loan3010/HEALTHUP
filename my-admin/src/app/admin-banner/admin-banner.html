@@ -1,0 +1,146 @@
+<nav class="breadcrumb">
+  <span>Quản trị viên</span> 
+  <span class="separator">/</span>
+  <span class="active">Quản lý banner</span>
+</nav>
+
+<div class="admin-banner-container">
+  <div class="banner-header-row">
+    <div class="header-info">
+      <h2 class="title-main"><i class="bi bi-images me-2"></i>QUẢN LÝ BANNER HỆ THỐNG</h2>
+      <p class="sub-text">Sắp xếp thứ tự hiển thị bằng cách kéo thả. Nhấn vào hình ảnh để hiệu chỉnh thông tin chi tiết.</p>
+    </div>
+    
+    <button class="btn-add-banner" (click)="fileInput.click()">
+      <i class="bi bi-plus-circle-fill"></i> Tải hình ảnh mới
+    </button>
+    <input #fileInput type="file" (change)="onFileSelected($event)" style="display: none" accept="image/*">
+  </div>
+
+  <hr class="divider">
+
+  <div class="banner-grid" 
+       cdkDropList 
+       (cdkDropListDropped)="onDrop($event)" 
+       *ngIf="banners.length > 0; else noBanner">
+    
+    <div class="banner-card shadow-sm minimalist-card" *ngFor="let b of banners" cdkDrag>
+      
+      <div class="drag-handle" cdkDragHandle title="Nhấn giữ và kéo để thay đổi thứ tự">
+        <i class="bi bi-grid-3x2-gap-fill"></i>
+      </div>
+
+      <div class="card-image-wrapper pointer-cursor" (click)="openEditModal(b)" title="Nhấn để chỉnh sửa thông tin chi tiết">
+        <img [src]="b.imageUrl.startsWith('http') ? b.imageUrl : (serverUrl + b.imageUrl)" alt="Hình ảnh banner">
+        <div class="status-tag" [class.active]="b.isActive">
+          {{ b.isActive ? 'Đang hoạt động' : 'Đang tạm ẩn' }}
+        </div>
+      </div>
+
+      <div class="card-body-minimal">
+        <h4 class="banner-title-text text-truncate">{{ b.title || 'Chưa thiết lập tiêu đề' }}</h4>
+        
+        <div class="card-footer-actions">
+          <div class="toggle-control">
+            <label class="switch">
+              <input type="checkbox" [checked]="b.isActive" (change)="toggleActive(b)">
+              <span class="slider round"></span>
+            </label>
+            <span class="toggle-text">{{ b.isActive ? 'Công khai' : 'Tạm ẩn' }}</span>
+          </div>
+
+          <button class="btn-delete-icon" (click)="deleteBanner(b._id)" title="Xóa banner khỏi hệ thống">
+            <i class="bi bi-trash3-fill"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="drag-placeholder" *cdkDragPlaceholder></div>
+    </div>
+  </div>
+
+  <ng-template #noBanner>
+    <div class="empty-state">
+      <i class="bi bi-card-image"></i>
+      <h3>Danh sách dữ liệu trống</h3>
+      <p>Hiện tại hệ thống chưa ghi nhận hình ảnh banner nào. Vui lòng tải lên hình ảnh mới để hoàn thiện giao diện.</p>
+    </div>
+  </ng-template>
+</div>
+
+<div class="modal-overlay" *ngIf="showEditModal">
+  <div class="modal-content shadow-lg">
+    <div class="modal-header-custom">
+      <h4><i class="bi bi-pencil-square me-2"></i>Chỉnh sửa chi tiết Banner</h4>
+      <button class="btn-close-modal" (click)="closeModal()">&times;</button>
+    </div>
+    
+    <div class="modal-body-custom" *ngIf="selectedBanner">
+      <div class="form-group-custom">
+        <label class="small-label">Tiêu đề Banner</label>
+        <input type="text" 
+               class="form-control-custom" 
+               [(ngModel)]="selectedBanner.title" 
+               placeholder="Nhập tiêu đề hiển thị trên slide...">
+      </div>
+
+      <div class="form-group-custom">
+        <label class="small-label">Liên kết đích (URL)</label>
+        <input type="text" 
+               class="form-control-custom" 
+               [(ngModel)]="selectedBanner.linkUrl" 
+               placeholder="Ví dụ: /product-detail-page/id-san-pham">
+      </div>
+
+      <div class="date-range-wrapper">
+        <div class="date-item">
+          <label class="small-label">Ngày bắt đầu hiển thị</label>
+          <input type="date" 
+                 class="form-control-custom" 
+                 [(ngModel)]="selectedBanner.startDate">
+        </div>
+        <div class="date-item">
+          <label class="small-label">Ngày kết thúc hiển thị</label>
+          <input type="date" 
+                 class="form-control-custom" 
+                 [(ngModel)]="selectedBanner.endDate">
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer-custom">
+      <button class="btn-cancel" (click)="closeModal()">Hủy bỏ</button>
+      <button class="btn-save" (click)="saveBannerDetails()">Lưu thay đổi</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" *ngIf="notification.show">
+  <div class="modal-content shadow-lg modal-notification">
+    <div class="modal-body-custom text-center py-4">
+      <div class="notification-icon mb-3" [ngClass]="notification.type">
+        <i class="bi" 
+           [class.bi-check-circle-fill]="notification.type === 'success'"
+           [class.bi-exclamation-triangle-fill]="notification.type === 'confirm' || notification.type === 'error'"
+           [class.bi-info-circle-fill]="notification.type === 'info'"></i>
+      </div>
+      
+      <h4 class="mb-2">{{ notification.title }}</h4>
+      <p class="text-muted mb-4">{{ notification.message }}</p>
+
+      <div class="modal-actions d-flex justify-content-center gap-2">
+        <button class="btn-cancel" 
+                *ngIf="notification.type === 'confirm'" 
+                (click)="notification.show = false">
+          Hủy bỏ
+        </button>
+
+        <button class="btn-save" 
+                [ngClass]="notification.type" 
+                (click)="notificationAction()">
+          {{ notification.type === 'confirm' ? 'Xác nhận xóa' : 'Đóng' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

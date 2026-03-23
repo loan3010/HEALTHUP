@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
@@ -40,9 +40,21 @@ export class Login implements OnInit {
 
   private API = 'http://localhost:3000/api';
 
-  constructor(private router: Router, private http: HttpClient) {}
+  /** Sau khi đặt lại MK từ quên MK — query ?pwdReset=1 */
+  pwdResetInfo = '';
+
+  constructor(
+    private router: Router,
+    private route: ActivatedRoute,
+    private http: HttpClient
+  ) {}
 
   ngOnInit(): void {
+    if (this.route.snapshot.queryParamMap.get('pwdReset') === '1') {
+      this.pwdResetInfo =
+        'Bạn đã đặt lại mật khẩu thành công. Vui lòng đăng nhập bằng mật khẩu mới.';
+    }
+
     const raw = sessionStorage.getItem('prefill_login');
     if (raw) {
       try {
@@ -56,6 +68,8 @@ export class Login implements OnInit {
 
   onLogin(): void {
     this.errorMsg = '';
+    this.loginBanMessage = '';
+    this.loginBanReason = '';
     if (!this.emailOrPhone || !this.password) {
       this.errorMsg = 'Vui lòng nhập tên tài khoản và mật khẩu!';
       return;
@@ -91,8 +105,9 @@ export class Login implements OnInit {
         const body = err.error as { message?: string; deactivationReason?: string } | null;
         // Tài khoản user bị vô hiệu hóa: API trả 403 + lý do để khách hiểu
         if (err.status === 403) {
-          this.loginBanMessage = body?.message || 'Tài khoản của bạn đã bị vô hiệu hóa.';
-          this.loginBanReason  = String(body?.deactivationReason || '').trim();
+          // Vô hiệu hóa / tài khoản guest: API trả message + có thể có deactivationReason
+          this.loginBanMessage = body?.message || 'Không thể đăng nhập.';
+          this.loginBanReason = String(body?.deactivationReason || '').trim();
         } else {
           this.errorMsg = body?.message || 'Sai tên tài khoản hoặc mật khẩu!';
         }

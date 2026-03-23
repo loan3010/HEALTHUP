@@ -17,9 +17,24 @@ const userSchema = new mongoose.Schema(
       maxlength: 2000,
     },
 
-    dob:    { type: String, default: '' },
-    gender: { type: String, enum: ['male', 'female', 'other'], default: 'male' },
-    address:{ type: String, default: '' },
+    /** Admin thực hiện khóa (tên hoặc email — hiển thị trong trang quản lý KH). */
+    deactivatedBy: {
+      type: String,
+      default: '',
+      trim: true,
+      maxlength: 200,
+    },
+
+    /** Thời điểm admin bấm vô hiệu hóa (ISO trong JSON). */
+    deactivatedAt: {
+      type: Date,
+      default: null,
+    },
+
+    // Profile
+    dob:     { type: String, default: '' },
+    gender:  { type: String, enum: ['male', 'female', 'other'], default: 'male' },
+    address: { type: String, default: '' },
 
     // Hạng thành viên: tự động cập nhật sau mỗi đơn delivered
     memberRank: {

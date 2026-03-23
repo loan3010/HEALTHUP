@@ -60,7 +60,49 @@
       <!-- Địa chỉ -->
       <section class="of-card">
         <h3>Địa chỉ giao hàng</h3>
-        <div class="of-row">
+
+        <!-- Khi đã liên kết tài khoản: hiện sổ địa chỉ (API /admin/customers/:id/addresses). -->
+        <div class="of-addr-book" *ngIf="linkedUserId">
+          <div class="of-addr-book-head">
+            <span class="of-addr-book-title">Sổ địa chỉ</span>
+            <span class="of-sub" *ngIf="linkedAddressesLoading">Đang tải...</span>
+          </div>
+          <p class="of-hint" *ngIf="linkedAddresses.length && !linkedAddressesLoading">
+            Chọn một địa chỉ đã lưu hoặc nhập địa chỉ giao khác (không có trong sổ).
+          </p>
+          <p class="of-preview-err" *ngIf="linkedAddressesError">{{ linkedAddressesError }}</p>
+          <p class="of-hint" *ngIf="!linkedAddressesError && !linkedAddresses.length && !linkedAddressesLoading">
+            Khách chưa lưu địa chỉ trên app — nhập địa chỉ giao bên dưới như thường.
+          </p>
+          <div class="of-addr-pills" *ngIf="linkedAddresses.length">
+            <button
+              type="button"
+              class="of-addr-pill"
+              *ngFor="let a of linkedAddresses"
+              [class.active]="selectedSavedAddressId === addrKey(a)"
+              (click)="pickSavedAddress(a)"
+            >
+              <span class="of-addr-pill-line"><strong>{{ a.name }}</strong> · {{ a.phone }}</span>
+              <span class="of-addr-pill-addr">{{ a.address }}</span>
+              <span class="of-addr-pill-def" *ngIf="a.isDefault">Mặc định</span>
+              <span class="of-addr-pill-order" *ngIf="a.fromOrder">Từ đơn {{ a.orderCode || '' }}</span>
+            </button>
+          </div>
+          <button
+            type="button"
+            class="hu-toolbar-btn small of-addr-manual-btn"
+            *ngIf="linkedAddresses.length"
+            (click)="chooseManualShippingAddress()"
+          >
+            Nhập địa chỉ khác (không dùng sổ)
+          </button>
+        </div>
+
+        <p class="of-hint" *ngIf="useFullLineFromSavedBook">
+          Đang dùng địa chỉ một dòng như khách đã lưu. Bấm "Nhập địa chỉ khác" nếu cần chọn Tỉnh / Huyện / Xã riêng.
+        </p>
+
+        <div class="of-row" *ngIf="!useFullLineFromSavedBook">
           <div class="of-field">
             <label>Tỉnh / Thành *</label>
             <select [(ngModel)]="provinceCode" (ngModelChange)="onProvinceChange()">
@@ -83,9 +125,19 @@
             </select>
           </div>
         </div>
-        <div class="of-field-full">
+        <div class="of-field-full" *ngIf="!useFullLineFromSavedBook">
           <label>Số nhà, tên đường *</label>
           <input [(ngModel)]="streetAddress" (ngModelChange)="schedulePreview()" placeholder="Ví dụ: 12 Nguyễn Huệ" />
+        </div>
+        <div class="of-field-full" *ngIf="useFullLineFromSavedBook">
+          <label>Địa chỉ đầy đủ (từ sổ) *</label>
+          <textarea
+            class="of-textarea"
+            rows="3"
+            [(ngModel)]="streetAddress"
+            (ngModelChange)="schedulePreview()"
+            placeholder="Địa chỉ một dòng"
+          ></textarea>
         </div>
         <div class="of-field-full">
           <label>Ghi chú đơn</label>

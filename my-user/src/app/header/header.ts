@@ -3,10 +3,10 @@ import {
   ChangeDetectorRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule, Router } from '@angular/router';
+import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Subject, Subscription, of } from 'rxjs';
-import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
+import { debounceTime, distinctUntilChanged, switchMap, filter } from 'rxjs/operators';
 import { TrackOrderModal } from '../track-order-modal/track-order-modal';
 import { SearchService, SearchProduct } from '../services/search.service';
 import { ApiService } from '../services/api.service';
@@ -33,6 +33,7 @@ export class Header implements OnInit, OnDestroy {
   // ✅ UNREAD NOTIFICATION COUNT (từ THnew)
   unreadCount = 0;
   private unreadCountSub!: Subscription;
+  private navSub!: Subscription;
 
   // ── SEARCH STATE ──
   searchQuery = '';
@@ -68,12 +69,23 @@ export class Header implements OnInit, OnDestroy {
       this.unreadCount = count;
       this.cdr.detectChanges();
     });
+
+    // Sau mỗi lần chuyển trang: đồng bộ lại số chuông (ví dụ vừa đọc thông báo / có phản hồi tư vấn mới).
+    this.navSub = this.router.events
+      .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
+      .subscribe(() => {
+        this.checkLoginStatus();
+        if (this.isLoggedIn) {
+          this.api.refreshUnreadCount();
+        }
+      });
   }
 
   ngOnDestroy(): void {
     this.searchSub?.unsubscribe();
     this.cartCountSub?.unsubscribe();
     this.unreadCountSub?.unsubscribe(); // ✅ Unsubscribe tránh memory leak
+    this.navSub?.unsubscribe();
   }
 
   initSearch(): void {
