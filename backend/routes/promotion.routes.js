@@ -13,8 +13,6 @@ const { optionalAuth } = require('../middleware/auth');
 // ─────────────────────────────────────────────────────────────────────────────
 async function validatePromotion(promo, { subTotal, shippingFee, userId, userRank, cartProductIds }) {
   const now = new Date();
-// 1. Lấy danh sách: GET /api/promotions (Dành cho Admin xem tất cả)
-router.get('/', promoCtrl.getAllPromotions);
 
   if (promo.status === 'expired') {
     return { ok: false, message: 'Voucher đã hết hạn' };
@@ -68,15 +66,12 @@ router.get('/', promoCtrl.getAllPromotions);
     });
     if (userUsedCount >= promo.userLimit) {
       return { ok: false, message: `Bạn đã dùng mã này tối đa ${promo.userLimit} lần` };
-    // --- KIỂM TRA QUYỀN HIỂN THỊ (Mới thêm) ---
-    if (promo.isActive === false) {
-      return res.status(400).json({ valid: false, message: 'Voucher này hiện đang tạm ngưng sử dụng' });
     }
+  }
 
-    // Kiểm tra trạng thái expired
-    if (promo.status === 'expired') {
-      return res.status(400).json({ valid: false, message: 'Voucher đã hết hạn' });
-    }
+  // --- KIỂM TRA QUYỀN HIỂN THỊ ---
+  if (promo.isActive === false) {
+    return { ok: false, message: 'Voucher này hiện đang tạm ngưng sử dụng' };
   }
 
   if (promo.applyScope === 'category' && promo.appliedCategoryIds?.length > 0) {
@@ -211,7 +206,6 @@ router.post('/apply', optionalAuth, async (req, res) => {
     const { discountAmount, discountOnType } = calcDiscount(promo, subTotal, shippingFee);
 
     return res.json({
-      
       valid:         true,
       code:          promo.code,
       name:          promo.name,
@@ -245,7 +239,7 @@ router.get('/available', optionalAuth, async (req, res) => {
     const { userId, userRank } = await resolveUser(req);
 
     const all = await Promotion.find({
-      isActive: true, // <--- QUAN TRỌNG: Chỉ lấy voucher đang công khai
+      isActive: true,
       status: 'ongoing',
       $or: [
         { startDate: { $exists: false } },
@@ -301,7 +295,9 @@ router.get('/available', optionalAuth, async (req, res) => {
   }
 });
 
-// 3. Gom nhóm hàng loạt (Phải để trước :id để tránh bị nhầm là param)
+// ─────────────────────────────────────────────────────────────────────────────
+// 5. PUT /api/promotions/bulk-group
+// ─────────────────────────────────────────────────────────────────────────────
 router.put('/bulk-group', promoCtrl.bulkGroupPromotions);
 
 // ─────────────────────────────────────────────────────────────────────────────

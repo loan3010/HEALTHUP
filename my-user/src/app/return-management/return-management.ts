@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, AfterViewInit, ElementRef, ViewChildren, QueryList } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
@@ -20,7 +20,7 @@ export interface ReturnItem {
   templateUrl: './return-management.html',
   styleUrls: ['./return-management.css']
 })
-export class ReturnManagement implements OnInit {
+export class ReturnManagement implements OnInit, AfterViewInit {
 
   // ── View ──────────────────────────────────────────────────────────────────
   view: 'list' | 'create' = 'list';
@@ -37,13 +37,21 @@ export class ReturnManagement implements OnInit {
   returnNote = '';
   isSubmitting = false;
 
-  // ✅ MỚI: Ảnh minh chứng
+  // Ảnh minh chứng
   selectedImages: File[] = [];
   imagePreviews: string[] = [];
   readonly MAX_IMAGES = 5;
 
+  // Lưu orderId từ queryParams để xử lý sau khi load xong
+  private pendingOrderId: string | null = null;
+  private pendingAction: 'create' | 'highlight' | null = null;
+  private highlightOrderId: string | null = null;
+  
+  // Tham chiếu đến các card đơn hàng để scroll
+  @ViewChildren('returnCard') returnCards!: QueryList<ElementRef>;
+
   /**
-   * SVG inline: không phụ thuộc file /assets (trước đây dùng placeholder.png không tồn tại → ô trắng).
+   * SVG inline: không phụ thuộc file /assets
    */
   readonly imgFallback =
     'data:image/svg+xml,' +
@@ -72,14 +80,25 @@ export class ReturnManagement implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    // Lấy orderId từ queryParams trước
     this.route.queryParams.subscribe(params => {
-      this.loadOrders(() => {
-        if (params['orderId']) {
-          const found = this.deliveredOrders.find(o => o._id === params['orderId']);
-          if (found) this.openCreateForm(found);
-        }
-      });
+      this.pendingOrderId = params['orderId'] || null;
+      this.pendingAction = params['action'] || null;
+      // Load orders và xử lý sau
+      this.loadOrders();
     });
+  }
+
+  ngAfterViewInit(): void {
+    // Sau khi view được render, nếu có highlightOrderId thì scroll đến
+    if (this.highlightOrderId) {
+      setTimeout(() => {
+        // ✅ FIX: Kiểm tra highlightOrderId không null trước khi gọi
+        if (this.highlightOrderId) {
+          this.scrollToOrder(this.highlightOrderId);
+        }
+      }, 300);
+    }
   }
 
   private getUserId(): string {
@@ -91,28 +110,107 @@ export class ReturnManagement implements OnInit {
     } catch { return ''; }
   }
 
-  loadOrders(cb?: () => void): void {
+  /**
+   * Scroll đến đơn hàng có ID tương ứng và highlight
+   */
+  private scrollToOrder(orderId: string): void {
+    if (!orderId) return; // ✅ FIX: Kiểm tra orderId không null/undefined
+    
+    const cards = this.returnCards?.toArray();
+    if (!cards || cards.length === 0) return;
+    
+    const index = this.returnOrders.findIndex(o => o._id === orderId);
+    if (index !== -1 && cards[index]) {
+      cards[index].nativeElement.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center' 
+      });
+      
+      // Thêm class highlight
+      cards[index].nativeElement.classList.add('highlight-order');
+      
+      // Xóa highlight sau 3 giây
+      setTimeout(() => {
+        if (cards[index]) {
+          cards[index].nativeElement.classList.remove('highlight-order');
+        }
+      }, 3000);
+    }
+  }
+
+  /**
+   * Load orders và xử lý pendingOrderId nếu có
+   */
+  loadOrders(): void {
     this.isLoading = true;
     const userId = this.getUserId();
-    if (!userId) { this.isLoading = false; return; }
+    if (!userId) { 
+      this.isLoading = false; 
+      this.cdr.detectChanges();
+      return; 
+    }
 
     this.api.getOrders(userId).subscribe({
       next: (res: any) => {
         const all: any[] = Array.isArray(res) ? res : [];
 
+        // Lọc đơn đã giao và có yêu cầu đổi trả
         this.returnOrders = all.filter(
           o => o.status === 'delivered' && o.returnStatus && o.returnStatus !== 'none'
         );
+        
+        // Sắp xếp theo thời gian tạo yêu cầu (mới nhất lên đầu)
+        this.returnOrders.sort((a, b) => {
+          const dateA = a.returnRequestedAt ? new Date(a.returnRequestedAt).getTime() : 0;
+          const dateB = b.returnRequestedAt ? new Date(b.returnRequestedAt).getTime() : 0;
+          return dateB - dateA;
+        });
 
+        // Lọc đơn đã giao chưa có yêu cầu (có thể tạo yêu cầu mới)
         this.deliveredOrders = all.filter(
           o => o.status === 'delivered' && (!o.returnStatus || o.returnStatus === 'none')
         );
 
         this.isLoading = false;
         this.cdr.detectChanges();
-        if (cb) cb();
+
+        // ✅ Xử lý orderId từ queryParams sau khi đã load xong
+        if (this.pendingOrderId) {
+          const existingRequest = this.returnOrders.find(o => o._id === this.pendingOrderId);
+          const availableOrder = this.deliveredOrders.find(o => o._id === this.pendingOrderId);
+          
+          if (availableOrder && this.pendingAction !== 'highlight') {
+            // Đơn chưa có yêu cầu → mở form tạo mới
+            this.openCreateForm(availableOrder);
+          } else if (existingRequest) {
+            // Đơn đã có yêu cầu → chuyển về list view và highlight đơn đó
+            this.view = 'list';
+            this.highlightOrderId = this.pendingOrderId;
+            this.cdr.detectChanges();
+            
+            // Sau khi render, scroll đến và highlight
+            setTimeout(() => {
+              // ✅ FIX: Kiểm tra highlightOrderId không null trước khi gọi
+              if (this.highlightOrderId) {
+                this.scrollToOrder(this.highlightOrderId);
+              }
+            }, 200);
+            
+            this.api.showToast('Đơn hàng đã có yêu cầu đổi trả!', 'info');
+          } else {
+            // Không tìm thấy đơn hàng
+            this.api.showToast('Không tìm thấy đơn hàng để đổi trả!', 'error');
+          }
+          this.pendingOrderId = null;
+          this.pendingAction = null;
+        }
       },
-      error: () => { this.isLoading = false; this.cdr.detectChanges(); }
+      error: () => { 
+        this.isLoading = false; 
+        this.deliveredOrders = [];
+        this.returnOrders = [];
+        this.cdr.detectChanges();
+      }
     });
   }
 
@@ -152,8 +250,13 @@ export class ReturnManagement implements OnInit {
     this.cdr.detectChanges();
   }
 
-  decreaseReturnQty(item: ReturnItem): void { if (item.returnQty > 0) item.returnQty--; }
-  increaseReturnQty(item: ReturnItem): void { if (item.returnQty < item.quantity) item.returnQty++; }
+  decreaseReturnQty(item: ReturnItem): void { 
+    if (item.returnQty > 0) item.returnQty--; 
+  }
+  
+  increaseReturnQty(item: ReturnItem): void { 
+    if (item.returnQty < item.quantity) item.returnQty++; 
+  }
 
   get returnTotal(): number {
     return this.returnItems.reduce((sum, i) => sum + i.price * i.returnQty, 0);
@@ -165,7 +268,6 @@ export class ReturnManagement implements OnInit {
       && this.returnItems.some(i => i.returnQty > 0);
   }
 
-  // ✅ MỚI: Xử lý chọn ảnh
   onImagesSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (!input.files) return;
@@ -179,9 +281,7 @@ export class ReturnManagement implements OnInit {
 
     const toAdd = files.slice(0, remaining);
     toAdd.forEach(file => {
-      // Chỉ nhận ảnh
       if (!file.type.startsWith('image/')) return;
-      // Giới hạn 5MB mỗi ảnh
       if (file.size > 5 * 1024 * 1024) {
         this.api.showToast(`Ảnh "${file.name}" vượt quá 5MB`, 'error');
         return;
@@ -195,12 +295,10 @@ export class ReturnManagement implements OnInit {
       reader.readAsDataURL(file);
     });
 
-    // Reset input để có thể chọn lại cùng file
     input.value = '';
     this.cdr.detectChanges();
   }
 
-  // ✅ MỚI: Xóa ảnh đã chọn
   removeImage(index: number): void {
     this.selectedImages.splice(index, 1);
     this.imagePreviews.splice(index, 1);
@@ -215,12 +313,12 @@ export class ReturnManagement implements OnInit {
       reason: this.returnReason,
       note:   this.returnNote,
       items:  this.returnItems.filter(i => i.returnQty > 0),
-      images: this.selectedImages,   // ✅ truyền ảnh
+      images: this.selectedImages,
     }).subscribe({
       next: () => {
         this.isSubmitting = false;
         this.api.showToast('Yêu cầu đổi trả đã được gửi! Admin sẽ xử lý sớm nhất.', 'success');
-        this.loadOrders();
+        this.loadOrders(); // Reload lại danh sách
         this.view = 'list';
         this.cdr.detectChanges();
       },
@@ -242,10 +340,6 @@ export class ReturnManagement implements OnInit {
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
-  /**
-   * Đồng bộ tiếng Việt cho mọi returnStatus (tránh hiện raw: approved, rejected…).
-   * none = đơn chưa có yêu cầu trả/hoàn (thường không lọt vào danh sách thẻ đổi trả).
-   */
   getReturnStatusLabel(status: string): string {
     const map: Record<string, string> = {
       none:      'Chưa yêu cầu hoàn',
@@ -269,9 +363,6 @@ export class ReturnManagement implements OnInit {
     });
   }
 
-  /**
-   * Chuỗi URL ảnh đầy đủ: hỗ trợ path tương đối từ API, tránh double-slash.
-   */
   getImageUrl(url: string | null | undefined): string {
     if (url == null || !String(url).trim()) return this.imgFallback;
     const u = String(url).trim();
@@ -280,14 +371,12 @@ export class ReturnManagement implements OnInit {
     return `${STATIC_BASE}${path}`;
   }
 
-  /** id sản phẩm trên dòng đơn (populate hoặc ObjectId). */
   lineProductId(item: any): string {
     const p = item?.productId;
     if (p && typeof p === 'object' && p._id != null) return String(p._id);
     return String(p ?? '');
   }
 
-  /** Ảnh gốc trên dòng đơn: imageUrl lưu trong đơn hoặc ảnh đầu từ Product populate. */
   orderLineImageRaw(item: any): string {
     const direct = item?.imageUrl;
     if (direct != null && String(direct).trim()) return String(direct).trim();
@@ -298,9 +387,6 @@ export class ReturnManagement implements OnInit {
     return '';
   }
 
-  /**
-   * Ảnh dòng trong thẻ yêu cầu trả: returnItems có thể thiếu imageUrl — lấy từ đơn gốc.
-   */
   returnItemImageUrl(order: any, retItem: any): string {
     const fromRet = retItem?.imageUrl;
     if (fromRet != null && String(fromRet).trim()) return String(fromRet).trim();
@@ -310,12 +396,10 @@ export class ReturnManagement implements OnInit {
     return line ? this.orderLineImageRaw(line) : '';
   }
 
-  /** Lọc URL rỗng để không render <img src="">. */
   visibleReturnImages(order: any): string[] {
     return (order?.returnImages || []).filter((u: any) => u != null && String(u).trim());
   }
 
-  /** Khi ảnh remote lỗi — tránh lặp onerror. */
   onImgError(ev: Event): void {
     const el = ev.target as HTMLImageElement;
     if (el && el.src !== this.imgFallback) {
@@ -324,5 +408,7 @@ export class ReturnManagement implements OnInit {
     }
   }
 
-  goToOrders(): void { this.router.navigate(['/profile/order-management']); }
+  goToOrders(): void { 
+    this.router.navigate(['/profile/order-management']); 
+  }
 }

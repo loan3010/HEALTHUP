@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { ApiService } from '../services/api.service';
 
+
 @Component({
   selector: 'app-order-management',
   standalone: true,
@@ -13,10 +14,27 @@ import { ApiService } from '../services/api.service';
 })
 export class OrderManagement implements OnInit {
 
-  orders: any[]         = [];
+  // Dữ liệu gốc
+  allOrders: any[] = [];
+  
+  // Dữ liệu hiển thị sau khi lọc
   filteredOrders: any[] = [];
-  searchQuery           = '';
-  activeTab             = 'all';
+  
+  // Dữ liệu hiển thị trên trang hiện tại
+  paginatedOrders: any[] = [];
+  
+  searchQuery = '';
+  activeTab = 'all';
+  loading = false;
+
+  // Phân trang
+  currentPage = 1;
+  pageSize = 10;
+  totalPages = 1;
+  totalFiltered = 0;
+  
+  // Cho phép sử dụng Math trong template
+  Math = Math;
 
   tabs = [
     { id: 'all',       label: 'Tất cả',        count: 0 },
@@ -34,7 +52,9 @@ export class OrderManagement implements OnInit {
     private cdr: ChangeDetectorRef
   ) {}
 
-  ngOnInit(): void { this.loadOrders(); }
+  ngOnInit(): void { 
+    this.loadOrders(); 
+  }
 
   private getUserId(): string {
     const direct = localStorage.getItem('userId');
@@ -48,32 +68,62 @@ export class OrderManagement implements OnInit {
   loadOrders(): void {
     const userId = this.getUserId();
     if (!userId) {
-      this.orders = []; this.filteredOrders = [];
-      this.updateTabCounts(); this.cdr.detectChanges(); return;
+      this.allOrders = [];
+      this.filteredOrders = [];
+      this.paginatedOrders = [];
+      this.updateTabCounts();
+      this.updatePagination();
+      this.cdr.detectChanges();
+      return;
     }
+    
+    this.loading = true;
     this.api.getOrders(userId).subscribe({
       next: (res: any) => {
-        this.orders         = Array.isArray(res) ? res : [];
-        this.filteredOrders = [...this.orders];
-        this.updateTabCounts(); this.cdr.detectChanges();
+        this.allOrders = Array.isArray(res) ? res : [];
+        this.applyFilters();
+        this.updateTabCounts();
+        this.loading = false;
+        this.cdr.detectChanges();
       },
-      error: () => { this.orders = []; this.filteredOrders = []; this.cdr.detectChanges(); }
+      error: () => { 
+        this.allOrders = [];
+        this.filteredOrders = [];
+        this.paginatedOrders = [];
+        this.loading = false;
+        this.cdr.detectChanges();
+      }
     });
   }
 
   updateTabCounts(): void {
     this.tabs.forEach(tab => {
       tab.count = tab.id === 'all'
-        ? this.orders.length
-        : this.orders.filter(o => o.status === tab.id).length;
+        ? this.allOrders.length
+        : this.allOrders.filter(o => o.status === tab.id).length;
     });
   }
 
-  onTabClick(tab: string): void { this.activeTab = tab; this.filterOrders(); }
+  onTabClick(tab: string): void { 
+    this.activeTab = tab; 
+    this.currentPage = 1;
+    this.applyFilters(); 
+  }
 
-  filterOrders(): void {
-    let data = [...this.orders];
-    if (this.activeTab !== 'all') data = data.filter(o => o.status === this.activeTab);
+  onSearchChange(): void {
+    this.currentPage = 1;
+    this.applyFilters();
+  }
+
+  applyFilters(): void {
+    let data = [...this.allOrders];
+    
+    // Lọc theo tab
+    if (this.activeTab !== 'all') {
+      data = data.filter(o => o.status === this.activeTab);
+    }
+    
+    // Lọc theo từ khóa tìm kiếm
     if (this.searchQuery.trim()) {
       const q = this.searchQuery.toLowerCase();
       data = data.filter(o =>
@@ -83,7 +133,58 @@ export class OrderManagement implements OnInit {
         o.items?.some((i: any) => i.name?.toLowerCase().includes(q))
       );
     }
-    this.filteredOrders = data; this.cdr.detectChanges();
+    
+    this.filteredOrders = data;
+    this.totalFiltered = data.length;
+    this.updatePagination();
+    this.cdr.detectChanges();
+  }
+
+  updatePagination(): void {
+    this.totalPages = Math.ceil(this.filteredOrders.length / this.pageSize);
+    if (this.currentPage > this.totalPages && this.totalPages > 0) {
+      this.currentPage = this.totalPages;
+    }
+    const start = (this.currentPage - 1) * this.pageSize;
+    const end = start + this.pageSize;
+    this.paginatedOrders = this.filteredOrders.slice(start, end);
+  }
+
+  goToPage(page: number): void {
+    if (page < 1 || page > this.totalPages || page === this.currentPage) return;
+    this.currentPage = page;
+    this.updatePagination();
+    // Cuộn lên đầu danh sách
+    setTimeout(() => {
+      const container = document.querySelector('.order-cards-container');
+      if (container) container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  }
+
+  getPageNumbers(): (number | string)[] {
+    const pages: (number | string)[] = [];
+    const maxVisible = 5;
+    
+    if (this.totalPages <= maxVisible) {
+      for (let i = 1; i <= this.totalPages; i++) pages.push(i);
+    } else {
+      if (this.currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) pages.push(i);
+        pages.push('...');
+        pages.push(this.totalPages);
+      } else if (this.currentPage >= this.totalPages - 2) {
+        pages.push(1);
+        pages.push('...');
+        for (let i = this.totalPages - 3; i <= this.totalPages; i++) pages.push(i);
+      } else {
+        pages.push(1);
+        pages.push('...');
+        for (let i = this.currentPage - 1; i <= this.currentPage + 1; i++) pages.push(i);
+        pages.push('...');
+        pages.push(this.totalPages);
+      }
+    }
+    return pages;
   }
 
   goToDetail(orderId: string): void {

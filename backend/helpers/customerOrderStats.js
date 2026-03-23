@@ -6,6 +6,7 @@ function normalizePhone(phone) {
   return String(phone || '').replace(/\D/g, '');
 }
 
+
 function rowToStats(row) {
   return {
     totalOrders: Number(row.totalOrders || 0),
@@ -14,7 +15,9 @@ function rowToStats(row) {
   };
 }
 
+
 const ZERO_STATS = { totalOrders: 0, totalSpent: 0, hasProvisionalSpend: false };
+
 
 function mergeStats(a, b) {
   const A = a || ZERO_STATS;
@@ -25,6 +28,7 @@ function mergeStats(a, b) {
     hasProvisionalSpend: A.hasProvisionalSpend || B.hasProvisionalSpend,
   };
 }
+
 
 /**
  * Thống kê khách — bám bảng nghiệp vụ admin:
@@ -39,6 +43,7 @@ function mergeStats(a, b) {
  *
  * Lưu ý: bảng gốc không có dòng `confirmed`; ta xử lý giống pending/shipping (chỉ tính đơn, chưa cộng tiền).
  */
+
 
 /**
  * Các biến aggregate $group (dùng chung cho group theo phone hoặc theo null).
@@ -85,6 +90,7 @@ function groupCustomerStatsFields() {
   };
 }
 
+
 /**
  * Hai map gộp cho danh sách User:
  * - byUserId: đơn có userId (ObjectId) — tránh lệch khi SĐT trên đơn ≠ SĐT tài khoản.
@@ -105,11 +111,13 @@ async function buildCustomerListStatsMaps(Order) {
     ]),
   ]);
 
+
   const byUserId = new Map();
   for (const row of userRows) {
     if (!row._id) continue;
     byUserId.set(String(row._id), rowToStats(row));
   }
+
 
   const byPhoneNorm = new Map();
   for (const row of phoneRows) {
@@ -120,8 +128,10 @@ async function buildCustomerListStatsMaps(Order) {
     byPhoneNorm.set(key, mergeStats(cur, rowToStats(row)));
   }
 
+
   return { byUserId, byPhoneNorm };
 }
+
 
 /**
  * Gộp thống kê cho một user (đơn theo tài khoản + đơn chỉ khớp SĐT).
@@ -132,6 +142,7 @@ function statsForUser(user, maps) {
   const fromPhone = byPhoneNorm.get(normalizePhone(user.phone));
   return mergeStats(fromId, fromPhone);
 }
+
 
 /**
  * Thống kê một nhóm đơn (userId hoặc customer.phone).
@@ -152,6 +163,7 @@ async function aggregateStatsForMatch(Order, matchFilter) {
     hasProvisionalSpend: Number(row.provisionalSpendCount || 0) > 0,
   };
 }
+
 
 module.exports = {
   groupCustomerStatsFields,

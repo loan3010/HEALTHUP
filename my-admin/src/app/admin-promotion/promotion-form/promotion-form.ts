@@ -159,7 +159,7 @@ export class PromotionForm implements OnInit {
       return;
     }
 
-=    // 2. Kiểm tra logic dữ liệu
+    // 2. Kiểm tra logic dữ liệu (ĐÃ SỬA: xóa dấu = thừa ở dòng 162)
     if (f.totalLimit <= 0 || f.userLimit <= 0) {
       this.errorMessage = 'Tổng giới hạn và giới hạn mỗi khách phải lớn hơn 0.';
       return;
@@ -171,32 +171,32 @@ export class PromotionForm implements OnInit {
     }
 
     if (f.discountType === 'percent' && f.discountValue > 100) {
-  this.errorMessage = 'Giảm giá theo phần trăm không được vượt quá 100%.';
-  return;
-}
+      this.errorMessage = 'Giảm giá theo phần trăm không được vượt quá 100%.';
+      return;
+    }
 
-if (f.endDate < f.startDate) {
-  this.errorMessage = 'Ngày kết thúc không được nhỏ hơn ngày bắt đầu.';
-  return;
-}
+    if (f.endDate < f.startDate) {
+      this.errorMessage = 'Ngày kết thúc không được nhỏ hơn ngày bắt đầu.';
+      return;
+    }
 
-// 3. Clone dữ liệu để xử lý trung gian
-let submitData = { ...this.formData };
+    // 3. Clone dữ liệu để xử lý trung gian
+    let submitData = { ...this.formData };
 
-// 4. XỬ LÝ LOGIC FREESHIP (chuẩn theo schema Backend)
-if (this.isFreeshipMode) {
-  submitData.type = 'freeship'; // dùng schema mới
-  submitData.discountType = 'percent';
-  submitData.discountValue = 100;
-}
+    // 4. XỬ LÝ LOGIC FREESHIP (chuẩn theo schema Backend)
+    if (this.isFreeshipMode) {
+      submitData.type = 'freeship'; // dùng schema mới
+      submitData.discountType = 'percent';
+      submitData.discountValue = 100;
+    }
 
-// 5. ÉP KIỂU VÀ LÀM SẠCH DỮ LIỆU
-submitData.discountValue = Number(submitData.discountValue);
-submitData.minOrder = Number(submitData.minOrder);
-submitData.maxDiscount = Number(submitData.maxDiscount);
-submitData.totalLimit = Number(submitData.totalLimit);
-submitData.userLimit = Number(submitData.userLimit);
-submitData.code = submitData.code.trim().toUpperCase();
+    // 5. ÉP KIỂU VÀ LÀM SẠCH DỮ LIỆU
+    submitData.discountValue = Number(submitData.discountValue);
+    submitData.minOrder = Number(submitData.minOrder);
+    submitData.maxDiscount = Number(submitData.maxDiscount);
+    submitData.totalLimit = Number(submitData.totalLimit);
+    submitData.userLimit = Number(submitData.userLimit);
+    submitData.code = submitData.code.trim().toUpperCase();
 
     // 6. Xử lý mảng ID theo phạm vi áp dụng
     if (submitData.applyScope === 'all') {

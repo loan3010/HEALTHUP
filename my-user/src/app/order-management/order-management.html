@@ -1,5 +1,6 @@
 <div class="orders-page">
 
+
   <!-- HEADER -->
   <div class="orders-header">
     <h2 class="orders-title">Theo dõi đơn hàng</h2>
@@ -7,10 +8,11 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
       </svg>
-      <input type="text" [(ngModel)]="searchQuery" (ngModelChange)="filterOrders()"
+      <input type="text" [(ngModel)]="searchQuery" (ngModelChange)="onSearchChange()"
         placeholder="Tìm kiếm đơn hàng của bạn" class="search-input" />
     </div>
   </div>
+
 
   <!-- TABS -->
   <div class="order-tabs">
@@ -19,8 +21,17 @@
     </button>
   </div>
 
+
+  <!-- LOADING STATE -->
+  <div *ngIf="loading" class="orders-loading">
+    <div class="skeleton-line mb-3" style="width:100%;height:100px;border-radius:16px;"></div>
+    <div class="skeleton-line" style="width:100%;height:100px;border-radius:16px;"></div>
+    <div class="skeleton-line" style="width:100%;height:100px;border-radius:16px;"></div>
+  </div>
+
+
   <!-- EMPTY STATE -->
-  <div class="orders-empty" *ngIf="filteredOrders.length === 0">
+  <div class="orders-empty" *ngIf="!loading && paginatedOrders.length === 0">
     <div class="empty-icon">
       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
@@ -32,79 +43,129 @@
     <small>Hãy mua sắm để đơn hàng xuất hiện tại đây</small>
   </div>
 
-  <!-- ORDER CARDS -->
-  <div *ngFor="let order of filteredOrders" class="order-card" (click)="goToDetail(order._id)">
 
-    <!-- STATUS BAR -->
-    <div class="order-status" [ngClass]="'status-' + order.status">
-      <span class="status-dot"></span>
-      {{ getStatusLabel(order.status) }}
-      <span class="status-id">#{{ order.orderCode || order._id?.toString()?.substring(0, 8)?.toUpperCase() }}</span>
-    </div>
+  <!-- ORDER CARDS CONTAINER -->
+  <div class="order-cards-container" *ngIf="!loading && paginatedOrders.length > 0">
+    <div *ngFor="let order of paginatedOrders" class="order-card" (click)="goToDetail(order._id)">
 
-    <!-- PRODUCTS -->
-    <div *ngFor="let item of order.items" class="order-product">
-      <img [src]="item.imageUrl ? 'http://localhost:3000' + item.imageUrl : '/assets/no-image.png'"
-        class="product-img" onerror="this.src='/assets/no-image.png'" [alt]="item.name" />
-      <div class="product-info">
-        <div class="product-name">{{ item.name }}</div>
-        <div class="product-price">{{ formatCurrency(item.price) }} / sản phẩm</div>
-      </div>
-      <div class="product-right">
-        <div class="product-qty">x{{ item.quantity }}</div>
-        <div class="product-total">{{ formatCurrency(item.price * item.quantity) }}</div>
-      </div>
-    </div>
 
-    <!-- FOOTER -->
-    <div class="order-footer" (click)="$event.stopPropagation()">
-      <div class="order-total">Tổng tiền: <strong>{{ formatCurrency(order.total) }}</strong></div>
-
-      <div class="order-actions">
-
-        <!-- CHỜ XÁC NHẬN -->
-        <ng-container *ngIf="order.status === 'pending'">
-          <button class="btn-outline">Liên hệ người bán</button>
-          <button class="btn-danger" (click)="cancelOrder(order._id)">Hủy đơn hàng</button>
-        </ng-container>
-
-        <!-- CHỜ THANH TOÁN -->
-        <ng-container *ngIf="order.status === 'pending_payment'">
-          <button class="btn-primary">Thanh toán ngay</button>
-        </ng-container>
-
-        <!-- ĐÃ GIAO — chỉ status 'delivered' mới hiện nút Đánh giá -->
-        <ng-container *ngIf="order.status === 'delivered'">
-          <button class="btn-outline"
-            [routerLink]="['/profile/return-management']"
-            [queryParams]="{orderId: order._id}">
-            Trả hàng
-          </button>
-          <!-- ✅ Chỉ hiện khi delivered, navigate sang trang list đánh giá -->
-          <button class="btn-primary" (click)="goToReview(order)">Đánh giá</button>
-          <button class="btn-outline" (click)="reorder(order)">Mua lại</button>
-        </ng-container>
-
-        <!-- ĐÃ THANH TOÁN (paid) — không có nút Đánh giá vì chưa giao -->
-        <ng-container *ngIf="order.status === 'paid'">
-          <button class="btn-outline" (click)="reorder(order)">Mua lại</button>
-        </ng-container>
-
-        <!-- ĐÃ HỦY -->
-        <ng-container *ngIf="order.status === 'cancelled'">
-          <button class="btn-outline" (click)="reorder(order)">Mua lại</button>
-        </ng-container>
-
+      <!-- STATUS BAR -->
+      <div class="order-status" [ngClass]="'status-' + order.status">
+        <span class="status-dot"></span>
+        {{ getStatusLabel(order.status) }}
+        <span class="status-id">#{{ order.orderCode || order._id?.toString()?.substring(0, 8)?.toUpperCase() }}</span>
       </div>
 
-      <button class="btn-detail" (click)="goToDetail(order._id)">
-        Xem chi tiết
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="9 18 15 12 9 6"/>
-        </svg>
-      </button>
-    </div>
 
+      <!-- PRODUCTS -->
+      <div *ngFor="let item of order.items" class="order-product">
+        <img [src]="item.imageUrl ? 'http://localhost:3000' + item.imageUrl : '/assets/no-image.png'"
+          class="product-img" onerror="this.src='/assets/no-image.png'" [alt]="item.name" />
+        <div class="product-info">
+          <div class="product-name">{{ item.name }}</div>
+          <div class="product-price">{{ formatCurrency(item.price) }} / sản phẩm</div>
+        </div>
+        <div class="product-right">
+          <div class="product-qty">x{{ item.quantity }}</div>
+          <div class="product-total">{{ formatCurrency(item.price * item.quantity) }}</div>
+        </div>
+      </div>
+
+
+      <!-- FOOTER -->
+      <div class="order-footer" (click)="$event.stopPropagation()">
+        <div class="order-total">Tổng tiền: <strong>{{ formatCurrency(order.total) }}</strong></div>
+
+
+        <div class="order-actions">
+
+
+          <!-- CHỜ XÁC NHẬN -->
+          <ng-container *ngIf="order.status === 'pending'">
+            <button class="btn-outline">Liên hệ người bán</button>
+            <button class="btn-danger" (click)="cancelOrder(order._id)">Hủy đơn hàng</button>
+          </ng-container>
+
+
+          <!-- CHỜ THANH TOÁN -->
+          <ng-container *ngIf="order.status === 'pending_payment'">
+            <button class="btn-primary">Thanh toán ngay</button>
+          </ng-container>
+
+
+          <!-- ĐÃ GIAO — chỉ status 'delivered' mới hiện nút Đánh giá -->
+          <ng-container *ngIf="order.status === 'delivered'">
+            <button class="btn-outline"
+              [routerLink]="['/profile/return-management']"
+              [queryParams]="{orderId: order._id}">
+              Trả hàng
+            </button>
+            <!-- ✅ Chỉ hiện khi delivered, navigate sang trang list đánh giá -->
+            <button class="btn-primary" (click)="goToReview(order)">Đánh giá</button>
+            <button class="btn-outline" (click)="reorder(order)">Mua lại</button>
+          </ng-container>
+
+
+          <!-- ĐÃ THANH TOÁN (paid) — không có nút Đánh giá vì chưa giao -->
+          <ng-container *ngIf="order.status === 'paid'">
+            <button class="btn-outline" (click)="reorder(order)">Mua lại</button>
+          </ng-container>
+
+
+          <!-- ĐÃ HỦY -->
+          <ng-container *ngIf="order.status === 'cancelled'">
+            <button class="btn-outline" (click)="reorder(order)">Mua lại</button>
+          </ng-container>
+
+
+        </div>
+
+
+        <button class="btn-detail" (click)="goToDetail(order._id)">
+          Xem chi tiết
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </button>
+      </div>
+
+
+    </div>
   </div>
+
+
+  <!-- PAGINATION (chỉ hiển thị khi có từ 2 trang trở lên) -->
+  <div class="pagination-container" *ngIf="!loading && totalPages > 1">
+    <button class="page-btn" 
+            [disabled]="currentPage === 1" 
+            (click)="goToPage(currentPage - 1)">
+      <i class="bi bi-chevron-left"></i>
+    </button>
+    
+    <ng-container *ngFor="let p of getPageNumbers()">
+      <button *ngIf="p !== '...'" 
+              class="page-btn" 
+              [class.active]="p === currentPage"
+              (click)="goToPage(+p)">
+        {{ p }}
+      </button>
+      <span *ngIf="p === '...'" class="page-ellipsis">...</span>
+    </ng-container>
+    
+    <button class="page-btn" 
+            [disabled]="currentPage === totalPages" 
+            (click)="goToPage(currentPage + 1)">
+      <i class="bi bi-chevron-right"></i>
+    </button>
+  </div>
+
+
+  <!-- HIỂN THỊ SỐ LƯỢNG -->
+  <div class="pagination-info" *ngIf="!loading && totalFiltered > 0">
+    Hiển thị {{ (currentPage - 1) * pageSize + 1 }} - 
+    {{ Math.min(currentPage * pageSize, totalFiltered) }} 
+    trong tổng số {{ totalFiltered }} đơn hàng
+  </div>
+
 
 </div>

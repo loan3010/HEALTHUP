@@ -619,3 +619,16 @@
 .return-evidence-img:hover {
   transform: scale(1.05);
 }
+
+/* Highlight effect for order card when navigating from order-management */
+.return-card.highlight-order {
+  animation: highlight-pulse 0.5s ease-in-out 3;
+  box-shadow: 0 0 0 3px #2e7d32, 0 4px 20px rgba(0,0,0,0.1);
+  transition: all 0.3s ease;
+}
+
+@keyframes highlight-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(46, 125, 50, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(46, 125, 50, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(46, 125, 50, 0); }
+}
