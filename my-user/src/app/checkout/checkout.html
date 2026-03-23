@@ -274,7 +274,7 @@
         <div class="co-section-head">
           <span class="co-section-num">1</span>
           <h3 class="co-section-title">Địa chỉ nhận hàng</h3>
-          <button class="co-addr-add-btn" (click)="openAddAddrModal()" *ngIf="userId">
+          <button class="co-addr-add-btn" (click)="openAddAddrModal()" *ngIf="userId && savedAddresses().length === 0">
             <i class="bi bi-plus-lg"></i> Thêm địa chỉ
           </button>
         </div>
@@ -285,42 +285,66 @@
           <i class="bi bi-info-circle"></i>
           Bạn chưa đăng nhập. <a routerLink="/login">Đăng nhập</a> để dùng sổ địa chỉ.
         </div>
-        <div class="ab-list" *ngIf="!isLoadingAddr() && savedAddresses().length > 0">
-          <div class="ab-card"
-               *ngFor="let a of savedAddresses(); let i = index"
-               [class.is-default]="a.isDefault"
-               [class.is-selected]="selectedAddrId() === getId(a)"
-               (click)="selectAddress(getId(a))">
-            <div class="ab-select-check" *ngIf="selectedAddrId() === getId(a)">
-              <i class="bi bi-check-lg"></i>
-            </div>
-            <div class="ab-ribbon" *ngIf="a.isDefault">
-              <i class="bi bi-star-fill"></i> Mặc định
-            </div>
-            <div class="ab-card-body">
-              <div class="ab-card-left">
-                <div class="ab-avatar">{{ getInitial(a.name) }}</div>
+        <!-- Dropdown địa chỉ -->
+        <div class="ab-dropdown" *ngIf="!isLoadingAddr() && savedAddresses().length > 0">
+
+          <!-- Ô hiển thị địa chỉ đang chọn — click để mở/đóng -->
+          <div class="ab-dropdown-trigger" (click)="addrDropdownOpen = !addrDropdownOpen"
+               [class.is-open]="addrDropdownOpen">
+            <div class="ab-avatar ab-avatar-sm">{{ getInitial(selectedAddr?.name || 'U') }}</div>
+            <div class="ab-dropdown-preview">
+              <div class="ab-dropdown-name-row">
+                <span class="ab-name">{{ selectedAddr?.name }}</span>
+                <span class="ab-phone">{{ selectedAddr?.phone }}</span>
+                <span class="ab-ribbon-inline" *ngIf="selectedAddr?.isDefault">
+                  <i class="bi bi-star-fill"></i> Mặc định
+                </span>
               </div>
-              <div class="ab-card-info">
-                <div class="ab-name-row">
-                  <span class="ab-name">{{ a.name }}</span>
-                  <span class="ab-phone">{{ a.phone }}</span>
-                </div>
-                <p class="ab-address">{{ a.address }}</p>
-              </div>
+              <div class="ab-dropdown-addr">{{ selectedAddr?.address }}</div>
             </div>
-            <div class="ab-card-footer" (click)="$event.stopPropagation()">
-              <button class="ab-btn-edit" (click)="openEditAddrModal(i)">
-                <i class="bi bi-pencil"></i> Chỉnh sửa
+            <!-- Nút edit/xóa nằm trong trigger, chặn click lan ra trigger -->
+            <div class="ab-trigger-actions" (click)="$event.stopPropagation()">
+              <button class="ab-trigger-btn" title="Chỉnh sửa"
+                      (click)="openEditAddrModal(savedAddresses().indexOf(selectedAddr!))">
+                <i class="bi bi-pencil"></i>
               </button>
-              <button class="ab-btn-default" *ngIf="!a.isDefault" (click)="setDefaultAddr(i)">
-                <i class="bi bi-star"></i> Đặt mặc định
-              </button>
-              <button class="ab-btn-delete" (click)="deleteAddr(i)">
+              <button class="ab-trigger-btn ab-trigger-del" title="Xóa"
+                      (click)="deleteAddr(savedAddresses().indexOf(selectedAddr!))">
                 <i class="bi bi-trash3"></i>
               </button>
             </div>
+            <i class="bi ab-dropdown-arrow"
+               [class.bi-chevron-down]="!addrDropdownOpen"
+               [class.bi-chevron-up]="addrDropdownOpen"></i>
           </div>
+
+          <!-- Danh sách xổ xuống -->
+          <div class="ab-dropdown-list" *ngIf="addrDropdownOpen">
+            <div class="ab-dropdown-item"
+                 *ngFor="let a of savedAddresses(); let i = index"
+                 [class.is-selected]="selectedAddrId() === getId(a)"
+                 (click)="selectAddress(getId(a)); addrDropdownOpen = false">
+              <div class="ab-avatar ab-avatar-sm">{{ getInitial(a.name) }}</div>
+              <div class="ab-dropdown-item-info">
+                <div class="ab-dropdown-name-row">
+                  <span class="ab-name">{{ a.name }}</span>
+                  <span class="ab-phone">{{ a.phone }}</span>
+                  <span class="ab-ribbon-inline" *ngIf="a.isDefault">
+                    <i class="bi bi-star-fill"></i> Mặc định
+                  </span>
+                </div>
+                <div class="ab-dropdown-addr">{{ a.address }}</div>
+              </div>
+              <i class="bi bi-check-circle-fill ab-dropdown-check"
+                 *ngIf="selectedAddrId() === getId(a)"></i>
+            </div>
+
+            <!-- Nút thêm địa chỉ -->
+            <div class="ab-dropdown-add" (click)="openAddAddrModal(); addrDropdownOpen = false">
+              <i class="bi bi-plus-circle"></i> Thêm địa chỉ mới
+            </div>
+          </div>
+
         </div>
         <div class="ab-empty" *ngIf="!isLoadingAddr() && savedAddresses().length === 0 && userId">
           <div class="ab-empty-icon"><i class="bi bi-geo-alt"></i></div>

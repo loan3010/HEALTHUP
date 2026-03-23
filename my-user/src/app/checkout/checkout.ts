@@ -107,6 +107,7 @@ export class Checkout implements OnInit {
   isLoadingAddr  = signal(false);
 
   showAddrModal    = false;
+  addrDropdownOpen = false; 
   isAddrEditMode   = false;
   editingAddrIdx   = -1;
   isAddrSaving     = false;
@@ -298,6 +299,8 @@ export class Checkout implements OnInit {
     const a = this.savedAddresses()[idx];
     this.fullAddressPreview = a.address;
     this.addrForm.reset({ name: a.name, phone: a.phone, province: '', district: '', ward: '', street: a.address, isDefault: a.isDefault });
+    // Giữ preview địa chỉ cũ hiển thị ngay khi mở modal
+    setTimeout(() => { this.cdr.detectChanges(); }, 0);
     this.showAddrModal = true; this.cdr.detectChanges();
   }
 
