@@ -9,7 +9,7 @@ export interface CustomerItem {
   phone: string;
   email: string;
   address: string;
-  membershipTier: 'Đồng' | 'Bạc' | 'Vàng' | 'Kim Cương';
+  membershipTier: 'member' | 'vip';
   isActive: boolean;
   /** Có giá trị khi tài khoản đang khóa — khách thấy khi đăng nhập */
   deactivationReason?: string;

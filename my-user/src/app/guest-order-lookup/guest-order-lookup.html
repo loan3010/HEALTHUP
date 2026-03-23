@@ -89,9 +89,26 @@
         </div>
 
         <button class="gol-btn gol-btn-primary" type="button"
-          [disabled]="!canSubmitReturn()" (click)="submitReturn()">
+          [disabled]="!canSubmitReturn() || showConfirmSubmit" (click)="submitReturn()">
           {{ isSubmitting ? 'Đang gửi...' : 'Gửi yêu cầu đổi trả' }}
         </button>
+
+        <!-- CONFIRM MODAL -->
+        <div class="confirm-return-overlay" *ngIf="showConfirmSubmit" (click)="cancelSubmitReturnConfirm()">
+          <div class="confirm-return-modal" (click)="$event.stopPropagation()">
+            <h3 class="confirm-return-title">Xác nhận gửi yêu cầu</h3>
+            <p class="confirm-return-sub">
+              Sau khi gửi yêu cầu hoàn hàng, bạn sẽ không thể hủy yêu cầu này. Vui lòng cân nhắc trước khi xác nhận.
+            </p>
+            <div class="confirm-return-actions">
+              <button class="confirm-return-btn" type="button" (click)="cancelSubmitReturnConfirm()">Cancel</button>
+              <button class="confirm-return-btn confirm-return-ok" type="button"
+                (click)="confirmSubmitReturn()" [disabled]="isSubmitting">
+                Xác nhận
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <p class="gol-hint" *ngIf="order.status !== 'delivered'">

@@ -2,7 +2,12 @@ const router = require('express').Router();
 const mongoose = require('mongoose');
 const User = require('../models/User');
 const Order = require('../models/Order');
-const { buildCustomerListStatsMaps, statsForUser, normalizePhone } = require('../helpers/customerOrderStats');
+const {
+  buildCustomerListStatsMaps,
+  statsForUser,
+  normalizePhone,
+  membershipTierFromTotalSpent90d,
+} = require('../helpers/customerOrderStats');
 const { emitAccountDisabled } = require('../services/userAccountRealtime');
 
 /** Ghép địa chỉ giao trên Order.customer thành một dòng (giống cách hay hiển thị). */
@@ -17,15 +22,6 @@ function joinOrderCustomerAddress(c) {
 /** Khóa so sánh để không trùng giữa sổ địa chỉ và gợi ý từ đơn. */
 function addrDedupeKey(name, phone, addressLine) {
   return `${String(name || '').trim().toLowerCase()}|${normalizePhone(phone)}|${String(addressLine || '').trim().toLowerCase()}`;
-}
-
-// Helper: xếp hạng thành viên dựa trên tổng chi tiêu
-function getMembershipTier(totalSpent) {
-  if (!totalSpent || totalSpent <= 0) return 'Đồng';
-  if (totalSpent < 5_000_000) return 'Đồng';
-  if (totalSpent < 10_000_000) return 'Bạc';
-  if (totalSpent < 20_000_000) return 'Vàng';
-  return 'Kim Cương';
 }
 
 /**
@@ -63,6 +59,7 @@ router.get('/', async (req, res) => {
     const limit = Math.max(parseInt(req.query.limit, 10) || 10, 1);
     const search = (req.query.search || '').trim();
     const isActiveParam = req.query.isActive;
+    const tierParam = String(req.query.tier || '').trim().toLowerCase();
 
     const filter = { role: 'user' };
 
@@ -97,7 +94,7 @@ router.get('/', async (req, res) => {
     /** @type {Array<Record<string, unknown>>} */
     let data = users.map(u => {
       const stats = statsForUser(u, statsMaps);
-      const membershipTier = getMembershipTier(stats.totalSpent);
+      const membershipTier = membershipTierFromTotalSpent90d(stats.totalSpent90d);
 
       const audit = deactivationAuditForDoc(u);
       return {
@@ -120,7 +117,11 @@ router.get('/', async (req, res) => {
       };
     });
 
-    const tierRank = { 'Đồng': 1, 'Bạc': 2, 'Vàng': 3, 'Kim Cương': 4 };
+    if (tierParam === 'member' || tierParam === 'vip') {
+      data = data.filter((x) => String(x.membershipTier) === tierParam);
+    }
+
+    const tierRank = { member: 1, vip: 2 };
 
     data.sort((a, b) => {
       let va;
@@ -245,7 +246,7 @@ router.get('/:id', async (req, res) => {
 
     const statsMaps = await buildCustomerListStatsMaps(Order);
     const stats = statsForUser(user, statsMaps);
-    const membershipTier = getMembershipTier(stats.totalSpent);
+    const membershipTier = membershipTierFromTotalSpent90d(stats.totalSpent90d);
 
     const audit = deactivationAuditForDoc(user);
     res.json({
@@ -301,7 +302,7 @@ router.put('/:id', async (req, res) => {
 
     const statsMaps = await buildCustomerListStatsMaps(Order);
     const stats = statsForUser(user, statsMaps);
-    const membershipTier = getMembershipTier(stats.totalSpent);
+    const membershipTier = membershipTierFromTotalSpent90d(stats.totalSpent90d);
     const audit = deactivationAuditForDoc(user);
 
     res.json({
