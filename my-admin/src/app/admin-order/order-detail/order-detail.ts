@@ -428,10 +428,20 @@ export class OrderDetail implements OnChanges {
       pending: 'Chờ xác nhận',
       confirmed: 'Chờ giao hàng',
       shipping: 'Đang giao',
+      delivery_failed: 'Giao thất bại',
       delivered: 'Đã giao',
       cancelled: 'Đã hủy'
     };
     return map[this.order?.status || ''] || (this.order?.status || '');
+  }
+
+  /** Nhãn nguồn hủy để phân biệt khách hủy vs admin hủy. */
+  get cancelActorLabel(): string {
+    const by = String(this.order?.cancelledByType || '').toLowerCase();
+    if (by === 'customer') return 'Khách hàng hủy';
+    if (by === 'admin') return 'Admin hủy';
+    if (by === 'system') return 'Hệ thống hủy';
+    return 'Chưa rõ nguồn hủy';
   }
 
   paymentLabel(m: string): string {

@@ -251,6 +251,47 @@ async function notifyUserOrderCancelledRich(order) {
   }
 }
 
+/**
+ * Suy luận nguồn hủy cho dữ liệu cũ chưa có `cancelledByType`.
+ * Ưu tiên audit log admin, sau đó fallback theo mẫu câu lý do hủy.
+ */
+async function resolveCancelledActor(orderLike) {
+  const currentType = String(orderLike?.cancelledByType || '').toLowerCase();
+  const currentId = String(orderLike?.cancelledById || '').trim();
+  if (currentType && currentType !== 'unknown') {
+    return { cancelledByType: currentType, cancelledById: currentId };
+  }
+
+  // Nếu có log đổi trạng thái sang cancelled bởi admin => chắc chắn admin hủy.
+  try {
+    const log = await OrderAuditLog.findOne({
+      orderId: orderLike?._id,
+      action: 'status_change',
+      toValue: 'cancelled',
+    })
+      .sort({ createdAt: -1 })
+      .select('adminId')
+      .lean();
+    if (log?.adminId) {
+      return { cancelledByType: 'admin', cancelledById: String(log.adminId) };
+    }
+  } catch (_) {}
+
+  // Fallback mềm theo nội dung lý do.
+  const reason = String(orderLike?.cancelReason || '').toLowerCase();
+  if (reason.includes('khách')) {
+    return {
+      cancelledByType: 'customer',
+      cancelledById: String(orderLike?.userId || '').trim(),
+    };
+  }
+  if (reason.includes('shop') || reason.includes('cửa hàng') || reason.includes('hết hàng')) {
+    return { cancelledByType: 'admin', cancelledById: '' };
+  }
+
+  return { cancelledByType: 'unknown', cancelledById: '' };
+}
+
 function parseDateStart(d) {
   const dt = new Date(`${d}T00:00:00.000Z`);
   return Number.isNaN(dt.getTime()) ? null : dt;
@@ -918,8 +959,17 @@ router.get('/admin/:id', authenticateToken, requireAdmin, async (req, res) => {
         }
       : null;
 
+    const cancelActor =
+      String(order.status || '') === 'cancelled'
+        ? await resolveCancelledActor(order)
+        : {
+            cancelledByType: String(order.cancelledByType || 'unknown'),
+            cancelledById: String(order.cancelledById || ''),
+          };
+
     return res.json({
       ...order,
+      ...cancelActor,
       buyerAccount,
       customerSummary: {
         customerID:          user?.customerID || '',
@@ -990,6 +1040,9 @@ router.patch('/admin/:id/status', authenticateToken, requireAdmin, async (req, r
         });
       }
       order.cancelReason = cancelReason;
+      // Admin hủy đơn: ghi rõ nguồn + actor để UI phân biệt được.
+      order.cancelledByType = 'admin';
+      order.cancelledById = String(req.user?.userId || '').trim();
       await restoreInventoryForOrderIfNeeded(order);
       const pm = String(order.paymentMethod || '');
       if (['momo', 'vnpay'].includes(pm) && order.refundStatus !== 'completed') {
@@ -1279,7 +1332,15 @@ router.get('/:id', async (req, res) => {
     }
 
     if (!order) return res.status(404).json({ message: 'Order not found' });
-    return res.json(order);
+    const plain = typeof order.toObject === 'function' ? order.toObject() : order;
+    const cancelActor =
+      String(plain.status || '') === 'cancelled'
+        ? await resolveCancelledActor(plain)
+        : {
+            cancelledByType: String(plain.cancelledByType || 'unknown'),
+            cancelledById: String(plain.cancelledById || ''),
+          };
+    return res.json({ ...plain, ...cancelActor });
   } catch (err) {
     return res.status(500).json({ message: 'Server error' });
   }
@@ -1318,6 +1379,9 @@ router.patch('/:id/status', async (req, res) => {
       const fromUser = String(userCancelReason || '').trim().slice(0, 2000);
       order.cancelReason =
         fromUser.length >= 2 ? fromUser : 'Khách hàng hủy đơn (chờ xác nhận).';
+      // Khách hủy đơn: ưu tiên userId từ token, fallback sang owner của đơn.
+      order.cancelledByType = 'customer';
+      order.cancelledById = String(req.user?.userId || order.userId || '').trim();
       await restoreInventoryForOrderIfNeeded(order);
       const pm = String(order.paymentMethod || '');
       if (['momo', 'vnpay'].includes(pm) && order.refundStatus !== 'completed') {

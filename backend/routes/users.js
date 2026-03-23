@@ -215,9 +215,18 @@ router.get('/:id/addresses', authenticateToken, async (req, res) => {
     if (req.user.userId !== req.params.id && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Không có quyền' });
     }
-    const user = await User.findById(req.params.id).select('addresses').lean();
+    // Select cả field `addresses` (mới) và `address` (legacy) để fallback cho dữ liệu cũ.
+    const user = await User.findById(req.params.id).select('addresses address').lean();
     if (!user) return res.status(404).json({ message: 'Không tìm thấy user' });
-    res.json({ addresses: user.addresses || [] });
+    // Dữ liệu cũ có thể lưu địa chỉ vào field legacy `address` (thay vì `addresses`).
+    // Vì schema mới dùng `addresses` nên `user.addresses` sẽ trống → UI luôn báo "Chưa có địa chỉ nào".
+    // Fallback: nếu `addresses` trống mà `address` lại là mảng thì trả về `address`.
+    const fromAddresses = Array.isArray(user.addresses) ? user.addresses : [];
+    // Lưu ý: do select('addresses') ở trên nên `user.address` thường không có.
+    // Nhưng vẫn giữ logic defensively để không crash nếu backend trả về field khác ở một số trường hợp.
+    const legacyArray = Array.isArray(user.address) ? user.address : [];
+    const merged = fromAddresses.length ? fromAddresses : legacyArray;
+    res.json({ addresses: merged });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

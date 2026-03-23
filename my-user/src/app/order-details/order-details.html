@@ -52,9 +52,14 @@
             {{ getStatusLabel(order.status) }}
           </span>
           <p class="od-cancel-reason" *ngIf="order.status === 'cancelled' && order.cancelReason">
+            <span class="od-cancel-actor">{{ getCancelActorLabel(order) }}</span>
             <span class="od-cancel-reason-label">Lý do hủy</span>
             <span class="od-cancel-reason-text">{{ order.cancelReason }}</span>
           </p>
+            <p class="od-cancel-reason" *ngIf="order.status === 'delivery_failed' && order.deliveryFailureReason">
+              <span class="od-cancel-reason-label">Lý do giao thất bại (lần gần nhất)</span>
+              <span class="od-cancel-reason-text">{{ order.deliveryFailureReason }}</span>
+            </p>
         </div>
       </div>
 
