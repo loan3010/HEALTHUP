@@ -2,6 +2,7 @@ import { Component, HostListener, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CustomerService, CustomerItem } from './customer.service';
+import { AdminAlertModalService } from '../../admin-alert-modal/admin-alert-modal.service';
 
 interface CustomerRow extends CustomerItem {
   selected: boolean;
@@ -61,7 +62,10 @@ export class Customer implements OnInit {
   sortBy = 'createdAt';
   sortDir: 'asc' | 'desc' = 'desc';
 
-  constructor(private customerService: CustomerService) {}
+  constructor(
+    private customerService: CustomerService,
+    private adminAlert: AdminAlertModalService
+  ) {}
 
   ngOnInit(): void { this.loadCustomers(); }
 
@@ -176,7 +180,7 @@ export class Customer implements OnInit {
   onToggleActive(c: CustomerRow, event?: Event): void {
     event?.stopPropagation();
     if (!c.isActive) {
-      this.runToggleActive(c, undefined);
+      this.runToggleActive(c, null);
       return;
     }
     this.deactivateTarget = c;
@@ -193,34 +197,79 @@ export class Customer implements OnInit {
 
   confirmDeactivate(): void {
     const reason = this.deactivateReasonDraft.trim();
-    if (reason.length < 5) {
-      alert('Vui lòng nhập lý do vô hiệu hóa (tối thiểu 5 ký tự). Khách hàng sẽ thấy nội dung này khi đăng nhập.');
+    if (reason.length === 0) {
+      this.adminAlert.show({
+        title: 'Thiếu lý do',
+        message: 'Vui lòng nhập lý do vô hiệu hóa. Khách hàng sẽ thấy nội dung này khi đăng nhập.',
+        isError: true,
+      });
       return;
     }
     const target = this.deactivateTarget;
     if (!target) return;
     this.deactivateSubmitting = true;
-    this.runToggleActive(target, reason, () => {
-      this.cancelDeactivate();
-    });
+    this.runToggleActive(
+      target,
+      { reason, performedBy: this.getAdminActorLabel() },
+      () => {
+        this.cancelDeactivate();
+      }
+    );
   }
 
-  /** Gọi PATCH toggle-active; optional onDone sau khi thành công (đóng modal). */
-  private runToggleActive(c: CustomerRow, reason: string | undefined, onDone?: () => void): void {
-    this.customerService.toggleActive(c.id, reason).subscribe({
+  /**
+   * Lấy nhãn admin đang đăng nhập (lưu sau admin-login) để ghi vào audit khóa tài khoản.
+   */
+  private getAdminActorLabel(): string {
+    try {
+      const raw = localStorage.getItem('admin_info');
+      if (!raw) return '';
+      const j = JSON.parse(raw) as { name?: string; email?: string };
+      const name = String(j?.name || '').trim();
+      const email = String(j?.email || '').trim();
+      return (name || email || '').slice(0, 200);
+    } catch {
+      return '';
+    }
+  }
+
+  /**
+   * Gọi PATCH toggle-active.
+   * @param payload null = kích hoạt lại; object = vô hiệu hóa kèm lý do.
+   */
+  private runToggleActive(
+    c: CustomerRow,
+    payload: { reason: string; performedBy?: string } | null,
+    onDone?: () => void
+  ): void {
+    const body: Record<string, string> = {};
+    if (payload && payload.reason.trim().length > 0) {
+      body['reason'] = payload.reason.trim();
+      const actor = String(payload.performedBy || '').trim();
+      if (actor) body['performedBy'] = actor;
+    }
+    this.customerService.toggleActive(c.id, body).subscribe({
       next: res => {
         c.isActive = res.isActive;
         c.deactivationReason = res.deactivationReason ?? (res.isActive ? '' : c.deactivationReason);
+        c.deactivatedBy = res.deactivatedBy ?? '';
+        c.deactivatedAt = res.deactivatedAt ?? null;
         if (this.selectedCustomer?.id === c.id) {
           this.selectedCustomer.isActive = res.isActive;
           this.selectedCustomer.deactivationReason = c.deactivationReason;
+          this.selectedCustomer.deactivatedBy = c.deactivatedBy;
+          this.selectedCustomer.deactivatedAt = c.deactivatedAt;
         }
         onDone?.();
         this.deactivateSubmitting = false;
       },
       error: err => {
         this.deactivateSubmitting = false;
-        alert(err?.error?.message || 'Có lỗi xảy ra');
+        this.adminAlert.show({
+          title: 'Lỗi',
+          message: err?.error?.message || 'Có lỗi xảy ra.',
+          isError: true,
+        });
       }
     });
   }
@@ -247,7 +296,12 @@ export class Customer implements OnInit {
         this.selectedCustomer  = null;
         this.loadCustomers();
       },
-      error: err => alert(err?.error?.message || 'Có lỗi khi xóa')
+      error: err =>
+        this.adminAlert.show({
+          title: 'Lỗi xóa',
+          message: err?.error?.message || 'Có lỗi khi xóa.',
+          isError: true,
+        })
     });
   }
   cancelDelete(): void { this.isDeleteModalOpen = false; this.deleteTarget = null; }
@@ -271,6 +325,8 @@ export class Customer implements OnInit {
     return {
       ...c,
       deactivationReason: c.deactivationReason || '',
+      deactivatedBy: c.deactivatedBy || '',
+      deactivatedAt: c.deactivatedAt ?? null,
       selected: false,
       initials: this.getInitials(c.username),
       avatarBg: this.getAvatarColor(c.username).bg,

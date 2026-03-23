@@ -3,7 +3,20 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { map } from 'rxjs/operators';
 
-export type AdminOrderStatus = 'pending' | 'confirmed' | 'shipping' | 'delivered' | 'cancelled';
+export type AdminOrderStatus =
+  | 'pending'
+  | 'confirmed'
+  | 'shipping'
+  | 'delivery_failed'
+  | 'delivered'
+  | 'cancelled';
+
+export type DeliveryFailurePreset =
+  | 'no_contact'
+  | 'wrong_address'
+  | 'customer_refused'
+  | 'reschedule'
+  | 'other';
 export type AdminReturnStatus = 'none' | 'requested' | 'approved' | 'rejected' | 'completed';
 
 export interface AdminOrderItem {
@@ -43,6 +56,14 @@ export interface AdminOrder {
   paymentMethod: 'cod' | 'momo' | 'vnpay';
   shippingMethod: 'standard' | 'express';
   status: AdminOrderStatus;
+  /** Hoàn kho đã chạy (hủy đơn). */
+  inventoryReleased?: boolean;
+  refundStatus?: 'none' | 'pending' | 'completed';
+  deliveryFailureReason?: string;
+  deliveryFailurePreset?: string;
+  redeliveryAttempts?: number;
+  /** Lý do hủy — hiển thị cho khách (chi tiết đơn). */
+  cancelReason?: string;
   returnStatus: AdminReturnStatus;
   returnReason?: string;
   returnRejectionReason?: string;
@@ -58,6 +79,11 @@ export interface AdminOrder {
   discountOnShipping: number;
   total: number;
   createdAt: string;
+  /**
+   * Tài khoản User đặt đơn (username + SĐT đăng ký). Khác `customer` (người nhận / địa chỉ giao).
+   * null nếu guest hoặc không gắn userId / user đã xóa — khi đó UI fallback sang customer.
+   */
+  buyerAccount?: { username: string; phone: string; email: string } | null;
   customerSummary?: {
     customerID?: string;
     membershipTier?: string;
@@ -158,12 +184,27 @@ export class AdminOrderService {
     return this.http.get<AdminOrder>(`${this.ORDERS}/admin/${orderId}`, { headers: this.authHeader() });
   }
 
-  updateStatus(orderId: string, status: AdminOrderStatus, note = ''): Observable<AdminOrder> {
-    return this.http.patch<AdminOrder>(
-      `${this.ORDERS}/admin/${orderId}/status`,
-      { status, note },
-      { headers: this.authHeader() }
-    );
+  updateStatus(
+    orderId: string,
+    status: AdminOrderStatus,
+    note = '',
+    delivery?: { preset: DeliveryFailurePreset; detail?: string },
+    cancelReason?: string
+  ): Observable<AdminOrder> {
+    const body: Record<string, unknown> = { status, note };
+    if (delivery) {
+      body['deliveryFailurePreset'] = delivery.preset;
+      if (delivery.detail != null && delivery.detail !== '') {
+        body['deliveryFailureDetail'] = delivery.detail;
+      }
+    }
+    // Hủy từ delivery_failed có thể gửi rỗng; hủy trước giao bắt buộc có nội dung (backend validate).
+    if (status === 'cancelled') {
+      body['cancelReason'] = cancelReason != null ? cancelReason : '';
+    }
+    return this.http.patch<AdminOrder>(`${this.ORDERS}/admin/${orderId}/status`, body, {
+      headers: this.authHeader(),
+    });
   }
 
   updateReturnStatus(

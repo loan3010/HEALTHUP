@@ -12,7 +12,7 @@
       <a routerLink="/about-the-brand" routerLinkActive="active">Giới thiệu</a>
       <a routerLink="/products" routerLinkActive="active">Sản phẩm</a>
       <a routerLink="/blog" routerLinkActive="active">Blogs</a>
-      <a href="#" [class.active]="isTrackOrderPage" (click)="openTrackOrderFromNav($event, false)">Tra cứu đơn</a>
+      <!-- <a href="#" [class.active]="isTrackOrderPage" (click)="openTrackOrderFromNav($event, false)">Tra cứu đơn</a> -->
       <a routerLink="/faqs" routerLinkActive="active">FAQs</a>
     </nav>
 
@@ -103,13 +103,21 @@
 
         <ng-container *ngIf="isLoggedIn">
 
-          <!-- ✅ Chuông thông báo với badge unread count (từ THnew) -->
-          <div class="cart-icon-wrap" routerLink="/profile/notifications" title="Thông báo">
-            <i class="bi bi-bell icon"></i>
-            <span class="cart-badge" *ngIf="unreadCount > 0">
+          <!--
+            Chuông thông báo: badge đỏ = số thông báo chưa đọc (đơn hàng, khuyến mãi, Phản hồi tư vấn…).
+            unreadCount lấy từ GET /api/notifications + cập nhật real-time qua socket.
+          -->
+          <a
+            class="cart-icon-wrap notif-bell-wrap"
+            routerLink="/profile/notifications"
+            [attr.title]="unreadCount > 0 ? ('Thông báo: ' + unreadCount + ' chưa đọc (có thể gồm phản hồi tư vấn)') : 'Thông báo — đơn hàng, khuyến mãi, phản hồi tư vấn'"
+            [attr.aria-label]="unreadCount > 0 ? ('Thông báo, ' + unreadCount + ' chưa đọc') : 'Mở trang thông báo'"
+          >
+            <i class="bi bi-bell icon" aria-hidden="true"></i>
+            <span class="cart-badge notif-bell-badge" *ngIf="unreadCount > 0">
               {{ unreadCount > 99 ? '99+' : unreadCount }}
             </span>
-          </div>
+          </a>
 
           <!-- Cart icon với badge -->
           <div class="cart-icon-wrap" routerLink="/cart" title="Giỏ hàng">

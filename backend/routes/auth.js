@@ -6,6 +6,93 @@ const nodemailer = require('nodemailer');
 const User = require('../models/User');
 const Admin = require('../models/Admin');
 
+/**
+ * Các dạng SĐT có thể trùng nhau trong DB (đăng ký nhập 09… / 9 số / form quên MK nhập +84…).
+ * Trả về mảng chuỗi để query $or — tránh báo "chưa đăng ký" khi chỉ khác định dạng.
+ */
+function vietnamPhoneLookupVariants(raw) {
+  const trimmed = String(raw || '').trim();
+  const onlyDigits = trimmed.replace(/\D/g, '');
+  const set = new Set();
+  if (trimmed) set.add(trimmed);
+  if (onlyDigits) set.add(onlyDigits);
+  // 84xxxxxxxxx → 0xxxxxxxxx
+  if (onlyDigits.startsWith('84') && onlyDigits.length >= 10) {
+    set.add('0' + onlyDigits.slice(2));
+  }
+  // 0xxxxxxxxx → bỏ số 0 đầu (một số bản ghi chỉ lưu 9 số)
+  if (onlyDigits.startsWith('0') && onlyDigits.length >= 10) {
+    set.add(onlyDigits.slice(1));
+  }
+  // 9 số không 0 → thử thêm 0 đầu
+  if (!onlyDigits.startsWith('0') && onlyDigits.length === 9) {
+    set.add('0' + onlyDigits);
+  }
+  return [...set];
+}
+
+// ===== OTP quên mật khẩu (demo, RAM) — key = user.phone đúng trong DB =====
+const forgotPwOtpStore = new Map();
+
+function sweepForgotPwOtps() {
+  const now = Date.now();
+  for (const [k, v] of forgotPwOtpStore) {
+    if (now > v.expiresAt) forgotPwOtpStore.delete(k);
+  }
+}
+
+/** 6 chữ số, luôn đủ 6 ký tự (100000–999999) */
+function randomSixDigitOtp() {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+/**
+ * Kiểm tra SĐT cho luồng quên MK — dùng chung request-otp và verify.
+ * Trả { user } hoặc { err: { status, body } }.
+ */
+async function resolveForgotPasswordUser(phoneRaw) {
+  const phoneVal = String(phoneRaw || '').trim();
+  if (!phoneVal) {
+    return { err: { status: 400, body: { message: 'Thiếu số điện thoại' } } };
+  }
+
+  const phoneCandidates = vietnamPhoneLookupVariants(phoneVal);
+  const orClause = phoneCandidates.map((p) => ({ phone: p }));
+  const user = orClause.length ? await User.findOne({ $or: orClause }) : null;
+
+  if (!user) {
+    return { err: { status: 404, body: { message: 'Số điện thoại chưa đăng ký' } } };
+  }
+
+  if (user.role === 'guest') {
+    return {
+      err: {
+        status: 403,
+        body: {
+          message:
+            'Đây là tài khoản khách tự động khi đặt hàng không đăng nhập. Vui lòng đăng ký tài khoản để đăng nhập.',
+        },
+      },
+    };
+  }
+
+  const userIsActive = typeof user.isActive === 'boolean' ? user.isActive : true;
+  if (user.role === 'user' && !userIsActive) {
+    return {
+      err: {
+        status: 403,
+        body: {
+          message: 'Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ hỗ trợ nếu cần.',
+          deactivationReason: String(user.deactivationReason || '').trim(),
+          accountDisabled: true,
+        },
+      },
+    };
+  }
+
+  return { user };
+}
+
 // ======================================================
 // ============ CẤU HÌNH GỬI MAIL (NODEMAILER) ==========
 // ======================================================
@@ -202,6 +289,7 @@ router.post('/login', async (req, res) => {
       return res.status(403).json({
         message: 'Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ hỗ trợ nếu cần.',
         deactivationReason: String(user.deactivationReason || '').trim(),
+        accountDisabled: true,
       });
     }
 
@@ -370,42 +458,79 @@ router.post('/admin/reset-password', async (req, res) => {
 // ======================================================
 // =============== FORGOT PASSWORD (USER) ===============
 // ======================================================
+
+// Tạo OTP 6 số — demo trả về trong JSON để hiển thị thay SMS (production: chỉ gửi SMS)
+router.post('/forgotpw/request-otp', async (req, res) => {
+  try {
+    sweepForgotPwOtps();
+    const resolved = await resolveForgotPasswordUser(req.body.phone);
+    if (resolved.err) {
+      return res.status(resolved.err.status).json(resolved.err.body);
+    }
+    const { user } = resolved;
+
+    const code = randomSixDigitOtp();
+    // Demo: mã sống 60s — sau đó client gọi request-otp lại để xoay mã
+    const ttlMs = 60 * 1000;
+    forgotPwOtpStore.set(user.phone, {
+      code,
+      expiresAt: Date.now() + ttlMs,
+    });
+
+    return res.json({
+      message: 'otp_issued_demo',
+      // Trên thật không trả field này — chỉ dùng khi chưa tích hợp SMS
+      demoOtp: code,
+      expiresInSeconds: Math.floor(ttlMs / 1000),
+    });
+  } catch (err) {
+    console.error('FORGOT REQUEST OTP ERROR:', err);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// Kiểm tra OTP đúng + khớp mã server đã phát — mới cấp resetToken
 router.post('/forgotpw/verify', async (req, res) => {
   try {
-    const { phone } = req.body;
-    const phoneVal = String(phone || '').trim();
-
-    if (!phoneVal) {
-      return res.status(400).json({
-        message: 'Thiếu số điện thoại'
-      });
+    const otpRaw = String(req.body.otp || '').replace(/\D/g, '');
+    if (!/^\d{6}$/.test(otpRaw)) {
+      return res.status(400).json({ message: 'Mã OTP phải gồm đúng 6 chữ số.' });
     }
 
-    const user = await User.findOne({ phone: phoneVal });
+    sweepForgotPwOtps();
+    const resolved = await resolveForgotPasswordUser(req.body.phone);
+    if (resolved.err) {
+      return res.status(resolved.err.status).json(resolved.err.body);
+    }
+    const { user } = resolved;
 
-    if (!user) {
-      return res.status(404).json({
-        message: 'Số điện thoại chưa đăng ký'
+    const entry = forgotPwOtpStore.get(user.phone);
+    if (!entry || Date.now() > entry.expiresAt) {
+      return res.status(401).json({
+        message:
+          'Mã OTP đã hết hạn hoặc chưa được gửi. Vui lòng đóng và bấm «Gửi mã OTP» lại.',
       });
     }
+    if (entry.code !== otpRaw) {
+      return res.status(400).json({ message: 'Mã OTP không đúng. Vui lòng nhập lại.' });
+    }
+    forgotPwOtpStore.delete(user.phone);
 
-    const token = jwt.sign(
-      { userId: String(user._id), role: user.role },
+    // JWT riêng cho bước đặt lại MK — không dùng làm đăng nhập (purpose bắt buộc khi gọi set-password)
+    const resetToken = jwt.sign(
+      { userId: String(user._id), purpose: 'pwd_reset' },
       process.env.JWT_SECRET || 'secret_key',
-      { expiresIn: '7d' }
+      { expiresIn: '30m' }
     );
 
     return res.json({
-      message: 'verified',
-      token,
+      message: 'otp_ok',
+      resetToken,
       user: {
         id: String(user._id),
-        customerID: user.customerID,
         username: user.username,
         phone: user.phone,
-        email: user.email || '',
-        role: user.role
-      }
+      },
     });
 
   } catch (err) {
@@ -413,6 +538,55 @@ router.post('/forgotpw/verify', async (req, res) => {
     return res.status(500).json({
       message: err.message
     });
+  }
+});
+
+// Đặt mật khẩu mới sau khi OTP (demo) — body: { resetToken, newPassword }
+router.post('/forgotpw/set-password', async (req, res) => {
+  try {
+    const { resetToken, newPassword } = req.body;
+    const pw = String(newPassword || '');
+
+    if (!resetToken || !pw) {
+      return res.status(400).json({ message: 'Thiếu mã đặt lại hoặc mật khẩu mới.' });
+    }
+    if (pw.length < 6) {
+      return res.status(400).json({ message: 'Mật khẩu mới tối thiểu 6 ký tự.' });
+    }
+
+    let payload;
+    try {
+      payload = jwt.verify(resetToken, process.env.JWT_SECRET || 'secret_key');
+    } catch {
+      return res.status(401).json({
+        message: 'Phiên đặt lại mật khẩu không hợp lệ hoặc đã hết hạn. Vui lòng thử lại từ đầu.',
+      });
+    }
+
+    if (payload.purpose !== 'pwd_reset' || !payload.userId) {
+      return res.status(401).json({ message: 'Mã không hợp lệ cho thao tác này.' });
+    }
+
+    const user = await User.findById(payload.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'Không tìm thấy tài khoản.' });
+    }
+    if (user.role === 'guest') {
+      return res.status(403).json({
+        message:
+          'Tài khoản khách không đổi mật khẩu qua luồng này. Vui lòng đăng ký tài khoản đầy đủ.',
+      });
+    }
+
+    user.passwordHash = await bcrypt.hash(pw, 10);
+    await user.save();
+
+    return res.json({
+      message: 'Đặt mật khẩu mới thành công. Vui lòng đăng nhập bằng mật khẩu vừa đặt.',
+    });
+  } catch (err) {
+    console.error('FORGOT SET PASSWORD ERROR:', err);
+    return res.status(500).json({ message: err.message || 'Lỗi hệ thống.' });
   }
 });
 

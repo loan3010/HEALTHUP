@@ -1,14 +1,48 @@
 <header class="admin-header">
   <div class="header-left">
-    <button class="menu-toggle-btn" (click)="onToggleClick()">
+    <button type="button" class="menu-toggle-btn" (click)="onToggleClick()">
       <i class="bi bi-list"></i>
     </button>
   </div>
 
   <div class="header-actions">
-    <div class="notification-icon">
-      <i class="bi bi-bell"></i>
-      <span class="badge-dot"></span>
+    <!-- Chuông thông báo + dropdown -->
+    <div class="notification-wrap" (click)="$event.stopPropagation()">
+      <button
+        type="button"
+        class="notification-icon"
+        (click)="toggleNotifPanel($event)"
+        title="Thông báo"
+        aria-label="Mở thông báo"
+      >
+        <i class="bi bi-bell"></i>
+        <span class="notif-badge-count" *ngIf="unreadCount > 0">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
+      </button>
+
+      <div class="notif-dropdown" *ngIf="notifOpen">
+        <div class="notif-dropdown-head">
+          <span class="notif-title">Thông báo</span>
+          <button type="button" class="notif-mark-all" (click)="markAllNotificationsRead($event)">
+            Đọc hết
+          </button>
+        </div>
+        <div class="notif-list" *ngIf="notifications.length; else notifEmpty">
+          <button
+            type="button"
+            class="notif-item"
+            *ngFor="let n of notifications; trackBy: trackNoti"
+            [class.unread]="!n.isRead"
+            (click)="onNotificationClick($event, n)"
+          >
+            <span class="notif-item-title">{{ n.title }}</span>
+            <span class="notif-item-msg">{{ n.message }}</span>
+            <span class="notif-item-time">{{ n.createdAt | date: 'dd/MM HH:mm' }}</span>
+          </button>
+        </div>
+        <ng-template #notifEmpty>
+          <div class="notif-empty">Không có thông báo trong 7 ngày.</div>
+        </ng-template>
+      </div>
     </div>
 
     <div class="user-profile-wrapper">
@@ -28,10 +62,10 @@
             <div class="admin-code">Mã: <span>{{ adminID }}</span></div>
           </div>
         </div>
-        
+
         <div class="dropdown-divider"></div>
 
-        <button class="logout-btn" (click)="onLogout()">
+        <button type="button" class="logout-btn" (click)="onLogout()">
           <i class="bi bi-box-arrow-right"></i>
           Đăng xuất hệ thống
         </button>

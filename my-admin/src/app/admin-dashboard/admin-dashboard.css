@@ -2,6 +2,8 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
+  /* Đồng bộ font thương hiệu (global đã import Google Fonts). */
+  font-family: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
 }
 
 .top-row {
@@ -173,12 +175,95 @@
   margin-bottom: 6px;
 }
 
-.title-flex {
+/* Header chung: tiêu đề card + nút Xem tất cả (nền xám nhạt, chữ xanh). */
+.table-card-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   margin-bottom: 10px;
+}
+
+.table-card-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #263238;
+}
+
+.btn-dash-view-all {
+  flex-shrink: 0;
+  border: none;
+  border-radius: 10px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  color: #2e7d32;
+  background: #f5f5f5;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.btn-dash-view-all:hover {
+  background: #eeeeee;
+  color: #1b5e20;
+}
+
+/* Card sản phẩm: tiêu đề + tab Bán chạy / Bán chậm (active = chữ xanh + gạch chân). */
+.products-spotlight-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.products-spotlight-left {
+  min-width: 0;
+  flex: 1;
+}
+
+.products-main-title {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #263238;
+  letter-spacing: 0.01em;
+}
+
+.products-subtabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 4px 22px;
+}
+
+.products-subtab {
+  margin: 0;
+  padding: 0 2px 6px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  color: #78909c;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.products-subtab:hover {
+  color: #546e7a;
+}
+
+.products-subtab.active {
+  color: #2e7d32;
+  border-bottom-color: #2e7d32;
+}
+
+.products-spotlight-head .btn-dash-view-all {
+  margin-top: 2px;
 }
 
 .loading-box {
@@ -186,6 +271,107 @@
   color: #607d8b;
   padding: 8px 0 2px;
   font-size: 13px;
+}
+
+/* Bảng đơn gần đây */
+.recent-orders-table thead th,
+.products-spotlight-table thead th {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #546e7a;
+  border-bottom-width: 2px;
+}
+
+.recent-orders-table tbody td,
+.products-spotlight-table tbody td {
+  font-size: 14px;
+  vertical-align: middle;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.recent-orders-table tbody tr:hover,
+.products-spotlight-table tbody tr:hover {
+  background: #f1f8f4;
+}
+
+/* Dòng có thể bấm → chi tiết đơn / form sản phẩm */
+.recent-orders-table tbody tr.dashboard-click-row,
+.products-spotlight-table tbody tr.dashboard-click-row {
+  cursor: pointer;
+}
+
+.recent-orders-table tbody tr.dashboard-click-row:focus-visible,
+.products-spotlight-table tbody tr.dashboard-click-row:focus-visible {
+  outline: 2px solid #2e7d32;
+  outline-offset: -2px;
+}
+
+.mono-id {
+  font-weight: 700;
+  color: #1b5e20;
+  letter-spacing: 0.02em;
+}
+
+.amount-cell {
+  font-weight: 700;
+  color: #263238;
+  white-space: nowrap;
+}
+
+.order-status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  border: 1px solid transparent;
+}
+
+.pill-pending {
+  background: #fff8e1;
+  color: #e65100;
+  border-color: #ffe082;
+}
+
+.pill-confirmed {
+  background: #e3f2fd;
+  color: #1565c0;
+  border-color: #90caf9;
+}
+
+.pill-shipping {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border-color: #a5d6a7;
+}
+
+.pill-failed {
+  background: #fce4ec;
+  color: #c2185b;
+  border-color: #f48fb1;
+}
+
+.pill-delivered {
+  background: #e8f5e9;
+  color: #1b5e20;
+  border-color: #66bb6a;
+}
+
+.pill-cancelled {
+  background: #eceff1;
+  color: #455a64;
+  border-color: #cfd8dc;
+}
+
+.pill-unknown {
+  background: #f5f5f5;
+  color: #616161;
+  border-color: #e0e0e0;
 }
 
 @media (max-width: 1200px) {

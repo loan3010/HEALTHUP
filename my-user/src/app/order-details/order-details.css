@@ -157,10 +157,47 @@
   font-family: monospace;
 }
 
+.od-status-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  max-width: min(340px, 100%);
+  text-align: right;
+}
+
 .status-badge {
   font-size: 13px;
   padding: 5px 14px;
   flex-shrink: 0;
+}
+
+/* Lý do hủy ngay dưới badge «Đã hủy» (admin / khách ghi nhận). */
+.od-cancel-reason {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  text-align: left;
+  width: 100%;
+  box-sizing: border-box;
+}
+.od-cancel-reason-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #b91c1c;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+.od-cancel-reason-text {
+  display: block;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #450a0a;
+  font-weight: 500;
 }
 
 /* ── Info Grid ── */

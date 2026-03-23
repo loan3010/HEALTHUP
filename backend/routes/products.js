@@ -2,6 +2,22 @@ const express = require('express');
 const router  = express.Router();
 const Product = require('../models/Product');
 const Order = require('../models/Order');
+const Category = require('../models/Categories');
+
+/** `Product.cat` phải trùng `Category.name` (đã tạo trong Quản lý danh mục). */
+async function assertProductCatRegistered(catRaw) {
+  const cat = String(catRaw || '').trim();
+  if (!cat) return { ok: false, message: 'Thiếu danh mục sản phẩm (cat)' };
+  const ok = await Category.exists({ name: cat });
+  if (!ok) {
+    return {
+      ok: false,
+      message:
+        `Danh mục "${cat}" chưa tồn tại. Thêm trong mục Quản lý danh mục hoặc chọn đúng tên danh mục.`,
+    };
+  }
+  return { ok: true };
+}
 
 /** Badge “new”: sản phẩm tạo trong N ngày gần đây (admin không chỉnh tay). */
 const NEW_BADGE_MS = (Number(process.env.NEW_BADGE_DAYS) || 14) * 86400000;
@@ -562,6 +578,9 @@ router.post('/', async (req, res) => {
     const qErrCreate = validateVariantQuantityKind(req.body.variantQuantityKind, variants);
     if (qErrCreate) return res.status(400).json({ message: qErrCreate });
 
+    const catCheck = await assertProductCatRegistered(req.body.cat);
+    if (!catCheck.ok) return res.status(400).json({ message: catCheck.message });
+
     const product = new Product(req.body);
     await product.save();
     res.status(201).json(product);
@@ -611,6 +630,11 @@ router.put('/:id', async (req, res) => {
       const vOld = normalizeVariantsInput(ex?.variants);
       const qErrOnlyKind = validateVariantQuantityKind(req.body.variantQuantityKind, vOld);
       if (qErrOnlyKind) return res.status(400).json({ message: qErrOnlyKind });
+    }
+
+    if (Object.prototype.hasOwnProperty.call(req.body, 'cat')) {
+      const catCheckPut = await assertProductCatRegistered(req.body.cat);
+      if (!catCheckPut.ok) return res.status(400).json({ message: catCheckPut.message });
     }
 
     const product = await Product.findByIdAndUpdate(

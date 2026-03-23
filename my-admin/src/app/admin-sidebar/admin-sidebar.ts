@@ -18,4 +18,12 @@ export class AdminSidebar {
     this.activeTab = tabName;
     this.tabChange.emit(tabName);
   }
+
+  /**
+   * Đồng bộ highlight sidebar khi đổi tab từ code (vd. thông báo mở đơn hàng).
+   * Không emit tabChange — tránh vòng lặp với parent.
+   */
+  setActiveTabSilent(tabName: string): void {
+    this.activeTab = tabName;
+  }
 }

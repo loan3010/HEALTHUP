@@ -158,6 +158,7 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
 .status-pending { background: #fff4d6; color: #a56a00; }
 .status-confirmed { background: #e6f5e8; color: #217a29; }
 .status-shipping { background: #e8f1ff; color: #2351ad; }
+.status-delivery_failed { background: #fff4e6; color: #c2410c; }
 .status-delivered { background: #e8f7f3; color: #0e7c67; }
 .status-cancelled { background: #ffe9e9; color: #bb2323; }
 

@@ -1,4 +1,14 @@
-import { Component, Input, Output, EventEmitter, OnInit, ChangeDetectorRef, HostListener } from '@angular/core';
+import {
+  Component,
+  Input,
+  Output,
+  EventEmitter,
+  OnInit,
+  OnChanges,
+  SimpleChanges,
+  ChangeDetectorRef,
+  HostListener,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../services/api.service';
@@ -64,6 +74,20 @@ export class ConsultingDetail implements OnInit {
 
   ngOnInit(): void {
     if (this.product && this.product._id) {
+      this.loadQuestions();
+    }
+  }
+
+  /**
+   * Khi admin mở sản phẩm khác từ chuông thông báo (cùng tab chi tiết) — tải lại câu hỏi.
+   */
+  ngOnChanges(changes: SimpleChanges): void {
+    const p = changes['product'];
+    if (!p || p.isFirstChange()) return;
+    const prevId = p.previousValue?._id != null ? String(p.previousValue._id) : '';
+    const curId = p.currentValue?._id != null ? String(p.currentValue._id) : '';
+    if (curId && curId !== prevId) {
+      this.searchText = '';
       this.loadQuestions();
     }
   }

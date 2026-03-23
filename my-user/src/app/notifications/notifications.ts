@@ -55,6 +55,16 @@ export class Notification implements OnInit {
         const match = (noti.message || '').match(/ORD\w+/);
         if (match) this.router.navigate(['/profile/order-detail', match[0]]);
       }
+    } else if (noti.type === 'consulting') {
+      const pid =
+        noti.productId ||
+        String(noti.link || '')
+          .replace(/^.*\/product-detail-page\//, '')
+          .split(/[/?#]/)[0]
+          .trim();
+      if (pid) {
+        this.router.navigate(['/product-detail-page', pid]);
+      }
     }
   }
 
@@ -119,6 +129,7 @@ export class Notification implements OnInit {
       order:  'bi-bag-check',
       promo:  'bi-tag',
       system: 'bi-bell',
+      consulting: 'bi-chat-dots',
     };
     return map[type] || 'bi-bell';
   }

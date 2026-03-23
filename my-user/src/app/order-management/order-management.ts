@@ -23,6 +23,7 @@ export class OrderManagement implements OnInit {
     { id: 'pending',   label: 'Chờ xác nhận',  count: 0 },
     { id: 'confirmed', label: 'Chờ giao hàng', count: 0 },
     { id: 'shipping',  label: 'Đang giao',      count: 0 },
+    { id: 'delivery_failed', label: 'Giao thất bại', count: 0 },
     { id: 'delivered', label: 'Đã giao',        count: 0 },
     { id: 'cancelled', label: 'Đã hủy',         count: 0 },
   ];
@@ -89,11 +90,8 @@ export class OrderManagement implements OnInit {
     this.router.navigate(['/profile/order-detail', orderId]);
   }
 
-  // ✅ Chỉ navigate khi đơn đã giao — vào trang list để đánh giá từng sản phẩm
   goToReview(order: any): void {
     if (order?.status !== 'delivered') return;
-    // Navigate sang mode list (không truyền productId)
-    // order-review tự load toàn bộ sản phẩm cần đánh giá của user
     this.router.navigate(['/profile/order-review']);
   }
 
@@ -103,13 +101,14 @@ export class OrderManagement implements OnInit {
 
   getStatusLabel(status: string): string {
     const map: Record<string, string> = {
-      pending:         'Chờ xác nhận',
-      confirmed:       'Chờ giao hàng',
-      shipping:        'Đang giao',
-      delivered:       'Đã giao',
-      cancelled:       'Đã hủy',
-      pending_payment: 'Chờ thanh toán',
-      paid:            'Đã thanh toán',
+      pending:          'Chờ xác nhận',
+      confirmed:        'Chờ giao hàng',
+      shipping:         'Đang giao',
+      delivery_failed:  'Giao thất bại',
+      delivered:        'Đã giao',
+      cancelled:        'Đã hủy',
+      pending_payment:  'Chờ thanh toán',
+      paid:             'Đã thanh toán',
     };
     return map[status] || status;
   }

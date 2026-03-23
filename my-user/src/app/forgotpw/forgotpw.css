@@ -390,3 +390,93 @@
   background: rgba(0,0,0,0.12) !important;
 }
 
+/* Banner demo sau OTP — nổi bật nhưng không gắt */
+.otp-demo-banner {
+  background: linear-gradient(135deg, rgba(47, 107, 56, 0.12), rgba(17, 107, 46, 0.08));
+  border: 1px solid rgba(47, 107, 56, 0.35);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 22px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: #1a3d22;
+  font-weight: 600;
+}
+
+.btn-text-link {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+  padding: 10px;
+  border: none;
+  background: transparent;
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.btn-text-link:hover {
+  opacity: 0.85;
+}
+
+/* Giả lập tin nhắn có mã OTP (thay SMS) */
+.otp-sms-mock {
+  text-align: left;
+  margin: 0 0 22px;
+  max-width: 100%;
+}
+
+.otp-sms-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: #888;
+  margin-bottom: 6px;
+  padding: 0 4px;
+}
+
+.otp-sms-app {
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.otp-sms-bubble {
+  background: #e8f5e9;
+  border-radius: 16px 16px 16px 4px;
+  padding: 12px 14px;
+  border: 1px solid rgba(47, 107, 56, 0.25);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.otp-sms-sender {
+  display: block;
+  font-size: 12px;
+  font-weight: 900;
+  color: var(--primary);
+  margin-bottom: 6px;
+}
+
+.otp-sms-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: #222;
+}
+
+.otp-sms-code {
+  display: inline-block;
+  margin: 0 2px;
+  padding: 2px 8px;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px dashed var(--primary);
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 0.2em;
+  color: #1a3d22;
+}
+

@@ -20,6 +20,11 @@
       <input type="text" style="display:none">
       <input type="password" style="display:none">
 
+      <!-- Sau luồng quên mật khẩu + đặt MK mới -->
+      <div *ngIf="pwdResetInfo" class="pwd-reset-info" role="status">
+        {{ pwdResetInfo }}
+      </div>
+
       <!-- Tài khoản bị khóa: hiện lý do admin đã nhập -->
       <div *ngIf="loginBanMessage" class="login-ban-banner" role="alert">
         <div class="login-ban-title"><i class="bi bi-exclamation-octagon-fill"></i> {{ loginBanMessage }}</div>

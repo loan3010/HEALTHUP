@@ -13,9 +13,14 @@
         <h1 class="page-title">DANH SÁCH SẢN PHẨM</h1>
         <p class="total-count">Tổng cộng: <strong>{{ total }}</strong> sản phẩm</p>
       </div>
-      <button class="hu-btn-primary" (click)="addProduct()">
-        <i class="bi bi-plus-lg"></i> Thêm sản phẩm
-      </button>
+      <div class="hu-header-actions">
+        <button type="button" class="hu-toolbar-btn" (click)="openCategoryModal()" title="Thêm, vô hiệu hóa hoặc xóa danh mục">
+          <i class="bi bi-folder2-open"></i> Quản lý danh mục
+        </button>
+        <button type="button" class="hu-btn-primary" (click)="addProduct()">
+          <i class="bi bi-plus-lg"></i> Thêm sản phẩm
+        </button>
+      </div>
     </div>
 
     <!-- Card -->
@@ -78,7 +83,7 @@
                 <label>Danh mục</label>
                 <select [(ngModel)]="filterCat">
                   <option value="">Tất cả</option>
-                  <option *ngFor="let c of categories" [value]="c">{{ c }}</option>
+                  <option *ngFor="let c of filterCategoryNames" [value]="c">{{ c }}</option>
                 </select>
               </div>
               <div class="filter-row">
@@ -335,6 +340,85 @@
     </div>
   </div>
 
+  <!-- Modal quản lý danh mục: danh sách + số SP + vô hiệu / khôi phục / xóa (chỉ khi 0 SP) -->
+  <div class="modal-overlay" *ngIf="showCategoryModal" (click)="closeCategoryModal()">
+    <div class="cat-admin-card" (click)="$event.stopPropagation()">
+      <div class="cat-admin-head">
+        <div>
+          <h2>Quản lý danh mục</h2>
+          <p>
+            Có sản phẩm: chỉ <strong>vô hiệu hóa</strong> được. Không còn SP: có thể <strong>xóa vĩnh viễn</strong>.
+            Danh mục vô hiệu không hiện trên site user và không có trong form thêm sản phẩm mới.
+          </p>
+        </div>
+        <button type="button" class="cat-admin-close" (click)="closeCategoryModal()" [disabled]="categoryModalBusy" aria-label="Đóng">×</button>
+      </div>
+      <div class="cat-admin-add">
+        <input
+          type="text"
+          [(ngModel)]="newCategoryName"
+          placeholder="Tên danh mục mới (tối thiểu 2 ký tự)"
+          (keydown.enter)="submitNewCategoryInModal(); $event.preventDefault()"
+          [disabled]="categoryModalBusy || categoryModalLoading"
+        />
+        <button type="button" class="hu-btn-primary small" (click)="submitNewCategoryInModal()" [disabled]="categoryModalBusy || categoryModalLoading">
+          Thêm danh mục
+        </button>
+      </div>
+      <div class="cat-admin-body">
+        <div class="cat-admin-loading" *ngIf="categoryModalLoading">Đang tải danh sách…</div>
+        <table class="cat-admin-table" *ngIf="!categoryModalLoading && adminCategoryRows.length">
+          <thead>
+            <tr>
+              <th>Tên</th>
+              <th>Số SP</th>
+              <th>Trạng thái</th>
+              <th>Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of adminCategoryRows">
+              <td class="cat-admin-name" [title]="row.name">{{ row.name }}</td>
+              <td class="cat-admin-count">{{ row.productCount }}</td>
+              <td>
+                <span class="cat-admin-pill on" *ngIf="row.isActive">Đang dùng</span>
+                <span class="cat-admin-pill off" *ngIf="!row.isActive">Vô hiệu</span>
+              </td>
+              <td class="cat-admin-actions">
+                <button
+                  type="button"
+                  *ngIf="row.isActive"
+                  (click)="deactivateCategoryRow(row)"
+                  [disabled]="categoryModalBusy">
+                  Vô hiệu hóa
+                </button>
+                <button
+                  type="button"
+                  *ngIf="!row.isActive"
+                  (click)="restoreCategoryRow(row)"
+                  [disabled]="categoryModalBusy">
+                  Khôi phục
+                </button>
+                <button
+                  type="button"
+                  class="danger"
+                  (click)="deleteCategoryRow(row)"
+                  [disabled]="categoryModalBusy || row.productCount > 0"
+                  [title]="row.productCount > 0 ? 'Còn sản phẩm — chỉ vô hiệu hóa' : 'Xóa vĩnh viễn'">
+                  Xóa
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="cat-admin-empty" *ngIf="!categoryModalLoading && !adminCategoryRows.length">Chưa có danh mục nào. Thêm mới hoặc chạy seed backend.</div>
+      </div>
+      <div class="cat-admin-footnote">
+        Bộ lọc danh sách sản phẩm dùng mọi tên danh mục đã đăng ký. Form sản phẩm chỉ chọn danh mục đang hoạt động.
+      </div>
+    </div>
+  </div>
+
   <!-- Form dạng trang -->
   <div class="product-editor-page" *ngIf="isEditorPageOpen">
     <div class="editor-header">
@@ -346,7 +430,7 @@
     <app-product-form
       [embedded]="true"
       [product]="selectedProduct"
-      [categories]="categories"
+      [categories]="formCategoryNames"
       (save)="onFormSave()"
       (cancel)="onFormCancel()">
     </app-product-form>
