@@ -87,15 +87,51 @@ export class ApiService {
   }
 
   /**
-   * QUẢN TRỊ VIÊN: Thực hiện lệnh xóa vĩnh viễn dữ liệu câu hỏi tư vấn
+   * QUẢN TRỊ VIÊN: Xóa câu hỏi và tự động gửi thông báo lý do cho khách hàng.
+   * CẬP NHẬT: Thêm productId vào payload để tạo link điều hướng cho khách.
    */
-  deleteConsultingQuestion(id: string): Observable<any> {
-    return this.http.delete(`${this.baseUrl}/consulting/${id}`);
+  deleteConsultingQuestion(data: {
+    questionId: string;
+    userId?: string;
+    productName: string;
+    reason: string;
+    productId: string;
+  }): Observable<any> {
+    // Nếu có khách hàng và lý do, gửi thông báo qua hệ thống trước
+    if (data.userId && data.reason) {
+      this.createNotification({
+        userId: data.userId,
+        title: 'Câu hỏi của bạn đã bị gỡ bỏ',
+        message: `Câu hỏi về sản phẩm "${data.productName}" đã bị xóa. Lý do: ${data.reason}`,
+        type: 'consulting',
+        productId: data.productId // Truyền ID sản phẩm vào thông báo
+      }).subscribe();
+    }
+    return this.http.delete(`${this.baseUrl}/consulting/${data.questionId}`);
   }
 
 
   // ==========================================
-  // 3. PHÂN HỆ: TIỆN ÍCH VÀ DỊCH VỤ HỆ THỐNG
+  // 3. PHÂN HỆ: THÔNG BÁO (NOTIFICATIONS)
+  // ==========================================
+
+  /**
+   * Tạo thông báo mới cho người dùng
+   * CẬP NHẬT: Nhận thêm productId để khách hàng có thể click điều hướng
+   */
+  createNotification(data: {
+    userId: string;
+    title: string;
+    message: string;
+    type?: string;
+    productId?: string;
+  }): Observable<any> {
+    return this.http.post(`${this.baseUrl}/notifications`, data);
+  }
+
+
+  // ==========================================
+  // 4. PHÂN HỆ: TIỆN ÍCH VÀ DỊCH VỤ HỆ THỐNG
   // ==========================================
 
   /**
@@ -135,7 +171,6 @@ export class ApiService {
   showToast(message: string, type: 'success' | 'error' | 'info' = 'success') {
     // Log ghi nhận hoạt động hệ thống
     console.log(`[SYSTEM LOG - ${type.toUpperCase()}]: ${message}`);
-    // Tích hợp thêm các thư viện giao diện Toast (như ngx-toastr) tại đây nếu cần
   }
 
   /**

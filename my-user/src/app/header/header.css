@@ -510,7 +510,10 @@ a.notif-bell-wrap {
   min-height: 40px;
 }
 .notif-bell-wrap .notif-bell-badge {
+  top: -2px;    /* Nhích xuống (cũ là -7px) */
+  right: 0px;   /* Nhích vào trong (cũ là -8px) */
   z-index: 2;
+  border-width: 1.5px; /* Giảm độ dày viền trắng tí cho thanh thoát */
 }
 
 @keyframes badge-pop {

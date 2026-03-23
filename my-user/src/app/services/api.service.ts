@@ -36,6 +36,7 @@ export class ApiService {
   private _wishlist = new BehaviorSubject<string[]>(this.loadWishlistFromStorage());
   wishlist$ = this._wishlist.asObservable();
 
+  // ── Toast stream (Đã tối ưu để hiện ngay lần đầu và tự xóa) ────────────────
   private _toasts = new BehaviorSubject<Toast[]>([]);
   toasts$ = this._toasts.asObservable();
   private _toastCounter = 0;
@@ -54,14 +55,13 @@ export class ApiService {
     this.refreshWishlist();
 
     // ✅ Tự động refresh unread count mỗi 30 giây
-    // để badge cập nhật khi admin đổi trạng thái đơn hàng
     setInterval(() => {
       if (this.getUserId() && this.getToken()) {
         this.refreshUnreadCount();
       }
     }, 30000);
 
-    // Khi quay lại tab: đồng bộ chuông (socket có thể bỏ lỡ sự kiện).
+    // Khi quay lại tab: đồng bộ chuông
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible' && this.getUserId() && this.getToken()) {
@@ -88,10 +88,6 @@ export class ApiService {
     return localStorage.getItem('token') || '';
   }
 
-  /**
-   * Phiên giỏ khách (chưa đăng nhập): UUID lưu localStorage, gửi qua x-guest-cart-id.
-   * Không dùng chung với checkout cart_v1 — đây là giỏ trên MongoDB.
-   */
   private getOrCreateGuestCartSessionId(): string {
     const genUuidV4 = (): string => {
       if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -103,7 +99,6 @@ export class ApiService {
         return v.toString(16);
       });
     };
-    // Phải khớp chuẩn UUID (giống backend cartIdentity) — id cũ sai định dạng thì tạo mới.
     const isUuidShape = (v: string) =>
       /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
     try {
@@ -117,7 +112,6 @@ export class ApiService {
     }
   }
 
-  /** Header giỏ: user đăng nhập → x-user-id; khách → x-guest-cart-id. */
   private cartHeaders(): HttpHeaders {
     const uid = String(this.getUserId() || '').trim();
     if (uid && /^[a-f0-9]{24}$/i.test(uid)) {
@@ -154,12 +148,17 @@ export class ApiService {
 
   showToast(message: string, type: Toast['type'] = 'success', duration = 3000): void {
     const id = ++this._toastCounter;
-    this._toasts.next([...this._toasts.getValue(), { id, message, type }]);
-    setTimeout(() => this.dismissToast(id), duration);
+    const currentToasts = this._toasts.getValue();
+    this._toasts.next([...currentToasts, { id, message, type }]);
+
+    setTimeout(() => {
+      this.dismissToast(id);
+    }, duration);
   }
 
   dismissToast(id: number): void {
-    this._toasts.next(this._toasts.getValue().filter(t => t.id !== id));
+    const remaining = this._toasts.getValue().filter(t => t.id !== id);
+    this._toasts.next(remaining);
   }
 
   // ════════════════════════════════════════════════════════════════════════════
@@ -262,7 +261,6 @@ export class ApiService {
     minRating?: number; sort?: string; page?: number; limit?: number; search?: string;
   } = {}): Observable<{ products: any[]; total: number; totalPages: number }> {
 
-    // ✅ Cache: trả ngay nếu cùng filters trong vòng 20 giây
     const cacheKey = JSON.stringify(filters);
     const cached = this._productsCache.get(cacheKey);
     if (cached && Date.now() - cached.ts < this._PRODUCTS_TTL) {
@@ -287,7 +285,6 @@ export class ApiService {
     );
   }
 
-  // ✅ Gọi khi thêm/sửa/xóa sản phẩm để cache không stale
   clearProductsCache(): void {
     this._productsCache.clear();
   }
@@ -367,26 +364,16 @@ export class ApiService {
   //  Consulting APIs (Hỏi & Đáp)
   // ════════════════════════════════════════════════════════════════════════════
 
-  /**
-   * Lấy danh sách câu hỏi của một sản phẩm (Có phân trang & lọc)
-   */
   getConsultingQuestions(productId: string, filters: {
     filter?: string; page?: number; limit?: number;
   } = {}): Observable<any> {
     let params = new HttpParams();
     if (filters.filter && filters.filter !== 'all') params = params.set('filter', filters.filter);
-    if (filters.page)  params = params.set('page',  filters.page.toString());
+    if (filters.page)  params = params.set('page',   filters.page.toString());
     if (filters.limit) params = params.set('limit', filters.limit.toString());
-    
     return this.http.get<any>(`${API_BASE}/consulting/product/${productId}`, { params });
   }
 
-  /**
-   * Khách hàng gửi câu hỏi mới
-   */
-  /**
-   * Gửi câu hỏi tư vấn. Nếu đã đăng nhập — gửi kèm Bearer để backend lưu userId (nhận thông báo khi admin trả lời).
-   */
   submitConsultingQuestion(data: { productId: string; content: string; user: string }): Observable<any> {
     const token = this.getToken();
     const headers = token
@@ -395,32 +382,18 @@ export class ApiService {
     return this.http.post<any>(`${API_BASE}/consulting`, data, { headers });
   }
 
-  /**
-   * KHÁCH HÀNG: Đánh giá câu trả lời hữu ích hoặc không hữu ích (Like/Dislike)
-   */
   voteConsultingQuestion(id: string, type: 'up' | 'down'): Observable<any> {
     return this.http.put(`${API_BASE}/consulting/${id}/vote`, { type });
   }
 
-  // --- ADMIN METHODS ---
-
-  /**
-   * ADMIN: Lấy tóm tắt câu hỏi của tất cả sản phẩm
-   */
   getConsultingSummary(): Observable<any[]> {
     return this.http.get<any[]>(`${API_BASE}/consulting/admin/summary`);
   }
 
-  /**
-   * ADMIN: Trả lời câu hỏi (kèm tên Admin thực hiện)
-   */
   replyConsultingQuestion(questionId: string, answer: string, answeredBy: string): Observable<any> {
     return this.http.put(`${API_BASE}/consulting/${questionId}/reply`, { answer, answeredBy });
   }
 
-  /**
-   * ADMIN: Xóa câu hỏi tư vấn
-   */
   deleteConsultingQuestion(id: string): Observable<any> {
     return this.http.delete(`${API_BASE}/consulting/${id}`);
   }
@@ -429,9 +402,6 @@ export class ApiService {
   //  Banner APIs
   // ════════════════════════════════════════════════════════════════════════════
 
-  /**
-   * Truy xuất danh sách banner đang hoạt động để hiển thị Slider
-   */
   getBanners(): Observable<any[]> {
     return this.http.get<any[]>(`${API_BASE}/banners/active`);
   }
@@ -493,7 +463,6 @@ export class ApiService {
     return this.http.get<any>(`${API_BASE}/orders/${id}`);
   }
 
-  /** Tra cứu đơn không cần đăng nhập (SĐT + mã đơn ORD...). */
   guestLookupOrder(phone: string, orderCode: string): Observable<{ order: any }> {
     return this.http.post<{ order: any }>(`${API_BASE}/orders/guest-lookup`, {
       phone: String(phone || '').trim(),
@@ -501,7 +470,6 @@ export class ApiService {
     });
   }
 
-  /** Yêu cầu đổi trả khi không đăng nhập — xác minh SĐT + mã đơn trong FormData. */
   guestRequestReturn(
     orderId: string,
     data: {
@@ -539,8 +507,6 @@ export class ApiService {
   deleteOrder(id: string): Observable<any> {
     return this.http.delete(`${API_BASE}/orders/${id}`);
   }
-
-  // ── Return APIs ────────────────────────────────────────────────────────────
 
   requestReturn(orderId: string, data: {
     reason: string;
@@ -594,12 +560,18 @@ export class ApiService {
     ).pipe(tap(() => this._unreadCount.next(0)));
   }
 
+  /**
+   * CẬP NHẬT: Thêm productId và link để đồng bộ với Backend mới.
+   */
   createNotification(data: {
     userId: string;
     title: string;
     message: string;
     type?: string;
     orderId?: string;
+    productId?: string;
+    link?: string;
+    icon?: string;
   }): Observable<any> {
     return this.http.post(`${API_BASE}/notifications`, data).pipe(
       tap(() => this.refreshUnreadCount())
