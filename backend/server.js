@@ -70,9 +70,12 @@ app.use('/api/promotions',      require('./routes/promotion.routes'));
 app.use('/api/categories',      require('./routes/categories'));
 app.use('/api/admin/customers', require('./routes/customer'));
 app.use('/api/admin/dashboard', require('./routes/admin-dashboard'));
-app.use('/api/about-images', require('./routes/about-images'));
-app.use('/api/notifications', require('./routes/notifications'));
-app.use('/api/consulting', require('./routes/consulting.routes'));
+app.use('/api/about-images',    require('./routes/about-images'));
+app.use('/api/notifications',   require('./routes/notifications'));
+app.use('/api/consulting',      require('./routes/consulting.routes'));
+
+// --- ROUTE MỚI: QUẢN LÝ BANNER ---
+app.use('/api/banners',         require('./routes/banner.routes'));
 
 // Health check
 app.get('/api/health', (req, res) => {

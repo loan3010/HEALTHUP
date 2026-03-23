@@ -4,7 +4,7 @@ const mongoose  = require('mongoose');
 const promoCtrl = require('../controllers/Promotion.controller');
 const Promotion = require('../models/Promotion');
 
-// 1. Lấy danh sách: GET /api/promotions
+// 1. Lấy danh sách: GET /api/promotions (Dành cho Admin xem tất cả)
 router.get('/', promoCtrl.getAllPromotions);
 
 // 2. Tạo mới: POST /api/promotions
@@ -12,8 +12,6 @@ router.post('/', promoCtrl.createPromotion);
 
 // ── Apply voucher ────────────────────────────────────────────────
 // POST /api/promotions/apply
-// Body: { code, subTotal, shippingFee }
-// Response: { valid, type, discountType, discountValue, discountOnType, discountAmount, message }
 router.post('/apply', async (req, res) => {
   try {
     const { code, subTotal = 0, shippingFee = 0 } = req.body;
@@ -28,7 +26,12 @@ router.post('/apply', async (req, res) => {
       return res.status(404).json({ valid: false, message: 'Mã voucher không tồn tại' });
     }
 
-    // Kiểm tra trạng thái
+    // --- KIỂM TRA QUYỀN HIỂN THỊ (Mới thêm) ---
+    if (promo.isActive === false) {
+      return res.status(400).json({ valid: false, message: 'Voucher này hiện đang tạm ngưng sử dụng' });
+    }
+
+    // Kiểm tra trạng thái expired
     if (promo.status === 'expired') {
       return res.status(400).json({ valid: false, message: 'Voucher đã hết hạn' });
     }
@@ -57,27 +60,21 @@ router.post('/apply', async (req, res) => {
       });
     }
 
-    // ── Tính tiền giảm dựa trên promo.type (chuẩn phân loại) ──
     let discountAmount = 0;
-    // 'shipping' = giảm phí vận chuyển | 'order' = giảm tiền hàng
     const discountOnType = (promo.type === 'shipping') ? 'shipping' : 'items';
 
     if (promo.type === 'shipping') {
-      // Mã giảm phí vận chuyển
       if (promo.discountType === 'percent') {
         discountAmount = Math.round(Number(shippingFee) * promo.discountValue / 100);
         if (promo.maxDiscount > 0 && discountAmount > promo.maxDiscount) {
           discountAmount = promo.maxDiscount;
         }
       } else if (promo.discountType === 'fixed') {
-        // Không giảm nhiều hơn phí ship thực tế
         discountAmount = Math.min(promo.discountValue, Number(shippingFee));
       } else {
-        // discountType === 'freeship' → giảm toàn bộ phí ship
         discountAmount = Number(shippingFee);
       }
     } else {
-      // Mã giảm tiền hàng (promo.type === 'order')
       if (promo.discountType === 'percent') {
         discountAmount = Math.round(Number(subTotal) * promo.discountValue / 100);
         if (promo.maxDiscount > 0 && discountAmount > promo.maxDiscount) {
@@ -93,10 +90,10 @@ router.post('/apply', async (req, res) => {
       code:           promo.code,
       name:           promo.name,
       description:    promo.description || '',
-      type:           promo.type,           // 'order' | 'shipping'
-      discountType:   promo.discountType,   // 'percent' | 'fixed' | 'freeship'
+      type:           promo.type,
+      discountType:   promo.discountType,
       discountValue:  promo.discountValue,
-      discountOnType,                       // 'items' | 'shipping'
+      discountOnType,
       discountAmount,
       message:        '✓ Áp dụng thành công!',
     });
@@ -107,20 +104,20 @@ router.post('/apply', async (req, res) => {
   }
 });
 
-// ── Lấy danh sách voucher đang hoạt động (cho user xem) ─────────
+// ── Lấy danh sách voucher cho User xem (Chỉ lấy mã isActive = true) ──
 // GET /api/promotions/available
 router.get('/available', async (req, res) => {
   try {
     const now = new Date();
 
     const all = await Promotion.find({
+      isActive: true, // <--- QUAN TRỌNG: Chỉ lấy voucher đang công khai
       status: 'ongoing',
       $or: [
         { totalLimit: 0 },
         { $expr: { $lt: ['$usedCount', '$totalLimit'] } }
       ]
     })
-    // Thêm 'type' vào select để frontend phân loại đúng
     .select('code name description type discountType discountValue minOrder maxDiscount startDate endDate')
     .lean();
 
@@ -138,7 +135,7 @@ router.get('/available', async (req, res) => {
   }
 });
 
-// 3. Gom nhóm hàng loạt (phải trước :id)
+// 3. Gom nhóm hàng loạt (Phải để trước :id để tránh bị nhầm là param)
 router.put('/bulk-group', promoCtrl.bulkGroupPromotions);
 
 // 4. Cập nhật lẻ: PUT /api/promotions/:id
