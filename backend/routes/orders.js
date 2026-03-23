@@ -22,7 +22,6 @@ function jwtSecretOrders() {
   return process.env.JWT_SECRET || 'secret_key';
 }
 
-/** Bearer token từ checkout đã đăng nhập (dùng voucher). */
 function extractBearer(req) {
   const h = req.headers.authorization || req.headers.Authorization || '';
   return typeof h === 'string' && h.startsWith('Bearer ') ? h.slice(7).trim() : '';
@@ -72,14 +71,12 @@ async function calcDiscountFromDB(voucherCode, subTotal, shippingFee) {
   if (!voucherCode) return { discountAmount: 0, discountOnType: null };
 
   const now = new Date();
-  // Chỉ tìm theo code, check startDate/endDate bằng JS (tránh lỗi string vs Date trong MongoDB)
   const promo = await Promotion.findOne({
     code: voucherCode.trim().toUpperCase(),
   });
 
   if (!promo) return { discountAmount: 0, discountOnType: null };
 
-  // Check thời gian bằng JS
   const start = promo.startDate ? new Date(promo.startDate) : null;
   const end   = promo.endDate   ? new Date(promo.endDate)   : null;
   if (start && now < start) return { discountAmount: 0, discountOnType: null };
@@ -120,7 +117,7 @@ async function calcDiscountFromDB(voucherCode, subTotal, shippingFee) {
 
 function getMembershipTier(totalSpent) {
   if (!totalSpent || totalSpent <= 0) return 'Đồng';
-  if (totalSpent < 5_000_000) return 'Đồng';
+  if (totalSpent < 5_000_000)  return 'Đồng';
   if (totalSpent < 10_000_000) return 'Bạc';
   if (totalSpent < 20_000_000) return 'Vàng';
   return 'Kim Cương';
@@ -142,13 +139,13 @@ function normalizeShippingPart(v) {
   return s;
 }
 
-const ORDER_STATUS = ['pending', 'confirmed', 'shipping', 'delivered', 'cancelled'];
+const ORDER_STATUS  = ['pending', 'confirmed', 'shipping', 'delivered', 'cancelled'];
 const RETURN_STATUS = ['none', 'requested', 'approved', 'rejected', 'completed'];
 
 const NEXT_STATUS = {
-  pending: ['confirmed', 'cancelled'],
+  pending:   ['confirmed', 'cancelled'],
   confirmed: ['shipping'],
-  shipping: ['delivered'],
+  shipping:  ['delivered'],
   delivered: [],
   cancelled: []
 };
@@ -180,7 +177,7 @@ function buildAdminOrderFilter(query) {
   }
 
   const from = String(query.from || '');
-  const to = String(query.to || '');
+  const to   = String(query.to   || '');
   if (from) {
     const fromDate = parseDateStart(from);
     if (!fromDate) throw new Error('Ngày bắt đầu không hợp lệ');
@@ -211,9 +208,9 @@ function buildAdminOrderFilter(query) {
 }
 
 function getAdminSort(sortBy, sortDir) {
-  const dir = String(sortDir || 'desc') === 'asc' ? 1 : -1;
+  const dir     = String(sortDir || 'desc') === 'asc' ? 1 : -1;
   const allowed = ['createdAt', 'total', 'status', 'paymentMethod', 'orderCode'];
-  const by = allowed.includes(String(sortBy || '')) ? String(sortBy) : 'createdAt';
+  const by      = allowed.includes(String(sortBy || '')) ? String(sortBy) : 'createdAt';
   return { [by]: dir, _id: -1 };
 }
 
@@ -227,9 +224,6 @@ async function generateNextOrderCode() {
   return `ORD${String(current + 1).padStart(11, '0')}`;
 }
 
-/**
- * Ghi yêu cầu đổi trả lên đơn (dùng chung user JWT + guest).
- */
 async function persistOrderReturnRequest(order, { reason, note, parsedItems, files, auditWho }) {
   const imageUrls = (files || []).map((f) => `/images/returns/${f.filename}`);
 
@@ -262,12 +256,6 @@ async function persistOrderReturnRequest(order, { reason, note, parsedItems, fil
   });
 }
 
-/**
- * Chuẩn bị payload đơn hàng từ body (checkout công khai + admin hotline + preview).
- * @param {object} opts
- * @param {boolean} [opts.allowVouchers=true] — false = khách không đăng nhập (guest), bỏ mã KM
- * @param {string|mongoose.Types.ObjectId} [opts.lockedUserId] — gán userId đơn (JWT user hoặc guest)
- */
 async function prepareOrderFromRequestBody(body, opts = {}) {
   const allowVouchers = opts.allowVouchers !== false;
   const lockedUserId  = opts.lockedUserId;
@@ -277,13 +265,13 @@ async function prepareOrderFromRequestBody(body, opts = {}) {
     items,
     shippingMethod,
     paymentMethod,
-    voucherCode: voucherCodeBody,
+    voucherCode:     voucherCodeBody,
     shipVoucherCode: shipVoucherBody,
     userId
   } = body || {};
 
-  const voucherCode     = allowVouchers && voucherCodeBody    ? String(voucherCodeBody).trim()  : null;
-  const shipVoucherCode = allowVouchers && shipVoucherBody     ? String(shipVoucherBody).trim()  : null;
+  const voucherCode     = allowVouchers && voucherCodeBody  ? String(voucherCodeBody).trim()  : null;
+  const shipVoucherCode = allowVouchers && shipVoucherBody   ? String(shipVoucherBody).trim()  : null;
 
   if (!customer?.fullName || !customer?.phone || !customer?.address) {
     return { ok: false, status: 400, payload: { message: 'Thiếu thông tin khách hàng' } };
@@ -424,9 +412,6 @@ async function prepareOrderFromRequestBody(body, opts = {}) {
   };
 }
 
-/**
- * Lưu đơn sau khi prepareOrderFromRequestBody thành công (mã đơn, voucher, cart, kho).
- */
 async function persistNewOrder(
   orderData,
   orderItems,
@@ -434,7 +419,7 @@ async function persistNewOrder(
   shipVoucherCodeRaw,
   guestCartSessionId = null
 ) {
-  let order = null;
+  let order   = null;
   let lastErr = null;
   for (let i = 0; i < 4; i += 1) {
     try {
@@ -513,7 +498,6 @@ async function persistNewOrder(
     }
 
     p.sold = Number(p.sold || 0) + Number(item.quantity || 0);
-
     await p.save();
   }
 
@@ -541,9 +525,7 @@ router.post('/', async (req, res) => {
           lockedUserId  = decoded.userId;
           allowVouchers = true;
         }
-      } catch (_e) {
-        /* token hết hạn / sai → xử lý như khách */
-      }
+      } catch (_e) { /* token hết hạn / sai → xử lý như khách */ }
     }
 
     if (!lockedUserId) {
@@ -576,10 +558,31 @@ router.post('/', async (req, res) => {
       guestCartSessionId
     );
 
+    // ── Cập nhật hạng thành viên sau khi đặt hàng thành công ──
     if (order.userId) {
       try {
-        const firstItem    = prep.orderItems[0];
-        const extraCount   = prep.orderItems.length - 1;
+        const agg = await Order.aggregate([
+          {
+            $match: {
+              userId: new mongoose.Types.ObjectId(String(order.userId)),
+              status: { $in: ['pending', 'confirmed', 'shipping', 'delivered'] }
+            }
+          },
+          { $group: { _id: null, total: { $sum: '$total' } } }
+        ]);
+        const totalSpent = agg[0]?.total || 0;
+        const memberRank = totalSpent >= 5_000_000 ? 'vip' : 'member';
+        await User.findByIdAndUpdate(order.userId, { totalSpent, memberRank });
+      } catch (e) {
+        console.error('Cập nhật hạng thành viên thất bại:', e);
+      }
+    }
+
+    // ── Tạo notification ──
+    if (order.userId) {
+      try {
+        const firstItem      = prep.orderItems[0];
+        const extraCount     = prep.orderItems.length - 1;
         const productSummary = extraCount > 0
           ? `${firstItem.name} và ${extraCount} sản phẩm khác`
           : firstItem.name;
@@ -657,12 +660,12 @@ router.get('/admin/list', authenticateToken, requireAdmin, async (req, res) => {
         {
           $group: {
             _id: null,
-            totalOrders: { $sum: 1 },
-            pendingCount: { $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] } },
-            shippingCount: { $sum: { $cond: [{ $eq: ['$status', 'shipping'] }, 1, 0] } },
+            totalOrders:          { $sum: 1 },
+            pendingCount:         { $sum: { $cond: [{ $eq: ['$status', 'pending'] },   1, 0] } },
+            shippingCount:        { $sum: { $cond: [{ $eq: ['$status', 'shipping'] },  1, 0] } },
             returnRequestedCount: { $sum: { $cond: [{ $eq: ['$returnStatus', 'requested'] }, 1, 0] } },
-            returnApprovedCount: { $sum: { $cond: [{ $eq: ['$returnStatus', 'approved'] }, 1, 0] } },
-            returnRejectedCount: { $sum: { $cond: [{ $eq: ['$returnStatus', 'rejected'] }, 1, 0] } },
+            returnApprovedCount:  { $sum: { $cond: [{ $eq: ['$returnStatus', 'approved'] },  1, 0] } },
+            returnRejectedCount:  { $sum: { $cond: [{ $eq: ['$returnStatus', 'rejected'] },  1, 0] } },
             returnCompletedCount: { $sum: { $cond: [{ $eq: ['$returnStatus', 'completed'] }, 1, 0] } }
           }
         }
@@ -670,13 +673,9 @@ router.get('/admin/list', authenticateToken, requireAdmin, async (req, res) => {
     ]);
 
     const summary = globalStats?.[0] || {
-      totalOrders: 0,
-      pendingCount: 0,
-      shippingCount: 0,
-      returnRequestedCount: 0,
-      returnApprovedCount: 0,
-      returnRejectedCount: 0,
-      returnCompletedCount: 0
+      totalOrders: 0, pendingCount: 0, shippingCount: 0,
+      returnRequestedCount: 0, returnApprovedCount: 0,
+      returnRejectedCount: 0, returnCompletedCount: 0
     };
 
     return res.json({ data, total, page, totalPages: Math.ceil(total / limit) || 1, summary });
@@ -818,6 +817,26 @@ router.patch('/admin/:id/status', authenticateToken, requireAdmin, async (req, r
       note:      String(note || '')
     });
 
+    // ── Khi đơn chuyển sang delivered: cập nhật lại hạng thành viên ──
+    if (status === 'delivered' && order.userId) {
+      try {
+        const agg = await Order.aggregate([
+          {
+            $match: {
+              userId: new mongoose.Types.ObjectId(String(order.userId)),
+              status: 'delivered'
+            }
+          },
+          { $group: { _id: null, total: { $sum: '$total' } } }
+        ]);
+        const totalSpent = agg[0]?.total || 0;
+        const memberRank = totalSpent >= 5_000_000 ? 'vip' : 'member';
+        await User.findByIdAndUpdate(order.userId, { totalSpent, memberRank });
+      } catch (e) {
+        console.error('Cập nhật hạng thành viên thất bại:', e);
+      }
+    }
+
     if (order.userId) {
       try {
         const statusLabel = {
@@ -883,8 +902,8 @@ router.patch('/admin/:id/return-status', authenticateToken, requireAdmin, async 
 
     order.returnStatus = returnStatus;
     if (returnStatus === 'requested') {
-      order.returnRequestedAt    = new Date();
-      order.returnReason         = String(returnReason || '');
+      order.returnRequestedAt     = new Date();
+      order.returnReason          = String(returnReason || '');
       order.returnRejectionReason = '';
     }
     if (returnStatus === 'approved') {
@@ -945,7 +964,7 @@ router.post('/guest-lookup', async (req, res) => {
   }
 });
 
-// ======================= GUEST: đổi trả (xác minh SĐT + mã đơn) =======================
+// ======================= GUEST: đổi trả =======================
 router.patch('/:id/guest-request-return', (req, res) => {
   uploadReturnImages(req, res, async (uploadErr) => {
     try {

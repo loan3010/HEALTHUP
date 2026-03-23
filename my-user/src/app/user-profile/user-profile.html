@@ -7,8 +7,14 @@
     <div class="sidebar-avatar-block">
       <div class="avatar">{{ getInitials() }}</div>
       <p class="sidebar-username">{{ userName }}</p>
-      <!-- ✅ FIX: dùng memberRank thay vì hardcode "Thành viên" -->
-      <span class="badge badge-{{ memberRank | lowercase }}">{{ memberRank }}</span>
+      <span class="sidebar-rank-badge"
+            [class.badge-member]="memberRank === 'member'"
+            [class.badge-vip]="memberRank === 'vip'">
+        <i class="bi"
+           [class.bi-person-fill]="memberRank === 'member'"
+           [class.bi-star-fill]="memberRank === 'vip'"></i>
+        {{ memberRankLabel }}
+      </span>
     </div>
 
     <!-- Menu -->
