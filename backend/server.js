@@ -7,15 +7,22 @@ require('dotenv').config();
 const app = express();
 
 // Middleware
+// Cho phép header giỏ hàng (preflight OPTIONS) — thiếu mục này trình duyệt có thể không gửi x-guest-cart-id / x-user-id.
 app.use(cors({
-  origin: function(origin, callback) {
-    if (!origin || origin.startsWith('http://localhost')) {
+  origin(origin, callback) {
+    if (
+      !origin ||
+      origin.startsWith('http://localhost') ||
+      origin.startsWith('http://127.0.0.1')
+    ) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id', 'x-guest-cart-id'],
+  exposedHeaders: ['Content-Type'],
 }));
 
 app.use(express.json());
@@ -32,9 +39,22 @@ app.use(express.static(path.join(__dirname, 'public'), {
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/healthup';
 
 console.log("ENV URI:", process.env.MONGODB_URI);
-mongoose.connect(MONGODB_URI)
-  .then(() => console.log('✅ MongoDB connected successfully'))
-  .catch(err => console.error('❌ MongoDB connection error:', err));
+mongoose
+  .connect(MONGODB_URI)
+  .then(async () => {
+    console.log('✅ MongoDB connected successfully');
+    // Index cũ userId unique KHÔNG sparse → mọi giỏ khách (userId null) trùng khóa → E11000 khi /carts/add.
+    try {
+      const Cart = require('./models/Cart');
+      const User = require('./models/User');
+      await Cart.syncIndexes();
+      await User.syncIndexes();
+      console.log('✅ Cart + User indexes synced (sparse unique where needed)');
+    } catch (e) {
+      console.warn('⚠️ syncIndexes:', e?.message || e);
+    }
+  })
+  .catch((err) => console.error('❌ MongoDB connection error:', err));
 
 // Routes
 app.use('/api/products',        require('./routes/products'));
@@ -51,6 +71,7 @@ app.use('/api/categories',      require('./routes/categories'));
 app.use('/api/admin/customers', require('./routes/customer'));
 app.use('/api/admin/dashboard', require('./routes/admin-dashboard'));
 app.use('/api/about-images', require('./routes/about-images'));
+app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/consulting', require('./routes/consulting.routes'));
 
 // Health check

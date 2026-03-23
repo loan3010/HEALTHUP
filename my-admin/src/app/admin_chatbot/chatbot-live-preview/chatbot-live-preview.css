@@ -1,167 +1,319 @@
-/* --- CONTAINER TỔNG THỂ --- */
+/* ============================================
+   CONTAINER TỔNG THỂ (CỐ ĐỊNH THEO ADMIN)
+   ============================================ */
 .chat-sidebar-wrapper {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  background: #ffffff;
-  border-left: 1px solid #f0f0f0;
+  height: 85vh; 
+  width: 100%;
+  max-width: 400px;
+  border: 1px solid #f0f0f0;
+  border-radius: 20px;
+  box-sizing: border-box;
+  overflow: hidden;
+  margin: 20px auto;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.05);
 }
 
-/* --- HEADER: CÔNG CỤ --- */
+/* ============================================
+   HEADER: ĐỒNG BỘ MÀU CLIENT + GIỮ ADMIN LOGIC
+   ============================================ */
 .chat-sidebar-header {
   flex: 0 0 auto;
-  padding: 18px 25px;
-  background: #ffffff;
-  border-bottom: 1px solid #f8f8f8;
+  padding: 12px 20px;
+  /* Dùng Gradient chuẩn của Client */
+  background: linear-gradient(135deg, #36873A 0%, #2A6B2E 100%);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  color: white;
 }
 
-.h-info { display: flex; align-items: center; }
+.h-info { display: flex; align-items: center; gap: 10px; }
+
+/* Avatar logo trong header */
+.header-bot-img { 
+  width: 35px; 
+  height: 35px; 
+  border-radius: 50%; 
+  background: #FFEE97; 
+  padding: 2px; 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.header-bot-img img { width: 100%; height: 100%; object-fit: cover; }
+
+.header-text-group { display: flex; flex-direction: column; }
 .header-title { 
-  color: var(--color-primary); 
   font-weight: 800; 
+  font-size: 0.7rem; 
+  letter-spacing: 0.5px; 
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+.header-sub { 
   font-size: 0.85rem; 
-  letter-spacing: 0.8px; 
+  font-weight: 600; 
 }
 
-.h-actions { display: flex; gap: 10px; }
+.h-actions { display: flex; gap: 8px; }
 
-/* Nút Header */
+/* Nút công cụ Header */
 .btn-h-tool, .btn-h-close {
-  width: 34px; height: 34px; border-radius: 10px; border: none;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 28px; 
+  height: 28px; 
+  border-radius: 6px; 
+  border: none;
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+  cursor: pointer; 
+  transition: all 0.2s; 
+  background: rgba(255,255,255,0.15); 
+  color: white;
 }
+.btn-h-tool:hover { background: rgba(255,255,255,0.3); transform: rotate(180deg); }
+.btn-h-close:hover { background: #ff4d4d; transform: scale(1.1); }
 
-.btn-h-tool { background: #f1f3f5; color: #666; }
-.btn-h-tool:hover { transform: rotate(180deg); color: var(--color-primary); background: #eef7ee; }
-
-.btn-h-close { background: #fff5f5; color: #ff4d4d; font-size: 1.2rem; }
-.btn-h-close:hover { background: #ff4d4d; color: white; transform: scale(1.1); }
-
-/* --- KHÔNG GIAN CHAT --- */
+/* ============================================
+   KHÔNG GIAN TRÒ CHUYỆN (MÀU NỀN CLIENT)
+   ============================================ */
 .chat-content {
   flex: 1 1 auto;
-  padding: 25px;
+  padding: 20px;
   overflow-y: auto;
-  background: #fcfdfc;
+  overflow-x: hidden;
+  background: #FAF6F0; /* Màu nền kem nhạt chuẩn Client */
   display: flex;
   flex-direction: column;
-  gap: 25px;
+  gap: 15px;
 }
 
-/* Thanh cuộn mảnh */
-.custom-scroll::-webkit-scrollbar { width: 4px; }
-.custom-scroll::-webkit-scrollbar-thumb { background: #eee; border-radius: 10px; }
-.custom-scroll { scrollbar-width: thin; scrollbar-color: #eee transparent; }
+/* Thanh cuộn tinh tế */
+.chat-content::-webkit-scrollbar { width: 5px; }
+.chat-content::-webkit-scrollbar-track { background: transparent; }
+.chat-content::-webkit-scrollbar-thumb { background: #e0e0e0; border-radius: 10px; }
+.chat-content::-webkit-scrollbar-thumb:hover { background: #36873A; }
 
-/* --- BONG BÓNG CHAT --- */
-/* Admin: Màu Accent Blue */
+/* ============================================
+   BONG BÓNG CHAT (ĐỒNG BỘ CLIENT)
+   ============================================ */
+
+/* Tin nhắn của Admin (Giả lập User) */
 .chat-item.admin { align-self: flex-end; max-width: 85%; }
 .chat-item.admin .bubble {
-  background: var(--color-accent); 
+  background: linear-gradient(135deg, #36873A 0%, #2A6B2E 100%);
   color: white;
-  padding: 12px 18px;
-  border-radius: 20px 20px 4px 20px;
-  font-size: 0.95rem;
+  padding: 10px 16px;
+  border-radius: 18px 18px 4px 18px;
+  font-size: 0.9rem;
   font-weight: 500;
-  box-shadow: 0 4px 15px rgba(106, 174, 219, 0.15);
+  box-shadow: 0 4px 12px rgba(54, 135, 58, 0.15);
+  white-space: pre-wrap; 
+  word-wrap: break-word;
 }
-.chat-time { display: block; font-size: 0.7rem; color: #adb5bd; margin-top: 6px; text-align: right; }
 
-/* Bot: Màu trắng tinh tế */
-.chat-item.bot { align-self: flex-start; max-width: 90%; }
-.bot-info { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-.bot-ava {
-  width: 28px; height: 28px; background: var(--color-primary);
-  color: white; border-radius: 50%; display: flex;
-  align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 800;
-}
-.bot-name { font-size: 0.8rem; font-weight: 700; color: #495057; }
+/* Tin nhắn của Bot */
+.chat-item.bot { align-self: flex-start; max-width: 90%; width: 100%; }
+.bot-info-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+.mini-logo { width: 24px; height: 24px; border-radius: 50%; }
+.bot-name-label { font-size: 11px; font-weight: 700; color: #666; }
 
 .chat-item.bot .bubble {
   background: #ffffff;
   color: #333;
-  padding: 14px 20px;
-  border-radius: 4px 20px 20px 20px;
+  padding: 12px 18px;
+  border-radius: 4px 18px 18px 18px;
   border: 1px solid #f0f0f0;
-  line-height: 1.6;
-  font-size: 0.95rem;
+  line-height: 1.5;
+  font-size: 0.9rem;
   box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+  display: inline-block;
+  white-space: pre-wrap; 
+  word-wrap: break-word;
 }
 
-/* --- BẢNG PHÂN TÍCH (Analysis) --- */
+.chat-time { display: block; font-size: 0.65rem; color: #adb5bd; margin-top: 5px; }
+.admin .chat-time { text-align: right; }
+
+/* ============================================
+   THẺ SẢN PHẨM (ĐÃ THU NHỎ & FIX TRÀN)
+   ============================================ */
+.product-cards-scroll-wrapper {
+  width: 100%;
+  max-width: 100%;
+  margin-top: 10px;
+  overflow: hidden;
+}
+
+.product-cards-container {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 5px 2px 12px 2px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.product-cards-container::-webkit-scrollbar { display: none; }
+
+.product-test-card {
+  min-width: 150px;
+  max-width: 150px;
+  background: white;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid #f0f0f0;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+.product-test-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(0,0,0,0.08) !important;
+  border-color: #36873A;
+}
+
+.card-img-box { width: 100%; height: 90px; background: #f8f9fa; overflow: hidden; }
+.card-img-box img { width: 100%; height: 100%; object-fit: cover; }
+
+.card-body-box { padding: 10px; display: flex; flex-direction: column; gap: 4px; }
+.product-name-text {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #333;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.product-price-text {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #36873A;
+  margin-bottom: 5px;
+}
+.btn-view-product {
+  display: block;
+  text-align: center;
+  padding: 5px;
+  background: #f1f3f5;
+  color: #555;
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  transition: all 0.2s;
+}
+.btn-view-product:hover { background: #36873A; color: white; }
+
+/* ============================================
+   BẢNG PHÂN TÍCH LOGIC (GIỮ NGUYÊN CHO ADMIN)
+   ============================================ */
 .analysis-box {
-  margin-top: 15px;
-  background: #f0f9f0; /* Green tint nhẹ */
-  border: 1px solid rgba(76, 175, 80, 0.12);
-  border-radius: 16px;
-  padding: 15px;
+  margin-top: 12px;
+  background: #ffffff;
+  border: 1.5px dashed rgba(54, 135, 58, 0.2);
+  border-radius: 12px;
+  padding: 12px;
 }
 
 .a-header {
-  font-size: 0.75rem;
+  font-size: 0.65rem;
   font-weight: 800;
-  color: var(--color-primary);
+  color: #36873A;
   border-bottom: 1px solid rgba(0,0,0,0.05);
-  padding-bottom: 8px;
-  margin-bottom: 12px;
+  padding-bottom: 6px;
+  margin-bottom: 10px;
   letter-spacing: 0.5px;
 }
 
-.a-body { display: flex; flex-direction: column; gap: 8px; }
-.a-row { display: flex; justify-content: space-between; font-size: 0.85rem; }
+.a-body { display: flex; flex-direction: column; gap: 6px; }
+.a-row { display: flex; justify-content: space-between; font-size: 0.75rem; }
 .a-row span { color: #888; }
 .text-success { color: #2e7d32 !important; font-weight: 800; }
-.text-accent { color: var(--color-accent) !important; font-weight: 700; }
+.text-accent { color: #36873A !important; font-weight: 700; }
 
-/* --- INPUT FOOTER --- */
+/* ============================================
+   INPUT FOOTER (ĐỒNG BỘ GIAO DIỆN CLIENT)
+   ============================================ */
 .chat-input-wrapper {
   flex: 0 0 auto;
-  padding: 20px 25px;
+  padding: 15px 20px;
   background: white;
   border-top: 1px solid #f5f5f5;
 }
 
 .input-container-inner {
   display: flex;
-  background: #f8f9fa;
-  border-radius: 15px;
-  padding: 10px 18px;
+  background: #FAF6F0; /* Màu nền input Client */
+  border-radius: 25px;
+  padding: 6px 15px;
   align-items: center;
   transition: all 0.2s;
-  border: 1.5px solid transparent;
+  border: 1.5px solid #E0E0E0;
 }
 
 .input-container-inner:focus-within {
   background: white;
-  border-color: var(--color-primary);
+  border-color: #36873A;
   box-shadow: 0 0 0 4px rgba(54, 135, 58, 0.05);
 }
 
 .input-container-inner input {
   flex: 1; border: none; background: transparent; outline: none;
-  font-size: 0.95rem; color: #333;
+  padding: 6px; font-size: 0.85rem; color: #333;
 }
 
 .btn-send-chat {
-  background: none; border: none; color: var(--color-primary);
-  font-size: 1.4rem; cursor: pointer; display: flex; transition: all 0.2s;
+  background: none; border: none; color: #36873A;
+  font-size: 1.2rem; cursor: pointer; display: flex; transition: all 0.2s;
+  padding: 0;
+}
+.btn-send-chat:hover:not(:disabled) { transform: scale(1.1); color: #2A6B2E; }
+.btn-send-chat:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.admin-footer-note {
+  font-size: 10px;
+  color: #bbb;
+  text-align: center;
+  margin-top: 8px;
+  font-weight: 600;
 }
 
-.btn-send-chat:hover {
-  transform: scale(1.1) translateX(3px);
-  color: var(--color-accent);
+/* ============================================
+   HIỆU ỨNG GÕ CHỮ & ANIMATION (CLIENT STYLE)
+   ============================================ */
+.hu-typing-indicator {
+  display: flex; 
+  gap: 4px; 
+  padding: 10px 15px; 
+  background: white; 
+  border-radius: 15px; 
+  width: fit-content; 
+  border: 1px solid #f0f0f0;
+}
+.hu-typing-indicator span {
+  width: 6px; 
+  height: 6px; 
+  background: #A2C37F; 
+  border-radius: 50%;
+  animation: hu-typing 1.4s infinite;
+}
+.hu-typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+.hu-typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes hu-typing {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-5px); }
 }
 
-/* --- HIỆU ỨNG HIỆN TIN NHẮN --- */
 .fadeInScale {
-  animation: fadeInScale 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  animation: fadeInScale 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.15);
 }
 
 @keyframes fadeInScale {
-  from { opacity: 0; transform: scale(0.9) translateY(15px); }
+  from { opacity: 0; transform: scale(0.95) translateY(8px); }
   to { opacity: 1; transform: scale(1) translateY(0); }
 }

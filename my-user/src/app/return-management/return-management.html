@@ -51,9 +51,11 @@
           </span>
           <span class="return-date">{{ formatDate(order.returnRequestedAt) }}</span>
         </div>
-        <span class="return-status-badge" [ngClass]="'status-' + order.returnStatus">
+        <span class="return-status-badge" [ngClass]="'status-' + (order.returnStatus || 'none')">
           <i class="bi"
             [class.bi-clock]="order.returnStatus === 'requested'"
+            [class.bi-check2-circle]="order.returnStatus === 'approved'"
+            [class.bi-x-circle-fill]="order.returnStatus === 'rejected'"
             [class.bi-check-circle-fill]="order.returnStatus === 'completed'"></i>
           {{ getReturnStatusLabel(order.returnStatus) }}
         </span>
@@ -65,13 +67,13 @@
         <span *ngIf="order.returnNote" class="return-note"> — {{ order.returnNote }}</span>
       </div>
 
-      <!-- Ảnh minh chứng (nếu có) -->
-      <div class="return-card-images" *ngIf="order.returnImages?.length > 0">
+      <!-- Ảnh minh chứng (lọc URL rỗng; getImageUrl dùng STATIC_BASE) -->
+      <div class="return-card-images" *ngIf="visibleReturnImages(order).length > 0">
         <div class="return-image-list">
-          <img *ngFor="let img of order.returnImages"
+          <img *ngFor="let img of visibleReturnImages(order)"
             [src]="getImageUrl(img)"
             class="return-evidence-img"
-            onerror="this.src='/assets/images/placeholder.png'"
+            (error)="onImgError($event)"
             alt="Ảnh minh chứng" />
         </div>
       </div>
@@ -80,19 +82,22 @@
       <div class="return-card-items">
         <ng-container *ngIf="order.returnItems?.length > 0; else allItems">
           <div class="return-item" *ngFor="let item of order.returnItems">
-            <img [src]="getImageUrl(item.imageUrl)" [alt]="item.name"
-              onerror="this.src='/assets/images/placeholder.png'" />
+            <img [src]="getImageUrl(returnItemImageUrl(order, item))" [alt]="item.name"
+              (error)="onImgError($event)" />
             <div class="return-item-info">
               <div class="return-item-name">{{ item.name }}</div>
-              <div class="return-item-meta">{{ formatCurrency(item.price) }} × {{ item.returnQty }}</div>
+              <div class="return-item-meta">
+                {{ formatCurrency(item.price) }} × <strong>trả {{ item.returnQty }}</strong>
+                <span *ngIf="item.quantity != null" class="return-buy-qty"> · đã mua {{ item.quantity }}</span>
+              </div>
             </div>
             <div class="return-item-total">{{ formatCurrency(item.price * item.returnQty) }}</div>
           </div>
         </ng-container>
         <ng-template #allItems>
           <div class="return-item" *ngFor="let item of order.items">
-            <img [src]="getImageUrl(item.imageUrl)" [alt]="item.name"
-              onerror="this.src='/assets/images/placeholder.png'" />
+            <img [src]="getImageUrl(orderLineImageRaw(item))" [alt]="item.name"
+              (error)="onImgError($event)" />
             <div class="return-item-info">
               <div class="return-item-name">{{ item.name }}</div>
               <div class="return-item-meta">{{ formatCurrency(item.price) }} × {{ item.quantity }}</div>
@@ -154,7 +159,7 @@
       </label>
       <div class="return-item-select" *ngFor="let item of returnItems">
         <img [src]="getImageUrl(item.imageUrl)" [alt]="item.name"
-          onerror="this.src='/assets/images/placeholder.png'" />
+          (error)="onImgError($event)" />
         <div class="return-item-info">
           <div class="return-item-name">{{ item.name }}</div>
           <div class="return-item-meta">{{ formatCurrency(item.price) }} / sản phẩm</div>

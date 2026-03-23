@@ -2,7 +2,7 @@
 
 .engine-grid {
   display: grid;
-  grid-template-columns: 1.5fr 1fr; /* Chia tỉ lệ bảng to hơn slider */
+  grid-template-columns: 1fr; /* ĐÃ SỬA THÀNH 1 CỘT VÌ BỎ SLIDER */
   gap: 30px;
 }
 
@@ -22,7 +22,7 @@
 }
 
 .card-title-text {
-  font-size: 0.8rem;
+  font-size: 1rem;
   font-weight: 800;
   color: #888;
   letter-spacing: 0.5px;
@@ -31,7 +31,7 @@
 /* TABLE STYLE */
 .logic-table { width: 100%; border-collapse: collapse; }
 .logic-table th {
-  padding: 15px 20px; text-align: left; font-size: 0.75rem;
+  padding: 15px 20px; text-align: center; font-size: 1rem;
   color: #aaa; border-bottom: 1px solid #f0f0f0;
 }
 .logic-table td { padding: 12px 20px; border-bottom: 1px solid #f9f9f9; }
@@ -41,21 +41,47 @@
   padding: 8px 12px; font-size: 0.9rem; transition: 0.2s;
   background: #fcfdfc;
 }
-.table-input:focus { border-color: var(--color-primary); outline: none; background: white; }
+.table-input:focus { border-color: var(--color-primary, #36873A); outline: none; background: white; }
 
 .btn-row-del {
   background: none; border: none; color: #ffbcbc; cursor: pointer; font-size: 1.1rem;
 }
 .btn-row-del:hover { color: #ff4d4d; }
 
+/* STYLE MỚI CHO NÚT THÊM ÁNH XẠ NẰM TRONG BẢNG */
 .btn-add-mapping {
-  width: 100%; padding: 12px; border: 1px dashed #ddd;
-  background: #fafafa; color: #888; border-radius: 10px;
+  width: 100%; padding: 12px; border: 1.5px dashed var(--color-primary, #36873A);
+  background: #f0f7f0; color: var(--color-primary, #36873A); border-radius: 10px;
   font-weight: 700; cursor: pointer; transition: 0.3s;
 }
-.btn-add-mapping:hover { background: #f0f9f0; color: var(--color-primary); border-color: var(--color-primary); }
+.btn-add-mapping:hover { background: var(--color-primary, #36873A); color: white; }
 
-/* SLIDER STYLE */
+/* CSS CHO NÚT LƯU CẤU HÌNH (ĐÃ DỜI LÊN TRÊN CÙNG) */
+.btn-save-logic-final {
+  background: linear-gradient(135deg, #36873A 0%, #2A6B2E 100%);
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+}
+.btn-save-logic-final:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(54, 135, 58, 0.3) !important;
+}
+.btn-save-logic-final:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none !important;
+}
+
+/* SLIDER STYLE (ĐÃ ẨN TRONG HTML NHƯNG VẪN GIỮ ĐÚNG YÊU CẦU CỦA BÀ) */
 .center-content { padding: 40px 30px; text-align: center; }
 .fuzzy-value-display { margin-bottom: 30px; }
 .value-num { font-size: 3.5rem; font-weight: 900; color: var(--color-primary); display: block; line-height: 1; }

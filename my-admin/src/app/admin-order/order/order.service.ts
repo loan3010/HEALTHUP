@@ -15,6 +15,16 @@ export interface AdminOrderItem {
   variantLabel: string;
 }
 
+/** Một dòng trong yêu cầu trả: quantity = SL đã mua trên đơn, returnQty = SL khách xin trả. */
+export interface AdminReturnLine {
+  productId?: string;
+  name?: string;
+  imageUrl?: string | null;
+  price?: number;
+  quantity?: number;
+  returnQty?: number;
+}
+
 export interface AdminOrder {
   _id: string;
   orderCode?: string;
@@ -36,9 +46,16 @@ export interface AdminOrder {
   returnStatus: AdminReturnStatus;
   returnReason?: string;
   returnRejectionReason?: string;
+  returnNote?: string;
+  returnImages?: string[];
+  returnItems?: AdminReturnLine[];
+  voucherCode?: string | null;
+  shipVoucherCode?: string | null;
   subTotal: number;
   shippingFee: number;
   discount: number;
+  discountOnItems: number;
+  discountOnShipping: number;
   total: number;
   createdAt: string;
   customerSummary?: {
@@ -46,7 +63,6 @@ export interface AdminOrder {
     membershipTier?: string;
     totalOrders?: number;
     totalSpent?: number;
-    /** Có đơn delivered đang chờ xử lý hoàn (requested|approved) — tiền/hạng vẫn tạm tính. */
     hasProvisionalSpend?: boolean;
   };
 }

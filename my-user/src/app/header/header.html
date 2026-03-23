@@ -12,6 +12,7 @@
       <a routerLink="/about-the-brand" routerLinkActive="active">Giới thiệu</a>
       <a routerLink="/products" routerLinkActive="active">Sản phẩm</a>
       <a routerLink="/blog" routerLinkActive="active">Blogs</a>
+      <a href="#" [class.active]="isTrackOrderPage" (click)="openTrackOrderFromNav($event, false)">Tra cứu đơn</a>
       <a routerLink="/faqs" routerLinkActive="active">FAQs</a>
     </nav>
 
@@ -41,6 +42,7 @@
           <div class="search-dropdown-loading" *ngIf="isSearching">
             <span class="search-spinner"></span>Đang tìm kiếm...
           </div>
+
           <ng-container *ngIf="!isSearching && searchResults.length > 0">
             <div class="search-dropdown-header">Gợi ý sản phẩm</div>
             <div *ngFor="let product of searchResults; let i = index"
@@ -67,6 +69,7 @@
               Xem tất cả kết quả cho "<strong>{{ searchQuery }}</strong>"
             </div>
           </ng-container>
+
           <div class="search-no-result" *ngIf="!isSearching && searchResults.length === 0">
             <i class="bi bi-emoji-frown"></i>
             <p>Không tìm thấy sản phẩm nào</p>
@@ -78,7 +81,13 @@
       <!-- Actions -->
       <div class="header-actions">
         <ng-container *ngIf="!isLoggedIn">
-          <button type="button" class="btn-track-order" (click)="openTrackOrder()" title="Tra cứu đơn hàng">
+          <!-- Giỏ đặt trước: màn hẹp vẫn thấy; cùng icon + badge như lúc đã đăng nhập -->
+          <div class="cart-icon-wrap cart-icon-guest" routerLink="/cart" title="Giỏ hàng" aria-label="Giỏ hàng">
+            <i class="bi bi-cart icon"></i>
+            <span class="cart-badge" *ngIf="cartCount > 0">{{ cartCount > 99 ? '99+' : cartCount }}</span>
+          </div>
+          <!-- Trên mobile ẩn nút này (đã có Tra cứu đơn trong menu hamburger) để chừa chỗ cho giỏ + đăng nhập -->
+          <button type="button" class="btn-track-order guest-track-in-header" (click)="openTrackOrder()" title="Tra cứu đơn hàng">
             <i class="bi bi-search btn-icon-only"></i>
             <span class="btn-text">Tra cứu đơn hàng</span>
           </button>
@@ -93,7 +102,16 @@
         </ng-container>
 
         <ng-container *ngIf="isLoggedIn">
-          <i class="bi bi-bell icon" title="Thông báo"></i>
+
+          <!-- ✅ Chuông thông báo với badge unread count (từ THnew) -->
+          <div class="cart-icon-wrap" routerLink="/profile/notifications" title="Thông báo">
+            <i class="bi bi-bell icon"></i>
+            <span class="cart-badge" *ngIf="unreadCount > 0">
+              {{ unreadCount > 99 ? '99+' : unreadCount }}
+            </span>
+          </div>
+
+          <!-- Cart icon với badge -->
           <div class="cart-icon-wrap" routerLink="/cart" title="Giỏ hàng">
             <i class="bi bi-cart icon"></i>
             <span class="cart-badge" *ngIf="cartCount > 0">{{ cartCount > 99 ? '99+' : cartCount }}</span>
@@ -119,6 +137,11 @@
               <a routerLink="/profile/order-management" (click)="closeDropdown()">
                 <i class="bi-box-seam"></i> Theo dõi đơn hàng
               </a>
+              <!-- ✅ Thêm link thông báo vào dropdown -->
+              <a routerLink="/profile/notifications" (click)="closeDropdown()">
+                <i class="bi bi-bell"></i> Thông báo
+                <span class="dropdown-badge" *ngIf="unreadCount > 0">{{ unreadCount }}</span>
+              </a>
               <div class="dropdown-divider"></div>
               <!-- ✅ Gọi logout() → mở popup xác nhận -->
               <a class="logout-link" (click)="logout()">
@@ -140,6 +163,8 @@
     <a routerLink="/about-the-brand" routerLinkActive="active" (click)="closeMenu()">Giới thiệu</a>
     <a routerLink="/products" routerLinkActive="active" (click)="closeMenu()">Sản phẩm</a>
     <a routerLink="/blog" routerLinkActive="active" (click)="closeMenu()">Blogs</a>
+    <a href="#" [class.active]="isTrackOrderPage" (click)="openTrackOrderFromNav($event, true)">Tra cứu đơn</a>
+    <a routerLink="/cart" routerLinkActive="active" (click)="closeMenu()">Giỏ hàng</a>
     <a routerLink="/faqs" routerLinkActive="active" (click)="closeMenu()">FAQs</a>
   </div>
 </header>

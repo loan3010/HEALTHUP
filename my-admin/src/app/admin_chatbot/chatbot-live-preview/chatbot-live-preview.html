@@ -1,51 +1,108 @@
 <div class="chat-sidebar-wrapper">
   <div class="chat-sidebar-header">
     <div class="h-info">
-      <i class="bi bi-robot primary-text me-2"></i>
-      <span class="header-title">LIVE PREVIEW & TEST</span>
+      <div class="header-bot-img">
+        <img [src]="botAvatar" alt="Logo">
+      </div>
+      <div class="header-text-group">
+        <span class="header-title">KIỂM THỬ TRỢ LÝ ẢO</span>
+        <span class="header-sub">{{ botName }}</span>
+      </div>
     </div>
     <div class="h-actions">
-      <button class="btn-h-tool" title="Làm mới Chat">
+      <button class="btn-h-tool" (click)="clearChat()" title="Làm mới cuộc hội thoại">
         <i class="bi bi-arrow-clockwise"></i>
       </button>
-      <button class="btn-h-close" (click)="closeChat.emit()" title="Đóng bảng test">
+      <button class="btn-h-close" (click)="closeChat.emit()" title="Đóng bảng kiểm thử">
         <i class="bi bi-x"></i>
       </button>
     </div>
   </div>
 
-  <div class="chat-content custom-scroll">
-    <div class="chat-item admin fadeInScale">
-      <div class="bubble">Granola có giảm cân không shop?</div>
-      <span class="chat-time">10:15 AM</span>
+  <div class="chat-content custom-scroll" #chatContainer>
+    
+    <div *ngFor="let msg of testMessages" 
+         class="chat-item fadeInScale" 
+         [ngClass]="msg.type === 'user' ? 'admin' : 'bot'">
+      
+      <div class="bot-info-row" *ngIf="msg.type === 'bot'">
+        <img [src]="botAvatar" class="mini-logo" alt="bot">
+        <span class="bot-name-label">{{ botName }}</span>
+      </div>
+
+      <div class="bubble" [innerHTML]="msg.text"></div>
+
+      <div class="product-cards-scroll-wrapper" *ngIf="msg.type === 'bot' && msg.products && msg.products.length > 0">
+        <div class="product-cards-container">
+          <div class="product-test-card shadow-sm" *ngFor="let prod of msg.products">
+            <div class="card-img-box">
+              <img [src]="prod.image && prod.image.startsWith('http') ? prod.image : (serverUrl + (prod.image || ''))" 
+                   [alt]="prod.name" 
+                   class="img-fluid"
+                   (error)="$any($event.target).src = 'https://placehold.co/150x90?text=HealthUp'">
+            </div>
+            <div class="card-body-box">
+              <h4 class="product-name-text text-truncate" [title]="prod.name">{{ prod.name }}</h4>
+              <p class="product-price-text">{{ prod.price | number }}đ</p>
+              
+              <button type="button" 
+                      (click)="goToProductDetail(prod._id)" 
+                      class="btn-view-product">
+                Xem chi tiết
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <span class="chat-time">{{ msg.time }}</span>
+
+      <div class="analysis-box" *ngIf="msg.type === 'bot' && msg.analysis">
+        <div class="a-header">PHÂN TÍCH LOGIC AI</div>
+        <div class="a-body">
+          <div class="a-row">
+            <span>Ý định nhận diện:</span> 
+            <strong>{{ msg.analysis.intent || 'Chưa xác định' }}</strong>
+          </div>
+          <div class="a-row">
+            <span>Độ chính xác (Score):</span> 
+            <strong [ngClass]="msg.analysis.score >= 80 ? 'text-success' : 'text-warning'">
+              {{ msg.analysis.score | number:'1.0-0' }}%
+            </strong>
+          </div>
+          <div class="a-row">
+            <span>Sản phẩm đính kèm:</span> 
+            <strong class="text-accent">{{ msg.products?.length || 0 }} thẻ</strong>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <div class="chat-item bot fadeInScale">
-      <div class="bot-info">
-        <div class="bot-ava">B</div>
-        <span class="bot-name">Smart Bot</span>
+    <div class="chat-item bot fadeInScale" *ngIf="isTyping">
+      <div class="bot-info-row">
+        <img [src]="botAvatar" class="mini-logo" alt="bot">
       </div>
-      <div class="bubble">
-        Chào bạn, Granola rất tốt cho việc giảm cân nhờ hàm lượng chất xơ cao từ các loại hạt tự nhiên...
-      </div>
-      
-      <div class="analysis-box">
-        <div class="a-header">BẢNG PHÂN TÍCH KẾT QUẢ</div>
-        <div class="a-body">
-          <div class="a-row"><span>Ý định (Intent):</span> <strong>Hỏi giảm cân</strong></div>
-          <div class="a-row"><span>Độ khớp (Score):</span> <strong class="text-success">95%</strong></div>
-          <div class="a-row"><span>Từ khóa:</span> <strong class="text-accent">granola, giảm cân</strong></div>
-        </div>
+      <div class="hu-typing-indicator">
+        <span></span><span></span><span></span>
       </div>
     </div>
   </div>
 
   <div class="chat-input-wrapper">
     <div class="input-container-inner">
-      <input type="text" placeholder="Nhập tin nhắn test bot...">
-      <button class="btn-send-chat" title="Gửi tin nhắn">
-        <i class="bi bi-send-fill"></i>
+      <input type="text" 
+             [(ngModel)]="testInput" 
+             (keyup.enter)="sendTestMessage()"
+             placeholder="Nhập câu hỏi để kiểm tra phản hồi của Bot...">
+      <button class="btn-send-chat" 
+              (click)="sendTestMessage()" 
+              [disabled]="!testInput.trim() || isTyping"
+              title="Gửi tin nhắn test">
+        <svg viewBox="0 0 24 24" fill="none" width="20" height="20">
+          <path d="M2.01 21L23 12L2.01 3L2 10L17 12L2 14L2.01 21Z" fill="currentColor"/>
+        </svg>
       </button>
     </div>
+    <p class="admin-footer-note">Chế độ kiểm thử nội bộ 🌿</p>
   </div>
 </div>

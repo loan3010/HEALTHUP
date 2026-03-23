@@ -19,6 +19,7 @@
   position: sticky;
   top: 0;
   padding: 28px 16px 24px;
+  overflow-y: auto;
 }
 
 /* ── Avatar block ── */
@@ -26,11 +27,11 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 20px 12px 24px;
+  padding: 20px 12px 16px;
   background: #fff;
   border-radius: 16px;
   border: 1px solid #d6ecd7;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
   box-shadow: 0 2px 8px rgba(54,135,58,0.07);
 }
 
@@ -57,15 +58,27 @@
   font-family: 'Be Vietnam Pro', sans-serif;
 }
 
-.badge {
-  font-size: 11px !important;
-  padding: 4px 12px !important;
-  border-radius: 999px !important;
-  background: #D4A017 !important;
-  color: #fff !important;
-  font-weight: 600 !important;
-  font-family: 'Be Vietnam Pro', sans-serif;
+.sidebar-rank-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
   letter-spacing: 0.3px;
+}
+
+.badge-member {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 1.5px solid #a5d6a7;
+}
+
+.badge-vip {
+  background: #fff8e1;
+  color: #f57f17;
+  border: 1.5px solid #ffe082;
 }
 
 /* ── Menu ── */
@@ -106,9 +119,7 @@
   border-color: #c5e0c6;
 }
 
-.menu li:hover i {
-  color: #36873A;
-}
+.menu li:hover i { color: #36873A; }
 
 .menu li.active {
   background: #36873A;
@@ -118,11 +129,8 @@
   box-shadow: 0 4px 12px rgba(54,135,58,0.25);
 }
 
-.menu li.active i {
-  color: #FFEE97;
-}
+.menu li.active i { color: #FFEE97; }
 
-/* ── Divider trong menu ── */
 .menu-divider {
   height: 1px;
   background: #d6ecd7;
@@ -185,6 +193,7 @@
     border-right: none;
     border-bottom: 1px solid #d6ecd7;
     padding: 16px;
+    overflow-y: visible;
   }
   .sidebar-avatar-block { flex-direction: row; gap: 14px; padding: 14px; }
   .avatar { width: 48px; height: 48px; font-size: 18px; margin-bottom: 0; }

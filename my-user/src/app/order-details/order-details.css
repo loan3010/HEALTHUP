@@ -238,6 +238,132 @@
 
 .od-item:hover { background: #FAF6F0; }
 
+/* ── Trả hàng / ảnh minh chứng ── */
+.od-return {
+  padding: 22px 28px;
+  border-bottom: 1.5px solid #e2ebe2;
+  background: #FFFBF5;
+}
+
+.od-return h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #b45309;
+  margin: 0 0 14px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.od-return p {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 8px 0;
+  font-size: 13.5px;
+}
+
+.od-return p span { color: #4a6b4c; flex-shrink: 0; }
+.od-return p strong { color: #1a2e1b; font-weight: 600; text-align: right; }
+
+.od-return-images { margin-top: 14px; }
+
+.od-return-images-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #92400e;
+  margin-bottom: 10px;
+}
+
+.od-return-img-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.od-return-img-wrap {
+  display: block;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #fcd34d;
+  flex: 0 0 auto;
+}
+
+.od-return-img-wrap img {
+  width: 88px;
+  height: 88px;
+  object-fit: cover;
+  display: block;
+}
+
+.od-return-img-wrap:hover { border-color: #d97706; }
+
+/* Dòng sản phẩm trả (mua / trả) */
+.od-return-lines {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px dashed #fcd34d;
+}
+
+.od-return-lines-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #92400e;
+  text-transform: uppercase;
+  letter-spacing: 0.35px;
+  margin-bottom: 12px;
+}
+
+.od-return-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f3e8d8;
+}
+
+.od-return-line:last-of-type { border-bottom: none; }
+
+.od-return-line img {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #e8dcc8;
+  flex-shrink: 0;
+}
+
+.od-return-line-info { flex: 1; min-width: 0; }
+
+.od-return-line-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a2e1b;
+  line-height: 1.35;
+}
+
+.od-return-line-meta {
+  font-size: 12px;
+  color: #5c4d3d;
+  margin-top: 4px;
+}
+
+.od-return-qty { color: #b45309; }
+
+.od-return-line-money {
+  font-size: 13px;
+  font-weight: 700;
+  color: #92400e;
+  flex-shrink: 0;
+}
+
+.od-return-lines-subtotal {
+  margin-top: 12px;
+  font-size: 13px;
+  color: #4a3f30;
+}
+
+.od-return-lines-subtotal strong { color: #78350f; }
+
 .od-item img {
   width: 72px;
   height: 72px;

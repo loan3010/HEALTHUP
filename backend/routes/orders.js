@@ -2,6 +2,7 @@ const express  = require('express');
 const mongoose = require('mongoose');
 const path     = require('path');
 const fs       = require('fs');
+const jwt      = require('jsonwebtoken');
 const router   = express.Router();
 const multer   = require('multer');
 
@@ -11,11 +12,22 @@ const Cart    = require('../models/Cart');
 const User    = require('../models/User');
 const Promotion = require('../models/Promotion');
 const OrderAuditLog = require('../models/OrderAuditLog');
+const Notification = require('../models/Notification');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const { buildCustomerListStatsMaps, statsForUser } = require('../helpers/customerOrderStats');
+const { findOrCreateGuestUser } = require('../helpers/guestUser');
+const { isValidGuestCartSessionId } = require('../helpers/cartIdentity');
+
+function jwtSecretOrders() {
+  return process.env.JWT_SECRET || 'secret_key';
+}
+
+function extractBearer(req) {
+  const h = req.headers.authorization || req.headers.Authorization || '';
+  return typeof h === 'string' && h.startsWith('Bearer ') ? h.slice(7).trim() : '';
+}
 
 // ======================= MULTER CONFIG =======================
-// Lưu ảnh vào backend/public/uploads/returns/
 const returnStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = path.join(__dirname, '../public/images/returns');
@@ -41,8 +53,8 @@ const fileFilter = (req, file, cb) => {
 const uploadReturnImages = multer({
   storage: returnStorage,
   fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB mỗi ảnh
-}).array('images', 5); // tối đa 5 ảnh
+  limits: { fileSize: 5 * 1024 * 1024 },
+}).array('images', 5);
 
 // ======================= HELPER =======================
 
@@ -58,15 +70,18 @@ function calcShipping(subTotal, shippingMethod) {
 async function calcDiscountFromDB(voucherCode, subTotal, shippingFee) {
   if (!voucherCode) return { discountAmount: 0, discountOnType: null };
 
-  const now   = new Date();
+  const now = new Date();
   const promo = await Promotion.findOne({
-    code:      voucherCode.trim().toUpperCase(),
-    status:    'ongoing',
-    startDate: { $lte: now },
-    endDate:   { $gte: now },
+    code: voucherCode.trim().toUpperCase(),
   });
 
   if (!promo) return { discountAmount: 0, discountOnType: null };
+
+  const start = promo.startDate ? new Date(promo.startDate) : null;
+  const end   = promo.endDate   ? new Date(promo.endDate)   : null;
+  if (start && now < start) return { discountAmount: 0, discountOnType: null };
+  if (end   && now > end)   return { discountAmount: 0, discountOnType: null };
+
   if (promo.totalLimit > 0 && promo.usedCount >= promo.totalLimit) {
     return { discountAmount: 0, discountOnType: null };
   }
@@ -102,7 +117,7 @@ async function calcDiscountFromDB(voucherCode, subTotal, shippingFee) {
 
 function getMembershipTier(totalSpent) {
   if (!totalSpent || totalSpent <= 0) return 'Đồng';
-  if (totalSpent < 5_000_000) return 'Đồng';
+  if (totalSpent < 5_000_000)  return 'Đồng';
   if (totalSpent < 10_000_000) return 'Bạc';
   if (totalSpent < 20_000_000) return 'Vàng';
   return 'Kim Cương';
@@ -112,13 +127,25 @@ function normalizePhone(phone) {
   return String(phone || '').replace(/\D/g, '');
 }
 
-const ORDER_STATUS = ['pending', 'confirmed', 'shipping', 'delivered', 'cancelled'];
+function formatVND(amount) {
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency', currency: 'VND'
+  }).format(amount);
+}
+
+function normalizeShippingPart(v) {
+  const s = String(v ?? '').trim();
+  if (!s || /^n\/a$/i.test(s)) return '';
+  return s;
+}
+
+const ORDER_STATUS  = ['pending', 'confirmed', 'shipping', 'delivered', 'cancelled'];
 const RETURN_STATUS = ['none', 'requested', 'approved', 'rejected', 'completed'];
 
 const NEXT_STATUS = {
-  pending: ['confirmed', 'cancelled'],
+  pending:   ['confirmed', 'cancelled'],
   confirmed: ['shipping'],
-  shipping: ['delivered'],
+  shipping:  ['delivered'],
   delivered: [],
   cancelled: []
 };
@@ -150,7 +177,7 @@ function buildAdminOrderFilter(query) {
   }
 
   const from = String(query.from || '');
-  const to = String(query.to || '');
+  const to   = String(query.to   || '');
   if (from) {
     const fromDate = parseDateStart(from);
     if (!fromDate) throw new Error('Ngày bắt đầu không hợp lệ');
@@ -181,9 +208,9 @@ function buildAdminOrderFilter(query) {
 }
 
 function getAdminSort(sortBy, sortDir) {
-  const dir = String(sortDir || 'desc') === 'asc' ? 1 : -1;
+  const dir     = String(sortDir || 'desc') === 'asc' ? 1 : -1;
   const allowed = ['createdAt', 'total', 'status', 'paymentMethod', 'orderCode'];
-  const by = allowed.includes(String(sortBy || '')) ? String(sortBy) : 'createdAt';
+  const by      = allowed.includes(String(sortBy || '')) ? String(sortBy) : 'createdAt';
   return { [by]: dir, _id: -1 };
 }
 
@@ -197,20 +224,54 @@ async function generateNextOrderCode() {
   return `ORD${String(current + 1).padStart(11, '0')}`;
 }
 
-/**
- * Chuẩn bị payload đơn hàng từ body (checkout công khai + admin hotline + preview).
- * Dùng chung để tạm tính trên admin khớp 100% với lúc lưu DB.
- */
-async function prepareOrderFromRequestBody(body) {
+async function persistOrderReturnRequest(order, { reason, note, parsedItems, files, auditWho }) {
+  const imageUrls = (files || []).map((f) => `/images/returns/${f.filename}`);
+
+  order.returnStatus      = 'requested';
+  order.returnRequestedAt = new Date();
+  order.returnReason      = String(reason || '');
+  order.returnNote        = String(note || '');
+  order.returnImages      = imageUrls;
+
+  if (Array.isArray(parsedItems) && parsedItems.length > 0) {
+    order.returnItems = parsedItems.map((i) => ({
+      productId: i.productId,
+      name:      i.name,
+      imageUrl:  i.imageUrl || '',
+      price:     Number(i.price || 0),
+      quantity:  Number(i.quantity || 0),
+      returnQty: Number(i.returnQty || 0),
+    }));
+  }
+
+  await order.save();
+
+  await OrderAuditLog.create({
+    orderId:   order._id,
+    adminId:   String(auditWho || 'user'),
+    action:    'return_status_change',
+    fromValue: 'none',
+    toValue:   'requested',
+    note:      `Yêu cầu: ${reason}${note ? ' — ' + note : ''}`,
+  });
+}
+
+async function prepareOrderFromRequestBody(body, opts = {}) {
+  const allowVouchers = opts.allowVouchers !== false;
+  const lockedUserId  = opts.lockedUserId;
+
   const {
     customer,
     items,
     shippingMethod,
     paymentMethod,
-    voucherCode,
-    shipVoucherCode,
+    voucherCode:     voucherCodeBody,
+    shipVoucherCode: shipVoucherBody,
     userId
   } = body || {};
+
+  const voucherCode     = allowVouchers && voucherCodeBody  ? String(voucherCodeBody).trim()  : null;
+  const shipVoucherCode = allowVouchers && shipVoucherBody   ? String(shipVoucherBody).trim()  : null;
 
   if (!customer?.fullName || !customer?.phone || !customer?.address) {
     return { ok: false, status: 400, payload: { message: 'Thiếu thông tin khách hàng' } };
@@ -302,10 +363,10 @@ async function prepareOrderFromRequestBody(body) {
   const ship = calcShipping(subTotal, shippingMethod);
 
   const { discountAmount: discOrder } =
-    await calcDiscountFromDB(voucherCode, subTotal, ship);
+    await calcDiscountFromDB(voucherCode || '', subTotal, ship);
 
   const { discountAmount: discShip } =
-    await calcDiscountFromDB(shipVoucherCode, subTotal, ship);
+    await calcDiscountFromDB(shipVoucherCode || '', subTotal, ship);
 
   const totalDiscount = discOrder + discShip;
   const total = Math.max(0, subTotal - discOrder + ship - discShip);
@@ -316,16 +377,16 @@ async function prepareOrderFromRequestBody(body) {
       phone:    customer.phone,
       email:    customer.email || '',
       address:  customer.address,
-      province: customer.province || 'N/A',
-      district: customer.district || 'N/A',
-      ward:     customer.ward     || 'N/A',
-      note:     customer.note     || '',
+      province: normalizeShippingPart(customer.province),
+      district: normalizeShippingPart(customer.district),
+      ward:     normalizeShippingPart(customer.ward),
+      note:     customer.note || '',
     },
     items:           orderItems,
     shippingMethod:  shippingMethod || 'standard',
     paymentMethod:   paymentMethod  || 'cod',
-    voucherCode:     voucherCode ? String(voucherCode).trim() || null : null,
-    shipVoucherCode: shipVoucherCode ? String(shipVoucherCode).trim() || null : null,
+    voucherCode:     voucherCode    || null,
+    shipVoucherCode: shipVoucherCode || null,
     subTotal,
     shippingFee:     ship,
     discount:        totalDiscount,
@@ -336,7 +397,9 @@ async function prepareOrderFromRequestBody(body) {
     userId:  null,
   };
 
-  if (userId && mongoose.Types.ObjectId.isValid(String(userId))) {
+  if (lockedUserId && mongoose.Types.ObjectId.isValid(String(lockedUserId))) {
+    orderData.userId = new mongoose.Types.ObjectId(String(lockedUserId));
+  } else if (userId && mongoose.Types.ObjectId.isValid(String(userId))) {
     orderData.userId = new mongoose.Types.ObjectId(String(userId));
   }
 
@@ -344,16 +407,19 @@ async function prepareOrderFromRequestBody(body) {
     ok: true,
     orderData,
     orderItems,
-    voucherCodeRaw: voucherCode || null,
-    shipVoucherCodeRaw: shipVoucherCode || null,
+    voucherCodeRaw:     allowVouchers && voucherCode     ? voucherCode     : null,
+    shipVoucherCodeRaw: allowVouchers && shipVoucherCode ? shipVoucherCode : null,
   };
 }
 
-/**
- * Lưu đơn sau khi prepareOrderFromRequestBody thành công (mã đơn, voucher, cart, kho).
- */
-async function persistNewOrder(orderData, orderItems, voucherCodeRaw, shipVoucherCodeRaw) {
-  let order = null;
+async function persistNewOrder(
+  orderData,
+  orderItems,
+  voucherCodeRaw,
+  shipVoucherCodeRaw,
+  guestCartSessionId = null
+) {
+  let order   = null;
   let lastErr = null;
   for (let i = 0; i < 4; i += 1) {
     try {
@@ -387,15 +453,23 @@ async function persistNewOrder(orderData, orderItems, voucherCodeRaw, shipVouche
   }
   if (voucherUpdates.length) await Promise.all(voucherUpdates);
 
-  if (order.userId) {
-    const boughtIds = orderItems.map(i => String(i.productId));
+  const boughtIds = orderItems.map(i => String(i.productId));
+  const stripPurchasedFromCart = async filter => {
     try {
-      const cart = await Cart.findOne({ userId: order.userId });
-      if (cart) {
-        cart.items = cart.items.filter(i => !boughtIds.includes(String(i.productId)));
-        await cart.save();
-      }
-    } catch (e) { /* ignore */ }
+      const cart = await Cart.findOne(filter);
+      if (!cart) return;
+      cart.items = cart.items.filter(i => !boughtIds.includes(String(i.productId)));
+      await cart.save();
+    } catch (_e) { /* ignore */ }
+  };
+
+  if (order.userId) {
+    await stripPurchasedFromCart({ userId: order.userId });
+  }
+  if (guestCartSessionId && isValidGuestCartSessionId(guestCartSessionId)) {
+    await stripPurchasedFromCart({
+      guestSessionId: String(guestCartSessionId).trim(),
+    });
   }
 
   for (const item of orderItems) {
@@ -424,28 +498,107 @@ async function persistNewOrder(orderData, orderItems, voucherCodeRaw, shipVouche
     }
 
     p.sold = Number(p.sold || 0) + Number(item.quantity || 0);
-
     await p.save();
   }
 
   return order;
 }
 
-// ======================= CREATE ORDER (checkout khách — công khai) =======================
+// ======================= CREATE ORDER =======================
 
 router.post('/', async (req, res) => {
   try {
-    const prep = await prepareOrderFromRequestBody(req.body);
+    let allowVouchers = false;
+    let lockedUserId  = null;
+
+    const token = extractBearer(req);
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, jwtSecretOrders());
+        const u = await User.findById(decoded.userId).select('role').lean();
+        if (u && u.role === 'user') {
+          if (req.body?.userId && String(req.body.userId) !== String(decoded.userId)) {
+            return res.status(403).json({
+              message: 'Thông tin đăng nhập không khớp với tài khoản đặt hàng.',
+            });
+          }
+          lockedUserId  = decoded.userId;
+          allowVouchers = true;
+        }
+      } catch (_e) { /* token hết hạn / sai → xử lý như khách */ }
+    }
+
+    if (!lockedUserId) {
+      const cust = req.body?.customer;
+      if (!cust?.phone) {
+        return res.status(400).json({ message: 'Thiếu thông tin khách hàng' });
+      }
+      const g = await findOrCreateGuestUser(cust.phone, cust.fullName, cust.email);
+      if (!g.ok) return res.status(400).json({ message: g.message });
+      lockedUserId  = g.userId;
+      allowVouchers = false;
+    }
+
+    const prep = await prepareOrderFromRequestBody(req.body, {
+      allowVouchers,
+      lockedUserId,
+    });
     if (!prep.ok) {
       return res.status(prep.status).json(prep.payload);
     }
+
+    const guestCartRaw = String(req.body?.guestCartSessionId || '').trim();
+    const guestCartSessionId = isValidGuestCartSessionId(guestCartRaw) ? guestCartRaw : null;
 
     const order = await persistNewOrder(
       prep.orderData,
       prep.orderItems,
       prep.voucherCodeRaw,
-      prep.shipVoucherCodeRaw
+      prep.shipVoucherCodeRaw,
+      guestCartSessionId
     );
+
+    // ── Cập nhật hạng thành viên sau khi đặt hàng thành công ──
+    if (order.userId) {
+      try {
+        const agg = await Order.aggregate([
+          {
+            $match: {
+              userId: new mongoose.Types.ObjectId(String(order.userId)),
+              status: { $in: ['pending', 'confirmed', 'shipping', 'delivered'] }
+            }
+          },
+          { $group: { _id: null, total: { $sum: '$total' } } }
+        ]);
+        const totalSpent = agg[0]?.total || 0;
+        const memberRank = totalSpent >= 5_000_000 ? 'vip' : 'member';
+        await User.findByIdAndUpdate(order.userId, { totalSpent, memberRank });
+      } catch (e) {
+        console.error('Cập nhật hạng thành viên thất bại:', e);
+      }
+    }
+
+    // ── Tạo notification ──
+    if (order.userId) {
+      try {
+        const firstItem      = prep.orderItems[0];
+        const extraCount     = prep.orderItems.length - 1;
+        const productSummary = extraCount > 0
+          ? `${firstItem.name} và ${extraCount} sản phẩm khác`
+          : firstItem.name;
+
+        await Notification.create({
+          userId:  order.userId,
+          title:   `Đặt hàng thành công 🎉`,
+          message: `Đơn hàng ${order.orderCode}: ${productSummary} — Tổng tiền ${formatVND(order.total)}`,
+          type:    'order',
+          orderId: order._id,
+          isRead:  false,
+        });
+      } catch (e) {
+        console.error('Tạo notification thất bại:', e);
+      }
+    }
 
     return res.status(201).json({ orderId: order._id, orderCode: order.orderCode });
   } catch (err) {
@@ -465,7 +618,9 @@ router.get('/', async (req, res) => {
     const filter = userId && mongoose.Types.ObjectId.isValid(userId)
       ? { userId: new mongoose.Types.ObjectId(userId) }
       : {};
-    const orders = await Order.find(filter).sort({ createdAt: -1 });
+    const orders = await Order.find(filter)
+      .populate({ path: 'items.productId', select: 'images name' })
+      .sort({ createdAt: -1 });
     res.json(orders);
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
@@ -480,7 +635,9 @@ router.get('/user/:userId', async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(userId)) {
       return res.status(400).json({ message: 'userId không hợp lệ' });
     }
-    const orders = await Order.find({ userId }).sort({ createdAt: -1 });
+    const orders = await Order.find({ userId })
+      .populate({ path: 'items.productId', select: 'images name' })
+      .sort({ createdAt: -1 });
     res.json(orders);
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
@@ -503,12 +660,12 @@ router.get('/admin/list', authenticateToken, requireAdmin, async (req, res) => {
         {
           $group: {
             _id: null,
-            totalOrders: { $sum: 1 },
-            pendingCount: { $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] } },
-            shippingCount: { $sum: { $cond: [{ $eq: ['$status', 'shipping'] }, 1, 0] } },
+            totalOrders:          { $sum: 1 },
+            pendingCount:         { $sum: { $cond: [{ $eq: ['$status', 'pending'] },   1, 0] } },
+            shippingCount:        { $sum: { $cond: [{ $eq: ['$status', 'shipping'] },  1, 0] } },
             returnRequestedCount: { $sum: { $cond: [{ $eq: ['$returnStatus', 'requested'] }, 1, 0] } },
-            returnApprovedCount: { $sum: { $cond: [{ $eq: ['$returnStatus', 'approved'] }, 1, 0] } },
-            returnRejectedCount: { $sum: { $cond: [{ $eq: ['$returnStatus', 'rejected'] }, 1, 0] } },
+            returnApprovedCount:  { $sum: { $cond: [{ $eq: ['$returnStatus', 'approved'] },  1, 0] } },
+            returnRejectedCount:  { $sum: { $cond: [{ $eq: ['$returnStatus', 'rejected'] },  1, 0] } },
             returnCompletedCount: { $sum: { $cond: [{ $eq: ['$returnStatus', 'completed'] }, 1, 0] } }
           }
         }
@@ -516,13 +673,9 @@ router.get('/admin/list', authenticateToken, requireAdmin, async (req, res) => {
     ]);
 
     const summary = globalStats?.[0] || {
-      totalOrders: 0,
-      pendingCount: 0,
-      shippingCount: 0,
-      returnRequestedCount: 0,
-      returnApprovedCount: 0,
-      returnRejectedCount: 0,
-      returnCompletedCount: 0
+      totalOrders: 0, pendingCount: 0, shippingCount: 0,
+      returnRequestedCount: 0, returnApprovedCount: 0,
+      returnRejectedCount: 0, returnCompletedCount: 0
     };
 
     return res.json({ data, total, page, totalPages: Math.ceil(total / limit) || 1, summary });
@@ -531,27 +684,27 @@ router.get('/admin/list', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
-// ======================= ADMIN HOTLINE: xem trước tiền (không ghi DB) =======================
+// ======================= ADMIN HOTLINE PREVIEW =======================
 router.post('/admin/hotline-preview', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const prep = await prepareOrderFromRequestBody(req.body);
+    const prep = await prepareOrderFromRequestBody(req.body, { allowVouchers: true });
     if (!prep.ok) {
       return res.status(prep.status).json(prep.payload);
     }
     const { orderData, orderItems } = prep;
     return res.json({
-      subTotal: orderData.subTotal,
-      shippingFee: orderData.shippingFee,
-      discount: orderData.discount,
-      discountOnItems: orderData.discountOnItems,
+      subTotal:           orderData.subTotal,
+      shippingFee:        orderData.shippingFee,
+      discount:           orderData.discount,
+      discountOnItems:    orderData.discountOnItems,
       discountOnShipping: orderData.discountOnShipping,
-      total: orderData.total,
+      total:              orderData.total,
       items: orderItems.map((i) => ({
-        name: i.name,
-        quantity: i.quantity,
-        price: i.price,
+        name:         i.name,
+        quantity:     i.quantity,
+        price:        i.price,
         variantLabel: i.variantLabel,
-        lineTotal: i.price * i.quantity,
+        lineTotal:    i.price * i.quantity,
       })),
     });
   } catch (err) {
@@ -560,10 +713,10 @@ router.post('/admin/hotline-preview', authenticateToken, requireAdmin, async (re
   }
 });
 
-// ======================= ADMIN HOTLINE: tạo đơn (có JWT admin) =======================
+// ======================= ADMIN HOTLINE CREATE =======================
 router.post('/admin/hotline', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const prep = await prepareOrderFromRequestBody(req.body);
+    const prep = await prepareOrderFromRequestBody(req.body, { allowVouchers: true });
     if (!prep.ok) {
       return res.status(prep.status).json(prep.payload);
     }
@@ -613,16 +766,13 @@ router.get('/admin/:id', authenticateToken, requireAdmin, async (req, res) => {
         : { totalOrders: 0, totalSpent: 0, hasProvisionalSpend: false };
     }
 
-    const totalOrders = stats.totalOrders;
-    const totalSpent = stats.totalSpent;
-
     return res.json({
       ...order,
       customerSummary: {
-        customerID:     user?.customerID || '',
-        membershipTier: getMembershipTier(totalSpent),
-        totalOrders,
-        totalSpent,
+        customerID:          user?.customerID || '',
+        membershipTier:      getMembershipTier(stats.totalSpent),
+        totalOrders:         stats.totalOrders,
+        totalSpent:          stats.totalSpent,
         hasProvisionalSpend: stats.hasProvisionalSpend,
       }
     });
@@ -667,6 +817,48 @@ router.patch('/admin/:id/status', authenticateToken, requireAdmin, async (req, r
       note:      String(note || '')
     });
 
+    // ── Khi đơn chuyển sang delivered: cập nhật lại hạng thành viên ──
+    if (status === 'delivered' && order.userId) {
+      try {
+        const agg = await Order.aggregate([
+          {
+            $match: {
+              userId: new mongoose.Types.ObjectId(String(order.userId)),
+              status: 'delivered'
+            }
+          },
+          { $group: { _id: null, total: { $sum: '$total' } } }
+        ]);
+        const totalSpent = agg[0]?.total || 0;
+        const memberRank = totalSpent >= 5_000_000 ? 'vip' : 'member';
+        await User.findByIdAndUpdate(order.userId, { totalSpent, memberRank });
+      } catch (e) {
+        console.error('Cập nhật hạng thành viên thất bại:', e);
+      }
+    }
+
+    if (order.userId) {
+      try {
+        const statusLabel = {
+          confirmed: 'đã được xác nhận ✅',
+          shipping:  'đang được giao 🚚',
+          delivered: 'đã giao thành công 🎉',
+          cancelled: 'đã bị hủy ❌',
+        }[status] || status;
+
+        await Notification.create({
+          userId:  order.userId,
+          title:   `Cập nhật đơn hàng`,
+          message: `Đơn hàng ${order.orderCode} ${statusLabel}`,
+          type:    'order',
+          orderId: order._id,
+          isRead:  false,
+        });
+      } catch (e) {
+        console.error('Tạo notification thất bại:', e);
+      }
+    }
+
     return res.json(order);
   } catch (err) {
     return res.status(500).json({ message: 'Server error' });
@@ -693,12 +885,11 @@ router.patch('/admin/:id/return-status', authenticateToken, requireAdmin, async 
       return res.status(400).json({ message: 'Đơn đã ở trạng thái trả hàng/hoàn tiền này' });
     }
 
-    // Luồng: none → requested → (approved | rejected | completed) ; approved → completed.
     const returnFlow = {
-      none: ['requested'],
-      requested: ['approved', 'rejected', 'completed'],
-      approved: ['completed'],
-      rejected: [],
+      none:      [],
+      requested: ['approved', 'rejected'],
+      approved:  ['completed'],
+      rejected:  [],
       completed: []
     };
 
@@ -711,8 +902,8 @@ router.patch('/admin/:id/return-status', authenticateToken, requireAdmin, async 
 
     order.returnStatus = returnStatus;
     if (returnStatus === 'requested') {
-      order.returnRequestedAt = new Date();
-      order.returnReason = String(returnReason || '');
+      order.returnRequestedAt     = new Date();
+      order.returnReason          = String(returnReason || '');
       order.returnRejectionReason = '';
     }
     if (returnStatus === 'approved') {
@@ -743,14 +934,130 @@ router.patch('/admin/:id/return-status', authenticateToken, requireAdmin, async 
   }
 });
 
+// ======================= GUEST: tra cứu đơn =======================
+router.post('/guest-lookup', async (req, res) => {
+  try {
+    const phone   = String(req.body?.phone || '').trim();
+    const rawCode = String(req.body?.orderCode || '').replace(/\s/g, '').toUpperCase();
+    if (!isValidPhoneVN(phone)) {
+      return res.status(400).json({ message: 'Số điện thoại không hợp lệ' });
+    }
+    if (!/^ORD\d{11}$/.test(rawCode)) {
+      return res.status(400).json({ message: 'Mã đơn không hợp lệ (VD: ORD00000000001)' });
+    }
+
+    const order = await Order.findOne({ orderCode: rawCode })
+      .populate({ path: 'items.productId', select: 'images name' })
+      .lean();
+
+    if (!order) {
+      return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
+    }
+    if (normalizePhone(order.customer?.phone) !== normalizePhone(phone)) {
+      return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
+    }
+
+    return res.json({ order });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// ======================= GUEST: đổi trả =======================
+router.patch('/:id/guest-request-return', (req, res) => {
+  uploadReturnImages(req, res, async (uploadErr) => {
+    try {
+      if (uploadErr) {
+        return res.status(400).json({ message: uploadErr.message || 'Lỗi upload ảnh' });
+      }
+
+      const { reason, note, items, phone, orderCode } = req.body;
+
+      if (!reason) {
+        (req.files || []).forEach((f) => fs.unlink(f.path, () => {}));
+        return res.status(400).json({ message: 'Vui lòng chọn lý do đổi trả' });
+      }
+
+      const phoneVal = String(phone || '').trim();
+      const rawCode  = String(orderCode || '').replace(/\s/g, '').toUpperCase();
+      if (!isValidPhoneVN(phoneVal)) {
+        (req.files || []).forEach((f) => fs.unlink(f.path, () => {}));
+        return res.status(400).json({ message: 'Số điện thoại không hợp lệ' });
+      }
+      if (!/^ORD\d{11}$/.test(rawCode)) {
+        (req.files || []).forEach((f) => fs.unlink(f.path, () => {}));
+        return res.status(400).json({ message: 'Mã đơn không hợp lệ' });
+      }
+
+      if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+        (req.files || []).forEach((f) => fs.unlink(f.path, () => {}));
+        return res.status(400).json({ message: 'ID không hợp lệ' });
+      }
+
+      const order = await Order.findById(req.params.id);
+      if (!order) {
+        (req.files || []).forEach((f) => fs.unlink(f.path, () => {}));
+        return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
+      }
+
+      if (String(order.orderCode || '').toUpperCase() !== rawCode) {
+        (req.files || []).forEach((f) => fs.unlink(f.path, () => {}));
+        return res.status(403).json({ message: 'Mã đơn không khớp' });
+      }
+      if (normalizePhone(order.customer?.phone) !== normalizePhone(phoneVal)) {
+        (req.files || []).forEach((f) => fs.unlink(f.path, () => {}));
+        return res.status(403).json({ message: 'Số điện thoại không khớp đơn hàng' });
+      }
+
+      if (order.status !== 'delivered') {
+        (req.files || []).forEach((f) => fs.unlink(f.path, () => {}));
+        return res.status(400).json({ message: 'Chỉ có thể yêu cầu đổi trả cho đơn đã giao' });
+      }
+
+      if (order.returnStatus && order.returnStatus !== 'none') {
+        (req.files || []).forEach((f) => fs.unlink(f.path, () => {}));
+        return res.status(400).json({ message: 'Đơn hàng này đã có yêu cầu đổi trả rồi' });
+      }
+
+      let parsedItems = [];
+      if (items) {
+        try {
+          parsedItems = typeof items === 'string' ? JSON.parse(items) : items;
+        } catch { parsedItems = []; }
+      }
+
+      await persistOrderReturnRequest(order, {
+        reason,
+        note,
+        parsedItems,
+        files:    req.files || [],
+        auditWho: 'guest-lookup',
+      });
+
+      return res.json({ message: 'Yêu cầu đổi trả đã được gửi', order });
+    } catch (err) {
+      (req.files || []).forEach((f) => fs.unlink(f.path, () => {}));
+      return res.status(500).json({ message: err?.message || 'Server error' });
+    }
+  });
+});
+
 // ======================= GET ORDER BY ID =======================
 
 router.get('/:id', async (req, res) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      return res.status(400).json({ message: 'ID không hợp lệ' });
+    const { id } = req.params;
+    let order;
+
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      order = await Order.findById(id).populate('items.productId');
     }
-    const order = await Order.findById(req.params.id).populate('items.productId');
+
+    if (!order) {
+      order = await Order.findOne({ orderCode: id }).populate('items.productId');
+    }
+
     if (!order) return res.status(404).json({ message: 'Order not found' });
     return res.json(order);
   } catch (err) {
@@ -767,16 +1074,32 @@ router.patch('/:id/status', async (req, res) => {
     if (!allowed.includes(status)) {
       return res.status(400).json({ message: 'Status không hợp lệ' });
     }
-    const order = await Order.findByIdAndUpdate(req.params.id, { status }, { new: true });
+
+    const order = await Order.findByIdAndUpdate(
+      req.params.id, { status }, { new: true }
+    );
     if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    if (status === 'cancelled' && order.userId) {
+      try {
+        await Notification.create({
+          userId:  order.userId,
+          title:   '❌ Đơn hàng đã bị hủy',
+          message: `Đơn hàng ${order.orderCode} đã được hủy thành công`,
+          type:    'order',
+          orderId: order._id,
+          isRead:  false,
+        });
+      } catch (e) {}
+    }
+
     res.json(order);
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
 });
 
-// ======================= USER REQUEST RETURN (có upload ảnh) =======================
-// POST multipart/form-data với fields: reason, note, items (JSON string), images (files)
+// ======================= USER REQUEST RETURN =======================
 
 router.patch('/:id/request-return', authenticateToken, (req, res) => {
   uploadReturnImages(req, res, async (uploadErr) => {
@@ -788,7 +1111,6 @@ router.patch('/:id/request-return', authenticateToken, (req, res) => {
       const { reason, note, items } = req.body;
 
       if (!reason) {
-        // Xóa ảnh vừa upload nếu validate fail
         (req.files || []).forEach(f => fs.unlink(f.path, () => {}));
         return res.status(400).json({ message: 'Vui lòng chọn lý do đổi trả' });
       }
@@ -809,12 +1131,20 @@ router.patch('/:id/request-return', authenticateToken, (req, res) => {
         return res.status(400).json({ message: 'Chỉ có thể yêu cầu đổi trả cho đơn đã giao' });
       }
 
+      const tokenUserId = req.user?.userId && String(req.user.userId);
+      const orderUserId = order.userId && String(order.userId);
+      if (!tokenUserId || !orderUserId || tokenUserId !== orderUserId) {
+        (req.files || []).forEach(f => fs.unlink(f.path, () => {}));
+        return res.status(403).json({
+          message: 'Bạn chỉ có thể yêu cầu trả hàng cho đơn hàng của tài khoản mình',
+        });
+      }
+
       if (order.returnStatus && order.returnStatus !== 'none') {
         (req.files || []).forEach(f => fs.unlink(f.path, () => {}));
         return res.status(400).json({ message: 'Đơn hàng này đã có yêu cầu đổi trả rồi' });
       }
 
-      // Parse items nếu là JSON string (do FormData gửi lên)
       let parsedItems = [];
       if (items) {
         try {
@@ -822,37 +1152,12 @@ router.patch('/:id/request-return', authenticateToken, (req, res) => {
         } catch { parsedItems = []; }
       }
 
-      // Đường dẫn ảnh trả về dạng URL
-      const imageUrls = (req.files || []).map(
-        f => `/images/returns/${f.filename}`
-      );
-
-      order.returnStatus      = 'requested';
-      order.returnRequestedAt = new Date();
-      order.returnReason      = String(reason || '');
-      order.returnNote        = String(note   || '');
-      order.returnImages      = imageUrls;
-
-      if (Array.isArray(parsedItems) && parsedItems.length > 0) {
-        order.returnItems = parsedItems.map(i => ({
-          productId: i.productId,
-          name:      i.name,
-          imageUrl:  i.imageUrl || '',
-          price:     Number(i.price    || 0),
-          quantity:  Number(i.quantity || 0),
-          returnQty: Number(i.returnQty || 0),
-        }));
-      }
-
-      await order.save();
-
-      await OrderAuditLog.create({
-        orderId:   order._id,
-        adminId:   String(req.user?.userId || 'user'),
-        action:    'return_status_change',
-        fromValue: 'none',
-        toValue:   'requested',
-        note:      `User yêu cầu: ${reason}${note ? ' — ' + note : ''}`,
+      await persistOrderReturnRequest(order, {
+        reason,
+        note,
+        parsedItems,
+        files:    req.files || [],
+        auditWho: req.user?.userId || 'user',
       });
 
       return res.json({ message: 'Yêu cầu đổi trả đã được gửi', order });

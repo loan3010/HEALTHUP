@@ -2,8 +2,7 @@
 .chatbot-layout-fixed {
   display: flex; 
   width: 100%;
-  height: calc(100vh - 70px); /* Bám sát Header chính */
-  background: #fcfdfc; 
+  height: calc(100vh - 100px); /* Bám sát Header chính */
   overflow: hidden; /* Chỉ cho phép cuộn bên trong các ngăn */
   position: relative;
 }
@@ -37,8 +36,8 @@
 /* --- NGĂN PHẢI (SIDEBAR): LƯỚT VÀO NHƯ LỤA --- */
 .fixed-right-sidebar {
   flex: 0 0 30%;
-  height: 100%; /* Bao trọn chiều dọc từ đỉnh đến đáy */
-  background: white;
+  max-width: 30% !important;
+  height: 100vh; /* Bao trọn chiều dọc từ đỉnh đến đáy */
   border-left: 1px solid #eee;
   z-index: 500;
   box-shadow: -15px 0 35px rgba(0,0,0,0.02);
@@ -85,7 +84,8 @@
 .btn-add { background: var(--color-primary); color: white; }
 .btn-save-train { background: #4CAF50; color: white; box-shadow: 0 4px 15px rgba(76, 175, 80, 0.15); }
 .btn-logic { background: white; border: 1px solid #eee; color: #555; }
-.btn-global:hover { transform: translateY(-2px); filter: brightness(1.05); }
+.btn-global:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.05); }
+.btn-global:disabled { opacity: 0.7; cursor: not-allowed; }
 
 /* --- HIỆU ỨNG HIỆN NỘI DUNG --- */
 .slide-up-animation {
@@ -106,6 +106,7 @@
   font-size: 1.8rem; cursor: pointer; display: flex;
   align-items: center; justify-content: center; z-index: 1000;
   transition: transform 0.3s ease, background 0.3s ease;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
 }
 
 .btn-chat-floating:hover { transform: scale(1.08); }
@@ -125,9 +126,55 @@
   100% { transform: scale(1.6); opacity: 0; }
 }
 
-/* --- MODAL OVERLAY (NỀN BLUR) --- */
+/* --- MODAL OVERLAY (NỀN BLUR CHO CẢ FORM VÀ ALERT) --- */
 .modal-overlay-consult {
-  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(255, 255, 255, 0.4); backdrop-filter: blur(12px);
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+  backdrop-filter: blur(12px);
+  background: rgba(0, 0, 0, 0.3); /* Phủ thêm lớp đen mờ cho dễ nhìn modal */
   display: flex; align-items: center; justify-content: center; z-index: 10000;
 }
+
+/* ============================================
+   CUSTOM ALERT MODAL (KHÔNG DÙNG THƯ VIỆN)
+   ============================================ */
+.custom-alert-overlay {
+  z-index: 9999999 !important; /* Luôn nổi lên trên cùng, kể cả đè lên Modal form */
+}
+
+.custom-alert-card {
+  background: white; border-radius: 24px; padding: 35px 30px;
+  width: 420px; max-width: 90%; text-align: center;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.15);
+  animation: bounceIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes bounceIn {
+  0% { transform: scale(0.8); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.alert-icon-wrap {
+  font-size: 4.5rem; margin-bottom: 15px; line-height: 1;
+}
+.alert-icon-wrap.success { color: #36873A; }
+.alert-icon-wrap.warning { color: #f59f00; }
+.alert-icon-wrap.error { color: #d33; }
+
+.alert-title { font-size: 1.5rem; font-weight: 800; color: #333; margin-bottom: 12px; }
+.alert-message { font-size: 0.95rem; color: #666; margin-bottom: 30px; line-height: 1.6; }
+
+.alert-actions { display: flex; justify-content: center; gap: 12px; }
+
+.btn-alert-cancel, .btn-alert-confirm {
+  padding: 12px 28px; border-radius: 12px; font-weight: 700; border: none; cursor: pointer; transition: 0.2s; font-size: 0.95rem;
+}
+
+.btn-alert-cancel { background: #f1f3f5; color: #555; }
+.btn-alert-cancel:hover { background: #e2e6ea; }
+
+.btn-alert-confirm { color: white; }
+.btn-alert-confirm.success { background: #36873A; }
+.btn-alert-confirm.success:hover { background: #2A6B2E; box-shadow: 0 5px 15px rgba(54,135,58,0.3); }
+
+.btn-alert-confirm.warning, .btn-alert-confirm.error { background: #d33; }
+.btn-alert-confirm.warning:hover, .btn-alert-confirm.error:hover { background: #b02a2a; box-shadow: 0 5px 15px rgba(211,51,51,0.3); }

@@ -3,6 +3,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { Router, RouterModule } from '@angular/router';
 import { HttpClient, HttpClientModule, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
+import { ApiService, GUEST_CART_STORAGE_KEY } from '../services/api.service';
 
 type ShippingMethod = 'standard' | 'express';
 type PaymentMethod  = 'cod' | 'momo' | 'vnpay';
@@ -74,8 +75,11 @@ export class Checkout implements OnInit {
   errorMsg  = signal('');
   isPlacing = signal(false);
 
-  showSuccess    = signal(false);
-  successOrderId = signal('');
+  showSuccess      = signal(false);
+  successOrderId   = signal('');
+  successOrderCode = signal('');
+
+  guestAddrForm!: FormGroup;
 
   shippingMethod = signal<ShippingMethod>('standard');
   paymentMethod  = signal<PaymentMethod>('cod');
@@ -98,8 +102,20 @@ export class Checkout implements OnInit {
   availableVouchers    = signal<VoucherInfo[]>([]);
   isLoadingVouchers    = false;
 
-  // ✅ MỚI: Lưu code voucher tốt nhất (giảm nhiều tiền nhất)
   bestVoucherCode = signal<string>('');
+
+  // ── Hạng thành viên ──
+  userRank   = signal<string>('member');
+  totalSpent = signal<number>(0);
+  showRankTooltip = false;
+
+  rankProgressPercent = computed(() =>
+    Math.min(100, Math.round((this.totalSpent() / 5_000_000) * 100))
+  );
+
+  rankProgressRemain = computed(() =>
+    Math.max(0, 5_000_000 - this.totalSpent())
+  );
 
   // ── Address ──
   savedAddresses = signal<SavedAddress[]>([]);
@@ -156,6 +172,24 @@ export class Checkout implements OnInit {
     return this.savedAddresses().find(a => this.getId(a) === this.selectedAddrId());
   }
 
+  get canUseVouchers(): boolean {
+    return !!(this.token && this.userId);
+  }
+
+  get shippingAddr(): SavedAddress | null {
+    if (this.userId) {
+      const a = this.selectedAddr;
+      return a || null;
+    }
+    const v = this.guestAddrForm?.value;
+    if (!v) return null;
+    const name    = String(v.name    || '').trim();
+    const phone   = String(v.phone   || '').trim();
+    const address = String(v.address || '').trim();
+    if (!name || !phone || !address) return null;
+    return { name, phone, address, isDefault: false };
+  }
+
   get isOrderVoucherApplied(): boolean {
     return this.orderVoucherResult()?.valid === true;
   }
@@ -168,11 +202,11 @@ export class Checkout implements OnInit {
     const r = this.orderVoucherResult();
     if (!r?.valid || !r.code) return undefined;
     return {
-      code:         r.code,
-      name:         r.name ?? '',
-      description:  r.description,
-      type:         r.type,
-      discountType: r.discountType as any,
+      code:          r.code,
+      name:          r.name ?? '',
+      description:   r.description,
+      type:          r.type,
+      discountType:  r.discountType as any,
       discountValue: r.discountValue ?? 0,
     };
   }
@@ -181,40 +215,71 @@ export class Checkout implements OnInit {
     const r = this.shipVoucherResult();
     if (!r?.valid || !r.code) return undefined;
     return {
-      code:         r.code,
-      name:         r.name ?? '',
-      description:  r.description,
-      type:         r.type,
-      discountType: r.discountType as any,
+      code:          r.code,
+      name:          r.name ?? '',
+      description:   r.description,
+      type:          r.type,
+      discountType:  r.discountType as any,
       discountValue: r.discountValue ?? 0,
     };
+  }
+
+  get memberRankLabel(): string {
+    return this.userRank() === 'vip' ? '⭐ VIP' : 'Thành viên';
   }
 
   constructor(
     private fb:     FormBuilder,
     private router: Router,
     private http:   HttpClient,
-    private cdr:    ChangeDetectorRef
+    private cdr:    ChangeDetectorRef,
+    private api:    ApiService
   ) {}
 
   ngOnInit(): void {
-    this.checkoutForm = this.fb.group({ note: [''] });
+    this.checkoutForm  = this.fb.group({ note: [''] });
+    this.guestAddrForm = this.fb.group({
+      name:    ['', [Validators.required, Validators.minLength(2)]],
+      phone:   ['', [Validators.required, Validators.pattern(/^0\d{9}$/)]],
+      address: ['', [Validators.required, Validators.minLength(8)]],
+    });
     this.buildAddrForm();
     this.loadCheckoutItems();
     if (!this.items().length) { this.router.navigateByUrl('/cart'); return; }
 
     try {
-      const u    = JSON.parse(localStorage.getItem('user') || '{}');
+      const u     = JSON.parse(localStorage.getItem('user') || '{}');
       this.token  = localStorage.getItem('token') || '';
       this.userId = u.id || u._id || '';
     } catch {}
 
+    if (!this.canUseVouchers) {
+      this.removeVoucher('order');
+      this.removeVoucher('shipping');
+    }
+
     this.loadProvinces();
-    if (this.userId && this.token) this.loadSavedAddresses();
+    if (this.userId && this.token) {
+      this.loadSavedAddresses();
+      this.loadUserRank();
+    }
   }
 
   private get headers() {
     return new HttpHeaders({ Authorization: `Bearer ${this.token}` });
+  }
+
+  // ── Load hạng thành viên + totalSpent ──
+  private loadUserRank(): void {
+    this.http.get<any>(`${this.API_BASE}/users/${this.userId}`, { headers: this.headers })
+      .subscribe({
+        next: (u) => {
+          this.userRank.set(u.memberRank || 'member');
+          this.totalSpent.set(u.totalSpent || 0);
+          this.cdr.detectChanges();
+        },
+        error: () => {}
+      });
   }
 
   getId(a: SavedAddress): string { return (a._id || a.id || '') as string; }
@@ -422,8 +487,7 @@ export class Checkout implements OnInit {
   // ══════════════════════════════════════
 
   isVoucherEligible(v: VoucherInfo): boolean {
-    const min = v.minOrder ?? 0;
-    return this.subTotal() >= min;
+    return this.subTotal() >= (v.minOrder ?? 0);
   }
 
   voucherDisabledReason(v: VoucherInfo): string {
@@ -434,25 +498,15 @@ export class Checkout implements OnInit {
     return '';
   }
 
-  // ✅ MỚI: Tính số tiền tiết kiệm thực tế của 1 voucher
   calcVoucherSaving(v: VoucherInfo): number {
     if (!this.isVoucherEligible(v)) return 0;
-
-    if (v.discountType === 'freeship') {
-      return this.shippingFee();
-    }
-
+    if (v.discountType === 'freeship') return this.shippingFee();
     const base = v.type === 'shipping' ? this.shippingFee() : this.subTotal();
-
     if (v.discountType === 'percent') {
       const saving = Math.round(base * v.discountValue / 100);
       return v.maxDiscount ? Math.min(saving, v.maxDiscount) : saving;
     }
-
-    if (v.discountType === 'fixed') {
-      return Math.min(v.discountValue, base);
-    }
-
+    if (v.discountType === 'fixed') return Math.min(v.discountValue, base);
     return 0;
   }
 
@@ -471,8 +525,9 @@ export class Checkout implements OnInit {
   }
 
   applyVoucher(forType: 'order' | 'shipping'): void {
-    const code = forType === 'order' ? this.orderVoucherCode() : this.shipVoucherCode();
+    if (!this.canUseVouchers) return;
 
+    const code = forType === 'order' ? this.orderVoucherCode() : this.shipVoucherCode();
     if (!code) {
       forType === 'order'
         ? this.orderVoucherMsg.set('Vui lòng nhập mã voucher')
@@ -491,11 +546,11 @@ export class Checkout implements OnInit {
     }
     this.cdr.detectChanges();
 
-    this.http.post<ApplyVoucherResult>(`${this.API_BASE}/promotions/apply`, {
-      code,
-      subTotal:    this.subTotal(),
-      shippingFee: this.shippingFee(),
-    }).subscribe({
+    this.http.post<ApplyVoucherResult>(
+      `${this.API_BASE}/promotions/apply`,
+      { code, subTotal: this.subTotal(), shippingFee: this.shippingFee() },
+      { headers: this.headers }
+    ).subscribe({
       next: (res) => {
         if (forType === 'order' && res.discountOnType !== 'items') {
           this.isApplyingOrderVoucher = false;
@@ -550,42 +605,33 @@ export class Checkout implements OnInit {
     this.cdr.detectChanges();
   }
 
-  // ✅ CẬP NHẬT: Mở modal — sort voucher theo saving giảm dần, đánh dấu tốt nhất
   openVoucherModal(forType: 'order' | 'shipping'): void {
+    if (!this.canUseVouchers) return;
     this.voucherModalFor   = forType;
     this.showVoucherModal  = true;
     this.isLoadingVouchers = true;
     this.bestVoucherCode.set('');
     this.cdr.detectChanges();
 
-    this.http.get<VoucherInfo[]>(`${this.API_BASE}/promotions/available`).subscribe({
+    this.http.get<VoucherInfo[]>(
+      `${this.API_BASE}/promotions/available`,
+      { headers: this.headers }
+    ).subscribe({
       next: (list) => {
-        // Lọc đúng loại
         const filtered = (list || []).filter(v =>
           forType === 'shipping' ? v.type === 'shipping' : v.type === 'order'
         );
 
-        // Tính saving thực tế rồi sort
         const withSaving = filtered.map(v => ({
           ...v,
           _saving:   this.calcVoucherSaving(v),
           _eligible: this.isVoucherEligible(v),
         }));
 
-        // Eligible: sort theo tiết kiệm nhiều nhất lên đầu
-        const eligible = withSaving
-          .filter(v => v._eligible)
-          .sort((a, b) => b._saving - a._saving);
+        const eligible   = withSaving.filter(v => v._eligible).sort((a, b) => b._saving - a._saving);
+        const ineligible = withSaving.filter(v => !v._eligible).sort((a, b) => (a.minOrder ?? 0) - (b.minOrder ?? 0));
 
-        // Ineligible: sort theo minOrder tăng dần (gần đủ điều kiện lên đầu)
-        const ineligible = withSaving
-          .filter(v => !v._eligible)
-          .sort((a, b) => (a.minOrder ?? 0) - (b.minOrder ?? 0));
-
-        // Đánh dấu voucher tốt nhất
-        if (eligible.length > 0) {
-          this.bestVoucherCode.set(eligible[0].code);
-        }
+        if (eligible.length > 0) this.bestVoucherCode.set(eligible[0].code);
 
         this.availableVouchers.set([...eligible, ...ineligible]);
         this.isLoadingVouchers = false;
@@ -635,14 +681,35 @@ export class Checkout implements OnInit {
   // ══════════════════════════════════════
   // PLACE ORDER
   // ══════════════════════════════════════
+
+  private parseAddressParts(fullAddress: string): { province: string; district: string; ward: string } {
+    const parts = fullAddress.split(',').map(p => p.trim()).filter(Boolean);
+    if (parts.length >= 4) {
+      return {
+        province: parts[parts.length - 1],
+        district: parts[parts.length - 2],
+        ward:     parts[parts.length - 3],
+      };
+    }
+    if (parts.length === 3) return { province: parts[2], district: parts[1], ward: parts[0] };
+    if (parts.length === 2) return { province: parts[1], district: parts[0], ward: parts[0] };
+    return { province: fullAddress, district: fullAddress, ward: fullAddress };
+  }
+
   placeOrder(): void {
     this.errorMsg.set('');
     if (this.isPlacing()) return;
     if (!this.items().length) { this.router.navigateByUrl('/cart'); return; }
 
-    if (!this.selectedAddr) {
-      this.errorMsg.set('Vui lòng chọn hoặc thêm địa chỉ nhận hàng');
-      this.cdr.detectChanges(); return;
+    const addr = this.shippingAddr;
+    if (!addr) {
+      this.errorMsg.set(
+        this.userId
+          ? 'Vui lòng chọn hoặc thêm địa chỉ nhận hàng'
+          : 'Vui lòng nhập đầy đủ họ tên, SĐT (10 số bắt đầu 0) và địa chỉ nhận hàng'
+      );
+      this.cdr.detectChanges();
+      return;
     }
 
     const badIds = this.items().filter(i => !/^[a-fA-F0-9]{24}$/.test(String(i.productId || '').trim()));
@@ -651,14 +718,21 @@ export class Checkout implements OnInit {
       this.cdr.detectChanges(); return;
     }
 
-    const addr = this.selectedAddr!;
     const note = this.checkoutForm.value.note || '';
+    const { province, district, ward } = this.parseAddressParts(addr.address);
 
     const customer: any = {
-      fullName: addr.name, phone: addr.phone, email: '',
-      address: addr.address, province: 'N/A', district: 'N/A', ward: 'N/A', note,
+      fullName: addr.name,
+      phone:    addr.phone,
+      email:    '',
+      address:  addr.address,
+      province,
+      district,
+      ward,
+      note,
     };
 
+    const useVoucher = this.canUseVouchers;
     const payload: any = {
       customer,
       items: this.items().map(i => ({
@@ -667,23 +741,44 @@ export class Checkout implements OnInit {
         variantLabel: i.variantLabel || '',
         quantity:     i.quantity,
       })),
-      shippingMethod: this.shippingMethod(),
-      paymentMethod:  this.paymentMethod(),
-      voucherCode:     this.isOrderVoucherApplied ? this.orderVoucherCode() : null,
-      shipVoucherCode: this.isShipVoucherApplied  ? this.shipVoucherCode()  : null,
+      shippingMethod:  this.shippingMethod(),
+      paymentMethod:   this.paymentMethod(),
+      voucherCode:     useVoucher && this.isOrderVoucherApplied ? this.orderVoucherCode() : null,
+      shipVoucherCode: useVoucher && this.isShipVoucherApplied  ? this.shipVoucherCode()  : null,
     };
     if (this.userId) payload.userId = this.userId;
+
+    if (!this.token) {
+      try {
+        const gid = localStorage.getItem(GUEST_CART_STORAGE_KEY);
+        if (gid && /^[0-9a-f-]{36}$/i.test(gid)) {
+          payload.guestCartSessionId = gid;
+        }
+      } catch { /* ignore */ }
+    }
+
+    let headers = new HttpHeaders();
+    if (this.token) {
+      headers = headers.set('Authorization', `Bearer ${this.token}`);
+    }
 
     this.isPlacing.set(true);
     this.cdr.detectChanges();
 
-    this.http.post<any>(`${this.API_BASE}/orders`, payload).subscribe({
+    this.http.post<any>(`${this.API_BASE}/orders`, payload, { headers }).subscribe({
       next: (res) => {
         const orderId = res?.orderId ?? res?.id ?? res?._id ?? '';
         this.clearAfterSuccess();
         this.isPlacing.set(false);
         this.successOrderId.set(String(orderId));
+        this.successOrderCode.set(String(res?.orderCode || ''));
         this.showSuccess.set(true);
+
+        // Reload hạng sau khi đặt hàng (có thể vừa lên hạng)
+        if (this.userId && this.token) this.loadUserRank();
+
+        this.api.refreshUnreadCount();
+        this.api.refreshCartCount();
         this.cdr.detectChanges();
       },
       error: (err) => {
@@ -695,9 +790,19 @@ export class Checkout implements OnInit {
     });
   }
 
-  goToOrderDetail(): void { this.showSuccess.set(false); this.router.navigate(['/profile/order-detail', this.successOrderId()]); }
-  goToHome():        void { this.showSuccess.set(false); this.router.navigateByUrl('/'); }
+  goToOrderDetail(): void {
+    this.showSuccess.set(false);
+    const id = this.successOrderId();
+    if (this.token && this.userId) {
+      this.router.navigate(['/profile/order-detail', id]);
+    } else {
+      this.router.navigate(['/tra-cuu-don'], {
+        queryParams: { code: this.successOrderCode() || undefined },
+      });
+    }
+  }
 
+  goToHome():        void { this.showSuccess.set(false); this.router.navigateByUrl('/'); }
   setShipping(m: ShippingMethod) { this.shippingMethod.set(m); }
   setPayment(m: PaymentMethod)   { this.paymentMethod.set(m); }
   goToCart() { this.router.navigateByUrl('/cart'); }
@@ -724,10 +829,24 @@ export class Checkout implements OnInit {
     } catch {}
 
     const userId = this.userId;
-    if (userId) {
-      const headers = new HttpHeaders({ 'x-user-id': userId });
-      boughtIds.forEach(productId => {
-        this.http.delete(`${this.API_BASE}/carts/remove/${productId}`, { headers })
+    let cartHeaders: HttpHeaders | null = null;
+    if (userId && /^[a-f0-9]{24}$/i.test(String(userId).trim())) {
+      cartHeaders = new HttpHeaders({ 'x-user-id': String(userId).trim() });
+    } else {
+      try {
+        const gid = localStorage.getItem(GUEST_CART_STORAGE_KEY);
+        if (gid && /^[0-9a-f-]{36}$/i.test(gid)) {
+          cartHeaders = new HttpHeaders({ 'x-guest-cart-id': gid });
+        }
+      } catch { /* ignore */ }
+    }
+    if (cartHeaders) {
+      this.items().forEach((i) => {
+        const q = i.variantId
+          ? `?variantId=${encodeURIComponent(String(i.variantId))}`
+          : '';
+        this.http
+          .delete(`${this.API_BASE}/carts/remove/${i.productId}${q}`, { headers: cartHeaders! })
           .subscribe({ error: () => {} });
       });
     }

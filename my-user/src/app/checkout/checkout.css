@@ -72,6 +72,27 @@
 .co-guest-notice a { color: #36873A; font-weight: 700; text-decoration: none; }
 .co-guest-notice a:hover { text-decoration: underline; }
 
+.co-guest-addr {
+  margin-bottom: 18px; padding: 14px 16px;
+  background: #f8fdf8; border: 1px solid #d4e6d4; border-radius: 12px;
+}
+.co-guest-addr-row { margin-bottom: 12px; }
+.co-guest-addr-row:last-child { margin-bottom: 0; }
+.co-guest-addr-row label {
+  display: block; font-size: 13px; font-weight: 700;
+  color: #374151; margin-bottom: 6px;
+}
+
+.co-voucher-guest-hint {
+  display: flex; align-items: flex-start; gap: 10px;
+  margin: 16px 0 12px; padding: 12px 14px;
+  background: #f0f7f0; border: 1px dashed #A2C37F;
+  border-radius: 12px; font-size: 13.5px; line-height: 1.45; color: #2d4a2f;
+}
+.co-voucher-guest-hint i { color: #36873A; font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+.co-voucher-guest-hint a { color: #36873A; font-weight: 700; text-decoration: none; }
+.co-voucher-guest-hint a:hover { text-decoration: underline; }
+
 .co-note-wrap { margin-top: 20px; }
 .co-label { font-size: 13px; font-weight: 700; color: #374151; display: block; margin-bottom: 6px; }
 .co-inp {
@@ -91,7 +112,7 @@
 .co-alert-error { background: #fff1f1; border: 1px solid #fecaca; color: #b91c1c; }
 
 /* ══════════════════════════════════════════
-   ADDRESS BOOK (ab-)
+   ADDRESS BOOK
    ══════════════════════════════════════════ */
 .ab-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 4px; }
 .ab-card {
@@ -269,6 +290,136 @@
 .co-summary-title { font-size: 16px; font-weight: 800; color: #1a1a1a; margin: 0; }
 .co-summary-count { font-size: 13px; color: #888; }
 
+/* ══════════════════════════════════════════
+   HẠNG THÀNH VIÊN CARD — gọn, đẹp
+   ══════════════════════════════════════════ */
+.co-rank-card {
+  background: linear-gradient(135deg, #f0faf1 0%, #e8f5e9 100%);
+  border: 1px solid #c8e6c9;
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Hàng 1: Badge + label */
+.co-rank-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.co-rank-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 12.5px;
+  flex-shrink: 0;
+}
+
+.badge-member {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 1.5px solid #a5d6a7;
+}
+
+.badge-vip {
+  background: #fff8e1;
+  color: #f57f17;
+  border: 1.5px solid #ffe082;
+}
+
+.co-rank-top-label {
+  font-size: 12px;
+  color: #666;
+}
+
+/* Hàng 2: Tổng đơn đã giao */
+.co-rank-spent {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 8px 10px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e8f5e9;
+}
+
+.co-rank-spent-label {
+  font-size: 12px;
+  color: #666;
+  flex-shrink: 0;
+}
+
+.co-rank-spent-value {
+  font-size: 17px;
+  font-weight: 800;
+  color: #36873A;
+}
+
+/* Hàng 3: Progress bar */
+.co-rank-bar-wrap { display: flex; flex-direction: column; gap: 5px; }
+
+.co-rank-bar {
+  height: 8px;
+  background: #dcedc8;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.co-rank-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #66bb6a, #36873A);
+  border-radius: 99px;
+  transition: width 0.5s ease;
+  min-width: 4px;
+}
+
+.co-rank-bar-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10.5px;
+  color: #999;
+}
+
+.co-rank-remain {
+  font-size: 11.5px;
+  color: #555;
+  text-align: center;
+}
+
+.co-rank-remain strong { color: #36873A; font-weight: 700; }
+
+/* VIP msg */
+.co-rank-vip-msg {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  background: #fff8e1;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #f57f17;
+  font-weight: 600;
+}
+
+/* Badge nhỏ trong voucher modal subheader */
+.rank-badge-sm {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 10px; border-radius: 20px;
+  font-size: 12px; font-weight: 600;
+}
+.badge-sm-member { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+.badge-sm-vip    { background: #fff8e1; color: #f57f17; border: 1px solid #ffe082; }
+
+/* ══════════════════════════════════════════
+   ITEMS
+   ══════════════════════════════════════════ */
 .co-items { display: flex; flex-direction: column; margin-bottom: 4px; }
 .co-item { display: grid; grid-template-columns: 48px 1fr auto; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px dashed #f0f0f0; }
 .co-item:last-child { border-bottom: none; }
@@ -279,7 +430,8 @@
 .co-item-price { font-size: 13px; font-weight: 800; color: #1a1a1a; white-space: nowrap; }
 
 /* ── Voucher box ── */
-.co-voucher { margin: 16px 0 12px; padding: 12px; background: #f8fdf8; border-radius: 12px; border: 1px dashed #A2C37F; }
+.co-voucher { margin: 12px 0; padding: 12px; background: #f8fdf8; border-radius: 12px; border: 1px dashed #A2C37F; }
+.co-voucher-label { font-size: 12px; font-weight: 700; color: #36873A; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
 .co-voucher-row { display: flex; align-items: center; gap: 8px; }
 .co-voucher-icon { color: #36873A; font-size: 16px; flex-shrink: 0; }
 .co-voucher-inp { flex: 1; border: none; background: transparent; font-size: 13.5px; font-family: inherit; color: #1a1a1a; outline: none; }
@@ -292,7 +444,6 @@
   display: flex; align-items: center; gap: 6px;
   margin-top: 8px; padding: 0; background: none; border: none;
   font-size: 12.5px; font-weight: 600; color: #36873A; cursor: pointer; font-family: inherit;
-  transition: opacity 0.2s;
 }
 .co-voucher-see-all:hover { opacity: 0.75; text-decoration: underline; }
 .co-voucher-msg { margin-top: 6px; font-size: 12px; font-weight: 600; }
@@ -327,144 +478,96 @@
 .co-trust i { color: #36873A; }
 
 /* ══════════════════════════════════════════
-   VOUCHER MODAL — REDESIGNED
+   VOUCHER MODAL
    ══════════════════════════════════════════ */
 .co-modal-backdrop {
   position: fixed; inset: 0; background: rgba(0,0,0,0.5);
   backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center;
   z-index: 9999; animation: fadeIn 0.2s ease; padding: 20px;
 }
-
 .co-voucher-modal {
   background: #fff; border-radius: 20px;
-  width: 100%; max-width: 520px;
-  max-height: 85vh;
+  width: 100%; max-width: 520px; max-height: 85vh;
   display: flex; flex-direction: column;
   box-shadow: 0 24px 60px rgba(0,0,0,0.22);
-  animation: slideUp 0.28s ease;
-  overflow: hidden;
+  animation: slideUp 0.28s ease; overflow: hidden;
 }
-
-/* Header */
 .co-voucher-modal-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 18px 20px 14px;
-  flex-shrink: 0;
-  background: #fff;
-  border-bottom: 1px solid #f0f0f0;
+  padding: 18px 20px 14px; flex-shrink: 0;
+  background: #fff; border-bottom: 1px solid #f0f0f0;
 }
 .co-voucher-modal-title {
   display: flex; align-items: center; gap: 10px;
   font-size: 16px; font-weight: 800; color: #1a1a1a;
 }
 .co-voucher-modal-title i { color: #36873A; font-size: 18px; }
-
-/* Subheader */
 .co-voucher-modal-subheader {
-  padding: 10px 20px;
-  background: #F0F7F0;
+  padding: 10px 20px; background: #F0F7F0;
   font-size: 13px; color: #555;
   display: flex; align-items: center; gap: 8px;
-  flex-shrink: 0;
+  flex-shrink: 0; flex-wrap: wrap;
 }
 .co-voucher-modal-subheader i { color: #36873A; }
 .co-voucher-modal-subheader strong { color: #36873A; font-weight: 800; }
-
-/* Loading */
 .co-voucher-modal-loading {
   display: flex; align-items: center; justify-content: center; gap: 10px;
   padding: 40px 20px; color: #888; font-size: 14px;
 }
-
-/* Body — scrollable */
 .co-voucher-modal-body {
-  flex: 1; overflow-y: auto;
-  padding: 14px 16px 20px;
+  flex: 1; overflow-y: auto; padding: 14px 16px 20px;
   display: flex; flex-direction: column; gap: 0;
 }
 .co-voucher-modal-body::-webkit-scrollbar { width: 5px; }
 .co-voucher-modal-body::-webkit-scrollbar-track { background: transparent; }
 .co-voucher-modal-body::-webkit-scrollbar-thumb { background: #d4e6d4; border-radius: 10px; }
 
-/* Section label */
 .co-voucher-section-label {
   font-size: 11.5px; font-weight: 700; color: #36873A;
   text-transform: uppercase; letter-spacing: 0.6px;
-  padding: 6px 0 10px;
-  display: flex; align-items: center; gap: 6px;
+  padding: 6px 0 10px; display: flex; align-items: center; gap: 6px;
 }
-.co-voucher-section-label i { font-size: 12px; }
-
-/* Divider chưa đủ điều kiện */
 .co-voucher-section-divider {
-  margin: 12px -4px 10px;
-  padding: 7px 14px;
+  margin: 12px -4px 10px; padding: 7px 14px;
   background: #f5f5f5; border-radius: 8px;
   font-size: 12px; font-weight: 700; color: #999;
   display: flex; align-items: center; gap: 7px;
 }
 .co-voucher-section-divider i { font-size: 12px; color: #bbb; }
 
-/* ── Card voucher ── */
-.co-voucher-card {
-  margin-bottom: 10px;
-}
-
-/* FIX: Card đủ điều kiện — sáng, cursor pointer */
+.co-voucher-card { margin-bottom: 10px; }
 .co-voucher-card.is-eligible .co-voucher-card-inner {
-  border: 1.5px solid #e8e8e8;
-  background: #fff;
-  cursor: pointer;
-  opacity: 1;
-  transition: all 0.2s;
+  border: 1.5px solid #e8e8e8; background: #fff;
+  cursor: pointer; opacity: 1; transition: all 0.2s;
 }
 .co-voucher-card.is-eligible .co-voucher-card-inner:hover {
-  border-color: #A2C37F;
-  background: #f8fdf8;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(54,135,58,0.1);
+  border-color: #A2C37F; background: #f8fdf8;
+  transform: translateY(-1px); box-shadow: 0 4px 14px rgba(54,135,58,0.1);
 }
 .co-voucher-card.is-applied .co-voucher-card-inner {
-  border-color: #36873A !important;
-  background: #f0f7f0 !important;
+  border-color: #36873A !important; background: #f0f7f0 !important;
   box-shadow: 0 0 0 3px rgba(54,135,58,0.12) !important;
 }
-
-/* FIX: Card không đủ điều kiện — mờ xám, không click */
 .co-voucher-card.is-ineligible .co-voucher-card-inner {
-  border: 1.5px solid #ebebeb;
-  background: #fafafa;
-  cursor: not-allowed;
-  opacity: 0.52;
-  filter: grayscale(30%);
-  transition: none;
+  border: 1.5px solid #ebebeb; background: #fafafa;
+  cursor: not-allowed; opacity: 0.52; filter: grayscale(30%); transition: none;
 }
 .co-voucher-card.is-ineligible .co-voucher-card-inner:hover {
-  border-color: #ebebeb;
-  background: #fafafa;
-  transform: none;
-  box-shadow: none;
+  border-color: #ebebeb; background: #fafafa; transform: none; box-shadow: none;
 }
-
 .co-voucher-card-inner {
   display: flex; align-items: center; gap: 12px;
-  padding: 12px 14px;
-  border-radius: 14px;
-  position: relative;
-  overflow: hidden;
+  padding: 12px 14px; border-radius: 14px;
+  position: relative; overflow: hidden;
 }
-
-/* Sọc dọc màu bên trái (giống voucher vật lý) */
 .co-voucher-card-inner::before {
-  content: '';
-  position: absolute; left: 0; top: 0; bottom: 0;
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
   width: 5px; border-radius: 14px 0 0 14px;
 }
-.co-voucher-card.is-eligible .co-voucher-card-inner::before { background: #36873A; }
+.co-voucher-card.is-eligible   .co-voucher-card-inner::before { background: #36873A; }
 .co-voucher-card.is-ineligible .co-voucher-card-inner::before { background: #ccc; }
-.co-voucher-card.is-applied .co-voucher-card-inner::before { background: #2A6B2E; }
+.co-voucher-card.is-applied    .co-voucher-card-inner::before { background: #2A6B2E; }
 
-/* Icon */
 .co-voucher-card-icon {
   width: 42px; height: 42px; border-radius: 10px;
   display: flex; align-items: center; justify-content: center;
@@ -474,49 +577,47 @@
 .icon-ship    { background: #e3f2fd; color: #1565C0; }
 .icon-fixed   { background: #fff3e0; color: #E65100; }
 
-/* Body */
 .co-voucher-card-body { flex: 1; min-width: 0; }
 .co-voucher-card-label { font-size: 13.5px; font-weight: 700; color: #1a1a1a; margin-bottom: 2px; }
 .co-voucher-card-desc  { font-size: 11.5px; color: #888; margin-bottom: 5px; line-height: 1.4; }
 
-/* Điều kiện */
+.co-voucher-saving {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 0.8rem; color: #16a34a;
+  background: #f0fdf4; border: 1px solid #bbf7d0;
+  padding: 2px 8px; border-radius: 20px; margin-bottom: 4px;
+}
+.co-voucher-saving strong { color: #15803d; font-weight: 700; }
+
 .co-voucher-card-cond { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 5px; }
 .co-voucher-cond-item {
   display: inline-flex; align-items: center; gap: 3px;
-  font-size: 11px; font-weight: 600;
-  padding: 2px 7px; border-radius: 999px;
-  background: #f5f5f5; color: #888;
+  font-size: 11px; font-weight: 600; padding: 2px 7px;
+  border-radius: 999px; background: #f5f5f5; color: #888;
 }
 .co-voucher-cond-item i { font-size: 11px; }
 .cond-ok   { background: #e8f5e9; color: #36873A; }
 .cond-fail { background: #fff3e0; color: #E65100; }
 
-/* Cần thêm */
 .co-voucher-card-need {
   font-size: 11px; color: #E65100; font-weight: 600;
-  margin-bottom: 5px;
-  display: flex; align-items: center; gap: 4px;
+  margin-bottom: 5px; display: flex; align-items: center; gap: 4px;
 }
 .co-voucher-card-need i { font-size: 11px; }
 
-/* Code badge */
 .co-voucher-card-code span {
-  display: inline-block;
-  background: #e8f5e9; color: #36873A;
+  display: inline-block; background: #e8f5e9; color: #36873A;
   font-size: 11.5px; font-weight: 800; letter-spacing: 0.5px;
-  padding: 2px 9px; border-radius: 5px;
-  border: 1px dashed #A2C37F;
+  padding: 2px 9px; border-radius: 5px; border: 1px dashed #A2C37F;
   font-family: 'Courier New', monospace;
 }
 .co-voucher-card.is-ineligible .co-voucher-card-code span {
   background: #f0f0f0; color: #aaa; border-color: #ddd;
 }
 
-/* Action */
 .co-voucher-card-action {
   flex-shrink: 0; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 4px;
-  min-width: 72px;
+  align-items: center; justify-content: center; gap: 4px; min-width: 72px;
 }
 .co-voucher-applied-badge {
   display: flex; flex-direction: column; align-items: center; gap: 2px;
@@ -525,39 +626,68 @@
 .co-voucher-applied-badge i { font-size: 18px; }
 .co-voucher-select-btn {
   padding: 7px 14px; background: #36873A; color: #fff;
-  border: none; border-radius: 8px;
-  font-size: 12.5px; font-weight: 600;
-  cursor: pointer; font-family: inherit;
-  transition: background 0.2s; white-space: nowrap;
+  border: none; border-radius: 8px; font-size: 12.5px; font-weight: 600;
+  cursor: pointer; font-family: inherit; transition: background 0.2s; white-space: nowrap;
 }
 .co-voucher-select-btn:hover { background: #2A6B2E; }
 .co-voucher-lock-badge {
   width: 32px; height: 32px; border-radius: 50%;
   background: #f0f0f0; color: #bbb;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 14px;
+  display: flex; align-items: center; justify-content: center; font-size: 14px;
 }
-
-/* Empty */
 .co-voucher-modal-empty {
-  text-align: center; padding: 40px 20px;
-  color: #aaa; font-size: 14px;
+  text-align: center; padding: 40px 20px; color: #aaa; font-size: 14px;
 }
 .co-voucher-modal-empty i { font-size: 36px; display: block; margin-bottom: 10px; color: #ddd; }
+
+/* Best voucher */
+.co-voucher-card.is-best {
+  border: 2px solid #f59e0b;
+  background: linear-gradient(135deg, #fffbeb 0%, #fff 100%);
+  box-shadow: 0 4px 16px rgba(245,158,11,0.18);
+  position: relative; padding-top: 22px;
+}
+.co-voucher-best-badge {
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  background: linear-gradient(90deg, #f59e0b, #ef4444);
+  color: #fff; font-size: 0.68rem; font-weight: 700;
+  padding: 2px 12px; border-radius: 0 0 8px 8px;
+  display: flex; align-items: center; gap: 4px;
+  white-space: nowrap; z-index: 2; letter-spacing: 0.02em;
+}
+.co-voucher-select-btn.btn-best {
+  background: linear-gradient(90deg, #f59e0b, #ef4444);
+  border-color: transparent; color: #fff;
+}
+.co-voucher-select-btn.btn-best:hover { opacity: 0.9; }
 
 /* ══════════════════════════════════════════
    SUCCESS MODAL
    ══════════════════════════════════════════ */
-.co-modal { background: #fff; border-radius: 24px; padding: 40px 36px 32px; max-width: 420px; width: 90vw; text-align: center; box-shadow: 0 24px 60px rgba(0,0,0,0.2); animation: slideUp 0.3s cubic-bezier(0.22,1,0.36,1); }
+.co-modal {
+  background: #fff; border-radius: 24px; padding: 40px 36px 32px;
+  max-width: 420px; width: 90vw; text-align: center;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.2);
+  animation: slideUp 0.3s cubic-bezier(0.22,1,0.36,1);
+}
 .co-modal-icon { width: 72px; height: 72px; margin: 0 auto 20px; }
 .co-modal-icon svg { width: 100%; height: 100%; }
 .co-modal-title { font-size: 22px; font-weight: 800; color: #1a1a1a; margin: 0 0 10px; }
 .co-modal-sub { font-size: 14px; color: #666; line-height: 1.7; margin: 0 0 16px; }
-.co-modal-id { display: inline-block; background: #f0f7f0; border: 1px solid #A2C37F; border-radius: 10px; padding: 8px 18px; font-size: 13.5px; color: #36873A; margin-bottom: 24px; }
+.co-modal-id {
+  display: inline-block; background: #f0f7f0; border: 1px solid #A2C37F;
+  border-radius: 10px; padding: 8px 18px; font-size: 13.5px; color: #36873A; margin-bottom: 16px;
+}
+.co-modal-hint { font-size: 12.5px; color: #888; margin-bottom: 20px; }
+.co-modal-hint a { color: #36873A; font-weight: 600; }
 .co-modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
 /* Spinner */
-.co-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(54,135,58,0.3); border-top-color: #36873A; border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
+.co-spinner {
+  display: inline-block; width: 16px; height: 16px;
+  border: 2px solid rgba(54,135,58,0.3); border-top-color: #36873A;
+  border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0;
+}
 .co-spinner-white { border-color: rgba(255,255,255,0.3); border-top-color: #fff; }
 
 @keyframes spin    { to { transform: rotate(360deg); } }
@@ -589,7 +719,7 @@
   .co-trust { gap: 10px; flex-wrap: wrap; }
   .ab-card-footer { gap: 6px; }
   .ab-btn-delete { margin-left: 0; }
-  .co-voucher-card-inner { padding: 10px 10px 10px 10px; gap: 10px; }
+  .co-voucher-card-inner { padding: 10px; gap: 10px; }
   .co-voucher-card-action { min-width: 60px; }
 }
 /* ══════════════════════════════════════════════════════

@@ -30,6 +30,11 @@ export class Header implements OnInit, OnDestroy {
   cartCount = 0;
   private cartCountSub!: Subscription;
 
+  // ✅ UNREAD NOTIFICATION COUNT (từ THnew)
+  unreadCount = 0;
+  private unreadCountSub!: Subscription;
+
+  // ── SEARCH STATE ──
   searchQuery = '';
   searchResults: SearchProduct[] = [];
   isSearching = false;
@@ -51,8 +56,16 @@ export class Header implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.checkLoginStatus();
     this.initSearch();
+
+    // ✅ Subscribe cart count
     this.cartCountSub = this.api.cartCount$.subscribe(count => {
       this.cartCount = count;
+      this.cdr.detectChanges();
+    });
+
+    // ✅ Subscribe unread notification count — badge chuông tự cập nhật
+    this.unreadCountSub = this.api.unreadCount$.subscribe(count => {
+      this.unreadCount = count;
       this.cdr.detectChanges();
     });
   }
@@ -60,11 +73,12 @@ export class Header implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.searchSub?.unsubscribe();
     this.cartCountSub?.unsubscribe();
+    this.unreadCountSub?.unsubscribe(); // ✅ Unsubscribe tránh memory leak
   }
 
   initSearch(): void {
     this.searchSub = this.searchSubject.pipe(
-      debounceTime(150),
+      debounceTime(250), // giữ 250ms từ THnew (phản hồi người dùng tốt hơn 150ms)
       distinctUntilChanged(),
       switchMap(keyword => {
         if (!keyword.trim()) {
@@ -240,6 +254,18 @@ export class Header implements OnInit, OnDestroy {
   openTrackOrder()       { this.showTrackOrderModal = true;  this.cdr.detectChanges(); }
   closeTrackOrderModal() { this.showTrackOrderModal = false; this.cdr.detectChanges(); }
 
+  /** Tra cứu đơn trên menu = mở modal xanh (app-track-order-modal), không tách luồng mới. */
+  openTrackOrderFromNav(event: Event, closeMobileMenu: boolean): void {
+    event.preventDefault();
+    if (closeMobileMenu) this.closeMenu();
+    this.openTrackOrder();
+  }
+
+  /** Gạch chân menu khi đang xem trang chi tiết tra cứu (sau khi modal redirect). */
+  get isTrackOrderPage(): boolean {
+    return this.router.url.split('?')[0] === '/tra-cuu-don';
+  }
+
   logout(): void {
     this.showDropdown = false;
     this.showLogoutConfirm = true;
@@ -249,11 +275,12 @@ export class Header implements OnInit, OnDestroy {
   confirmLogout(): void {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    localStorage.removeItem('userId');
+    localStorage.removeItem('userId'); // từ main
     this.isLoggedIn        = false;
     this.userName          = '';
     this.showDropdown      = false;
-    this.showLogoutConfirm = false;
+    this.showLogoutConfirm = false; // từ main
+    this.unreadCount       = 0; //
     this.cdr.detectChanges();
     this.router.navigate(['/']);
   }

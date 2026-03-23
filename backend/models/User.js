@@ -2,19 +2,14 @@ const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema(
   {
-    customerID:   { type: String, unique: true },
+    customerID:   { type: String, unique: true, sparse: true },
     username:     { type: String, required: true, unique: true, trim: true },
     phone:        { type: String, required: true, unique: true, trim: true },
     email:        { type: String, unique: true, sparse: true, lowercase: true, trim: true },
     passwordHash: { type: String, required: true },
-    role:         { type: String, enum: ['user', 'admin'], default: 'user' },
+    role:         { type: String, enum: ['user', 'admin', 'guest'], default: 'user' },
 
-    // Trạng thái hoạt động của tài khoản (dùng cho admin-customer)
-    // Mặc định user mới tạo sẽ đang hoạt động
-    isActive:     { type: Boolean, default: true },
-
-    // Lý do vô hiệu hóa (admin nhập khi khóa). Khách xem khi đăng nhập / gọi API.
-    // Xóa khi kích hoạt lại tài khoản.
+    isActive: { type: Boolean, default: true },
     deactivationReason: {
       type: String,
       default: '',
@@ -22,15 +17,22 @@ const userSchema = new mongoose.Schema(
       maxlength: 2000,
     },
 
-    // Profile
-    dob:     { type: String, default: '' },
-    gender:  { type: String, enum: ['male', 'female', 'other'], default: 'male' },
-    address: { type: String, default: '' },
+    dob:    { type: String, default: '' },
+    gender: { type: String, enum: ['male', 'female', 'other'], default: 'male' },
+    address:{ type: String, default: '' },
 
-    // Wishlist: mảng product ID
+    // Hạng thành viên: tự động cập nhật sau mỗi đơn delivered
+    memberRank: {
+      type: String,
+      enum: ['member', 'vip'],
+      default: 'member'
+    },
+
+    // Tổng tiền đã chi (chỉ tính đơn delivered)
+    totalSpent: { type: Number, default: 0 },
+
     wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
 
-    // Addresses
     addresses: [{
       name:      { type: String, required: true, trim: true },
       phone:     { type: String, required: true, trim: true },

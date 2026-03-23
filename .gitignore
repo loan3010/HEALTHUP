@@ -83,6 +83,7 @@ Thumbs.db
 # =========================
 my-user/.angular/
 backend/node_modules/
+backend/node_modules/.package-lock.json
 my-user/node_modules/
 
 # Images (optional - nếu bạn muốn giảm repo)

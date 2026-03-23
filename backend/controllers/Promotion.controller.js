@@ -1,9 +1,9 @@
 const Promotion = require('../models/Promotion');
+const User      = require('../models/User');
 
 // --- 1. LẤY DANH SÁCH KHUYẾN MÃI ---
 exports.getAllPromotions = async (req, res) => {
   try {
-    // Tìm tất cả và sắp xếp cái mới nhất lên đầu
     const list = await Promotion.find().sort({ createdAt: -1 });
     res.status(200).json(list);
   } catch (error) {
@@ -22,22 +22,17 @@ exports.createPromotion = async (req, res) => {
   }
 };
 
-// --- 3. GOM NHÓM HÀNG LOẠT (Mới thêm) ---
+// --- 3. GOM NHÓM HÀNG LOẠT ---
 exports.bulkGroupPromotions = async (req, res) => {
   try {
     const { ids, groupName } = req.body;
-
-    // Kiểm tra tính hợp lệ của mảng ID gửi lên
     if (!ids || !Array.isArray(ids)) {
       return res.status(400).json({ message: 'Danh sách ID không hợp lệ bà ơi!' });
     }
-
-    // Cập nhật trường groupName cho tất cả các khuyến mãi có ID nằm trong mảng
     await Promotion.updateMany(
       { _id: { $in: ids } },
       { $set: { groupName: groupName } }
     );
-
     res.status(200).json({ message: 'Đã gom nhóm thành công rực rỡ!' });
   } catch (error) {
     console.error('Lỗi gom nhóm hàng loạt:', error);
@@ -45,13 +40,13 @@ exports.bulkGroupPromotions = async (req, res) => {
   }
 };
 
-// --- 4. CẬP NHẬT KHUYẾN MÃI (Khi bà nhấn Lưu thay đổi lẻ) ---
+// --- 4. CẬP NHẬT KHUYẾN MÃI ---
 exports.updatePromotion = async (req, res) => {
   try {
     const updated = await Promotion.findByIdAndUpdate(
-      req.params.id, 
-      req.body, 
-      { new: true } // Trả về dữ liệu sau khi đã cập nhật
+      req.params.id,
+      req.body,
+      { new: true }
     );
     res.status(200).json(updated);
   } catch (error) {
