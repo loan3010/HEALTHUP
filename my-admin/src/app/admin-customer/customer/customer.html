@@ -1,4 +1,4 @@
-<div class="customer-list-container">
+<div class="customer-list-container" *ngIf="!isModalOpen">
 
   <!-- BREADCRUMB -->
   <nav class="promo-breadcrumb-box">
@@ -33,6 +33,39 @@
       </button>
 
       <!-- Sắp xếp: dropdown gọi API với sortBy / sortDir -->
+      <div class="hu-dropdown-wrap">
+        <button
+          class="btn-tool btn-group-tool"
+          type="button"
+          (click)="showFilterPanel = !showFilterPanel; sortMenuOpen = false">
+          <i class="bi bi-funnel"></i> Lọc
+          <i class="bi bi-caret-down-fill" style="font-size:0.6rem"></i>
+          <span class="filter-pill" *ngIf="hasActiveFilter">{{ filterLabelShort }}</span>
+        </button>
+        <div class="hu-dropdown-panel" *ngIf="showFilterPanel">
+          <div class="filter-row">
+            <label>Hạng thành viên</label>
+            <select [(ngModel)]="tierFilter">
+              <option value="">Tất cả hạng</option>
+              <option value="member">Thành viên</option>
+              <option value="vip">VIP</option>
+            </select>
+          </div>
+          <div class="filter-row">
+            <label>Trạng thái tài khoản</label>
+            <select [(ngModel)]="activeFilter">
+              <option value="all">Mọi trạng thái</option>
+              <option value="active">Đang hoạt động</option>
+              <option value="inactive">Đang khóa</option>
+            </select>
+          </div>
+          <div class="filter-actions">
+            <button class="btn-add-main btn-sm" type="button" (click)="onFilterChange()">Áp dụng</button>
+            <button class="btn-tool" type="button" (click)="resetFilters()">Đặt lại</button>
+          </div>
+        </div>
+      </div>
+
       <div class="sort-wrap">
         <button
           type="button"
@@ -204,16 +237,18 @@
 
 </div>
 
-<!-- ── MODAL DETAIL ── -->
-<div class="modal-overlay" *ngIf="isModalOpen" (click)="closeModal()">
-  <div class="cust-detail-card" (click)="$event.stopPropagation()">
+<!-- ── DETAIL FULL PAGE ── -->
+<div class="customer-detail-page" *ngIf="isModalOpen">
+  <div class="cust-detail-card">
 
         <div class="cust-detail-header">
       <div>
         <div class="cust-detail-name">{{ selectedCustomer?.username }}</div>
         <div class="cust-detail-id">{{ selectedCustomer?.customerID || '—' }}</div>
       </div>
-      <button class="btn-close-detail" (click)="closeModal()"><i class="bi bi-x-lg"></i></button>
+      <button class="btn-tool" (click)="closeModal()">
+        <i class="bi bi-arrow-left"></i> Quay lại danh sách
+      </button>
     </div>
 
     <div class="cust-detail-body">
@@ -284,7 +319,7 @@
       </div>
 
       <div class="cust-detail-section-label">Thống kê mua hàng</div>
-      <div class="cust-detail-metrics">
+      <div class="cust-detail-metrics two-col">
         <div class="cust-metric-box">
           <div class="cust-metric-value">{{ selectedCustomer?.totalOrders }}</div>
           <div class="cust-metric-label">Tổng đơn hàng</div>
@@ -300,10 +335,81 @@
           </div>
           <div class="cust-metric-label">Tổng chi tiêu</div>
         </div>
-        <div class="cust-metric-box">
-          <div class="cust-metric-value cust-metric-avg">{{ getAvgOrder() }}</div>
-          <div class="cust-metric-label">Trung bình/đơn</div>
+      </div>
+
+      <div class="cust-detail-section-label">Sản phẩm hay mua</div>
+      <div class="fav-tags-wrap" *ngIf="topProducts.length > 0; else noFavProducts">
+        <span class="fav-tag" *ngFor="let p of topProducts" [title]="p.name">
+          {{ p.name }} · {{ p.count }} lần
+        </span>
+      </div>
+      <ng-template #noFavProducts>
+        <div class="history-empty">Chưa có dữ liệu sản phẩm hay mua</div>
+      </ng-template>
+
+      <div class="cust-detail-section-label">Sổ địa chỉ</div>
+      <div class="history-loading" *ngIf="detailAddressesLoading">
+        <i class="bi bi-arrow-repeat spin"></i> Đang tải địa chỉ...
+      </div>
+      <div class="addr-list" *ngIf="!detailAddressesLoading && detailAddresses.length > 0">
+        <div class="addr-item" *ngFor="let a of detailAddresses">
+          <div class="addr-top">
+            <strong>{{ a.name }}</strong>
+            <span>{{ a.phone }}</span>
+          </div>
+          <div class="addr-line">{{ a.address }}</div>
+          <div class="addr-meta">
+            <span class="addr-badge default" *ngIf="a.isDefault">Mặc định</span>
+            <span class="addr-badge order" *ngIf="a.fromOrder">Từ đơn {{ a.orderCode || '' }}</span>
+          </div>
         </div>
+      </div>
+      <div class="history-empty" *ngIf="!detailAddressesLoading && detailAddresses.length === 0">
+        Khách hàng chưa có sổ địa chỉ
+      </div>
+
+      <div class="cust-detail-section-label">Lịch sử đơn hàng</div>
+      <div class="history-tabs">
+        <button
+          *ngFor="let t of historyTabs"
+          type="button"
+          [class.active]="detailHistoryTab === t.id"
+          (click)="onHistoryTabClick(t.id)">
+          {{ t.label }} <span>{{ detailHistoryCounts[t.id] || 0 }}</span>
+        </button>
+      </div>
+
+      <div class="history-loading" *ngIf="detailOrdersLoading">
+        <i class="bi bi-arrow-repeat spin"></i> Đang tải lịch sử đơn...
+      </div>
+      <div class="history-empty" *ngIf="!detailOrdersLoading && detailHistoryError">{{ detailHistoryError }}</div>
+      <div class="history-empty" *ngIf="!detailOrdersLoading && !detailHistoryError && detailOrders.length === 0">
+        Không có đơn trong bộ lọc này
+      </div>
+
+      <div class="order-history-list" *ngIf="!detailOrdersLoading && !detailHistoryError && detailOrders.length > 0">
+        <button type="button" class="order-history-item" *ngFor="let o of detailOrders" (click)="openOrderDetail(o._id, $event)">
+          <div class="ohi-top">
+            <div class="ohi-code">#{{ o.orderCode || o._id }}</div>
+            <div class="ohi-date">{{ o.createdAt | date:'dd/MM/yyyy HH:mm' }}</div>
+          </div>
+          <div class="ohi-products">{{ historyItemPreview(o.items) }}</div>
+          <div class="ohi-bottom">
+            <span class="ohi-status" [ngClass]="historyStatusClass(o)">{{ o.statusLabel }}</span>
+            <strong class="ohi-total">{{ o.total | number }}đ</strong>
+          </div>
+        </button>
+      </div>
+
+      <div class="history-footer" *ngIf="!detailOrdersLoading && detailHistoryTotalPages > 1">
+        <button class="btn-tool" type="button" (click)="prevHistoryPage()" [disabled]="detailHistoryPage === 1">‹</button>
+        <span>Trang {{ detailHistoryPage }} / {{ detailHistoryTotalPages }}</span>
+        <button class="btn-tool" type="button" (click)="nextHistoryPage()" [disabled]="detailHistoryPage === detailHistoryTotalPages">›</button>
+      </div>
+      <div class="history-all-btn-wrap">
+        <button type="button" class="btn-tool" (click)="toggleShowAllHistory()">
+          {{ detailShowAllHistory ? 'Thu gọn' : 'Xem tất cả' }}
+        </button>
       </div>
     </div>
 
@@ -327,6 +433,16 @@
       Khách hàng <strong>không đăng nhập được</strong> và sẽ thấy <strong>lý do bạn nhập bên dưới</strong> trên trang đăng nhập.
     </div>
     <label class="confirm-field-label" for="deactivate-reason-input">Lý do vô hiệu hóa <span class="req-star">*</span></label>
+    <div class="quick-reasons-wrap">
+      <button
+        type="button"
+        class="quick-reason-chip"
+        *ngFor="let r of deactivateQuickReasons"
+        (click)="applyQuickDeactivateReason(r)"
+        [disabled]="deactivateSubmitting">
+        {{ r }}
+      </button>
+    </div>
     <textarea
       id="deactivate-reason-input"
       class="confirm-textarea"
@@ -344,6 +460,24 @@
         (click)="confirmDeactivate()"
         [disabled]="deactivateSubmitting || !deactivateReasonDraft.trim()">
         <i class="bi bi-lock-fill"></i> Vô hiệu hóa
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL XÁC NHẬN MỞ LẠI ── -->
+<div class="modal-overlay" *ngIf="isActivateModalOpen" (click)="!deactivateSubmitting && cancelActivate()">
+  <div class="confirm-card" (click)="$event.stopPropagation()">
+    <div class="confirm-icon confirm-icon-unlock"><i class="bi bi-unlock-fill"></i></div>
+    <div class="confirm-title">Xác nhận mở lại tài khoản</div>
+    <div class="confirm-msg">
+      Bạn có chắc muốn kích hoạt lại tài khoản <strong>{{ activateTarget?.username }}</strong>?<br>
+      Sau khi mở lại, khách hàng có thể đăng nhập bình thường.
+    </div>
+    <div class="confirm-actions">
+      <button class="btn-tool" type="button" (click)="cancelActivate()" [disabled]="deactivateSubmitting">Huỷ</button>
+      <button class="btn-confirm-activate" type="button" (click)="confirmActivate()" [disabled]="deactivateSubmitting">
+        <i class="bi bi-unlock-fill"></i> Mở lại tài khoản
       </button>
     </div>
   </div>

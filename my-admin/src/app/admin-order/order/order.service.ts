@@ -64,6 +64,9 @@ export interface AdminOrder {
   redeliveryAttempts?: number;
   /** Lý do hủy — hiển thị cho khách (chi tiết đơn). */
   cancelReason?: string;
+  /** Phân biệt nguồn hủy để admin nắm rõ ai thao tác. */
+  cancelledByType?: 'customer' | 'admin' | 'system' | 'unknown';
+  cancelledById?: string;
   returnStatus: AdminReturnStatus;
   returnReason?: string;
   returnRejectionReason?: string;

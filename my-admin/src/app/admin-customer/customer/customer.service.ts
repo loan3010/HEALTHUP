@@ -44,6 +44,34 @@ export interface CustomerSavedAddress {
   orderCode?: string;
 }
 
+export interface CustomerHistoryRow {
+  _id: string;
+  orderCode: string;
+  createdAt: string;
+  status: string;
+  statusLabel: string;
+  returnStatus: string;
+  total: number;
+  items: Array<{ name: string; quantity: number }>;
+}
+
+export interface CustomerOrderHistoryResponse {
+  tab: string;
+  counts: {
+    all: number;
+    pending: number;
+    in_transit: number;
+    delivered: number;
+    cancelled: number;
+    return: number;
+  };
+  data: CustomerHistoryRow[];
+  total: number;
+  page: number;
+  totalPages: number;
+  topProducts: Array<{ name: string; count: number }>;
+}
+
 @Injectable({ providedIn: 'root' })
 export class CustomerService {
   // Dùng URL tuyệt đối để luôn gọi đúng backend thật trên cổng 3000.
@@ -83,6 +111,18 @@ export class CustomerService {
   /** Sổ địa chỉ của khách (admin — không cần JWT user). */
   getAddresses(userId: string): Observable<{ addresses: CustomerSavedAddress[] }> {
     return this.http.get<{ addresses: CustomerSavedAddress[] }>(`${this.BASE}/${userId}/addresses`);
+  }
+
+  /** Lịch sử đơn theo khách + tab lọc + top sản phẩm hay mua. */
+  getOrderHistory(
+    userId: string,
+    params: { tab?: string; page?: number; limit?: number } = {}
+  ): Observable<CustomerOrderHistoryResponse> {
+    let p = new HttpParams()
+      .set('tab', String(params.tab || 'all'))
+      .set('page', String(params.page || 1))
+      .set('limit', String(params.limit || 5));
+    return this.http.get<CustomerOrderHistoryResponse>(`${this.BASE}/${userId}/order-history`, { params: p });
   }
 
   update(id: string, data: Partial<CustomerItem>): Observable<{ message: string; user: CustomerItem }> {

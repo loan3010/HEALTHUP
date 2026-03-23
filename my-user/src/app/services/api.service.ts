@@ -76,6 +76,14 @@ export class ApiService {
   // ════════════════════════════════════════════════════════════════════════════
 
   private getUserId(): string {
+    // Lấy userId từ JWT trước.
+    // Mục tiêu: tránh lệch giữa localStorage('userId') và payload token,
+    // thứ gây ra 403 ở các route kiểu: GET /api/users/:id/...
+    const token = this.getToken();
+    const fromToken = this.decodeUserIdFromToken(token);
+    if (fromToken) return fromToken;
+
+    // Fallback theo localStorage để tương thích các luồng cũ.
     const direct = localStorage.getItem('userId');
     if (direct) return direct;
     try {
@@ -88,6 +96,30 @@ export class ApiService {
     return localStorage.getItem('token') || '';
   }
 
+<<<<<<< HEAD
+=======
+  private decodeUserIdFromToken(token: string): string {
+    if (!token) return '';
+    try {
+      const parts = String(token).split('.');
+      if (parts.length < 2) return '';
+      const payloadB64 = parts[1];
+      const base64 = payloadB64.replace(/-/g, '+').replace(/_/g, '/');
+      const padded = base64.padEnd(base64.length + (4 - (base64.length % 4)) % 4, '=');
+      const decodedStr = globalThis.atob(padded);
+      const decoded = JSON.parse(decodedStr) as any;
+      const uid = decoded?.userId ?? decoded?.id ?? decoded?._id;
+      return uid != null ? String(uid) : '';
+    } catch {
+      return '';
+    }
+  }
+
+  /**
+   * Phiên giỏ khách (chưa đăng nhập): UUID lưu localStorage, gửi qua x-guest-cart-id.
+   * Không dùng chung với checkout cart_v1 — đây là giỏ trên MongoDB.
+   */
+>>>>>>> 7b5ff49882e425ffb3fc20b51f8a3316834b38df
   private getOrCreateGuestCartSessionId(): string {
     const genUuidV4 = (): string => {
       if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {

@@ -199,6 +199,17 @@
   color: #450a0a;
   font-weight: 500;
 }
+.od-cancel-actor {
+  display: inline-block;
+  margin-bottom: 6px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #fee2e2;
+  color: #9f1239;
+  border: 1px solid #fecaca;
+  font-size: 11px;
+  font-weight: 700;
+}
 
 /* ── Info Grid ── */
 .od-info-grid {

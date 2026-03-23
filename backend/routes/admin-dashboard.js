@@ -108,6 +108,10 @@ function buildDateKeys(fromStr, toStr) {
   return Array.from({ length: days }, (_, i) => addDays(fromStr, i));
 }
 
+function buildHourKeys() {
+  return Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
+}
+
 function getRange(req) {
   const preset = String(req.query.preset || 'today');
   const today = toVNDateString(new Date());
@@ -163,18 +167,20 @@ async function buildPromotionLifecyclePie() {
   ];
 }
 
-async function buildRevenueSeries(from, to) {
+async function buildRevenueSeries(from, to, byHour = false) {
+  const groupFormat = byHour ? '%H' : '%Y-%m-%d';
   const rows = await Order.aggregate([
     { $match: orderMatch(from, to) },
     {
       $group: {
-        _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt', timezone: TZ } },
+        _id: { $dateToString: { format: groupFormat, date: '$createdAt', timezone: TZ } },
         value: { $sum: '$total' },
       },
     },
   ]);
   const map = new Map(rows.map((r) => [r._id, Number(r.value || 0)]));
-  return buildDateKeys(from, to).map((k) => map.get(k) || 0);
+  const keys = byHour ? buildHourKeys() : buildDateKeys(from, to);
+  return keys.map((k) => map.get(k) || 0);
 }
 
 function calcPercent(current, previous) {
@@ -222,12 +228,15 @@ async function buildDashboardData({ preset, from, to }) {
       }),
     ]);
 
+    const byHourForToday = preset === 'today';
     const [currentRevenue, previousRevenue] = await Promise.all([
-      buildRevenueSeries(from, to),
-      buildRevenueSeries(prevFrom, prevTo),
+      buildRevenueSeries(from, to, byHourForToday),
+      buildRevenueSeries(prevFrom, prevTo, byHourForToday),
     ]);
 
-    let revenueLabels = buildDateKeys(from, to).map((d) => d.slice(8, 10));
+    let revenueLabels = byHourForToday
+      ? buildHourKeys().map((h) => `${h}:00`)
+      : buildDateKeys(from, to).map((d) => d.slice(8, 10));
     let currentRevenueData = currentRevenue;
     let previousRevenueData = previousRevenue;
 
