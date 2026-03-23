@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 
+
 @Component({
   selector: 'app-profile-overview',
   standalone: true,
@@ -12,46 +13,52 @@ import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http
 })
 export class ProfileOverview implements OnInit {
 
+
   profileForm!: FormGroup;
   user: any = {};
   isLoading = false;
   message = '';
   error = false;
 
+
   memberRank    = 'member';
   totalSpent    = 0;
   recentSpent   = 0; // chi tiêu 3 tháng gần nhất — dùng cho progress bar
   isLoadingRank = true;
 
+
   // FIX: ngưỡng VIP = 2.000.000₫ (3 tháng gần nhất)
   readonly VIP_THRESHOLD = 2_000_000;
 
+
   get memberRankLabel(): string {
-<<<<<<< HEAD
     return this.memberRank === 'vip' ? 'VIP' : 'Thành viên';
-=======
-    return this.memberRank === 'vip' ? ' VIP' : 'Thành viên';
->>>>>>> 3f147eeab9493f389de9259be4ebb3bb041013ce
   }
+
 
   // FIX: progress tính từ recentSpent / 2.000.000
   get rankProgressPercent(): number {
     return Math.min(100, Math.round((this.recentSpent / this.VIP_THRESHOLD) * 100));
   }
 
+
   get rankProgressRemain(): number {
     return Math.max(0, this.VIP_THRESHOLD - this.recentSpent);
   }
 
+
   private readonly API = 'http://localhost:3000/api';
 
+
   constructor(private fb: FormBuilder, private http: HttpClient) {}
+
 
   ngOnInit(): void {
     const userStr = localStorage.getItem('user');
     if (userStr) {
       try { this.user = JSON.parse(userStr); } catch { this.user = {}; }
     }
+
 
     this.profileForm = this.fb.group({
       username: [this.user.username || '', [Validators.required, Validators.minLength(3)]],
@@ -62,13 +69,16 @@ export class ProfileOverview implements OnInit {
       address:  [this.user.address  || '']
     });
 
+
     this.fetchRank();
   }
+
 
   private fetchRank(): void {
     const token  = localStorage.getItem('token');
     const userId = this.user.id || this.user._id;
     if (!token || !userId) { this.isLoadingRank = false; return; }
+
 
     this.http.get<any>(`${this.API}/users/${userId}`, {
       headers: new HttpHeaders({ Authorization: `Bearer ${token}` })
@@ -78,6 +88,7 @@ export class ProfileOverview implements OnInit {
         this.totalSpent  = u.totalSpent  || 0;
         this.recentSpent = u.recentSpent || 0; // FIX: lấy từ API
         this.isLoadingRank = false;
+
 
         const stored = JSON.parse(localStorage.getItem('user') || '{}');
         localStorage.setItem('user', JSON.stringify({
@@ -91,6 +102,7 @@ export class ProfileOverview implements OnInit {
     });
   }
 
+
   getInitials(): string {
     const name = this.user.username || '';
     if (!name) return 'U';
@@ -99,9 +111,11 @@ export class ProfileOverview implements OnInit {
     return name.substring(0, 2).toUpperCase();
   }
 
+
   vnd(n: number): string {
     return n.toLocaleString('vi-VN') + '₫';
   }
+
 
   onSubmit(): void {
     if (this.profileForm.invalid) {
@@ -110,11 +124,14 @@ export class ProfileOverview implements OnInit {
       return;
     }
 
+
     this.isLoading = true;
     this.message = '';
 
+
     const token  = localStorage.getItem('token');
     const userId = this.user.id || this.user._id;
+
 
     this.http.put(`${this.API}/users/${userId}`, this.profileForm.value, {
       headers: { Authorization: `Bearer ${token}` }

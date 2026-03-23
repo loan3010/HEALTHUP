@@ -387,6 +387,24 @@ export class Customer implements OnInit {
     this.deactivateSubmitting = false;
   }
 
+  applyQuickDeactivateReason(reason: string): void {
+    this.deactivateReasonDraft = reason;
+  }
+
+  cancelActivate(): void {
+    this.isActivateModalOpen = false;
+    this.activateTarget = null;
+  }
+
+  confirmActivate(): void {
+    const target = this.activateTarget;
+    if (!target) return;
+    this.deactivateSubmitting = true;
+    this.runToggleActive(target, null, () => {
+      this.cancelActivate();
+    });
+  }
+
   confirmDeactivate(): void {
     const reason = this.deactivateReasonDraft.trim();
     if (reason.length === 0) {
@@ -407,24 +425,6 @@ export class Customer implements OnInit {
         this.cancelDeactivate();
       }
     );
-  }
-
-  applyQuickDeactivateReason(reason: string): void {
-    this.deactivateReasonDraft = reason;
-  }
-
-  cancelActivate(): void {
-    this.isActivateModalOpen = false;
-    this.activateTarget = null;
-  }
-
-  confirmActivate(): void {
-    const target = this.activateTarget;
-    if (!target) return;
-    this.deactivateSubmitting = true;
-    this.runToggleActive(target, null, () => {
-      this.cancelActivate();
-    });
   }
 
   /**

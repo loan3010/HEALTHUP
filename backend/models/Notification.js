@@ -38,7 +38,8 @@ const NotificationSchema = new mongoose.Schema({
     default: null 
   },
 
-  /** * ✅ Tham chiếu đến sản phẩm (Dùng cho thông báo tư vấn/bình luận 
+  /** 
+   * ✅ Tham chiếu đến sản phẩm (Dùng cho thông báo tư vấn/bình luận 
    * — Hỗ trợ mở trang chi tiết sản phẩm ngay lập tức) 
    */
   productId: { 

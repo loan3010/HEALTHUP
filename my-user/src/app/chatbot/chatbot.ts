@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core'; 
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { CommonModule, NgClass, NgIf, NgFor } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -91,7 +91,7 @@ export class ChatbotComponent implements OnInit {
     private http: HttpClient, 
     private sanitizer: DomSanitizer,
     private router: Router,
-    private cdr: ChangeDetectorRef 
+    private cdr: ChangeDetectorRef // Inject thuốc đặc trị lỗi click 2 lần
   ) {
     this.sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
   }
@@ -162,11 +162,11 @@ export class ChatbotComponent implements OnInit {
       products 
     });
 
-    this.cdr.detectChanges(); 
+    this.cdr.detectChanges(); // Cập nhật UI ngay khi thêm tin nhắn
     setTimeout(() => {
       this.scrollToBottom();
       this.cdr.detectChanges();
-    }, 50);
+    }, 100);
   }
 
   addUserMessage(text: string): void { this.addMessage('user', text); }
@@ -224,7 +224,7 @@ export class ChatbotComponent implements OnInit {
           // Sau khi chọn, tự động đóng menu chủ đề lại cho gọn
           this.isQuickRepliesOpen = false;
           this.cdr.detectChanges();
-        }, 1000); 
+        }, 1000);
       },
       error: () => {
         this.isTyping = false;
@@ -246,7 +246,7 @@ export class ChatbotComponent implements OnInit {
       this.pushToHistory('assistant', faq.answer);
       this.saveConversation(faq.question, faq.answer);
       this.cdr.detectChanges();
-    }, 1000); 
+    }, 1000);
   }
 
   sendMessage(): void {
@@ -263,6 +263,7 @@ export class ChatbotComponent implements OnInit {
         setTimeout(() => {
           this.isTyping = false;
           if (response.success || (response.score && response.score > 0)) {
+            console.log('📦 DỮ LIỆU SẢN PHẨM TỪ BACKEND:', response.products); 
             this.addBotMessage(response.answer, undefined, response.products);
             this.pushToHistory('user', query);
             this.pushToHistory('assistant', response.answer);
@@ -271,7 +272,7 @@ export class ChatbotComponent implements OnInit {
             this.askClaude(query);
           }
           this.cdr.detectChanges();
-        }, 1000); 
+        }, 1000);
       },
       error: () => {
         setTimeout(() => {

@@ -99,10 +99,10 @@
                     <div>
                       <div class="name">{{ r.name || '—' }}</div>
                     </div>
-                  </td>
-                  <td>{{ r.quantity != null ? r.quantity : '—' }}</td>
-                  <td><strong class="return-qty-em">{{ r.returnQty }}</strong></td>
-                  <td>{{ formatMoney(r.price || 0) }}</td>
+                   </td>
+                   <td>{{ r.quantity != null ? r.quantity : '—' }}</td>
+                   <td><strong class="return-qty-em">{{ r.returnQty }}</strong></td>
+                   <td>{{ formatMoney(r.price || 0) }}</td>
                   <td class="money">{{ formatMoney((r.price || 0) * (r.returnQty || 0)) }}</td>
                 </tr>
               </tbody>
@@ -138,9 +138,9 @@
                     <div class="name">{{ item.name }}</div>
                     <div class="sku">{{ item.variantLabel || 'SKU' }}</div>
                   </div>
-                </td>
-                <td>{{ item.quantity }}</td>
-                <td>{{ formatMoney(item.price) }}</td>
+                 </td>
+                 <td>{{ item.quantity }}</td>
+                 <td>{{ formatMoney(item.price) }}</td>
                 <td class="money">{{ formatMoney(item.price * item.quantity) }}</td>
               </tr>
             </tbody>
@@ -234,6 +234,9 @@
           </button>
           <button class="btn-danger outline" *ngIf="canRejectReturn()" [disabled]="actionLoading" (click)="requestReturnStatus('rejected')">
             Từ chối yêu cầu hoàn
+          </button>
+          <button class="btn-sub" *ngIf="canCompleteReturn()" [disabled]="actionLoading" (click)="requestReturnStatus('completed')">
+            Xác nhận đã trả/hoàn xong
           </button>
         </div>
       </section>

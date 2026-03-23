@@ -190,7 +190,6 @@ export class OrderDetail implements OnChanges {
     const p = this.pendingConfirm;
     if (!p) return '';
     if (p.kind === 'order') {
-      // Hai nghĩa «Hủy đơn»: (1) chưa bao giờ bắt đầu giao — (2) đã giao lỗi, chọn hủy thay vì giao lại.
       if (p.next === 'cancelled') {
         if (this.order?.status === 'delivery_failed') {
           return (
@@ -221,8 +220,7 @@ export class OrderDetail implements OnChanges {
       const lines: Partial<Record<AdminReturnStatus, string>> = {
         approved: 'Chấp nhận yêu cầu hoàn / trả hàng của khách?',
         rejected: 'Từ chối yêu cầu hoàn / trả? Nhập lý do ở ô bên dưới.',
-        // Luồng mới bỏ bước `completed`. Trường hợp dữ liệu cũ còn `completed` thì vẫn hiển thị nhãn tương đương `approved`.
-        completed: 'Đã chấp nhận hoàn (cũ).',
+        completed: 'Xác nhận đã hoàn tiền / xử lý trả hàng xong?',
       };
       return lines[p.next] || 'Cập nhật trạng thái trả hàng / hoàn tiền?';
     }
@@ -370,10 +368,8 @@ export class OrderDetail implements OnChanges {
   }
 
   /**
-   * Admin chỉ chuyển: requested→approved|rejected.
-   * Với luồng mới thì `approved` là trạng thái kết thúc luôn.
+   * Mở modal xác nhận trước khi đổi trạng thái hoàn / trả.
    */
-  /** Mở modal xác nhận trước khi đổi trạng thái hoàn / trả. */
   requestReturnStatus(next: AdminReturnStatus): void {
     if (!this.order || this.actionLoading) return;
     this.confirmModalInlineError = '';
@@ -510,6 +506,10 @@ export class OrderDetail implements OnChanges {
   canRejectReturn(): boolean {
     return this.order?.status === 'delivered' && this.order?.returnStatus === 'requested';
   }
+  /** Đã nhận hàng trả & hoàn tiền — chỉ sau khi đã chấp nhận (approved). */
+  canCompleteReturn(): boolean {
+    return this.order?.status === 'delivered' && this.order?.returnStatus === 'approved';
+  }
 
   /** Nhãn hiển thị cột trả/hoàn + khối chi tiết. */
   returnFlowLabel(rs: string | undefined): string {
@@ -518,8 +518,7 @@ export class OrderDetail implements OnChanges {
       requested: 'Yêu cầu hoàn/trả',
       approved: 'Đã chấp nhận hoàn',
       rejected: 'Từ chối hoàn',
-      // Dữ liệu cũ: `completed` coi như `approved` (kết thúc).
-      completed: 'Đã chấp nhận hoàn',
+      completed: 'Đã hoàn tiền / trả xong',
     };
     return map[rs || 'none'] || (rs || '');
   }

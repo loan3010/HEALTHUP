@@ -1,6 +1,3 @@
-<!-- checkout.html — chỉ thay đổi phần co-rank-card -->
-<!-- Toàn bộ phần còn lại GIỮ NGUYÊN như file gốc bạn đã paste -->
-
 <!-- ══════════ SUCCESS MODAL ══════════ -->
 <div class="co-modal-backdrop" *ngIf="showSuccess()" (click)="goToHome()">
   <div class="co-modal" (click)="$event.stopPropagation()">
@@ -122,7 +119,8 @@
       Đơn hàng hiện tại: <strong>{{ vnd(subTotal()) }}</strong>
       &nbsp;|&nbsp;
       <span class="rank-badge-sm" [class.badge-sm-member]="userRank() === 'member'" [class.badge-sm-vip]="userRank() === 'vip'">
-        <i class="bi" [class.bi-person-circle]="userRank() === 'member'" [class.bi-star-fill]="userRank() === 'vip'"></i>
+        <i class="bi bi-star-fill co-star-orange" *ngIf="userRank() === 'vip'"></i>
+        <i class="bi bi-person-circle" *ngIf="userRank() === 'member'"></i>
         {{ memberRankLabel }}
       </span>
     </div>
@@ -343,36 +341,39 @@
           <span class="co-summary-count">{{ items().length }} sản phẩm</span>
         </div>
 
-        <!-- ══ HẠNG THÀNH VIÊN CARD — CHỈ THAY ĐỔI PHẦN NÀY ══ -->
+        <!-- ══ HẠNG THÀNH VIÊN CARD ══ -->
         <div class="co-rank-card" *ngIf="canUseVouchers">
-          <div class="co-rank-top">
+
+          <!-- Hàng trên: badge hạng + label -->
+          <div class="co-rank-header">
             <span class="co-rank-badge" [class.badge-member]="userRank() === 'member'" [class.badge-vip]="userRank() === 'vip'">
-              <i class="bi" [class.bi-person-fill]="userRank() === 'member'" [class.bi-star-fill]="userRank() === 'vip'"></i>
+              <i class="bi bi-star-fill co-star-orange" *ngIf="userRank() === 'vip'"></i>
+              <i class="bi bi-person-fill" *ngIf="userRank() === 'member'"></i>
               {{ memberRankLabel }}
             </span>
-            <span class="co-rank-top-label">Hạng của bạn</span>
+            <span class="co-rank-header-label">Hạng của bạn</span>
           </div>
-          <div class="co-rank-spent">
-            <span class="co-rank-spent-label">Tổng đơn đã giao</span>
-            <span class="co-rank-spent-value">{{ vnd(totalSpent()) }}</span>
-          </div>
-          <ng-container *ngIf="userRank() === 'member'">
-            <div class="co-rank-bar-wrap">
-              <div class="co-rank-bar">
-                <div class="co-rank-bar-fill" [style.width]="rankProgressPercent() + '%'"></div>
-              </div>
-              <div class="co-rank-bar-labels">
-                <span>Thành viên</span>
-                <span>VIP (2.000.000₫)</span>
-              </div>
+
+          <!-- Progress: luôn hiển thị cho cả member lẫn VIP -->
+          <div class="co-rank-progress-section">
+            <div class="co-rank-progress-header">
+              <span class="co-rank-spent-label">Tổng đơn đã giao</span>
+              <span class="co-rank-spent-value">{{ vnd(totalSpent()) }}</span>
+              <span class="co-rank-target-label" *ngIf="userRank() === 'member'">
+                / {{ vnd(2000000) }} để lên VIP
+              </span>
             </div>
-            <!-- FIX: "Mua X trong 3 tháng gần nhất để lên VIP" — không có chữ "thêm" -->
-            <div class="co-rank-remain" *ngIf="rankProgressRemain() > 0">
-              Mua {{ vnd(rankProgressRemain()) }} trong 3 tháng gần nhất để lên VIP
+            <div class="co-rank-bar">
+              <div class="co-rank-bar-fill" [style.width]="rankProgressPercent() + '%'"></div>
             </div>
-          </ng-container>
-          <div class="co-rank-vip-msg" *ngIf="userRank() === 'vip'">
-            <i class="bi bi-patch-check-fill"></i> Hạng cao nhất — hưởng toàn bộ ưu đãi VIP!
+            <!-- Member: hiển thị dòng cần mua thêm -->
+            <div class="co-rank-remain" *ngIf="userRank() === 'member' && rankProgressRemain() > 0">
+              Mua <strong>{{ vnd(rankProgressRemain()) }}</strong> trong 3 tháng gần nhất để lên hạng VIP
+            </div>
+            <!-- VIP: hiển thị msg hạng cao nhất thay vì dòng điều kiện -->
+            <div class="co-rank-vip-msg" *ngIf="userRank() === 'vip'">
+              <i class="bi bi-patch-check-fill"></i> Hạng cao nhất — hưởng toàn bộ ưu đãi VIP!
+            </div>
           </div>
         </div>
 

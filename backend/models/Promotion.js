@@ -4,20 +4,20 @@ const PromotionSchema = new mongoose.Schema({
   name:        { type: String, required: true },
   code:        { type: String, required: true, unique: true },
   description: { type: String },
-  groupName:   { type: String, default: '' },
 
   // Nhóm khuyến mãi (Ví dụ: Chiến dịch Hè)
   groupName: { type: String, default: '' },
 
-  // TRẠNG THÁI KÍCH HOẠT (Mới thêm: Dùng để ẩn/hiện bên Client)
+  // TRẠNG THÁI KÍCH HOẠT (Dùng để ẩn/hiện bên Client)
   isActive: { type: Boolean, default: true },
 
   // Loại khuyến mãi:
   //   'order'    = mã giảm tiền hàng
-  //   'shipping' = mã giảm phí vận chuyển
+  //   'shipping' = mã giảm phí vận chuyển (lưu trong DB cũ)
+  //   'freeship' = alias của shipping (tương thích ngược)
   type: {
     type: String,
-    enum: ['order', 'freeship'],
+    enum: ['order', 'freeship', 'shipping'],
     default: 'order'
   },
 

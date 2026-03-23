@@ -68,6 +68,7 @@ const OrderSchema = new mongoose.Schema(
      * Hủy trước khi giao: bắt buộc có khi admin hủy; khách tự hủy pending có thể là chuỗi mặc định.
      */
     cancelReason: { type: String, default: '', trim: true, maxlength: 2000 },
+    
     /**
      * Nguồn hủy đơn để phân biệt rõ trên UI/admin:
      * - customer: khách tự hủy

@@ -110,6 +110,8 @@ async function validatePromotion(promo, { subTotal, shippingFee, userId, userRan
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPER: check voucher có phải loại giảm ship không
+// DB lưu type = 'shipping' | 'freeship' — cả 2 đều là giảm ship
+// discountType = 'freeship' cũng là dấu hiệu voucher ship
 // ─────────────────────────────────────────────────────────────────────────────
 function isShippingType(promo) {
   return promo.type === 'shipping'

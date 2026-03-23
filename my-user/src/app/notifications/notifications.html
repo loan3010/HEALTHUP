@@ -47,10 +47,9 @@
 
       <div class="noti-right">
         <div class="noti-dot" *ngIf="!n.isRead"></div>
-                <i class="bi bi-chevron-right noti-arrow" 
+        <i class="bi bi-chevron-right noti-arrow" 
            *ngIf="n.type === 'order' || n.type === 'consulting' || n.productId || n.orderId">
         </i>
-
         <button class="btn-delete-item" (click)="deleteOne($event, n._id)" title="Xóa">
           <i class="bi bi-x-lg"></i>
         </button>

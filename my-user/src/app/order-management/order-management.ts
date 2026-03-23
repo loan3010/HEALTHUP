@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { ApiService } from '../services/api.service';
 
+
 @Component({
   selector: 'app-order-management',
   standalone: true,
@@ -13,19 +14,23 @@ import { ApiService } from '../services/api.service';
 })
 export class OrderManagement implements OnInit {
 
+
   orders: any[]         = [];
   filteredOrders: any[] = [];
   searchQuery           = '';
   activeTab             = 'all';
 
+
   tabs = [
-    { id: 'all', label: 'Tất cả', count: 0 },
-    { id: 'pending', label: 'Chờ xác nhận', count: 0 },
-    { id: 'in_transit', label: 'Đang vận chuyển', count: 0 },
-    { id: 'delivered', label: 'Đã giao', count: 0 },
-    { id: 'cancelled', label: 'Đã hủy', count: 0 },
-    { id: 'return', label: 'Đổi trả', count: 0 },
+    { id: 'all',       label: 'Tất cả',        count: 0 },
+    { id: 'pending',   label: 'Chờ xác nhận',  count: 0 },
+    { id: 'confirmed', label: 'Chờ giao hàng', count: 0 },
+    { id: 'shipping',  label: 'Đang giao',      count: 0 },
+    { id: 'delivery_failed', label: 'Giao thất bại', count: 0 },
+    { id: 'delivered', label: 'Đã giao',        count: 0 },
+    { id: 'cancelled', label: 'Đã hủy',         count: 0 },
   ];
+
 
   constructor(
     private api: ApiService,
@@ -33,7 +38,9 @@ export class OrderManagement implements OnInit {
     private cdr: ChangeDetectorRef
   ) {}
 
+
   ngOnInit(): void { this.loadOrders(); }
+
 
   private getUserId(): string {
     const direct = localStorage.getItem('userId');
@@ -43,6 +50,7 @@ export class OrderManagement implements OnInit {
       return user?._id || user?.id || '';
     } catch { return ''; }
   }
+
 
   loadOrders(): void {
     const userId = this.getUserId();
@@ -60,36 +68,25 @@ export class OrderManagement implements OnInit {
     });
   }
 
+
   updateTabCounts(): void {
     this.tabs.forEach(tab => {
       if (tab.id === 'all') {
         tab.count = this.orders.length;
         return;
       }
-      if (tab.id === 'in_transit') {
-        tab.count = this.orders.filter(o => this.isInTransitStatus(o.status)).length;
-        return;
-      }
-      if (tab.id === 'return') {
-        tab.count = this.orders.filter(o => this.hasReturnRequest(o)).length;
-        return;
-      }
       tab.count = this.orders.filter(o => o.status === tab.id).length;
     });
   }
 
+
   onTabClick(tab: string): void { this.activeTab = tab; this.filterOrders(); }
+
 
   filterOrders(): void {
     let data = [...this.orders];
     if (this.activeTab !== 'all') {
-      if (this.activeTab === 'in_transit') {
-        data = data.filter(o => this.isInTransitStatus(o.status));
-      } else if (this.activeTab === 'return') {
-        data = data.filter(o => this.hasReturnRequest(o));
-      } else {
-        data = data.filter(o => o.status === this.activeTab);
-      }
+      data = data.filter(o => o.status === this.activeTab);
     }
     if (this.searchQuery.trim()) {
       const q = this.searchQuery.toLowerCase();
@@ -103,36 +100,33 @@ export class OrderManagement implements OnInit {
     this.filteredOrders = data; this.cdr.detectChanges();
   }
 
-  // Nhóm trạng thái "Đang vận chuyển" gồm: chờ giao + đang giao + giao thất bại.
+
+  // ✅ Thêm method này để fix lỗi template
   isInTransitStatus(status: string): boolean {
     return ['confirmed', 'shipping', 'delivery_failed'].includes(status);
   }
 
-  // Tab "Đổi trả" gom tất cả đơn đã phát sinh yêu cầu/duyệt/từ chối đổi trả.
-  hasReturnRequest(order: any): boolean {
-    const rs = String(order?.returnStatus || 'none');
-    return ['requested', 'approved', 'rejected', 'completed'].includes(rs);
-  }
 
   getCardStatusLabel(order: any): string {
-    if (this.activeTab === 'in_transit' && this.isInTransitStatus(order?.status)) {
-      return 'Đang vận chuyển';
-    }
     return this.getStatusLabel(order?.status);
   }
+
 
   goToDetail(orderId: string): void {
     this.router.navigate(['/profile/order-detail', orderId]);
   }
+
 
   goToReview(order: any): void {
     if (order?.status !== 'delivered') return;
     this.router.navigate(['/profile/order-review']);
   }
 
+
   formatCurrency(price: number): string {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
   }
+
 
   getStatusLabel(status: string): string {
     const map: Record<string, string> = {
@@ -147,6 +141,7 @@ export class OrderManagement implements OnInit {
     };
     return map[status] || status;
   }
+
 
   reorder(order: any): void {
     if (!order?.items?.length) return;
@@ -170,6 +165,7 @@ export class OrderManagement implements OnInit {
       });
     });
   }
+
 
   cancelOrder(orderId: string): void {
     if (!confirm('Bạn có chắc muốn hủy đơn này?')) return;

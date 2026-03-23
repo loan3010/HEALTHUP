@@ -61,7 +61,7 @@ export class ApiService {
       }
     }, 30000);
 
-    // Khi quay lại tab: đồng bộ chuông
+    // Khi quay lại tab: đồng bộ chuông (socket có thể bỏ lỡ sự kiện).
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible' && this.getUserId() && this.getToken()) {
@@ -96,8 +96,6 @@ export class ApiService {
     return localStorage.getItem('token') || '';
   }
 
-<<<<<<< HEAD
-=======
   private decodeUserIdFromToken(token: string): string {
     if (!token) return '';
     try {
@@ -119,7 +117,6 @@ export class ApiService {
    * Phiên giỏ khách (chưa đăng nhập): UUID lưu localStorage, gửi qua x-guest-cart-id.
    * Không dùng chung với checkout cart_v1 — đây là giỏ trên MongoDB.
    */
->>>>>>> 7b5ff49882e425ffb3fc20b51f8a3316834b38df
   private getOrCreateGuestCartSessionId(): string {
     const genUuidV4 = (): string => {
       if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -406,6 +403,9 @@ export class ApiService {
     return this.http.get<any>(`${API_BASE}/consulting/product/${productId}`, { params });
   }
 
+  /**
+   * Gửi câu hỏi tư vấn. Nếu đã đăng nhập — gửi kèm bearer để backend lưu userId (nhận thông báo khi admin trả lời).
+   */
   submitConsultingQuestion(data: { productId: string; content: string; user: string }): Observable<any> {
     const token = this.getToken();
     const headers = token
@@ -434,6 +434,9 @@ export class ApiService {
   //  Banner APIs
   // ════════════════════════════════════════════════════════════════════════════
 
+  /**
+   * Truy xuất danh sách banner đang hoạt động để hiển thị Slider
+   */
   getBanners(): Observable<any[]> {
     return this.http.get<any[]>(`${API_BASE}/banners/active`);
   }

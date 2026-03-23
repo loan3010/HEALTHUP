@@ -49,7 +49,7 @@
               class="search-result-item" [class.active]="i === activeIndex"
               (click)="selectProduct(product)" (mouseenter)="activeIndex = i">
               <div class="search-result-thumb">
-                <img [src]="product.images?.[0] || '/assets/images/placeholder.png'"
+                <img [src]="(product.images && product.images[0]) || '/assets/images/placeholder.png'"
                   [alt]="product.name" onerror="this.src='/assets/images/placeholder.png'" />
                 <span class="search-badge search-badge-new" *ngIf="product.badge === 'new'">Mới</span>
                 <span class="search-badge search-badge-hot" *ngIf="product.badge === 'hot'">Hot</span>
