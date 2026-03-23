@@ -1,20 +1,15 @@
 <div class="auth-page">
   <div class="auth-bg"></div>
 
-
-  <!-- ===== BOX QUÊN MẬT KHẨU ===== -->
-  <div class="box small">
+  <!-- Bước 1: nhập SĐT -->
+  <div class="box small" *ngIf="!showNewPasswordStep">
     <h2 class="title">QUÊN MẬT KHẨU?</h2>
 
-
     <form [formGroup]="form" (ngSubmit)="openOtpPopup()">
-
-
       <div class="field">
         <div class="label">
           Số điện thoại <span class="req">*</span>
         </div>
-
 
         <div class="control">
           <input
@@ -22,7 +17,6 @@
             formControlName="phone"
             placeholder="Nhập số điện thoại của bạn"
           />
-
 
           <button
             type="button"
@@ -33,70 +27,124 @@
           </button>
         </div>
 
-
         <div class="err" *ngIf="showErr('phone')">
           {{ errText('phone') }}
         </div>
       </div>
 
-
       <button class="submit" type="submit" [disabled]="loading">
         {{ loading ? 'Đang gửi...' : 'Gửi mã OTP' }}
       </button>
-
 
       <div class="bottom">
         <span>Bạn đã có tài khoản?</span>
         <a routerLink="/login">Đăng nhập ngay</a>
       </div>
 
-
       <div class="sys bad" *ngIf="error">{{ error }}</div>
       <div class="sys ok" *ngIf="message">{{ message }}</div>
     </form>
   </div>
 
+  <!-- Bước 2: đặt mật khẩu mới (sau OTP demo) -->
+  <div class="box small" *ngIf="showNewPasswordStep">
+    <h2 class="title">ĐẶT MẬT KHẨU MỚI</h2>
 
-  <!-- ===== POPUP OTP ===== -->
+    <!-- Mockup: giải thích rõ không có SMS thật -->
+    <div class="otp-demo-banner" role="status">
+      {{ otpDemoBanner }}
+    </div>
+
+    <form [formGroup]="resetPwdForm" (ngSubmit)="submitNewPassword()">
+      <div class="field">
+        <div class="label">Mật khẩu mới <span class="req">*</span></div>
+        <input
+          class="inp"
+          type="password"
+          formControlName="newPassword"
+          autocomplete="new-password"
+          placeholder="Tối thiểu 6 ký tự"
+        />
+        <div class="err" *ngIf="showResetErr('newPassword')">
+          Mật khẩu tối thiểu 6 ký tự.
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="label">Nhập lại mật khẩu <span class="req">*</span></div>
+        <input
+          class="inp"
+          type="password"
+          formControlName="confirmPassword"
+          autocomplete="new-password"
+          placeholder="Nhập lại giống trên"
+        />
+        <div class="err" *ngIf="showResetErr('confirmPassword')">
+          Vui lòng xác nhận mật khẩu.
+        </div>
+      </div>
+
+      <button class="submit" type="submit" [disabled]="loading">
+        {{ loading ? 'Đang lưu...' : 'Lưu mật khẩu mới' }}
+      </button>
+
+      <button type="button" class="btn-text-link" (click)="restartFromPhoneStep()">
+        ← Quay lại nhập số điện thoại
+      </button>
+
+      <div class="sys bad" *ngIf="error">{{ error }}</div>
+    </form>
+  </div>
+
+  <!-- POPUP OTP: không bind [value] — tránh lỗi một ô hiện 2–3 số -->
   <div class="otp-overlay" *ngIf="showOtp">
     <div class="otp-modal">
-
       <button class="otp-close" type="button" (click)="closeOtp()">×</button>
-      
+
       <h2 class="otp-title">NHẬP MÃ OTP</h2>
       <p class="otp-sub">
-        Mã OTP đã được gửi đến số điện thoại của bạn
+        Trên thật mã chỉ hiện trong tin nhắn điện thoại. Ở đây hiển thị giả lập — bạn phải nhập
+        <strong>đúng 6 số</strong> bên dưới.
       </p>
 
+      <!-- Giả lập bubble SMS / thông báo có mã (thay kênh gửi OTP thật) -->
+      <div class="otp-sms-mock" *ngIf="demoOtpDisplay" role="status">
+        <div class="otp-sms-meta">
+          <span class="otp-sms-app">Tin nhắn</span>
+          <span class="otp-sms-time">vừa xong</span>
+        </div>
+        <div class="otp-sms-bubble">
+          <span class="otp-sms-sender">HEALTHUP</span>
+          <p class="otp-sms-text">
+            Mã xác thực đặt lại mật khẩu của bạn là
+            <span class="otp-sms-code">{{ demoOtpDisplay }}</span>. Không chia sẻ mã này. Hiệu lực
+            {{ otpSecondsLeft }}s.
+          </p>
+        </div>
+      </div>
 
       <div class="otp-inputs">
         <input
           class="otp-input"
-          *ngFor="let v of otpValues; let i = index; trackBy: trackByIndex"
+          *ngFor="let _ of otpValues; let i = index; trackBy: trackByIndex"
           #otpInput
           maxlength="1"
           type="tel"
           inputmode="numeric"
           autocomplete="one-time-code"
-          [value]="otpValues[i]"
           (input)="onOtpInput($event, i)"
           (keydown)="onOtpKeydown($event, i)"
           (paste)="onOtpPaste($event, i)"
         />
       </div>
 
-
       <div class="otp-error" *ngIf="otpError">
         {{ otpError }}
       </div>
 
-
       <button class="otp-btn" type="button" (click)="confirmOtp()">
         Xác nhận OTP ({{ otpSecondsLeft }}s)
       </button>
-
-
     </div>
   </div>
 </div>
-

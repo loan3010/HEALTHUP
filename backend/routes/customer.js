@@ -1,7 +1,23 @@
 const router = require('express').Router();
-const User   = require('../models/User');
-const Order  = require('../models/Order');
-const { buildCustomerListStatsMaps, statsForUser } = require('../helpers/customerOrderStats');
+const mongoose = require('mongoose');
+const User = require('../models/User');
+const Order = require('../models/Order');
+const { buildCustomerListStatsMaps, statsForUser, normalizePhone } = require('../helpers/customerOrderStats');
+const { emitAccountDisabled } = require('../services/userAccountRealtime');
+
+/** Ghép địa chỉ giao trên Order.customer thành một dòng (giống cách hay hiển thị). */
+function joinOrderCustomerAddress(c) {
+  if (!c) return '';
+  const parts = [c.address, c.ward, c.district, c.province]
+    .map((x) => String(x || '').trim())
+    .filter((p) => p.length > 0 && !/^n\/a$/i.test(p));
+  return parts.length ? parts.join(', ') : String(c.address || '').trim();
+}
+
+/** Khóa so sánh để không trùng giữa sổ địa chỉ và gợi ý từ đơn. */
+function addrDedupeKey(name, phone, addressLine) {
+  return `${String(name || '').trim().toLowerCase()}|${normalizePhone(phone)}|${String(addressLine || '').trim().toLowerCase()}`;
+}
 
 // Helper: xếp hạng thành viên dựa trên tổng chi tiêu
 function getMembershipTier(totalSpent) {
@@ -10,6 +26,26 @@ function getMembershipTier(totalSpent) {
   if (totalSpent < 10_000_000) return 'Bạc';
   if (totalSpent < 20_000_000) return 'Vàng';
   return 'Kim Cương';
+}
+
+/**
+ * Lý do + audit khi tài khoản đang khóa (admin xem lại trong chi tiết KH).
+ * @param {Record<string, unknown>} u — document User (lean hoặc mongoose doc)
+ */
+function deactivationAuditForDoc(u) {
+  const active = typeof u.isActive === 'boolean' ? u.isActive : true;
+  if (active) {
+    return {
+      deactivationReason: '',
+      deactivatedBy: '',
+      deactivatedAt: null,
+    };
+  }
+  return {
+    deactivationReason: u.deactivationReason ? String(u.deactivationReason) : '',
+    deactivatedBy: u.deactivatedBy ? String(u.deactivatedBy) : '',
+    deactivatedAt: u.deactivatedAt ? new Date(u.deactivatedAt).toISOString() : null,
+  };
 }
 
 // Lưu ý:
@@ -63,6 +99,7 @@ router.get('/', async (req, res) => {
       const stats = statsForUser(u, statsMaps);
       const membershipTier = getMembershipTier(stats.totalSpent);
 
+      const audit = deactivationAuditForDoc(u);
       return {
         id:           String(u._id),
         customerID:   u.customerID || '',
@@ -72,8 +109,9 @@ router.get('/', async (req, res) => {
         address:      u.address || '',
         membershipTier,
         isActive:     typeof u.isActive === 'boolean' ? u.isActive : true,
-        // Chỉ có nội dung khi tài khoản đang khóa — để admin xem lại lý do đã gửi cho khách
-        deactivationReason: (!u.isActive && u.deactivationReason) ? String(u.deactivationReason) : '',
+        deactivationReason: audit.deactivationReason,
+        deactivatedBy:    audit.deactivatedBy,
+        deactivatedAt:    audit.deactivatedAt,
         createdAt:    u.createdAt,
         totalOrders:  stats.totalOrders,
         totalSpent:   stats.totalSpent,
@@ -143,6 +181,62 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET /api/admin/customers/:id/addresses — sổ địa chỉ (form tạo đơn hotline / admin).
+// Đăng ký TRƯỚC route /:id để không bị coi "addresses" là ObjectId.
+// Dùng findById (không lọc role) để khớp đúng bản ghi mà GET /users/:id/addresses trả về cho khách
+// (tránh lệch khi dữ liệu cũ / role không đồng nhất).
+router.get('/:id/addresses', async (req, res) => {
+  try {
+    const rawId = String(req.params.id || '').trim();
+    if (!mongoose.Types.ObjectId.isValid(rawId)) {
+      return res.status(400).json({ message: 'ID khách không hợp lệ' });
+    }
+
+    const user = await User.findById(rawId).select('addresses role').lean();
+    if (!user) return res.status(404).json({ message: 'Không tìm thấy khách hàng' });
+    if (user.role === 'admin') {
+      return res.status(400).json({ message: 'Không lấy sổ địa chỉ cho tài khoản admin' });
+    }
+
+    const embedded = Array.isArray(user.addresses) ? user.addresses : [];
+    const keySet = new Set(
+      embedded.map((a) => addrDedupeKey(a.name, a.phone, a.address))
+    );
+
+    // Gộp thêm địa chỉ nhận từ các đơn có userId (trùng sổ thì bỏ qua) — hỗ trợ khi UI khách và admin lệch nguồn.
+    const fromOrders = await Order.find({ userId: rawId })
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .select('customer orderCode')
+      .lean();
+
+    const extras = [];
+    for (const o of fromOrders) {
+      const c = o.customer;
+      if (!c?.fullName || !c?.phone || !c?.address) continue;
+      const line = joinOrderCustomerAddress(c);
+      if (!line) continue;
+      const k = addrDedupeKey(c.fullName, c.phone, line);
+      if (keySet.has(k)) continue;
+      keySet.add(k);
+      extras.push({
+        _id: `ordaddr_${String(o._id)}`,
+        name: String(c.fullName).trim(),
+        phone: String(c.phone).trim(),
+        address: line,
+        isDefault: false,
+        fromOrder: true,
+        orderCode: o.orderCode ? String(o.orderCode) : '',
+      });
+    }
+
+    res.json({ addresses: [...embedded, ...extras] });
+  } catch (err) {
+    console.error('GET /api/admin/customers/:id/addresses error:', err);
+    res.status(500).json({ message: err.message || 'Lỗi server' });
+  }
+});
+
 // GET /api/admin/customers/:id
 router.get('/:id', async (req, res) => {
   try {
@@ -153,6 +247,7 @@ router.get('/:id', async (req, res) => {
     const stats = statsForUser(user, statsMaps);
     const membershipTier = getMembershipTier(stats.totalSpent);
 
+    const audit = deactivationAuditForDoc(user);
     res.json({
       id:           String(user._id),
       customerID:   user.customerID || '',
@@ -162,7 +257,9 @@ router.get('/:id', async (req, res) => {
       address:      user.address || '',
       membershipTier,
       isActive:     typeof user.isActive === 'boolean' ? user.isActive : true,
-      deactivationReason: (!user.isActive && user.deactivationReason) ? String(user.deactivationReason) : '',
+      deactivationReason: audit.deactivationReason,
+      deactivatedBy:    audit.deactivatedBy,
+      deactivatedAt:    audit.deactivatedAt,
       createdAt:    user.createdAt,
       totalOrders:  stats.totalOrders,
       totalSpent:   stats.totalSpent,
@@ -187,9 +284,11 @@ router.put('/:id', async (req, res) => {
       }
     }
 
-    // Bật lại qua PUT: xóa lý do khóa (cùng hành vi với toggle-active)
+    // Bật lại qua PUT: xóa lý do + audit khóa (cùng hành vi với toggle-active)
     if (update.isActive === true) {
       update.deactivationReason = '';
+      update.deactivatedBy = '';
+      update.deactivatedAt = null;
     }
 
     const user = await User.findOneAndUpdate(
@@ -203,6 +302,7 @@ router.put('/:id', async (req, res) => {
     const statsMaps = await buildCustomerListStatsMaps(Order);
     const stats = statsForUser(user, statsMaps);
     const membershipTier = getMembershipTier(stats.totalSpent);
+    const audit = deactivationAuditForDoc(user);
 
     res.json({
       message: 'Cập nhật khách hàng thành công',
@@ -215,7 +315,9 @@ router.put('/:id', async (req, res) => {
         address:      user.address || '',
         membershipTier,
         isActive:     typeof user.isActive === 'boolean' ? user.isActive : true,
-        deactivationReason: (!user.isActive && user.deactivationReason) ? String(user.deactivationReason) : '',
+        deactivationReason: audit.deactivationReason,
+        deactivatedBy:    audit.deactivatedBy,
+        deactivatedAt:    audit.deactivatedAt,
         createdAt:    user.createdAt,
         totalOrders:  stats.totalOrders,
         totalSpent:   stats.totalSpent,
@@ -244,24 +346,41 @@ router.patch('/:id/toggle-active', async (req, res) => {
 
     if (newStatus === false) {
       const reason = String(req.body?.reason ?? '').trim();
-      if (reason.length < 5) {
+      // Bắt buộc có lý do (không được để trống) — khách và admin đều thấy rõ.
+      if (reason.length === 0) {
         return res.status(400).json({
-          message: 'Vui lòng nhập lý do vô hiệu hóa (tối thiểu 5 ký tự) để khách hàng được thông báo rõ ràng.',
+          message: 'Vui lòng nhập lý do vô hiệu hóa.',
         });
       }
+      const performedBy = String(req.body?.performedBy ?? '').trim().slice(0, 200) || 'Quản trị viên';
       user.isActive = false;
       user.deactivationReason = reason.slice(0, 2000);
+      user.deactivatedBy = performedBy;
+      user.deactivatedAt = new Date();
     } else {
       user.isActive = true;
       user.deactivationReason = '';
+      user.deactivatedBy = '';
+      user.deactivatedAt = null;
     }
 
     await user.save();
 
+    if (newStatus === false) {
+      emitAccountDisabled(String(user._id), {
+        reason: String(user.deactivationReason || ''),
+        deactivatedBy: String(user.deactivatedBy || ''),
+        deactivatedAt: user.deactivatedAt ? user.deactivatedAt.toISOString() : new Date().toISOString(),
+      });
+    }
+
+    const audit = deactivationAuditForDoc(user);
     res.json({
       message:  newStatus ? 'Đã kích hoạt tài khoản' : 'Đã khóa tài khoản',
       isActive: newStatus,
-      deactivationReason: newStatus ? '' : String(user.deactivationReason || ''),
+      deactivationReason: audit.deactivationReason,
+      deactivatedBy:    audit.deactivatedBy,
+      deactivatedAt:    audit.deactivatedAt,
     });
   } catch (err) {
     console.error('PATCH /api/admin/customers/:id/toggle-active error:', err);

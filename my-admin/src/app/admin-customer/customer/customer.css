@@ -327,7 +327,18 @@
 .btn-confirm-deactivate:hover:not(:disabled) { background: #92400e; }
 .btn-confirm-deactivate:disabled { opacity: 0.6; cursor: not-allowed; }
 .cust-deactivate-reason-box { margin-top: 12px; padding: 10px 12px; background: #fffbeb; border: 1px solid #fcd34d; border-radius: 8px; width: 100%; }
+.cust-deactivate-audit {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 8px;
+  width: 100%;
+}
 .cust-deactivate-reason-label { font-size: 0.68rem; font-weight: 700; color: #92400e; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
 .cust-deactivate-reason-text { font-size: 0.85rem; color: #78350f; line-height: 1.45; white-space: pre-wrap; }
+.cust-deactivate-meta { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline; margin-top: 10px; font-size: 0.8rem; color: #78350f; }
+.cust-deactivate-meta .meta-label { font-weight: 700; color: #92400e; }
+.cust-deactivate-meta .meta-value { font-weight: 500; }
 
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }

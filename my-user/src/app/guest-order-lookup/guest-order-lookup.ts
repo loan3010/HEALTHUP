@@ -231,6 +231,7 @@ export class GuestOrderLookup implements OnInit {
       pending: 'Chờ xác nhận',
       confirmed: 'Chờ giao',
       shipping: 'Đang giao',
+      delivery_failed: 'Giao thất bại',
       delivered: 'Đã giao',
       cancelled: 'Đã hủy',
     };

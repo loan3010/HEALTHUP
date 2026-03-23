@@ -1,10 +1,14 @@
-import { Component, HostListener, OnInit } from '@angular/core';
+import { Component, HostListener, OnInit, ViewChild, inject, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { ProductService, Product, ADMIN_STATIC_BASE } from '../product.service';
 import { ProductFormComponent } from '../product-form/product-form';
+import { CategoryAdminService, AdminCategoryRow } from '../category-admin.service';
 import { buildProductClassificationSummary } from '../product-classification-summary.util';
+import { AdminNavBridgeService } from '../../admin-nav-bridge.service';
+import { AdminAlertModalService } from '../../admin-alert-modal/admin-alert-modal.service';
 
 @Component({
   selector: 'app-product',
@@ -14,6 +18,9 @@ import { buildProductClassificationSummary } from '../product-classification-sum
   styleUrls: ['./product.css']
 })
 export class ProductComponent implements OnInit {
+  /** Form chi tiết SP — tránh đóng editor do ghost-click sau hộp thoại chọn file (Chrome/Windows). */
+  @ViewChild(ProductFormComponent) private productFormRef?: ProductFormComponent;
+
   readonly staticBase = ADMIN_STATIC_BASE;
   products: Product[] = [];
   filteredProducts: Product[] = [];
@@ -32,6 +39,9 @@ export class ProductComponent implements OnInit {
   selectedIds: Set<string> = new Set();
   allChecked = false;
 
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly navBridge = inject(AdminNavBridgeService);
+
   // Sort
   sortField = '';
   sortDir: 'asc' | 'desc' = 'asc';
@@ -45,7 +55,19 @@ export class ProductComponent implements OnInit {
   filterMinRating: number | null = null;
   filterSaleStatus: '' | 'selling' | 'out' = '';
   filterVisibility: '' | 'visible' | 'hidden' = '';
-  categories: string[] = [];
+
+  /** Tên DM cho bộ lọc (mọi DM trong DB — kể cả đã vô hiệu). */
+  filterCategoryNames: string[] = [];
+  /** Tên DM đang active — truyền vào form thêm/sửa SP. */
+  formCategoryNames: string[] = [];
+
+  /** Modal quản lý danh mục — bảng đầy đủ từ GET admin/categories. */
+  showCategoryModal = false;
+  categoryModalLoading = false;
+  categoryModalBusy = false;
+  adminCategoryRows: AdminCategoryRow[] = [];
+  /** Tên DM mới trong modal (POST). */
+  newCategoryName = '';
   get hasActiveFilter(): boolean {
     return !!(
       this.filterCat ||
@@ -90,9 +112,178 @@ export class ProductComponent implements OnInit {
   // ── SẮP XẾP (dropdown kiểu admin-customer) ──
   sortMenuOpen = false;
 
-  constructor(private productService: ProductService) {}
+  constructor(
+    private productService: ProductService,
+    private categoryAdmin: CategoryAdminService,
+    private adminAlert: AdminAlertModalService,
+  ) {}
 
-  ngOnInit() { this.loadProducts(); }
+  ngOnInit() {
+    // Mở form sản phẩm khi bấm thông báo đánh giá mới.
+    this.navBridge.openProductEditor$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((productId: string) => {
+        if (!productId) return;
+        this.productService.getById(productId, true).subscribe({
+          next: (p) => this.editProduct(p),
+          error: (err) => console.error('openProductEditor', err),
+        });
+      });
+    this.loadProducts();
+    this.loadAdminCategories();
+  }
+
+  /**
+   * Đồng bộ danh mục từ API admin (đếm SP + trạng thái).
+   * Form SP chỉ nhận DM active; lọc danh sách dùng mọi tên đã đăng ký.
+   */
+  loadAdminCategories(): void {
+    this.categoryAdmin.list().subscribe({
+      next: (rows) => this.applyAdminCategoryRows(rows),
+      error: (err) => console.error('loadAdminCategories', err),
+    });
+  }
+
+  /** Gán mảng từ server — dùng chung sau GET và sau CRUD trong modal. */
+  private applyAdminCategoryRows(rows: AdminCategoryRow[]): void {
+    this.adminCategoryRows = rows;
+    const names = rows.map((r) => String(r.name || '').trim()).filter(Boolean);
+    this.filterCategoryNames = [...new Set(names)].sort((a, b) => a.localeCompare(b, 'vi'));
+    this.formCategoryNames = rows
+      .filter((r) => r.isActive)
+      .map((r) => r.name)
+      .sort((a, b) => a.localeCompare(b, 'vi'));
+  }
+
+  openCategoryModal(): void {
+    this.showCategoryModal = true;
+    this.newCategoryName = '';
+    this.categoryModalLoading = true;
+    this.categoryAdmin.list().subscribe({
+      next: (rows) => {
+        this.applyAdminCategoryRows(rows);
+        this.categoryModalLoading = false;
+      },
+      error: (err) => {
+        console.error(err);
+        this.categoryModalLoading = false;
+      },
+    });
+  }
+
+  closeCategoryModal(): void {
+    if (this.categoryModalBusy) return;
+    this.showCategoryModal = false;
+  }
+
+  submitNewCategoryInModal(): void {
+    const name = String(this.newCategoryName || '').trim();
+    if (name.length < 2) return;
+    this.categoryModalBusy = true;
+    this.categoryAdmin.create({ name }).subscribe({
+      next: () => {
+        this.newCategoryName = '';
+        this.reloadModalCategoriesAfterMutation();
+      },
+      error: (err) => {
+        console.error(err);
+        this.categoryModalBusy = false;
+        this.adminAlert.show({
+          title: 'Lỗi',
+          message: err?.error?.message || 'Không thêm được danh mục.',
+          isError: true,
+        });
+      },
+    });
+  }
+
+  deactivateCategoryRow(row: AdminCategoryRow): void {
+    this.openConfirmModal(
+      'Vô hiệu hóa danh mục',
+      `Danh mục "${row.name}" sẽ ẩn khỏi site user và khỏi form thêm SP. Sản phẩm hiện tại giữ nguyên trường danh mục.`,
+      false,
+      () => {
+        this.categoryModalBusy = true;
+        this.categoryAdmin.deactivate(row._id).subscribe({
+          next: () => this.reloadModalCategoriesAfterMutation(),
+          error: (e) => {
+            console.error(e);
+            this.categoryModalBusy = false;
+            this.adminAlert.show({
+              title: 'Lỗi',
+              message: e?.error?.message || 'Lỗi vô hiệu hóa.',
+              isError: true,
+            });
+          },
+        });
+      },
+    );
+  }
+
+  restoreCategoryRow(row: AdminCategoryRow): void {
+    this.categoryModalBusy = true;
+    this.categoryAdmin.restore(row._id).subscribe({
+      next: () => this.reloadModalCategoriesAfterMutation(),
+      error: (e) => {
+        console.error(e);
+        this.categoryModalBusy = false;
+        this.adminAlert.show({
+          title: 'Lỗi',
+          message: e?.error?.message || 'Lỗi khôi phục.',
+          isError: true,
+        });
+      },
+    });
+  }
+
+  /**
+   * Xóa vĩnh viễn chỉ khi productCount === 0 (backend cũng chặn).
+   * Có SP thì chỉ được vô hiệu hóa — đã cảnh báo ở UI.
+   */
+  deleteCategoryRow(row: AdminCategoryRow): void {
+    if (row.productCount > 0) {
+      this.adminAlert.show({
+        title: 'Không thể xóa vĩnh viễn',
+        message: `Danh mục "${row.name}" còn ${row.productCount} sản phẩm — chỉ có thể vô hiệu hóa, không xóa vĩnh viễn.`,
+        isError: true,
+      });
+      return;
+    }
+    this.openConfirmModal(
+      'Xóa vĩnh viễn danh mục',
+      `Xóa hẳn "${row.name}" khỏi hệ thống? Thao tác không hoàn tác.`,
+      true,
+      () => {
+        this.categoryModalBusy = true;
+        this.categoryAdmin.delete(row._id).subscribe({
+          next: () => this.reloadModalCategoriesAfterMutation(),
+          error: (e) => {
+            console.error(e);
+            this.categoryModalBusy = false;
+            this.adminAlert.show({
+              title: 'Lỗi xóa',
+              message: e?.error?.message || 'Không xóa được (có thể vẫn còn SP gắn tên này).',
+              isError: true,
+            });
+          },
+        });
+      },
+    );
+  }
+
+  private reloadModalCategoriesAfterMutation(): void {
+    this.categoryAdmin.list().subscribe({
+      next: (rows) => {
+        this.applyAdminCategoryRows(rows);
+        this.categoryModalBusy = false;
+        this.loadProducts();
+      },
+      error: (err) => {
+        console.error(err);
+        this.categoryModalBusy = false;
+      },
+    });
+  }
 
   /** Đóng menu Sắp xếp khi click ra ngoài */
   @HostListener('document:click', ['$event'])
@@ -184,10 +375,6 @@ export class ProductComponent implements OnInit {
         this.total      = res.total;
         this.totalPages = res.totalPages;
         this.isLoading  = false;
-
-        if (this.categories.length === 0) {
-          this.categories = [...new Set(res.products.map(p => p.cat))];
-        }
       },
       error: (err) => { console.error(err); this.isLoading = false; }
     });
@@ -454,15 +641,26 @@ export class ProductComponent implements OnInit {
     this.closeConfirmModal();
   }
 
-  onFormCancel() { this.isEditorPageOpen = false; }
+  /**
+   * Đóng trang editor; bỏ qua nếu vừa đóng hộp thoại upload ảnh (Chrome/Windows hay bắn thêm 1 click).
+   */
+  private closeProductEditor(): void {
+    if (this.productFormRef?.isFilePickerGhostGuardActive?.()) return;
+    this.isEditorPageOpen = false;
+  }
+
+  onFormCancel() {
+    this.closeProductEditor();
+  }
 
   onBackToList(): void {
-    this.isEditorPageOpen = false;
+    this.closeProductEditor();
   }
 
   onFormSave() {
     this.isEditorPageOpen = false;
     this.loadProducts();
+    this.loadAdminCategories();
   }
 
   // Tính tồn kho thực tế: nếu có variants thì lấy tổng stock của variants.

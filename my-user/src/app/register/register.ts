@@ -152,37 +152,78 @@ export class Register implements OnInit, OnDestroy {
   }
 
   // ===== OTP HANDLERS =====
-  onOtpInput(event: any, index: number): void {
-    const value = (event.target.value || '').replace(/[^0-9]/g, '');
-    event.target.value = value;
+  /** Đồng bộ mảng → DOM (mỗi ô tối đa 1 số — tránh một ô dính "112") */
+  private flushRegisterOtpDom(): void {
+    const inputs = this.otpInputs?.toArray?.() || [];
+    inputs.forEach((ref, i) => {
+      ref.nativeElement.value = this.otpValues[i] ?? '';
+    });
+  }
 
-    this.otpValues[index] = value;
+  private fillOtpFromRegister(startIndex: number, digits: string): void {
+    let i = startIndex;
+    for (const ch of digits.replace(/\D/g, '')) {
+      if (i > 5) break;
+      this.otpValues[i] = ch;
+      i++;
+    }
+    this.otpError = '';
+    this.flushRegisterOtpDom();
+    if (i <= 5) {
+      this.otpInputs.toArray()[i]?.nativeElement?.focus();
+    }
+  }
+
+  onOtpInput(event: Event, index: number): void {
+    const el = event.target as HTMLInputElement;
+    const raw = (el.value || '').replace(/\D/g, '');
+
+    if (raw.length > 1) {
+      this.fillOtpFromRegister(index, raw);
+      return;
+    }
+
+    const ch = raw.length === 1 ? raw : '';
+    this.otpValues[index] = ch;
+    el.value = ch;
     this.otpError = '';
 
-    if (value && index < 5) {
+    if (ch && index < 5) {
       this.otpInputs.toArray()[index + 1]?.nativeElement?.focus();
     }
   }
 
   onOtpKeydown(event: KeyboardEvent, index: number): void {
-    if (event.key === 'Backspace' && !this.otpValues[index] && index > 0) {
-      this.otpInputs.toArray()[index - 1]?.nativeElement?.focus();
+    const key = event.key;
+
+    if (key.length === 1 && !/^\d$/.test(key)) {
+      event.preventDefault();
+      return;
+    }
+
+    if (key === 'Backspace') {
+      event.preventDefault();
+      const inputs = this.otpInputs.toArray();
+      if (this.otpValues[index]) {
+        this.otpValues[index] = '';
+        inputs[index] && (inputs[index].nativeElement.value = '');
+      } else if (index > 0) {
+        this.otpValues[index - 1] = '';
+        const prev = inputs[index - 1]?.nativeElement;
+        if (prev) prev.value = '';
+        inputs[index - 1]?.nativeElement?.focus();
+      }
     }
   }
 
+  /** Dán 6 số (hoặc chuỗi bất kỳ) vào các ô từ đầu */
   onOtpPaste(event: ClipboardEvent): void {
+    event.preventDefault();
     const pasted = event.clipboardData?.getData('text') || '';
     const digits = pasted.replace(/\D/g, '');
+    if (!digits) return;
 
-    if (digits.length === 6) {
-      this.otpValues = digits.split('');
-      const inputs = this.otpInputs.toArray();
-      inputs.forEach((input, i) => (input.nativeElement.value = this.otpValues[i]));
-      inputs[5]?.nativeElement?.focus();
-      this.otpError = '';
-    }
-
-    event.preventDefault();
+    this.fillOtpFromRegister(0, digits);
   }
 
   confirmOtpAndRegister(): void {

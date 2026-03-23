@@ -6,7 +6,11 @@ import {
   HotlineOrderPayload,
   HotlineOrderPreview,
 } from '../order/order.service';
-import { CustomerItem, CustomerService } from '../../admin-customer/customer/customer.service';
+import {
+  CustomerItem,
+  CustomerSavedAddress,
+  CustomerService,
+} from '../../admin-customer/customer/customer.service';
 import { VnAddressService, VnDivisionRow } from '../vn-address.service';
 
 /** Một dòng sản phẩm trên form tạo đơn. */
@@ -63,6 +67,19 @@ export class OrderFormComponent implements OnInit, OnDestroy {
   customerHits: CustomerItem[] = [];
   showCustomerHits = false;
   linkedUserId = '';
+
+  /** Địa chỉ đã lưu trên tài khoản (chỉ khi đã liên kết user). */
+  linkedAddresses: CustomerSavedAddress[] = [];
+  linkedAddressesLoading = false;
+  /** Lỗi tải sổ địa chỉ (hiển thị thay vì im lặng như "chưa lưu"). */
+  linkedAddressesError = '';
+  /**
+   * true: đang dùng chuỗi địa chỉ một dòng từ sổ (backend chấp nhận province/district/ward rỗng).
+   * false: nhập tay với bộ chọn tỉnh/huyện/xã.
+   */
+  useFullLineFromSavedBook = false;
+  /** Highlight dòng đang chọn trong sổ (so sánh _id). */
+  selectedSavedAddressId = '';
 
   fullName = '';
   phone = '';
@@ -175,17 +192,89 @@ export class OrderFormComponent implements OnInit, OnDestroy {
 
   pickCustomer(c: CustomerItem): void {
     this.linkedUserId = c.id;
-    this.fullName = (c.username || '').trim() || 'Khách hàng';
     this.phone = (c.phone || '').trim();
     this.email = (c.email || '').trim();
-    this.streetAddress = (c.address || '').trim();
     this.customerPhoneSearch = this.phone;
     this.showCustomerHits = false;
     this.customerHits = [];
+    this.linkedAddresses = [];
+    this.useFullLineFromSavedBook = false;
+    this.linkedAddressesError = '';
+
+    const uid = String(c.id || '').trim();
+    if (!uid) {
+      this.linkedAddressesError = 'Thiếu ID khách — chọn lại từ danh sách gợi ý.';
+      this.fullName = (c.username || '').trim() || 'Khách hàng';
+      this.streetAddress = (c.address || '').trim();
+      return;
+    }
+
+    // Tải sổ địa chỉ; nếu có mặc định hoặc chỉ 1 dòng → áp dụng luôn cho người nhận + địa chỉ giao.
+    this.linkedAddressesLoading = true;
+    this.customerService.getAddresses(uid).subscribe({
+      next: (res) => {
+        this.linkedAddressesLoading = false;
+        this.linkedAddressesError = '';
+        this.linkedAddresses = res.addresses || [];
+        const def = this.linkedAddresses.find((a) => a.isDefault);
+        if (def) {
+          this.pickSavedAddress(def);
+        } else if (this.linkedAddresses.length === 1) {
+          this.pickSavedAddress(this.linkedAddresses[0]);
+        } else {
+          this.selectedSavedAddressId = '';
+          this.fullName = (c.username || '').trim() || 'Khách hàng';
+          this.streetAddress = (c.address || '').trim();
+        }
+        this.schedulePreview();
+      },
+      error: (err) => {
+        this.linkedAddressesLoading = false;
+        this.linkedAddresses = [];
+        this.selectedSavedAddressId = '';
+        this.linkedAddressesError =
+          err?.error?.message || err?.message || 'Không tải được sổ địa chỉ — kiểm tra backend / mạng.';
+        this.fullName = (c.username || '').trim() || 'Khách hàng';
+        this.streetAddress = (c.address || '').trim();
+        this.schedulePreview();
+      },
+    });
   }
 
   clearLinkedCustomer(): void {
     this.linkedUserId = '';
+    this.linkedAddresses = [];
+    this.useFullLineFromSavedBook = false;
+    this.linkedAddressesLoading = false;
+    this.selectedSavedAddressId = '';
+    this.linkedAddressesError = '';
+  }
+
+  /** Chọn một dòng trong sổ địa chỉ — một chuỗi đầy đủ, không bắt buộc tách tỉnh/huyện/xã. */
+  pickSavedAddress(a: CustomerSavedAddress): void {
+    this.useFullLineFromSavedBook = true;
+    this.fullName = (a.name || '').trim() || 'Khách hàng';
+    this.phone = (a.phone || '').trim() || this.phone;
+    this.provinceCode = '';
+    this.districtCode = '';
+    this.wardCode = '';
+    this.districts = [];
+    this.wards = [];
+    this.streetAddress = (a.address || '').trim();
+    this.schedulePreview();
+  }
+
+  /** Địa chỉ giao không nằm trong sổ — nhập tay + chọn tỉnh/huyện/xã. */
+  chooseManualShippingAddress(): void {
+    this.selectedSavedAddressId = '';
+    this.useFullLineFromSavedBook = false;
+    this.streetAddress = '';
+    this.provinceCode = '';
+    this.districtCode = '';
+    this.wardCode = '';
+    this.districts = [];
+    this.wards = [];
+    this.schedulePreview();
   }
 
   onLineSearchInput(idx: number): void {
@@ -351,9 +440,12 @@ export class OrderFormComponent implements OnInit, OnDestroy {
       this.submitError = 'SĐT phải 10 số, bắt đầu bằng 0.';
       return;
     }
-    if (!this.provinceCode || !this.districtCode || !this.wardCode) {
-      this.submitError = 'Chọn đủ Tỉnh/Thành, Quận/Huyện, Phường/Xã.';
-      return;
+    // Địa chỉ từ sổ: một dòng đầy đủ — backend cho phép ward/province/district rỗng (giống checkout).
+    if (!this.useFullLineFromSavedBook) {
+      if (!this.provinceCode || !this.districtCode || !this.wardCode) {
+        this.submitError = 'Chọn đủ Tỉnh/Thành, Quận/Huyện, Phường/Xã — hoặc chọn địa chỉ đã lưu.';
+        return;
+      }
     }
     for (let i = 0; i < this.lines.length; i++) {
       const l = this.lines[i];
@@ -391,5 +483,11 @@ export class OrderFormComponent implements OnInit, OnDestroy {
 
   formatMoney(n: number): string {
     return new Intl.NumberFormat('vi-VN').format(n || 0) + 'đ';
+  }
+
+  /** So sánh _id subdocument (string hoặc object từ API). */
+  addrKey(a: CustomerSavedAddress): string {
+    const id = (a as { _id?: unknown })._id;
+    return id != null ? String(id) : '';
   }
 }

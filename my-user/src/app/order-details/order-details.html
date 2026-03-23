@@ -47,9 +47,15 @@
           <h2>Chi tiết đơn hàng</h2>
           <p class="od-id">Mã đơn: <strong>{{ order.orderCode || order._id }}</strong></p>
         </div>
-        <span class="status-badge" [ngClass]="'status-' + order.status">
-          {{ getStatusLabel(order.status) }}
-        </span>
+        <div class="od-status-col">
+          <span class="status-badge" [ngClass]="'status-' + order.status">
+            {{ getStatusLabel(order.status) }}
+          </span>
+          <p class="od-cancel-reason" *ngIf="order.status === 'cancelled' && order.cancelReason">
+            <span class="od-cancel-reason-label">Lý do hủy</span>
+            <span class="od-cancel-reason-text">{{ order.cancelReason }}</span>
+          </p>
+        </div>
       </div>
 
       <!-- Info grid -->

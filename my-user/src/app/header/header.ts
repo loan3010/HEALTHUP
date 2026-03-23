@@ -3,10 +3,10 @@ import {
   ChangeDetectorRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule, Router } from '@angular/router';
+import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Subject, Subscription, of } from 'rxjs';
-import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
+import { debounceTime, distinctUntilChanged, switchMap, filter } from 'rxjs/operators';
 import { TrackOrderModal } from '../track-order-modal/track-order-modal';
 import { SearchService, SearchProduct } from '../services/search.service';
 import { ApiService } from '../services/api.service';
@@ -30,6 +30,12 @@ export class Header implements OnInit, OnDestroy {
   cartCount = 0;
   private cartCountSub!: Subscription;
 
+  // ✅ UNREAD NOTIFICATION COUNT (từ THnew)
+  unreadCount = 0;
+  private unreadCountSub!: Subscription;
+  private navSub!: Subscription;
+
+  // ── SEARCH STATE ──
   searchQuery = '';
   searchResults: SearchProduct[] = [];
   isSearching = false;
@@ -51,20 +57,40 @@ export class Header implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.checkLoginStatus();
     this.initSearch();
+
+    // ✅ Subscribe cart count
     this.cartCountSub = this.api.cartCount$.subscribe(count => {
       this.cartCount = count;
       this.cdr.detectChanges();
     });
+
+    // ✅ Subscribe unread notification count — badge chuông tự cập nhật
+    this.unreadCountSub = this.api.unreadCount$.subscribe(count => {
+      this.unreadCount = count;
+      this.cdr.detectChanges();
+    });
+
+    // Sau mỗi lần chuyển trang: đồng bộ lại số chuông (ví dụ vừa đọc thông báo / có phản hồi tư vấn mới).
+    this.navSub = this.router.events
+      .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
+      .subscribe(() => {
+        this.checkLoginStatus();
+        if (this.isLoggedIn) {
+          this.api.refreshUnreadCount();
+        }
+      });
   }
 
   ngOnDestroy(): void {
     this.searchSub?.unsubscribe();
     this.cartCountSub?.unsubscribe();
+    this.unreadCountSub?.unsubscribe(); // ✅ Unsubscribe tránh memory leak
+    this.navSub?.unsubscribe();
   }
 
   initSearch(): void {
     this.searchSub = this.searchSubject.pipe(
-      debounceTime(150),
+      debounceTime(250), // giữ 250ms từ THnew (phản hồi người dùng tốt hơn 150ms)
       distinctUntilChanged(),
       switchMap(keyword => {
         if (!keyword.trim()) {
@@ -261,11 +287,12 @@ export class Header implements OnInit, OnDestroy {
   confirmLogout(): void {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    localStorage.removeItem('userId');
+    localStorage.removeItem('userId'); // từ main
     this.isLoggedIn        = false;
     this.userName          = '';
     this.showDropdown      = false;
-    this.showLogoutConfirm = false;
+    this.showLogoutConfirm = false; // từ main
+    this.unreadCount       = 0; //
     this.cdr.detectChanges();
     this.router.navigate(['/']);
   }

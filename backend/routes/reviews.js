@@ -6,6 +6,7 @@ const multer    = require('multer');
 const Review    = require('../models/Review');
 const Product   = require('../models/Product');
 const Order     = require('../models/Order');
+const { notifyAdminReviewNew } = require('../services/adminNotificationService');
 
 // ── Multer: lưu ảnh review vào public/images/reviews ──
 const storage = multer.diskStorage({
@@ -175,6 +176,15 @@ router.post('/', async (req, res) => {
     const review = new Review({ ...req.body, verified: true });
     await review.save();
     await syncProductStats(productId);
+
+    // Thông báo admin (Socket.io + collection AdminNotification).
+    try {
+      const p = await Product.findById(productId).select('name').lean();
+      await notifyAdminReviewNew(review, p?.name || '');
+    } catch (e) {
+      console.error('Admin notify review_new:', e);
+    }
+
     res.status(201).json(review);
   } catch (err) {
     res.status(400).json({ error: err.message });

@@ -46,9 +46,12 @@ export interface DashboardResponse {
   customerTierPie: PiePoint[];
   recentOrders: Array<{
     orderId: string;
+    /** Mã ORD00000000001 — đơn cũ có thể rỗng (chưa backfill). */
+    orderCode?: string;
     customerName: string;
     total: number;
-    status: string;
+    /** Nhãn trạng thái tiếng Việt (API không trả enum tiếng Anh cho UI). */
+    statusLabel: string;
     createdAt: string;
   }>;
   topProducts: {

@@ -78,6 +78,17 @@
   grid-column: 1 / -1;
 }
 
+/* Ba ô thống kê chỉ xem — dùng .form-group bên trong + input:disabled có sẵn. */
+.admin-readonly-stats-row {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+@media (max-width: 560px) {
+  .admin-readonly-stats-row { grid-template-columns: 1fr; }
+}
+
 .form-group label {
   font-size: 0.85rem;
   font-weight: 600;
@@ -691,21 +702,18 @@
 .variant-grid-combo input[disabled] {
   background: #f6fbf6;
 }
+/* Cột ảnh: canh giữa theo chiều dọc hàng, mỗi ô cùng kích thước → lưới không lệch. */
 .variant-image-cell {
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-.variant-image-cell img {
-  width: 38px;
-  height: 38px;
-  border-radius: 8px;
-  object-fit: cover;
-  border: 1px solid #d7e5d8;
+  justify-content: center;
 }
 
-/* Nút chỉ icon: nền sáng, viền rõ — dễ bấm, không bị chữ xanh trên nền xanh. */
-.variant-image-icon-btn {
+/*
+ * Một slot duy nhất — ảnh đã upload thay thế placeholder (không còn thumbnail + nút cạnh nhau).
+ * Luôn 38×38 để khớp hàng có/không ảnh.
+ */
+.variant-image-slot {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -717,13 +725,33 @@
   color: #2a6b2e;
   cursor: pointer;
   flex-shrink: 0;
+  overflow: hidden;
   transition: background 0.15s, border-color 0.15s;
+  margin: 0;
 }
-.variant-image-icon-btn:hover {
+.variant-image-slot:hover {
   background: #f4faf4;
   border-color: #36873A;
 }
-.variant-image-icon-btn i {
+.variant-image-slot.has-image {
+  padding: 0;
+  border-color: #d7e5d8;
+}
+.variant-image-slot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+}
+.variant-image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+.variant-image-placeholder i {
   font-size: 1.1rem;
   line-height: 1;
 }

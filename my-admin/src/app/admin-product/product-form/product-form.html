@@ -17,16 +17,27 @@
       </div>
       <div class="form-group full-width">
         <label>Danh mục <span class="required">*</span></label>
-        <select [(ngModel)]="formData.cat" (ngModelChange)="onCategorySelectionChange()">
+        <!-- Chỉ DM đang active từ API; DM cũ đã vô hiệu vẫn hiện 1 dòng (logic trong setupCategoryOptions). -->
+        <select [(ngModel)]="formData.cat">
           <option value="">-- Chọn danh mục --</option>
           <option *ngFor="let c of categoryOptions" [value]="c">{{ c }}</option>
-          <option value="__new__">+ Thêm danh mục mới</option>
         </select>
-        <div class="inline-row" *ngIf="showNewCategoryInput">
-          <input type="text" [(ngModel)]="newCategory" placeholder="Tên danh mục mới"
-            (keydown.enter)="addNewCategory(); $event.preventDefault()">
-          <button type="button" class="btn-inline-add" (click)="addNewCategory()">Thêm</button>
-          <button type="button" class="btn-inline-cancel" (click)="cancelNewCategory()">Hủy</button>
+        <p class="form-helper mt-1 mb-0">Thêm / vô hiệu danh mục: nút <strong>Quản lý danh mục</strong> trên danh sách sản phẩm.</p>
+      </div>
+
+      <!-- Thống kê chỉ đọc (API / đơn hàng / đánh giá — giống SKU, không sửa tay). -->
+      <div class="admin-readonly-stats-row" role="group" aria-label="Thống kê chỉ xem">
+        <div class="form-group">
+          <label for="stat-sold-ro">Đã bán</label>
+          <input id="stat-sold-ro" type="text" [value]="displayStatSold()" disabled>
+        </div>
+        <div class="form-group">
+          <label for="stat-rating-ro">Điểm đánh giá</label>
+          <input id="stat-rating-ro" type="text" [value]="displayStatRating()" disabled>
+        </div>
+        <div class="form-group">
+          <label for="stat-reviews-ro">Số lượt đánh giá</label>
+          <input id="stat-reviews-ro" type="text" [value]="displayStatReviewCount()" disabled>
         </div>
       </div>
 
@@ -68,11 +79,11 @@
       <!-- 3. Phân loại + Bảng giá (một section liền) -->
       <div class="form-group full-width admin-variant-section">
         <div class="variant-header wrap">
-          <label>Phân loại biến thể &amp; Giá / tồn theo biến thể</label>
+          <label>Phân loại biến thể</label>
         </div>
         <div class="form-helper">
-          Bốn nhóm cố định (vai trò preset). Có thể <strong>đổi tên hiển thị</strong> từng nhóm.
-          Nhóm không có chip bỏ qua khi tính tổ hợp. Thêm chip → bảng cập nhật ngay; API khi <strong>Lưu</strong>.
+          Bốn nhóm cố định. Bạn ccó thể <strong>đổi tên hiển thị</strong> từng nhóm.
+          
         </div>
 
         <!-- 4 preset: list dọc, mỗi dòng = tên (sửa được) + chip + input. -->
@@ -118,8 +129,8 @@
           <label>Giá &amp; tồn kho theo biến thể</label>
         </div>
         <div class="form-helper">
-          Có chip: tự sinh tổ hợp (Descartes). Combo thực tế không bán (vd. 500g + túi zip) → tick <strong>Ẩn shop</strong>, không cần nhập giá.
-          Không chip: một dòng <strong>Mặc định</strong>.
+          Nếu có combo thực tế không bán (vd. 500g + túi zip), vui lòng tick <strong>"Ẩn"</strong>.
+         
         </div>
         <div class="variant-combo-scroll" *ngIf="variants.length > 0">
           <div
@@ -187,11 +198,24 @@
                 <input type="text" [(ngModel)]="v.attr1Value" disabled>
               </ng-container>
             </ng-container>
+            <!-- Một ô cố định: có ảnh thì ảnh lấp đầy ô (bấm để thay); không thì icon — các dòng thẳng hàng. -->
             <div class="variant-image-cell">
-              <img *ngIf="variantImagePreview(v)" [src]="variantImagePreview(v)" alt="">
-              <label class="variant-image-icon-btn">
-                <i class="bi bi-image"></i>
-                <input type="file" accept="image/*" (change)="onVariantImageSelect(i, $event)" hidden />
+              <label
+                class="variant-image-slot"
+                [class.has-image]="!!variantImagePreview(v)"
+                title="Chọn hoặc thay ảnh biến thể"
+              >
+                <img *ngIf="variantImagePreview(v)" [src]="variantImagePreview(v)" alt="" />
+                <span class="variant-image-placeholder" *ngIf="!variantImagePreview(v)">
+                  <i class="bi bi-image" aria-hidden="true"></i>
+                </span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  (change)="onVariantImageSelect(i, $event)"
+                  (cancel)="onNativeFilePickerDismissed()"
+                  hidden
+                />
               </label>
             </div>
             <input type="number" [(ngModel)]="v.price" [class.variant-input-warn]="variantRowNeedsAttention(i)">
@@ -211,7 +235,7 @@
                   [checked]="v.isActive === false"
                   (change)="onVariantShopHideToggle(i, $any($event.target).checked)"
                 />
-                <span>Ẩn shop</span>
+                <span>Ẩn</span>
               </label>
             </div>
             <button type="button" class="btn-inline-cancel" *ngIf="canRemoveVariantRow()" (click)="removeVariant(i)">Xóa</button>
@@ -252,7 +276,13 @@
               <button type="button" class="remove-img-btn" (click)="removeImage(i)">×</button>
             </div>
             <label class="image-upload-btn">
-              <input type="file" accept="image/*" (change)="onImageSelect($event)" hidden />
+              <input
+                type="file"
+                accept="image/*"
+                (change)="onImageSelect($event)"
+                (cancel)="onNativeFilePickerDismissed()"
+                hidden
+              />
               <i class="bi bi-plus-lg"></i>
               <span>Thêm ảnh</span>
             </label>

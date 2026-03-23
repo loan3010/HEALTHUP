@@ -174,8 +174,8 @@
               [class.active]="c.isActive"
               [class.inactive]="!c.isActive"
               (click)="onToggleActive(c, $event)"
-              [title]="c.isActive ? 'Nhấn để vô hiệu hóa' : 'Nhấn để kích hoạt'">
-              {{ c.isActive ? 'Hoạt động' : 'Đã khóa' }}
+              [title]="c.isActive ? 'Nhấn để vô hiệu hóa' : 'Nhấn để kích hoạt lại'">
+              {{ c.isActive ? 'Hoạt động' : 'Kích hoạt lại' }}
             </button>
           </td>
 
@@ -229,13 +229,23 @@
               [class.active]="selectedCustomer?.isActive"
               [class.inactive]="!selectedCustomer?.isActive"
               (click)="onToggleActive(selectedCustomer!, $event)">
-              {{ selectedCustomer?.isActive ? 'Hoạt động' : 'Đã khóa' }}
+              {{ selectedCustomer?.isActive ? 'Hoạt động' : 'Kích hoạt lại' }}
             </button>
           </div>
-          <!-- Lý do khóa: admin xem lại; trùng nội dung khách thấy khi đăng nhập -->
-          <div *ngIf="selectedCustomer && !selectedCustomer.isActive && selectedCustomer.deactivationReason" class="cust-deactivate-reason-box">
+          <!-- Tài khoản đang khóa: lý do + audit (ai khóa, lúc nào) — cùng nội dung khách thấy khi đăng nhập -->
+          <div *ngIf="selectedCustomer && !selectedCustomer.isActive" class="cust-deactivate-audit">
             <div class="cust-deactivate-reason-label">Lý do vô hiệu hóa (hiển thị cho khách)</div>
-            <div class="cust-deactivate-reason-text">{{ selectedCustomer.deactivationReason }}</div>
+            <div class="cust-deactivate-reason-text">
+              {{ selectedCustomer.deactivationReason || '—' }}
+            </div>
+            <div class="cust-deactivate-meta" *ngIf="selectedCustomer.deactivatedBy">
+              <span class="meta-label">Người thực hiện</span>
+              <span class="meta-value">{{ selectedCustomer.deactivatedBy }}</span>
+            </div>
+            <div class="cust-deactivate-meta" *ngIf="selectedCustomer.deactivatedAt">
+              <span class="meta-label">Thời gian</span>
+              <span class="meta-value">{{ selectedCustomer.deactivatedAt | date:'dd/MM/yyyy HH:mm' }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -315,10 +325,14 @@
       [disabled]="deactivateSubmitting"
       placeholder="Ví dụ: Vi phạm điều khoản mua hàng, nhiều đơn hủy…"
       maxlength="2000"></textarea>
-    <div class="confirm-hint">Tối thiểu 5 ký tự. Tối đa 2000 ký tự.</div>
+    <div class="confirm-hint">Bắt buộc nhập lý do (không được để trống). Tối đa 2000 ký tự.</div>
     <div class="confirm-actions">
       <button class="btn-tool" type="button" (click)="cancelDeactivate()" [disabled]="deactivateSubmitting">Huỷ</button>
-      <button class="btn-confirm-deactivate" type="button" (click)="confirmDeactivate()" [disabled]="deactivateSubmitting">
+      <button
+        class="btn-confirm-deactivate"
+        type="button"
+        (click)="confirmDeactivate()"
+        [disabled]="deactivateSubmitting || !deactivateReasonDraft.trim()">
         <i class="bi bi-lock-fill"></i> Vô hiệu hóa
       </button>
     </div>

@@ -1,0 +1,15 @@
+@if (svc.overlayVisible()) {
+  <!-- full viewport, z-index cao — chặn mọi tương tác phía dưới -->
+  <div class="acc-dis-root" role="alertdialog" aria-modal="true" aria-labelledby="acc-dis-title">
+    <div class="acc-dis-panel">
+      <h2 id="acc-dis-title" class="acc-dis-title">Tài khoản đã bị vô hiệu hóa</h2>
+      <p class="acc-dis-lead">Phiên đăng nhập của bạn đã kết thúc.</p>
+      <div class="acc-dis-reason-block">
+        <div class="acc-dis-label">Lý do từ cửa hàng</div>
+        <div class="acc-dis-reason">{{ svc.overlayReason() }}</div>
+      </div>
+      <p class="acc-dis-hint">Nếu bạn cho rằng đây là nhầm lẫn, vui lòng liên hệ hỗ trợ.</p>
+      <button type="button" class="acc-dis-btn" (click)="goLogin()">Về trang đăng nhập</button>
+    </div>
+  </div>
+}
