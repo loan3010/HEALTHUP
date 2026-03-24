@@ -5,6 +5,8 @@ import { FormsModule } from '@angular/forms';
 import { ApiService, STATIC_BASE } from '../services/api.service';
 
 
+
+
 @Component({
   selector: 'app-order-detail',
   standalone: true,
@@ -14,11 +16,13 @@ import { ApiService, STATIC_BASE } from '../services/api.service';
 })
 export class OrderDetail implements OnInit {
 
+
   order: any = null;
   orders: any[] = [];
   loading = true;
   currentId = '';
   activeTab: 'detail' | 'history' = 'detail'; // Tab hiện tại
+
 
   // Phân trang
   currentPage = 1;
@@ -27,12 +31,14 @@ export class OrderDetail implements OnInit {
   totalPages = 1;
   isLoadingHistory = false;
 
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private api: ApiService,
     private cdr: ChangeDetectorRef
   ) {}
+
 
   ngOnInit(): void {
     // Load chi tiết đơn khi route thay đổi
@@ -49,10 +55,12 @@ export class OrderDetail implements OnInit {
     });
   }
 
+
   // Quay lại trang order-management
   goBack(): void {
     this.router.navigate(['/profile/order-management']);
   }
+
 
   // Lấy userId từ localStorage
   private getUserId(): string {
@@ -64,11 +72,14 @@ export class OrderDetail implements OnInit {
     } catch { return ''; }
   }
 
+
   loadOrder(id: string): void {
     this.api.getOrderById(id).subscribe({
       next: (res: any) => {
         this.order = res;
         this.loading = false;
+        // Kiểm tra thay đổi trạng thái hoàn trả
+        this.checkReturnStatus(res);
         this.cdr.detectChanges();
       },
       error: () => {
@@ -77,6 +88,7 @@ export class OrderDetail implements OnInit {
       }
     });
   }
+
 
   // Load orders với phân trang
   loadOrders(page: number = 1): void {
@@ -89,8 +101,10 @@ export class OrderDetail implements OnInit {
       return;
     }
 
+
     this.isLoadingHistory = true;
     this.cdr.detectChanges();
+
 
     this.api.getOrdersPaginated(userId, page, this.pageSize).subscribe({
       next: (res: any) => {
@@ -111,6 +125,7 @@ export class OrderDetail implements OnInit {
     });
   }
 
+
   // Khi chuyển sang tab Lịch sử, load trang đầu tiên
   onTabChange(tab: 'detail' | 'history'): void {
     this.activeTab = tab;
@@ -119,6 +134,7 @@ export class OrderDetail implements OnInit {
       this.loadOrders(1);
     }
   }
+
 
   // Chuyển trang
   goToPage(page: number): void {
@@ -131,11 +147,12 @@ export class OrderDetail implements OnInit {
     }, 100);
   }
 
+
   // Tạo mảng số trang để hiển thị
   getPageNumbers(): (number | string)[] {
     const pages: (number | string)[] = [];
     const maxVisible = 5;
-    
+   
     if (this.totalPages <= maxVisible) {
       for (let i = 1; i <= this.totalPages; i++) pages.push(i);
     } else {
@@ -158,17 +175,21 @@ export class OrderDetail implements OnInit {
     return pages;
   }
 
+
   goToOrder(id: string): void {
     this.router.navigate(['/profile/order-detail', id]);
   }
 
+
   // ==================== HELPERS ====================
+
 
   getTotal(): number {
     return this.order?.total
       || this.order?.items?.reduce((s: number, i: any) => s + i.price * i.quantity, 0)
       || 0;
   }
+
 
   getFullAddress(): string {
     const c = this.order?.customer;
@@ -179,10 +200,12 @@ export class OrderDetail implements OnInit {
     return parts.join(', ');
   }
 
+
   fixImage(url: string): string {
     if (!url) return 'assets/placeholder.png';
     return url.startsWith('http') ? url : `${STATIC_BASE}${url}`;
   }
+
 
   formatDate(dateStr: string): string {
     if (!dateStr) return '';
@@ -192,12 +215,14 @@ export class OrderDetail implements OnInit {
     });
   }
 
+
   formatDateShort(dateStr: string): string {
     if (!dateStr) return '';
     return new Date(dateStr).toLocaleDateString('vi-VN', {
       day: '2-digit', month: '2-digit', year: 'numeric'
     });
   }
+
 
   getStatusLabel(status: string): string {
     const map: Record<string, string> = {
@@ -213,6 +238,7 @@ export class OrderDetail implements OnInit {
     return map[status] || status;
   }
 
+
   getPaymentLabel(method: string): string {
     const map: Record<string, string> = {
       cod: 'Thanh toán khi nhận hàng (COD)',
@@ -223,6 +249,7 @@ export class OrderDetail implements OnInit {
     return map[method] || method;
   }
 
+
   getShippingLabel(method: string): string {
     const map: Record<string, string> = {
       standard: 'Giao hàng tiêu chuẩn',
@@ -231,11 +258,13 @@ export class OrderDetail implements OnInit {
     return map[method] || method;
   }
 
+
   getReturnImages(order: any): string[] {
     const arr = order?.returnImages;
     if (!Array.isArray(arr)) return [];
     return arr.map((u: any) => String(u || '').trim()).filter(Boolean);
   }
+
 
   getReturnLines(order: any): any[] {
     const rows = order?.returnItems;
@@ -243,12 +272,14 @@ export class OrderDetail implements OnInit {
     return rows.filter((r: any) => Number(r?.returnQty ?? 0) > 0);
   }
 
+
   returnRequestGoodsTotal(order: any): number {
     return this.getReturnLines(order).reduce(
       (s: number, r: any) => s + Number(r.price || 0) * Number(r.returnQty || 0),
       0
     );
   }
+
 
   getReturnStatusLabel(rs: string): string {
     const map: Record<string, string> = {
@@ -259,4 +290,59 @@ export class OrderDetail implements OnInit {
     };
     return map[rs] || rs;
   }
+
+
+  // ✅ Hiển thị thông báo khi trạng thái hoàn trả thay đổi
+  checkReturnStatusChange(oldStatus: string, newStatus: string): void {
+    if (oldStatus === newStatus) return;
+    
+    if (newStatus === 'rejected') {
+      this.api.showToast('Yêu cầu hoàn trả đã bị từ chối. Vui lòng kiểm tra lại lý do từ shop.', 'error');
+    } else if (newStatus === 'approved') {
+      this.api.showToast('Yêu cầu hoàn trả đã được chấp nhận! Shop sẽ xử lý hoàn tiền trong thời gian sớm nhất.', 'success');
+    } else if (newStatus === 'completed') {
+      this.api.showToast('Hoàn trả thành công! Số tiền đã được hoàn lại.', 'success');
+    }
+  }
+
+
+  // Theo dõi thay đổi trạng thái hoàn trả
+  private previousReturnStatus: string = '';
+
+
+  // Gọi hàm này khi load order để kiểm tra thay đổi
+  private checkReturnStatus(order: any): void {
+    if (order?.returnStatus && order.returnStatus !== this.previousReturnStatus) {
+      this.checkReturnStatusChange(this.previousReturnStatus, order.returnStatus);
+      this.previousReturnStatus = order.returnStatus;
+    }
+  }
+
+
+  // ═══════════════════════════════════════════════════════════════
+  // THỜI GIAN NHẬN HÀNG DỰ KIẾN
+  // ═══════════════════════════════════════════════════════════════
+  getEstimatedDelivery(createdAt: string, shippingMethod: string): string {
+    if (!createdAt) return '—';
+    
+    const orderDate = new Date(createdAt);
+    let daysToAdd = 0;
+    
+    if (shippingMethod === 'express') {
+      daysToAdd = 2; // Giao nhanh: 1-2 ngày
+    } else {
+      daysToAdd = 4; // Giao tiêu chuẩn: 3-4 ngày
+    }
+    
+    const estimatedDate = new Date(orderDate);
+    estimatedDate.setDate(orderDate.getDate() + daysToAdd);
+    
+    return estimatedDate.toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  }
+
+
 }

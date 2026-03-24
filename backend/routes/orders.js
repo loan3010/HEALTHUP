@@ -7,6 +7,8 @@ const router   = express.Router();
 const multer   = require('multer');
 
 
+
+
 const Order        = require('../models/Order');
 const Product      = require('../models/Product');
 const Cart         = require('../models/Cart');
@@ -27,15 +29,21 @@ const {
 const { restoreInventoryForOrderIfNeeded } = require('../helpers/orderInventory');
 
 
+
+
 function jwtSecretOrders() {
   return process.env.JWT_SECRET || 'secret_key';
 }
+
+
 
 
 function extractBearer(req) {
   const h = req.headers.authorization || req.headers.Authorization || '';
   return typeof h === 'string' && h.startsWith('Bearer ') ? h.slice(7).trim() : '';
 }
+
+
 
 
 // ======================= MULTER CONFIG =======================
@@ -53,6 +61,8 @@ const returnStorage = multer.diskStorage({
 });
 
 
+
+
 const fileFilter = (req, file, cb) => {
   const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
   if (allowed.includes(file.mimetype)) {
@@ -63,6 +73,8 @@ const fileFilter = (req, file, cb) => {
 };
 
 
+
+
 const uploadReturnImages = multer({
   storage: returnStorage,
   fileFilter,
@@ -70,7 +82,11 @@ const uploadReturnImages = multer({
 }).array('images', 5);
 
 
+
+
 // ======================= HELPER =======================
+
+
 
 
 function isValidPhoneVN(phone) {
@@ -78,10 +94,14 @@ function isValidPhoneVN(phone) {
 }
 
 
+
+
 function calcShipping(subTotal, shippingMethod) {
   if (shippingMethod === 'express') return 30000;
   return subTotal > 500000 ? 0 : 20000;
 }
+
+
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -92,13 +112,19 @@ async function calcDiscountFromDB(voucherCode, subTotal, shippingFee, userId, ca
   if (!voucherCode) return { discountAmount: 0, discountOnType: null };
 
 
+
+
   const now   = new Date();
   const promo = await Promotion.findOne({
     code: voucherCode.trim().toUpperCase()
   });
 
 
+
+
   if (!promo) return { discountAmount: 0, discountOnType: null };
+
+
 
 
   // Thời gian
@@ -108,14 +134,20 @@ async function calcDiscountFromDB(voucherCode, subTotal, shippingFee, userId, ca
   if (end   && now > end)   return { discountAmount: 0, discountOnType: null };
 
 
+
+
   // Tổng lượt toàn hệ thống
   if (promo.totalLimit > 0 && promo.usedCount >= promo.totalLimit) {
     return { discountAmount: 0, discountOnType: null };
   }
 
 
+
+
   // Đơn tối thiểu
   if (subTotal < promo.minOrder) return { discountAmount: 0, discountOnType: null };
+
+
 
 
   // ── FIX 1: firstOrderOnly ──
@@ -126,6 +158,8 @@ async function calcDiscountFromDB(voucherCode, subTotal, shippingFee, userId, ca
     });
     if (prevCount > 0) return { discountAmount: 0, discountOnType: null };
   }
+
+
 
 
   // ── FIX 2: userLimit ──
@@ -144,10 +178,14 @@ async function calcDiscountFromDB(voucherCode, subTotal, shippingFee, userId, ca
   }
 
 
+
+
   // ── FIX 3: applyScope category ──
   if (promo.applyScope === 'category' && promo.appliedCategoryIds?.length > 0) {
     const ids = cartProductIds || [];
     if (ids.length === 0) return { discountAmount: 0, discountOnType: null };
+
+
 
 
     const cats = await Category.find({
@@ -156,7 +194,11 @@ async function calcDiscountFromDB(voucherCode, subTotal, shippingFee, userId, ca
     const allowedCatNames = cats.map(c => c.name);
 
 
+
+
     if (allowedCatNames.length === 0) return { discountAmount: 0, discountOnType: null };
+
+
 
 
     const match = await Product.findOne({
@@ -167,8 +209,12 @@ async function calcDiscountFromDB(voucherCode, subTotal, shippingFee, userId, ca
     }).lean();
 
 
+
+
     if (!match) return { discountAmount: 0, discountOnType: null };
   }
+
+
 
 
   // ── FIX 4: applyScope product ──
@@ -180,9 +226,13 @@ async function calcDiscountFromDB(voucherCode, subTotal, shippingFee, userId, ca
   }
 
 
+
+
   // Tính tiền giảm
   let discountAmount   = 0;
   const discountOnType = (promo.type === 'shipping') ? 'shipping' : 'items';
+
+
 
 
   if (promo.type === 'shipping') {
@@ -212,8 +262,12 @@ async function calcDiscountFromDB(voucherCode, subTotal, shippingFee, userId, ca
   }
 
 
+
+
   return { discountAmount, discountOnType };
 }
+
+
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -225,9 +279,13 @@ async function updateMemberRank(userId) {
   if (!userId) return;
 
 
+
+
   try {
     const threeMonthsAgo = new Date();
     threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+
 
 
     // totalSpent cho hạng: chỉ đơn delivered trong 3 tháng gần nhất
@@ -247,6 +305,8 @@ async function updateMemberRank(userId) {
     const memberRank  = recentSpent >= 2_000_000 ? 'vip' : 'member';
 
 
+
+
     // totalSpent lưu DB: toàn bộ lịch sử delivered (dùng cho admin xem)
     // KHÔNG tính đơn đã hoàn trả
     const aggAll = await Order.aggregate([
@@ -262,11 +322,15 @@ async function updateMemberRank(userId) {
     const totalSpent = aggAll[0]?.total || 0;
 
 
+
+
     await User.findByIdAndUpdate(userId, { totalSpent, memberRank });
   } catch (e) {
     console.error('Cập nhật hạng thành viên thất bại:', e);
   }
 }
+
+
 
 
 function getMembershipTier(totalSpent) {
@@ -278,9 +342,13 @@ function getMembershipTier(totalSpent) {
 }
 
 
+
+
 function normalizePhone(phone) {
   return String(phone || '').replace(/\D/g, '');
 }
+
+
 
 
 function formatVND(amount) {
@@ -290,11 +358,15 @@ function formatVND(amount) {
 }
 
 
+
+
 function normalizeShippingPart(v) {
   const s = String(v ?? '').trim();
   if (!s || /^n\/a$/i.test(s)) return '';
   return s;
 }
+
+
 
 
 const ORDER_STATUS = [
@@ -308,7 +380,11 @@ const ORDER_STATUS = [
 const RETURN_STATUS = ['none', 'requested', 'approved', 'rejected', 'completed'];
 
 
+
+
 const MAX_REDELIVERY_ATTEMPTS = 2;
+
+
 
 
 const DELIVERY_FAIL_PRESET_LABELS = {
@@ -319,10 +395,14 @@ const DELIVERY_FAIL_PRESET_LABELS = {
 };
 
 
+
+
 function deliveryPresetAllowsRedelivery(preset) {
   const p = String(preset || '');
   return p !== 'wrong_address' && p !== 'customer_refused';
 }
+
+
 
 
 const NEXT_STATUS = {
@@ -333,6 +413,8 @@ const NEXT_STATUS = {
   delivered: [],
   cancelled: [],
 };
+
+
 
 
 function resolveDeliveryFailureReason(preset, detail) {
@@ -355,6 +437,8 @@ function resolveDeliveryFailureReason(preset, detail) {
 }
 
 
+
+
 async function notifyUserDeliveryFailed(order, reasonText) {
   if (!order.userId) return;
   try {
@@ -374,6 +458,8 @@ async function notifyUserDeliveryFailed(order, reasonText) {
     console.error('notifyUserDeliveryFailed:', e);
   }
 }
+
+
 
 
 async function notifyUserOrderCancelledRich(order) {
@@ -403,10 +489,14 @@ async function notifyUserOrderCancelledRich(order) {
 }
 
 
+
+
 function parseDateStart(d) {
   const dt = new Date(`${d}T00:00:00.000Z`);
   return Number.isNaN(dt.getTime()) ? null : dt;
 }
+
+
 
 
 function parseDateEnd(d) {
@@ -415,9 +505,13 @@ function parseDateEnd(d) {
 }
 
 
+
+
 function buildAdminOrderFilter(query) {
   const filter = {};
   const and    = [];
+
+
 
 
   if (ORDER_STATUS.includes(String(query.status || ''))) {
@@ -429,6 +523,8 @@ function buildAdminOrderFilter(query) {
   if (['cod', 'momo', 'vnpay'].includes(String(query.paymentMethod || ''))) {
     filter.paymentMethod = String(query.paymentMethod);
   }
+
+
 
 
   const from = String(query.from || '');
@@ -443,6 +539,8 @@ function buildAdminOrderFilter(query) {
     if (!toDate) throw new Error('Ngày kết thúc không hợp lệ');
     and.push({ createdAt: { $lte: toDate } });
   }
+
+
 
 
   const keyword = String(query.search || '').trim();
@@ -460,9 +558,13 @@ function buildAdminOrderFilter(query) {
   }
 
 
+
+
   if (and.length) filter.$and = and;
   return filter;
 }
+
+
 
 
 function getAdminSort(sortBy, sortDir) {
@@ -471,6 +573,8 @@ function getAdminSort(sortBy, sortDir) {
   const by      = allowed.includes(String(sortBy || '')) ? String(sortBy) : 'createdAt';
   return { [by]: dir, _id: -1 };
 }
+
+
 
 
 async function attachBuyerAccountToOrders(orders) {
@@ -504,6 +608,8 @@ async function attachBuyerAccountToOrders(orders) {
 }
 
 
+
+
 async function generateNextOrderCode() {
   const latest = await Order.findOne({ orderCode: /^ORD\d{11}$/ })
     .sort({ orderCode: -1 })
@@ -514,8 +620,12 @@ async function generateNextOrderCode() {
 }
 
 
+
+
 async function persistOrderReturnRequest(order, { reason, note, parsedItems, files, auditWho }) {
   const imageUrls = (files || []).map((f) => `/images/returns/${f.filename}`);
+
+
 
 
   order.returnStatus      = 'requested';
@@ -523,6 +633,8 @@ async function persistOrderReturnRequest(order, { reason, note, parsedItems, fil
   order.returnReason      = String(reason || '');
   order.returnNote        = String(note   || '');
   order.returnImages      = imageUrls;
+
+
 
 
   if (Array.isArray(parsedItems) && parsedItems.length > 0) {
@@ -537,7 +649,11 @@ async function persistOrderReturnRequest(order, { reason, note, parsedItems, fil
   }
 
 
+
+
   await order.save();
+
+
 
 
   await OrderAuditLog.create({
@@ -550,6 +666,8 @@ async function persistOrderReturnRequest(order, { reason, note, parsedItems, fil
   });
 
 
+
+
   try {
     await notifyAdminReturnRequested(order);
   } catch (e) {
@@ -558,12 +676,16 @@ async function persistOrderReturnRequest(order, { reason, note, parsedItems, fil
 }
 
 
+
+
 // ─────────────────────────────────────────────────────────────────────────────
 // prepareOrderFromRequestBody — truyền userId + cartProductIds vào calcDiscountFromDB
 // ─────────────────────────────────────────────────────────────────────────────
 async function prepareOrderFromRequestBody(body, opts = {}) {
   const allowVouchers = opts.allowVouchers !== false;
   const lockedUserId  = opts.lockedUserId;
+
+
 
 
   const {
@@ -577,8 +699,12 @@ async function prepareOrderFromRequestBody(body, opts = {}) {
   } = body || {};
 
 
+
+
   const voucherCode     = allowVouchers && voucherCodeBody ? String(voucherCodeBody).trim()  : null;
   const shipVoucherCode = allowVouchers && shipVoucherBody  ? String(shipVoucherBody).trim()  : null;
+
+
 
 
   if (!customer?.fullName || !customer?.phone || !customer?.address) {
@@ -592,12 +718,16 @@ async function prepareOrderFromRequestBody(body, opts = {}) {
   }
 
 
+
+
   const normalizedIn = items.map(i => ({
     productId:    String(i.productId    || '').trim(),
     variantId:    String(i.variantId    || '').trim(),
     variantLabel: String(i.variantLabel || '').trim(),
     quantity:     Math.max(1, Number(i.quantity || 1)),
   }));
+
+
 
 
   const invalidIds = normalizedIn
@@ -608,6 +738,8 @@ async function prepareOrderFromRequestBody(body, opts = {}) {
   }
 
 
+
+
   const invalidVariantIds = normalizedIn
     .filter(i => i.variantId && !mongoose.Types.ObjectId.isValid(i.variantId))
     .map(i => i.variantId);
@@ -616,9 +748,13 @@ async function prepareOrderFromRequestBody(body, opts = {}) {
   }
 
 
+
+
   const ids      = normalizedIn.map(i => new mongoose.Types.ObjectId(i.productId));
   const products = await Product.find({ _id: { $in: ids } }).lean();
   const map      = new Map(products.map(p => [String(p._id), p]));
+
+
 
 
   const missing = normalizedIn.filter(i => !map.has(i.productId)).map(i => i.productId);
@@ -627,13 +763,19 @@ async function prepareOrderFromRequestBody(body, opts = {}) {
   }
 
 
+
+
   let subTotal   = 0;
   const orderItems = [];
+
+
 
 
   for (const i of normalizedIn) {
     const p = map.get(i.productId);
     let variant = null;
+
+
 
 
     if (i.variantId && mongoose.Types.ObjectId.isValid(i.variantId)) {
@@ -647,6 +789,8 @@ async function prepareOrderFromRequestBody(body, opts = {}) {
     }
 
 
+
+
     const qty       = i.quantity;
     const available = Number(variant?.stock ?? p.stock ?? 0);
     if (qty > available) {
@@ -657,8 +801,12 @@ async function prepareOrderFromRequestBody(body, opts = {}) {
     }
 
 
+
+
     const price = Number(variant?.price ?? p.price ?? 0);
     subTotal   += price * qty;
+
+
 
 
     orderItems.push({
@@ -673,15 +821,23 @@ async function prepareOrderFromRequestBody(body, opts = {}) {
   }
 
 
+
+
   // cartProductIds để check applyScope
   const cartProductIds = normalizedIn.map(i => i.productId);
+
+
 
 
   const resolvedUserId = lockedUserId
     || (userId && mongoose.Types.ObjectId.isValid(String(userId)) ? userId : null);
 
 
+
+
   const ship = calcShipping(subTotal, shippingMethod);
+
+
 
 
   const { discountAmount: discOrder } =
@@ -690,8 +846,12 @@ async function prepareOrderFromRequestBody(body, opts = {}) {
     await calcDiscountFromDB(shipVoucherCode || '', subTotal, ship, resolvedUserId, cartProductIds);
 
 
+
+
   const totalDiscount = discOrder + discShip;
   const total         = Math.max(0, subTotal - discOrder + ship - discShip);
+
+
 
 
   const orderData = {
@@ -721,11 +881,15 @@ async function prepareOrderFromRequestBody(body, opts = {}) {
   };
 
 
+
+
   if (lockedUserId && mongoose.Types.ObjectId.isValid(String(lockedUserId))) {
     orderData.userId = new mongoose.Types.ObjectId(String(lockedUserId));
   } else if (userId && mongoose.Types.ObjectId.isValid(String(userId))) {
     orderData.userId = new mongoose.Types.ObjectId(String(userId));
   }
+
+
 
 
   return {
@@ -736,6 +900,8 @@ async function prepareOrderFromRequestBody(body, opts = {}) {
     shipVoucherCodeRaw: allowVouchers && shipVoucherCode ? shipVoucherCode : null,
   };
 }
+
+
 
 
 async function persistNewOrder(
@@ -761,6 +927,8 @@ async function persistNewOrder(
   if (!order) throw lastErr || new Error('Không thể tạo mã đơn hàng');
 
 
+
+
   const voucherUpdates = [];
   if (voucherCodeRaw) {
     voucherUpdates.push(
@@ -781,6 +949,8 @@ async function persistNewOrder(
   if (voucherUpdates.length) await Promise.all(voucherUpdates);
 
 
+
+
   const boughtIds = orderItems.map(i => String(i.productId));
   const stripPurchasedFromCart = async filter => {
     try {
@@ -792,6 +962,8 @@ async function persistNewOrder(
   };
 
 
+
+
   if (order.userId) {
     await stripPurchasedFromCart({ userId: order.userId });
   }
@@ -800,9 +972,13 @@ async function persistNewOrder(
   }
 
 
+
+
   for (const item of orderItems) {
     const p = await Product.findById(item.productId);
     if (!p) continue;
+
+
 
 
     if (item.variantId) {
@@ -815,9 +991,13 @@ async function persistNewOrder(
     }
 
 
+
+
     if (Array.isArray(p.variants) && p.variants.length > 0) {
       p.stock = p.variants.reduce((sum, v) => sum + Number(v.stock || 0), 0);
     }
+
+
 
 
     p.sold = Number(p.sold || 0) + Number(item.quantity || 0);
@@ -825,17 +1005,25 @@ async function persistNewOrder(
   }
 
 
+
+
   return order;
 }
 
 
+
+
 // ======================= CREATE ORDER =======================
+
+
 
 
 router.post('/', async (req, res) => {
   try {
     let allowVouchers = false;
     let lockedUserId  = null;
+
+
 
 
     const token = extractBearer(req);
@@ -856,6 +1044,8 @@ router.post('/', async (req, res) => {
     }
 
 
+
+
     if (!lockedUserId) {
       const cust = req.body?.customer;
       if (!cust?.phone) {
@@ -868,14 +1058,20 @@ router.post('/', async (req, res) => {
     }
 
 
+
+
     const prep = await prepareOrderFromRequestBody(req.body, { allowVouchers, lockedUserId });
     if (!prep.ok) {
       return res.status(prep.status).json(prep.payload);
     }
 
 
+
+
     const guestCartRaw       = String(req.body?.guestCartSessionId || '').trim();
     const guestCartSessionId = isValidGuestCartSessionId(guestCartRaw) ? guestCartRaw : null;
+
+
 
 
     const order = await persistNewOrder(
@@ -887,10 +1083,14 @@ router.post('/', async (req, res) => {
     );
 
 
+
+
     // update rank sau khi đặt hàng thành công
     if (order.userId) {
       await updateMemberRank(order.userId);
     }
+
+
 
 
     // Tạo notification
@@ -901,6 +1101,8 @@ router.post('/', async (req, res) => {
         const productSummary = extraCount > 0
           ? `${firstItem.name} và ${extraCount} sản phẩm khác`
           : firstItem.name;
+
+
 
 
         await Notification.create({
@@ -917,11 +1119,15 @@ router.post('/', async (req, res) => {
     }
 
 
+
+
     try {
       await notifyAdminOrderPlaced(order);
     } catch (e) {
       console.error('Admin notify order_new:', e);
     }
+
+
 
 
     return res.status(201).json({ orderId: order._id, orderCode: order.orderCode });
@@ -935,7 +1141,11 @@ router.post('/', async (req, res) => {
 });
 
 
+
+
 // ======================= GET ALL / GET BY USER =======================
+
+
 
 
 router.get('/', async (req, res) => {
@@ -954,7 +1164,11 @@ router.get('/', async (req, res) => {
 });
 
 
+
+
 // ======================= GET ORDERS BY USER =======================
+
+
 
 
 router.get('/user/:userId', async (req, res) => {
@@ -973,21 +1187,23 @@ router.get('/user/:userId', async (req, res) => {
 });
 
 
+
+
 // ======================= GET ORDERS BY USER WITH PAGINATION =======================
 router.get('/paginated', async (req, res) => {
   try {
     const { userId, page = 1, limit = 10 } = req.query;
-    
+   
     if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
       return res.status(400).json({ message: 'userId không hợp lệ' });
     }
-    
+   
     const pageNum = Math.max(1, parseInt(page));
     const limitNum = Math.min(50, Math.max(1, parseInt(limit)));
     const skip = (pageNum - 1) * limitNum;
-    
+   
     const filter = { userId: new mongoose.Types.ObjectId(userId) };
-    
+   
     const [orders, total] = await Promise.all([
       Order.find(filter)
         .populate({ path: 'items.productId', select: 'images name' })
@@ -997,7 +1213,7 @@ router.get('/paginated', async (req, res) => {
         .lean(),
       Order.countDocuments(filter)
     ]);
-    
+   
     res.json({
       orders,
       total,
@@ -1011,6 +1227,8 @@ router.get('/paginated', async (req, res) => {
 });
 
 
+
+
 // ======================= ADMIN ORDER LIST =======================
 router.get('/admin/list', authenticateToken, requireAdmin, async (req, res) => {
   try {
@@ -1019,6 +1237,8 @@ router.get('/admin/list', authenticateToken, requireAdmin, async (req, res) => {
     const skip  = (page - 1) * limit;
     const filter = buildAdminOrderFilter(req.query);
     const sort   = getAdminSort(req.query.sortBy, req.query.sortDir);
+
+
 
 
     const [data, total, globalStats] = await Promise.all([
@@ -1041,11 +1261,15 @@ router.get('/admin/list', authenticateToken, requireAdmin, async (req, res) => {
     ]);
 
 
+
+
     const summary = globalStats?.[0] || {
       totalOrders: 0, pendingCount: 0, shippingCount: 0,
       returnRequestedCount: 0, returnApprovedCount: 0,
       returnRejectedCount: 0, returnCompletedCount: 0
     };
+
+
 
 
     const dataWithBuyers = await attachBuyerAccountToOrders(data);
@@ -1054,6 +1278,8 @@ router.get('/admin/list', authenticateToken, requireAdmin, async (req, res) => {
     return res.status(400).json({ message: err.message || 'Không thể tải danh sách đơn hàng' });
   }
 });
+
+
 
 
 // ======================= ADMIN HOTLINE PREVIEW =======================
@@ -1086,6 +1312,8 @@ router.post('/admin/hotline-preview', authenticateToken, requireAdmin, async (re
 });
 
 
+
+
 // ======================= ADMIN HOTLINE CREATE =======================
 router.post('/admin/hotline', authenticateToken, requireAdmin, async (req, res) => {
   try {
@@ -1110,6 +1338,8 @@ router.post('/admin/hotline', authenticateToken, requireAdmin, async (req, res) 
 });
 
 
+
+
 // ======================= ADMIN ORDER DETAIL =======================
 router.get('/admin/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
@@ -1118,8 +1348,12 @@ router.get('/admin/:id', authenticateToken, requireAdmin, async (req, res) => {
     }
 
 
+
+
     const order = await Order.findById(req.params.id).populate('items.productId').lean();
     if (!order) return res.status(404).json({ message: 'Order not found' });
+
+
 
 
     let user = null;
@@ -1130,6 +1364,8 @@ router.get('/admin/:id', authenticateToken, requireAdmin, async (req, res) => {
       const candidates = await User.find({ role: 'user' }).select('customerID username phone email').lean();
       user = candidates.find(u => normalizePhone(u.phone) === digits) || null;
     }
+
+
 
 
     const statsMaps = await buildCustomerListStatsMaps(Order);
@@ -1144,8 +1380,12 @@ router.get('/admin/:id', authenticateToken, requireAdmin, async (req, res) => {
     }
 
 
+
+
     const totalOrders = stats.totalOrders;
     const totalSpent = stats.totalSpent;
+
+
 
 
     // Tài khoản đặt hàng (khác customer = người nhận trên đơn).
@@ -1156,6 +1396,8 @@ router.get('/admin/:id', authenticateToken, requireAdmin, async (req, res) => {
           email: String(user.email || ''),
         }
       : null;
+
+
 
 
     return res.json({
@@ -1175,6 +1417,8 @@ router.get('/admin/:id', authenticateToken, requireAdmin, async (req, res) => {
 });
 
 
+
+
 // ======================= ADMIN UPDATE STATUS =======================
 router.patch('/admin/:id/status', authenticateToken, requireAdmin, async (req, res) => {
   try {
@@ -1184,14 +1428,20 @@ router.patch('/admin/:id/status', authenticateToken, requireAdmin, async (req, r
     }
 
 
+
+
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
+
+
 
 
     const current = order.status;
     if (current === status) {
       return res.status(400).json({ message: 'Đơn hàng đã ở trạng thái này' });
     }
+
+
 
 
     const next = NEXT_STATUS[current] || [];
@@ -1203,12 +1453,16 @@ router.patch('/admin/:id/status', authenticateToken, requireAdmin, async (req, r
     }
 
 
+
+
     if (current === 'shipping' && status === 'delivery_failed') {
       const r = resolveDeliveryFailureReason(deliveryFailurePreset, deliveryFailureDetail);
       if (!r.ok) return res.status(400).json({ message: r.message });
       order.deliveryFailureReason = r.text;
       order.deliveryFailurePreset = r.preset;
     }
+
+
 
 
     if (current === 'delivery_failed' && status === 'shipping') {
@@ -1226,6 +1480,8 @@ router.patch('/admin/:id/status', authenticateToken, requireAdmin, async (req, r
       }
       order.redeliveryAttempts = attempts + 1;
     }
+
+
 
 
     if (status === 'cancelled') {
@@ -1250,8 +1506,12 @@ router.patch('/admin/:id/status', authenticateToken, requireAdmin, async (req, r
     }
 
 
+
+
     order.status = status;
     await order.save();
+
+
 
 
     await OrderAuditLog.create({
@@ -1269,10 +1529,14 @@ router.patch('/admin/:id/status', authenticateToken, requireAdmin, async (req, r
     });
 
 
+
+
     // FIX: khi delivered → dùng hàm updateMemberRank mới (window 3 tháng, chỉ tính delivered)
     if (status === 'delivered' && order.userId) {
       await updateMemberRank(order.userId);
     }
+
+
 
 
     if (order.userId) {
@@ -1287,6 +1551,8 @@ router.patch('/admin/:id/status', authenticateToken, requireAdmin, async (req, r
             shipping: 'đang được giao 🚚',
             delivered: 'đã giao thành công 🎉',
           }[status] || status;
+
+
 
 
           await Notification.create({
@@ -1304,11 +1570,15 @@ router.patch('/admin/:id/status', authenticateToken, requireAdmin, async (req, r
     }
 
 
+
+
     return res.json(order);
   } catch (err) {
     return res.status(500).json({ message: 'Server error' });
   }
 });
+
+
 
 
 // ======================= ADMIN UPDATE RETURN STATUS =======================
@@ -1320,8 +1590,12 @@ router.patch('/admin/:id/return-status', authenticateToken, requireAdmin, async 
     }
 
 
+
+
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
+
+
 
 
     if (order.status !== 'delivered') {
@@ -1329,10 +1603,14 @@ router.patch('/admin/:id/return-status', authenticateToken, requireAdmin, async 
     }
 
 
+
+
     const current = order.returnStatus || 'none';
     if (current === returnStatus) {
       return res.status(400).json({ message: 'Đơn đã ở trạng thái trả hàng/hoàn tiền này' });
     }
+
+
 
 
     const returnFlow = {
@@ -1344,12 +1622,16 @@ router.patch('/admin/:id/return-status', authenticateToken, requireAdmin, async 
     };
 
 
+
+
     if (!(returnFlow[current] || []).includes(returnStatus)) {
       return res.status(400).json({
         message: `Không thể chuyển returnStatus từ "${current}" sang "${returnStatus}"`,
         allowedTransitions: returnFlow[current] || []
       });
     }
+
+
 
 
     order.returnStatus = returnStatus;
@@ -1374,6 +1656,8 @@ router.patch('/admin/:id/return-status', authenticateToken, requireAdmin, async 
     await order.save();
 
 
+
+
     await OrderAuditLog.create({
       orderId:   order._id,
       adminId:   String(req.user?.userId || 'unknown-admin'),
@@ -1384,24 +1668,49 @@ router.patch('/admin/:id/return-status', authenticateToken, requireAdmin, async 
     });
 
 
-    if (returnStatus === 'rejected' && order.userId) {
+
+
+    // ✅ SỬA LỖI: Thêm thông báo cho cả 3 trạng thái quan trọng
+    if (order.userId) {
       try {
-        const shopReason = String(order.returnRejectionReason || '').trim();
-        const msg = shopReason
-          ? `Đơn ${order.orderCode}: ${shopReason}`
-          : `Đơn ${order.orderCode}: Shop đã từ chối yêu cầu hoàn / trả hàng.`;
-        await Notification.create({
-          userId: order.userId,
-          title: 'Yêu cầu hoàn hàng không được chấp nhận',
-          message: msg,
-          type: 'order',
-          orderId: order._id,
-          isRead: false,
-        });
+        if (returnStatus === 'rejected') {
+          const shopReason = String(order.returnRejectionReason || '').trim();
+          const msg = shopReason
+            ? `Đơn ${order.orderCode}: ${shopReason}`
+            : `Đơn ${order.orderCode}: Shop đã từ chối yêu cầu hoàn / trả hàng.`;
+          await Notification.create({
+            userId: order.userId,
+            title: 'Yêu cầu hoàn hàng không được chấp nhận',
+            message: msg,
+            type: 'order',
+            orderId: order._id,
+            isRead: false,
+          });
+        } else if (returnStatus === 'approved') {
+          await Notification.create({
+            userId: order.userId,
+            title: 'Yêu cầu hoàn hàng đã được chấp nhận ✅',
+            message: `Đơn ${order.orderCode}: Shop đã chấp nhận yêu cầu hoàn / trả hàng. Sẽ xử lý hoàn tiền trong thời gian sớm nhất.`,
+            type: 'order',
+            orderId: order._id,
+            isRead: false,
+          });
+        } else if (returnStatus === 'completed') {
+          await Notification.create({
+            userId: order.userId,
+            title: 'Đã hoàn tiền / trả hàng thành công 🎉',
+            message: `Đơn ${order.orderCode}: Shop đã xử lý hoàn tiền / trả hàng xong. Số tiền ${formatVND(order.total)} đã được hoàn lại.`,
+            type: 'order',
+            orderId: order._id,
+            isRead: false,
+          });
+        }
       } catch (e) {
-        console.error('Tạo notification từ chối hoàn:', e);
+        console.error('Tạo notification hoàn trả thất bại:', e);
       }
     }
+
+
 
 
     return res.json(order);
@@ -1409,6 +1718,8 @@ router.patch('/admin/:id/return-status', authenticateToken, requireAdmin, async 
     return res.status(500).json({ message: 'Server error' });
   }
 });
+
+
 
 
 // ======================= GUEST: tra cứu đơn =======================
@@ -1424,9 +1735,13 @@ router.post('/guest-lookup', async (req, res) => {
     }
 
 
+
+
     const order = await Order.findOne({ orderCode: rawCode })
       .populate({ path: 'items.productId', select: 'images name' })
       .lean();
+
+
 
 
     if (!order) {
@@ -1437,12 +1752,16 @@ router.post('/guest-lookup', async (req, res) => {
     }
 
 
+
+
     return res.json({ order });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: 'Server error' });
   }
 });
+
+
 
 
 // ======================= GUEST: đổi trả =======================
@@ -1454,13 +1773,19 @@ router.patch('/:id/guest-request-return', (req, res) => {
       }
 
 
+
+
       const { reason, note, items, phone, orderCode } = req.body;
+
+
 
 
       if (!reason) {
         (req.files || []).forEach((f) => fs.unlink(f.path, () => {}));
         return res.status(400).json({ message: 'Vui lòng chọn lý do đổi trả' });
       }
+
+
 
 
       const phoneVal = String(phone     || '').trim();
@@ -1479,11 +1804,15 @@ router.patch('/:id/guest-request-return', (req, res) => {
       }
 
 
+
+
       const order = await Order.findById(req.params.id);
       if (!order) {
         (req.files || []).forEach((f) => fs.unlink(f.path, () => {}));
         return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
       }
+
+
 
 
       if (String(order.orderCode || '').toUpperCase() !== rawCode) {
@@ -1504,11 +1833,15 @@ router.patch('/:id/guest-request-return', (req, res) => {
       }
 
 
+
+
       let parsedItems = [];
       if (items) {
         try { parsedItems = typeof items === 'string' ? JSON.parse(items) : items; }
         catch { parsedItems = []; }
       }
+
+
 
 
       await persistOrderReturnRequest(order, {
@@ -1520,6 +1853,8 @@ router.patch('/:id/guest-request-return', (req, res) => {
       });
 
 
+
+
       return res.json({ message: 'Yêu cầu đổi trả đã được gửi', order });
     } catch (err) {
       (req.files || []).forEach((f) => fs.unlink(f.path, () => {}));
@@ -1529,13 +1864,19 @@ router.patch('/:id/guest-request-return', (req, res) => {
 });
 
 
+
+
 // ======================= GET ORDER BY ID =======================
+
+
 
 
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     let order;
+
+
 
 
     if (mongoose.Types.ObjectId.isValid(id)) {
@@ -1547,6 +1888,8 @@ router.get('/:id', async (req, res) => {
     if (!order) return res.status(404).json({ message: 'Order not found' });
 
 
+
+
     return res.json(order);
   } catch (err) {
     return res.status(500).json({ message: 'Server error' });
@@ -1554,8 +1897,12 @@ router.get('/:id', async (req, res) => {
 });
 
 
+
+
 // ======================= UPDATE STATUS (user) =======================
 // ======================= UPDATE STATUS (user tự hủy) =======================
+
+
 
 
 router.patch('/:id/status', async (req, res) => {
@@ -1574,8 +1921,12 @@ router.patch('/:id/status', async (req, res) => {
     }
 
 
+
+
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
+
+
 
 
     const prev = order.status;
@@ -1584,9 +1935,13 @@ router.patch('/:id/status', async (req, res) => {
     }
 
 
+
+
     if (status === 'cancelled' && prev !== 'pending') {
       return res.status(400).json({ message: 'Chỉ có thể hủy đơn đang chờ xác nhận' });
     }
+
+
 
 
     if (status === 'cancelled') {
@@ -1606,8 +1961,12 @@ router.patch('/:id/status', async (req, res) => {
     }
 
 
+
+
     order.status = status;
     await order.save();
+
+
 
 
     if (status === 'cancelled') {
@@ -1619,9 +1978,13 @@ router.patch('/:id/status', async (req, res) => {
     }
 
 
+
+
     if (status === 'cancelled' && order.userId) {
       await notifyUserOrderCancelledRich(order);
     }
+
+
 
 
     res.json(order);
@@ -1631,7 +1994,11 @@ router.patch('/:id/status', async (req, res) => {
 });
 
 
+
+
 // ======================= USER REQUEST RETURN =======================
+
+
 
 
 router.patch('/:id/request-return', authenticateToken, (req, res) => {
@@ -1642,7 +2009,11 @@ router.patch('/:id/request-return', authenticateToken, (req, res) => {
       }
 
 
+
+
       const { reason, note, items } = req.body;
+
+
 
 
       if (!reason) {
@@ -1655,6 +2026,8 @@ router.patch('/:id/request-return', authenticateToken, (req, res) => {
       }
 
 
+
+
       const order = await Order.findById(req.params.id);
       if (!order) {
         (req.files || []).forEach(f => fs.unlink(f.path, () => {}));
@@ -1664,6 +2037,8 @@ router.patch('/:id/request-return', authenticateToken, (req, res) => {
         (req.files || []).forEach(f => fs.unlink(f.path, () => {}));
         return res.status(400).json({ message: 'Chỉ có thể yêu cầu đổi trả cho đơn đã giao' });
       }
+
+
 
 
       const tokenUserId = req.user?.userId && String(req.user.userId);
@@ -1680,11 +2055,15 @@ router.patch('/:id/request-return', authenticateToken, (req, res) => {
       }
 
 
+
+
       let parsedItems = [];
       if (items) {
         try { parsedItems = typeof items === 'string' ? JSON.parse(items) : items; }
         catch { parsedItems = []; }
       }
+
+
 
 
       await persistOrderReturnRequest(order, {
@@ -1696,6 +2075,8 @@ router.patch('/:id/request-return', authenticateToken, (req, res) => {
       });
 
 
+
+
       return res.json({ message: 'Yêu cầu đổi trả đã được gửi', order });
     } catch (err) {
       (req.files || []).forEach(f => fs.unlink(f.path, () => {}));
@@ -1705,7 +2086,11 @@ router.patch('/:id/request-return', authenticateToken, (req, res) => {
 });
 
 
+
+
 // ======================= DELETE ORDER =======================
+
+
 
 
 router.delete('/:id', async (req, res) => {
@@ -1721,6 +2106,8 @@ router.delete('/:id', async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
+
+
 
 
 module.exports = router;

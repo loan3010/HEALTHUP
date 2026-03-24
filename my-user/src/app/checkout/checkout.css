@@ -112,6 +112,38 @@
 .co-alert-error { background: #fff1f1; border: 1px solid #fecaca; color: #b91c1c; }
 
 /* ══════════════════════════════════════════
+   THỜI GIAN DỰ KIẾN GIAO HÀNG
+   ══════════════════════════════════════════ */
+.co-delivery-estimate {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  margin-top: 16px;
+  background: #f8fdf8;
+  border: 1px solid #d4e6d4;
+  border-radius: 14px;
+  font-size: 14px;
+  color: #2d4a2f;
+}
+
+.co-delivery-estimate i {
+  font-size: 18px;
+  color: #36873A;
+  flex-shrink: 0;
+}
+
+.co-delivery-estimate span {
+  flex: 1;
+}
+
+.co-delivery-estimate strong {
+  color: #36873A;
+  font-weight: 800;
+  margin-left: 4px;
+}
+
+/* ══════════════════════════════════════════
    ADDRESS BOOK
    ══════════════════════════════════════════ */
 .ab-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 4px; }
@@ -484,10 +516,6 @@
 .co-btn-outline:hover { border-color: #36873A; color: #36873A; background: #f8fdf8; }
 .co-btn-loading { display: flex; align-items: center; gap: 8px; }
 
-.co-trust { display: flex; justify-content: center; gap: 16px; margin-top: 16px; padding-top: 14px; border-top: 1px solid #f0f0f0; font-size: 11.5px; color: #aaa; }
-.co-trust span { display: flex; align-items: center; gap: 4px; }
-.co-trust i { color: #36873A; }
-
 /* ══════════════════════════════════════════
    VOUCHER MODAL
    ══════════════════════════════════════════ */
@@ -785,13 +813,15 @@
   .ab-card-body { padding-left: 16px; }
   .ab-card-footer { padding-left: 16px; }
   .co-voucher-modal { max-width: calc(100vw - 32px); max-height: 90vh; }
+  .co-delivery-estimate { padding: 12px 14px; font-size: 13px; }
 }
 @media (max-width: 480px) {
   .co-modal { padding: 28px 20px 24px; }
   .co-modal-actions { grid-template-columns: 1fr; }
-  .co-trust { gap: 10px; flex-wrap: wrap; }
   .ab-card-footer { gap: 6px; }
   .ab-btn-delete { margin-left: 0; }
   .co-voucher-card-inner { padding: 10px; gap: 10px; }
   .co-voucher-card-action { min-width: 60px; }
+  .co-delivery-estimate { padding: 10px 12px; font-size: 12px; gap: 8px; }
+  .co-delivery-estimate i { font-size: 16px; }
 }

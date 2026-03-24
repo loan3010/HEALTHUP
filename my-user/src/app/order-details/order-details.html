@@ -1,5 +1,6 @@
 <div class="od-page">
 
+
   <!-- Tab Navigation -->
   <div class="od-tabs">
     <button class="tab-btn" [class.active]="activeTab === 'detail'" (click)="onTabChange('detail')">
@@ -10,8 +11,10 @@
     </button>
   </div>
 
+
   <!-- ===== TAB 1: CHI TIẾT ĐƠN HÀNG ===== -->
   <div *ngIf="activeTab === 'detail'">
+
 
     <!-- Nút Back -->
     <div class="od-back-btn" *ngIf="!loading && order">
@@ -20,10 +23,12 @@
       </button>
     </div>
 
+
     <!-- Loading -->
     <div *ngIf="loading" class="od-loading">
       <i class="bi bi-hourglass-split"></i> Đang tải đơn hàng...
     </div>
+
 
     <!-- Không có dữ liệu -->
     <div *ngIf="!loading && !order" class="od-empty">
@@ -31,8 +36,10 @@
       <p>Không tìm thấy đơn hàng</p>
     </div>
 
+
     <!-- Nội dung đơn hàng -->
     <div *ngIf="!loading && order" class="od-box">
+
 
       <!-- Header -->
       <div class="od-header">
@@ -51,10 +58,12 @@
         </div>
       </div>
 
+
       <!-- Info grid -->
       <div class="od-info-grid">
 
-        <!-- Khách hàng -->
+
+        <!-- Khách hàng - Đã thu gọn sổ địa chỉ -->
         <div class="info-card">
           <div class="info-card-title">
             <i class="bi bi-person"></i> Thông tin khách hàng
@@ -62,11 +71,15 @@
           <p><span>Họ tên</span><strong>{{ order.customer?.fullName || '—' }}</strong></p>
           <p><span>SĐT</span><strong>{{ order.customer?.phone || '—' }}</strong></p>
           <p><span>Email</span><strong>{{ order.customer?.email || '—' }}</strong></p>
-          <p><span>Địa chỉ</span><strong>{{ getFullAddress() || '—' }}</strong></p>
+          <p class="address-compact">
+            <span>Địa chỉ</span>
+            <strong class="address-text">{{ getFullAddress() || '—' }}</strong>
+          </p>
           <p *ngIf="order.customer?.note">
             <span>Ghi chú</span><strong>{{ order.customer.note }}</strong>
           </p>
         </div>
+
 
         <!-- Đơn hàng -->
         <div class="info-card">
@@ -74,6 +87,7 @@
             <i class="bi bi-receipt"></i> Thông tin đơn hàng
           </div>
           <p><span>Thời gian đặt</span><strong>{{ formatDate(order.createdAt) }}</strong></p>
+          <p><span>Thời gian dự kiến giao</span><strong>{{ getEstimatedDelivery(order.createdAt, order.shippingMethod) }}</strong></p>
           <p><span>Thanh toán</span><strong>{{ getPaymentLabel(order.paymentMethod) }}</strong></p>
           <p><span>Vận chuyển</span><strong>{{ getShippingLabel(order.shippingMethod) }}</strong></p>
           <p *ngIf="order.voucherCode">
@@ -81,11 +95,14 @@
           </p>
         </div>
 
+
       </div>
+
 
       <!-- Sản phẩm -->
       <div class="od-items">
         <h3><i class="bi bi-bag-check"></i> Sản phẩm đã mua</h3>
+
 
         <div class="od-item" *ngFor="let item of order.items">
           <img
@@ -101,6 +118,7 @@
         </div>
       </div>
 
+
       <!-- Trả hàng / hoàn tiền -->
       <div class="od-return" *ngIf="order.returnStatus && order.returnStatus !== 'none'">
         <h3><i class="bi bi-arrow-return-left"></i> Trả hàng / hoàn tiền</h3>
@@ -108,6 +126,7 @@
         <p *ngIf="order.returnReason"><span>Lý do</span><strong>{{ order.returnReason }}</strong></p>
         <p *ngIf="order.returnNote"><span>Ghi chú</span><strong>{{ order.returnNote }}</strong></p>
         <p *ngIf="order.returnRejectionReason"><span>Lý do từ chối</span><strong>{{ order.returnRejectionReason }}</strong></p>
+
 
         <!-- Dòng SP khách chọn trả -->
         <div class="od-return-lines" *ngIf="getReturnLines(order).length">
@@ -129,6 +148,7 @@
           </div>
         </div>
 
+
         <!-- Ảnh minh chứng sản phẩm lỗi -->
         <div class="od-return-images" *ngIf="getReturnImages(order).length">
           <div class="od-return-images-title">Ảnh minh chứng sản phẩm lỗi</div>
@@ -143,6 +163,7 @@
           </div>
         </div>
       </div>
+
 
       <!-- Tổng kết -->
       <div class="od-summary">
@@ -164,11 +185,14 @@
         </div>
       </div>
 
+
     </div>
   </div>
 
+
   <!-- ===== TAB 2: LỊCH SỬ ĐƠN HÀNG (CÓ PHÂN TRANG) ===== -->
   <div *ngIf="activeTab === 'history'">
+
 
     <div class="recent-orders-section">
       <div class="recent-header">
@@ -176,21 +200,24 @@
         <span class="total-orders-badge">Tổng số: {{ totalOrders }} đơn</span>
       </div>
 
+
       <!-- Loading history -->
       <div *ngIf="isLoadingHistory" class="history-loading">
         <i class="bi bi-hourglass-split"></i> Đang tải danh sách đơn hàng...
       </div>
 
+
       <!-- Bảng đơn hàng -->
       <div class="orders-table" *ngIf="!isLoadingHistory && orders.length > 0">
-         <table>
+        <table class="orders-table-inner">
           <thead>
-             <tr>
+            <tr>
               <th>Mã đơn hàng</th>
               <th>Ngày đặt</th>
+              <th>Dự kiến giao</th>
               <th>Tổng tiền</th>
               <th>Trạng thái</th>
-             </tr>
+            </tr>
           </thead>
           <tbody>
             <tr *ngFor="let o of orders"
@@ -198,6 +225,7 @@
                 (click)="goToOrder(o._id)">
               <td class="table-order-code">#{{ o.orderCode || (o._id | slice:0:8) + '...' }}</td>
               <td>{{ formatDateShort(o.createdAt) }}</td>
+              <td>{{ getEstimatedDelivery(o.createdAt, o.shippingMethod) }}</td>
               <td class="table-total">{{ (o.total || 0) | number }} đ</td>
               <td>
                 <span class="table-status" [ngClass]="'status-' + o.status">
@@ -206,33 +234,35 @@
               </td>
             </tr>
           </tbody>
-         </table>
+        </table>
       </div>
+
 
       <!-- Phân trang -->
       <div class="pagination-container" *ngIf="!isLoadingHistory && totalPages > 1">
-        <button class="page-btn" 
-                [disabled]="currentPage === 1" 
+        <button class="page-btn"
+                [disabled]="currentPage === 1"
                 (click)="goToPage(currentPage - 1)">
           <i class="bi bi-chevron-left"></i>
         </button>
-        
+       
         <ng-container *ngFor="let p of getPageNumbers()">
-          <button *ngIf="p !== '...'" 
-                  class="page-btn" 
+          <button *ngIf="p !== '...'"
+                  class="page-btn"
                   [class.active]="p === currentPage"
                   (click)="goToPage(+p)">
             {{ p }}
           </button>
           <span *ngIf="p === '...'" class="page-ellipsis">...</span>
         </ng-container>
-        
-        <button class="page-btn" 
-                [disabled]="currentPage === totalPages" 
+       
+        <button class="page-btn"
+                [disabled]="currentPage === totalPages"
                 (click)="goToPage(currentPage + 1)">
           <i class="bi bi-chevron-right"></i>
         </button>
       </div>
+
 
       <!-- Empty state -->
       <div class="empty-recent" *ngIf="!isLoadingHistory && orders.length === 0">
@@ -240,8 +270,11 @@
         <p>Bạn chưa có đơn hàng nào</p>
       </div>
 
+
     </div>
 
+
   </div>
+
 
 </div>

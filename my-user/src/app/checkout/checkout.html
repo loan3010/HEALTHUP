@@ -22,6 +22,7 @@
   </div>
 </div>
 
+
 <!-- ══════════ ADDRESS MODAL ══════════ -->
 <div class="ab-backdrop" *ngIf="showAddrModal" (click)="closeAddrModal()">
   <div class="ab-modal" (click)="$event.stopPropagation()">
@@ -103,6 +104,7 @@
     </div>
   </div>
 </div>
+
 
 <!-- ══════════ VOUCHER MODAL ══════════ -->
 <div class="co-modal-backdrop" *ngIf="showVoucherModal" (click)="closeVoucherModal()">
@@ -192,6 +194,7 @@
   </div>
 </div>
 
+
 <!-- ══════════ MAIN ══════════ -->
 <div class="co-page">
   <div class="co-header">
@@ -206,11 +209,13 @@
     </div>
   </div>
 
+
   <div class="co-body">
     <div class="co-left">
       <div class="co-alert co-alert-error" *ngIf="errorMsg()">
         <i class="bi bi-exclamation-circle-fill"></i> {{ errorMsg() }}
       </div>
+
 
       <!-- SECTION 1: Địa chỉ -->
       <div class="co-section">
@@ -226,6 +231,17 @@
           <i class="bi bi-info-circle"></i>
           Bạn chưa đăng nhập. <a routerLink="/login">Đăng nhập</a> để dùng sổ địa chỉ, lưu đơn trong tài khoản và <strong>dùng mã khuyến mãi</strong>.
         </div>
+        
+        <!-- HOTLINE BANNER -->
+        <div class="co-hotline-banner" *ngIf="!userId">
+          <i class="bi bi-telephone-fill"></i>
+          <div class="co-hotline-content">
+            <span class="co-hotline-label">Hỗ trợ mua hàng</span>
+            <a href="tel:0335512275" class="co-hotline-number">0335 512 275</a>
+            <span class="co-hotline-hours">(8:00 - 21:00 hàng ngày)</span>
+          </div>
+        </div>
+        
         <div class="co-guest-addr" *ngIf="!userId" [formGroup]="guestAddrForm">
           <div class="co-guest-addr-row">
             <label>Họ và tên *</label>
@@ -289,6 +305,7 @@
         </div>
       </div>
 
+
       <!-- SECTION 2: Vận chuyển -->
       <div class="co-section">
         <div class="co-section-head"><span class="co-section-num">2</span><h3 class="co-section-title">Phương thức vận chuyển</h3></div>
@@ -306,7 +323,12 @@
             <div class="co-opt-price">{{ vnd(30000) }}</div>
           </label>
         </div>
+        <div class="co-delivery-estimate">
+          <i class="bi bi-calendar-check"></i>
+          <span>Dự kiến giao hàng: <strong>{{ getEstimatedDeliveryDate() }}</strong></span>
+        </div>
       </div>
+
 
       <!-- SECTION 3: Thanh toán -->
       <div class="co-section">
@@ -333,6 +355,7 @@
       </div>
     </div>
 
+
     <!-- RIGHT -->
     <div class="co-right">
       <div class="co-summary">
@@ -341,8 +364,10 @@
           <span class="co-summary-count">{{ items().length }} sản phẩm</span>
         </div>
 
+
         <!-- ══ HẠNG THÀNH VIÊN CARD ══ -->
         <div class="co-rank-card" *ngIf="canUseVouchers">
+
 
           <!-- Hàng trên: badge hạng + label -->
           <div class="co-rank-header">
@@ -353,6 +378,7 @@
             </span>
             <span class="co-rank-header-label">Hạng của bạn</span>
           </div>
+
 
           <!-- Progress: luôn hiển thị cho cả member lẫn VIP -->
           <div class="co-rank-progress-section">
@@ -377,6 +403,7 @@
           </div>
         </div>
 
+
         <div class="co-items">
           <div class="co-item" *ngFor="let it of items()">
             <div class="co-item-thumb" [style.backgroundImage]="'url(' + (it.imageUrl || '') + ')'">
@@ -389,6 +416,7 @@
             <div class="co-item-price">{{ vnd(it.price * it.quantity) }}</div>
           </div>
         </div>
+
 
         <ng-container *ngIf="canUseVouchers">
           <div class="co-voucher">
@@ -415,10 +443,12 @@
           </div>
         </ng-container>
 
+
         <div class="co-voucher-guest-hint" *ngIf="!canUseVouchers">
           <i class="bi bi-ticket-perforated"></i>
           Mã khuyến mãi chỉ áp dụng khi <a routerLink="/login">đăng nhập</a> hoặc <a routerLink="/register">đăng ký</a>. Bạn vẫn đặt hàng bình thường với tài khoản khách (theo SĐT).
         </div>
+
 
         <div class="co-totals">
           <div class="co-total-row"><span>Tạm tính</span><span>{{ vnd(subTotal()) }}</span></div>
@@ -438,17 +468,13 @@
           <div class="co-total-final"><span>Tổng thanh toán</span><strong>{{ vnd(total()) }}</strong></div>
         </div>
 
+
         <div class="co-actions">
           <button class="co-btn co-btn-outline" type="button" (click)="goToCart()"><i class="bi bi-arrow-left"></i> Giỏ hàng</button>
           <button class="co-btn co-btn-primary" type="button" [disabled]="isPlacing()" (click)="placeOrder()">
             <span *ngIf="!isPlacing()"><i class="bi bi-check2-circle"></i> Đặt hàng</span>
             <span *ngIf="isPlacing()" class="co-btn-loading"><span class="co-spinner co-spinner-white"></span> Đang xử lý...</span>
           </button>
-        </div>
-        <div class="co-trust">
-          <span><i class="bi bi-shield-check"></i> Bảo mật</span>
-          <span><i class="bi bi-arrow-counterclockwise"></i> Đổi trả 7 ngày</span>
-          <span><i class="bi bi-truck"></i> Giao tận nơi</span>
         </div>
       </div>
     </div>
