@@ -15,12 +15,10 @@
     </div>
   </div>
 
-  <!-- Loading -->
   <div *ngIf="isLoading" class="noti-loading">
     <span class="spinner"></span> Đang tải...
   </div>
 
-  <!-- Empty -->
   <div *ngIf="!isLoading && notifications.length === 0" class="noti-empty">
     <i class="bi bi-bell-slash"></i>
     <p>Chưa có thông báo nào</p>
@@ -29,13 +27,12 @@
     </button>
   </div>
 
-  <!-- List -->
   <div *ngIf="!isLoading && notifications.length > 0" class="noti-list">
     <div
       class="noti-item"
       *ngFor="let n of notifications"
       [class.unread]="!n.isRead"
-      [class.clickable]="n.type === 'order' || n.type === 'consulting'"
+      [class.clickable]="n.type === 'order' || n.type === 'consulting' || n.productId || n.orderId"
       (click)="onClickNoti(n)"
     >
       <div class="noti-icon" [ngClass]="'icon-' + n.type">
@@ -50,7 +47,9 @@
 
       <div class="noti-right">
         <div class="noti-dot" *ngIf="!n.isRead"></div>
-        <i class="bi bi-chevron-right noti-arrow" *ngIf="n.type === 'order' || n.type === 'consulting'"></i>
+        <i class="bi bi-chevron-right noti-arrow" 
+           *ngIf="n.type === 'order' || n.type === 'consulting' || n.productId || n.orderId">
+        </i>
         <button class="btn-delete-item" (click)="deleteOne($event, n._id)" title="Xóa">
           <i class="bi bi-x-lg"></i>
         </button>

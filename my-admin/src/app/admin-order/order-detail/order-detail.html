@@ -22,6 +22,7 @@
               <div class="label">Trạng thái đơn hàng</div>
               <span class="badge">{{ statusLabel }}</span>
               <div class="cancel-reason-admin" *ngIf="order.status === 'cancelled' && order.cancelReason">
+                <span class="cancel-actor-chip">{{ cancelActorLabel }}</span>
                 <span class="label">Lý do hủy (hiển thị cho khách)</span>
                 <span class="cancel-reason-text">{{ order.cancelReason }}</span>
               </div>
@@ -98,10 +99,10 @@
                     <div>
                       <div class="name">{{ r.name || '—' }}</div>
                     </div>
-                  </td>
-                  <td>{{ r.quantity != null ? r.quantity : '—' }}</td>
-                  <td><strong class="return-qty-em">{{ r.returnQty }}</strong></td>
-                  <td>{{ formatMoney(r.price || 0) }}</td>
+                   </td>
+                   <td>{{ r.quantity != null ? r.quantity : '—' }}</td>
+                   <td><strong class="return-qty-em">{{ r.returnQty }}</strong></td>
+                   <td>{{ formatMoney(r.price || 0) }}</td>
                   <td class="money">{{ formatMoney((r.price || 0) * (r.returnQty || 0)) }}</td>
                 </tr>
               </tbody>
@@ -137,9 +138,9 @@
                     <div class="name">{{ item.name }}</div>
                     <div class="sku">{{ item.variantLabel || 'SKU' }}</div>
                   </div>
-                </td>
-                <td>{{ item.quantity }}</td>
-                <td>{{ formatMoney(item.price) }}</td>
+                 </td>
+                 <td>{{ item.quantity }}</td>
+                 <td>{{ formatMoney(item.price) }}</td>
                 <td class="money">{{ formatMoney(item.price * item.quantity) }}</td>
               </tr>
             </tbody>
@@ -151,14 +152,14 @@
         <div class="card">
           <h4>Thông tin người mua (tài khoản)</h4>
           <!-- buyerAccount = User đăng nhập đặt đơn; không có thì guest → hiện customer như trước. -->
-          <div class="line"><span>{{ order.buyerAccount?.username || order.customer.fullName }}</span></div>
-          <div class="line"><span>{{ order.buyerAccount?.phone || order.customer.phone }}</span></div>
-          <div class="line"><span>{{ order.buyerAccount?.email || order.customer.email || '—' }}</span></div>
-          <div class="line"><label>ID khách hàng</label><strong>{{ order.customerSummary?.customerID || 'KH0000' }}</strong></div>
+          <div class="line"><label>Họ tên</label><strong>{{ order.buyerAccount?.username || order.customer.fullName }}</strong></div>
+          <div class="line"><label>Số điện thoại</label><strong>{{ order.buyerAccount?.phone || order.customer.phone }}</strong></div>
+          <div class="line"><label>Email</label><strong>{{ order.buyerAccount?.email || order.customer.email || '—' }}</strong></div>
+          <div class="line"><label>ID khách hàng</label><strong>{{ displayCustomerId() }}</strong></div>
           <div class="line">
             <label>Hạng thành viên</label>
-            <span class="tier-badge" [ngClass]="getTierClass(order.customerSummary?.membershipTier || 'member')">
-              {{ tierLabel(order.customerSummary?.membershipTier || 'member') }}
+            <span class="tier-badge" [ngClass]="getTierClass(displayMembershipTier())">
+              {{ tierLabel(displayMembershipTier()) }}
             </span>
             <span class="tier-provisional" *ngIf="order.customerSummary?.hasProvisionalSpend">(tạm — đang có đơn chờ hoàn)</span>
           </div>
@@ -233,6 +234,9 @@
           </button>
           <button class="btn-danger outline" *ngIf="canRejectReturn()" [disabled]="actionLoading" (click)="requestReturnStatus('rejected')">
             Từ chối yêu cầu hoàn
+          </button>
+          <button class="btn-sub" *ngIf="canCompleteReturn()" [disabled]="actionLoading" (click)="requestReturnStatus('completed')">
+            Xác nhận đã trả/hoàn xong
           </button>
         </div>
       </section>

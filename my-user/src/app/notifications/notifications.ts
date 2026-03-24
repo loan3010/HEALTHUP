@@ -40,20 +40,60 @@ export class Notification implements OnInit {
     });
   }
 
+  /**
+   * Xử lý khi người dùng click vào một thông báo
+   * Tự động điều hướng dựa trên productId hoặc orderId đi kèm
+   */
   onClickNoti(noti: any) {
+    // 1. Đánh dấu đã đọc nếu chưa đọc
     if (!noti.isRead) {
       this.api.markNotificationRead(noti._id).subscribe({
-        next: () => { noti.isRead = true; this.cdr.detectChanges(); }
+        next: () => { 
+          noti.isRead = true; 
+          this.cdr.detectChanges(); 
+        }
       });
     }
 
+    // 2. Lấy ID sản phẩm hoặc ID đơn hàng (hỗ trợ cả camelCase và snake_case)
+    const pid = noti.productId || noti.product_id;
+    const oid = noti.orderId || noti.order_id;
+
+    // 3. Thực hiện điều hướng thông minh
+    
+    // Ưu tiên 1: Chuyển đến trang chi tiết sản phẩm (Dành cho xóa câu hỏi/tư vấn)
+    if (pid) {
+      this.router.navigate(['/product-detail-page', pid]);
+      return;
+    }
+
+    // Ưu tiên 2: Chuyển đến trang chi tiết đơn hàng
+    if (oid) {
+      this.router.navigate(['/profile/order-detail', oid]);
+      return;
+    }
+
+    // Ưu tiên 3: Phân tích đường dẫn từ trường link (nếu có)
+    if (noti.link) {
+      this.router.navigateByUrl(noti.link);
+      return;
+    }
+
+    // Fallback: Xử lý theo nội dung message (ORD...) cho các thông báo cũ
     if (noti.type === 'order') {
-      const orderId = noti.orderId;
-      if (orderId) {
-        this.router.navigate(['/profile/order-detail', orderId]);
-      } else {
-        const match = (noti.message || '').match(/ORD\w+/);
-        if (match) this.router.navigate(['/profile/order-detail', match[0]]);
+      const match = (noti.message || '').match(/ORD\w+/);
+      if (match) {
+        this.router.navigate(['/profile/order-detail', match[0]]);
+      }
+    } else if (noti.type === 'consulting' || noti.type === 'system') {
+      // Cố gắng tìm ID từ chuỗi link thủ công
+      const extractedPid = String(noti.link || '')
+        .replace(/^.*\/product-detail-page\//, '')
+        .split(/[/?#]/)[0]
+        .trim();
+      
+      if (extractedPid && extractedPid.length > 5) {
+        this.router.navigate(['/product-detail-page', extractedPid]);
       }
     } else if (noti.type === 'consulting') {
       const pid =
@@ -71,7 +111,10 @@ export class Notification implements OnInit {
   markRead(noti: any) {
     if (noti.isRead) return;
     this.api.markNotificationRead(noti._id).subscribe({
-      next: () => { noti.isRead = true; this.cdr.detectChanges(); }
+      next: () => { 
+        noti.isRead = true; 
+        this.cdr.detectChanges(); 
+      }
     });
   }
 
@@ -86,7 +129,7 @@ export class Notification implements OnInit {
 
   // ✅ Xóa 1 thông báo
   deleteOne(event: Event, id: string) {
-    event.stopPropagation(); // không trigger onClickNoti
+    event.stopPropagation(); // Không trigger onClickNoti của thẻ cha
     this.api.deleteNotification(id).subscribe({
       next: () => {
         this.notifications = this.notifications.filter(n => n._id !== id);
@@ -118,7 +161,7 @@ export class Notification implements OnInit {
     const now = new Date();
     const diff = Math.floor((now.getTime() - d.getTime()) / 1000);
 
-    if (diff < 60)    return 'Vừa xong';
+    if (diff < 60)   return 'Vừa xong';
     if (diff < 3600)  return `${Math.floor(diff / 60)} phút trước`;
     if (diff < 86400) return `${Math.floor(diff / 3600)} giờ trước`;
     return d.toLocaleDateString('vi-VN');
@@ -126,9 +169,9 @@ export class Notification implements OnInit {
 
   getIcon(type: string): string {
     const map: Record<string, string> = {
-      order:  'bi-bag-check',
-      promo:  'bi-tag',
-      system: 'bi-bell',
+      order:      'bi-bag-check',
+      promo:      'bi-tag',
+      system:     'bi-bell',
       consulting: 'bi-chat-dots',
     };
     return map[type] || 'bi-bell';

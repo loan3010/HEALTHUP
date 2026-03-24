@@ -100,7 +100,7 @@
             <i class="bi" [ngClass]="q.status === 'pending' ? 'bi-chat-left-text' : 'bi-pencil-square'"></i>
             {{ q.status === 'pending' ? 'Gửi phản hồi' : 'Chỉnh sửa phản hồi' }}
           </button>
-          <button class="btn-delete-q" (click)="openDeleteModal(q._id)">
+          <button class="btn-delete-q" (click)="openDeleteModal(q)">
             <i class="bi bi-trash"></i> Xóa bỏ
           </button>
         </div>
@@ -144,13 +144,25 @@
 
   <div class="modal-overlay-consult" *ngIf="isDeleteModalOpen">
     <div class="modal-reply delete-modal shadow-lg fadeInScale">
-      <div class="modal-body text-center py-5">
-        <i class="bi bi-exclamation-circle text-danger d-block mb-3" style="font-size: 3.5rem;"></i>
+      <div class="modal-body text-center py-4">
+        <i class="bi bi-exclamation-triangle text-danger d-block mb-3" style="font-size: 3rem;"></i>
         <h3 class="fw-bold">Xác nhận xóa dữ liệu</h3>
-        <p class="text-secondary mb-0 px-3">
-          Hành động này sẽ xóa vĩnh viễn câu hỏi khỏi hệ thống và không thể khôi phục. 
-          Bạn có chắc chắn muốn thực hiện thao tác này?
-        </p>
+        
+        <div class="alert alert-light text-start border mb-4 mt-3 mx-2">
+          <small class="text-secondary d-block mb-1">CÂU HỎI SẮP XÓA:</small>
+          <div class="text-dark small text-truncate">"{{ pendingDeleteQuestion?.content }}"</div>
+        </div>
+
+        <div class="text-start px-3 mb-4">
+          <label class="fw-bold small mb-2 text-uppercase text-secondary">Lý do xóa:</label>
+          <select class="form-select form-select-sm" [(ngModel)]="selectedDeleteReason">
+            <option *ngFor="let reason of deleteReasons" [value]="reason">{{ reason }}</option>
+          </select>
+          <p class="text-muted mt-2 mb-0" style="font-size: 0.75rem;">
+            * Lưu ý: Hệ thống sẽ gửi thông báo lý do này vào tài khoản của khách hàng ngay sau khi nhấn xác nhận.
+          </p>
+        </div>
+
         <div class="d-flex justify-content-center gap-3 mt-4">
           <button class="btn-cancel px-4" (click)="closeAllModals()">QUAY LẠI</button>
           <button class="btn-danger-confirm px-4" (click)="confirmDelete()">XÁC NHẬN XÓA</button>

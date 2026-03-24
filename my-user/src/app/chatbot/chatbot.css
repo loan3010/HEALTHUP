@@ -18,15 +18,15 @@
 
 .hu-chat-button {
   position: fixed !important;
-  bottom: 35px !important; 
-  right: 35px !important;
-  width: 65px !important;  
-  height: 65px !important;
+  bottom: 25px !important; 
+  right: 25px !important;
+  width: 55px !important;  
+  height: 55px !important;
   border-radius: 50% !important;
   background: #36873A !important; 
   border: none !important;
   cursor: grab !important; 
-  box-shadow: 0 8px 32px rgba(54, 135, 58, 0.3) !important;
+  box-shadow: 0 6px 24px rgba(54, 135, 58, 0.3) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -53,9 +53,8 @@
   height: 100% !important;
   border-radius: 50% !important;
   border: 3px solid #36873A !important;
-  /* TUYỆT ĐỐI KHÔNG dùng !important ở opacity để Animation có thể chạy */
   opacity: 0; 
-  z-index: -1 !important; /* Đẩy ra sau để không che icon */
+  z-index: -1 !important; 
   pointer-events: none !important;
 }
 
@@ -69,11 +68,9 @@
 }
 
 /* --- SỬA LỖI CHỒNG 2 ICON --- */
-/* Căn chỉnh lại bằng thẻ i kèm class để tăng độ ưu tiên */
-.hu-chat-button i.hu-chat-icon { display: block !important; line-height: 0 !important; }
-.hu-chat-button i.hu-close-icon { display: none !important; line-height: 0 !important; }
+.hu-chat-button i.hu-chat-icon { display: block !important; line-height: 0 !important; font-size: 24px !important; }
+.hu-chat-button i.hu-close-icon { display: none !important; line-height: 0 !important; font-size: 24px !important; }
 
-/* Toggling trạng thái Active */
 .hu-chat-button.active i.hu-chat-icon { display: none !important; }
 .hu-chat-button.active i.hu-close-icon { display: block !important; }
 
@@ -81,17 +78,16 @@
 .hu-chat-button::after {
   content: '' !important;
   position: absolute !important;
-  top: 2px !important; /* Chỉnh lại một chút để chấm đỏ ôm sát viền tròn */
+  top: 2px !important; 
   right: 2px !important; 
-  width: 14px !important;
-  height: 14px !important;
+  width: 12px !important;
+  height: 12px !important;
   background: #C62828 !important; 
   border-radius: 50% !important;
   border: 2px solid white !important; 
   animation: hu-pulse 2s infinite !important;
 }
 
-/* Ẩn chấm đỏ khi đã mở khung chat */
 .hu-chat-button.active::after {
   display: none !important;
 }
@@ -107,15 +103,15 @@
 
 .hu-chat-widget {
   position: fixed !important;
-  bottom: 110px !important; 
-  right: 35px !important;
-  width: 380px !important;
+  bottom: 90px !important; 
+  right: 25px !important;
+  width: 340px !important;
   max-width: calc(100vw - 32px) !important;
-  height: 580px !important;
-  max-height: calc(100vh - 150px) !important;
+  height: 500px !important;
+  max-height: calc(100vh - 120px) !important;
   background: #FFFFFF !important;
-  border-radius: 20px !important;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.15) !important;
   display: none !important;
   flex-direction: column !important;
   overflow: hidden !important;
@@ -137,7 +133,7 @@
 
 .hu-chat-header {
   background: linear-gradient(135deg, #36873A 0%, #2A6B2E 100%) !important;
-  padding: 16px 20px !important;
+  padding: 12px 16px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
@@ -148,12 +144,12 @@
 .hu-header-left {
   display: flex !important;
   align-items: center !important;
-  gap: 12px !important;
+  gap: 10px !important;
 }
 
 .hu-bot-avatar {
-  width: 44px !important;
-  height: 44px !important;
+  width: 36px !important;
+  height: 36px !important;
   border-radius: 50% !important;
   overflow: hidden !important;
   background: #FFEE97 !important;
@@ -161,7 +157,7 @@
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  border: 2px solid rgba(255,255,255,0.3) !important;
+  border: 1.5px solid rgba(255,255,255,0.3) !important;
 }
 
 .hu-bot-avatar img {
@@ -172,23 +168,23 @@
 
 .hu-header-info h3 {
   color: white !important;
-  font-size: 15px !important;
+  font-size: 14px !important;
   font-weight: 600 !important;
-  margin: 0 0 3px 0 !important;
+  margin: 0 0 2px 0 !important;
   padding: 0 !important;
 }
 
 .hu-status {
   display: flex !important;
   align-items: center !important;
-  gap: 6px !important;
+  gap: 5px !important;
   color: rgba(255,255,255,0.9) !important;
-  font-size: 12px !important;
+  font-size: 11px !important;
 }
 
 .hu-status-dot {
-  width: 7px !important;
-  height: 7px !important;
+  width: 6px !important;
+  height: 6px !important;
   background: #69F0AE !important;
   border-radius: 50% !important;
   display: inline-block !important;
@@ -201,9 +197,9 @@
 }
 
 .hu-minimize-btn {
-  width: 30px !important;
-  height: 30px !important;
-  border-radius: 8px !important;
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 6px !important;
   background: rgba(255,255,255,0.15) !important;
   border: none !important;
   color: white !important;
@@ -230,13 +226,13 @@
 }
 
 .hu-welcome-body {
-  padding: 32px 24px !important;
+  padding: 24px 20px !important;
   text-align: center !important;
 }
 
 .hu-welcome-icon {
-  font-size: 64px !important;
-  margin-bottom: 16px !important;
+  font-size: 48px !important;
+  margin-bottom: 12px !important;
   display: block !important;
   animation: hu-float 3s ease-in-out infinite !important;
 }
@@ -247,45 +243,45 @@
 }
 
 .hu-welcome-body h2 {
-  font-size: 22px !important;
+  font-size: 18px !important;
   font-weight: 700 !important;
   color: #36873A !important;
-  margin: 0 0 10px 0 !important;
+  margin: 0 0 8px 0 !important;
   padding: 0 !important;
 }
 
 .hu-welcome-body > p {
-  font-size: 14px !important;
+  font-size: 13px !important;
   color: #666 !important;
-  margin: 0 0 20px 0 !important;
+  margin: 0 0 16px 0 !important;
 }
 
 .hu-feature-list {
   list-style: none !important;
   text-align: left !important;
-  margin: 0 0 24px 0 !important;
+  margin: 0 0 20px 0 !important;
   padding: 0 !important;
 }
 
 .hu-feature-list li {
-  padding: 10px 14px !important;
-  margin-bottom: 8px !important;
+  padding: 8px 12px !important;
+  margin-bottom: 6px !important;
   background: white !important;
-  border-radius: 10px !important;
-  font-size: 13px !important;
+  border-radius: 8px !important;
+  font-size: 12px !important;
   color: #333 !important;
-  box-shadow: 0 1px 4px rgba(54,135,58,0.1) !important;
+  box-shadow: 0 1px 3px rgba(54,135,58,0.08) !important;
   display: block !important;
 }
 
 .hu-btn-start {
   width: 100% !important;
-  padding: 14px 24px !important;
+  padding: 12px 20px !important;
   background: linear-gradient(135deg, #36873A 0%, #2A6B2E 100%) !important;
   color: white !important;
   border: none !important;
-  border-radius: 12px !important;
-  font-size: 15px !important;
+  border-radius: 10px !important;
+  font-size: 14px !important;
   font-weight: 600 !important;
   cursor: pointer !important;
   display: flex !important;
@@ -293,12 +289,12 @@
   justify-content: center !important;
   gap: 8px !important;
   transition: all 0.3s ease !important;
-  box-shadow: 0 4px 16px rgba(54,135,58,0.3) !important;
+  box-shadow: 0 4px 12px rgba(54,135,58,0.25) !important;
 }
 
 .hu-btn-start:hover {
   transform: translateY(-2px) !important;
-  box-shadow: 0 8px 24px rgba(54,135,58,0.4) !important;
+  box-shadow: 0 6px 18px rgba(54,135,58,0.3) !important;
 }
 
 /* ============================================
@@ -308,7 +304,7 @@
 .hu-chat-messages {
   flex: 1 !important;
   overflow-y: auto !important;
-  padding: 16px !important;
+  padding: 12px !important;
   background: #FAF6F0 !important;
   display: flex !important;
   flex-direction: column !important;
@@ -317,14 +313,13 @@
   scrollbar-color: #A2C37F transparent !important;
 }
 
-.hu-chat-messages::-webkit-scrollbar { width: 5px; }
+.hu-chat-messages::-webkit-scrollbar { width: 4px; }
 .hu-chat-messages::-webkit-scrollbar-thumb { background: #A2C37F; border-radius: 3px; }
 .hu-chat-messages::-webkit-scrollbar-track { background: transparent; }
 
-/* Message row */
 .hu-message {
   display: flex !important;
-  margin-bottom: 12px !important;
+  margin-bottom: 10px !important;
   align-items: flex-end !important;
   animation: hu-slide-in 0.25s ease !important;
 }
@@ -337,10 +332,9 @@
 .hu-bot { justify-content: flex-start !important; }
 .hu-user { justify-content: flex-end !important; }
 
-/* Avatar */
 .hu-msg-avatar {
-  width: 30px !important;
-  height: 30px !important;
+  width: 28px !important;
+  height: 28px !important;
   border-radius: 50% !important;
   overflow: hidden !important;
   flex-shrink: 0 !important;
@@ -362,19 +356,17 @@
   display: block !important;
 }
 
-/* Content */
 .hu-msg-content {
-  max-width: 72% !important;
+  max-width: 75% !important;
   display: flex !important;
   flex-direction: column !important;
 }
 
-/* Bubble */
 .hu-msg-bubble {
-  padding: 10px 14px !important;
-  border-radius: 16px !important;
-  font-size: 13.5px !important;
-  line-height: 1.55 !important;
+  padding: 8px 12px !important;
+  border-radius: 14px !important;
+  font-size: 13px !important;
+  line-height: 1.5 !important;
   word-break: break-word !important;
   white-space: pre-wrap !important;
 }
@@ -383,20 +375,20 @@
   background: #FFFFFF !important;
   color: #333333 !important;
   border-bottom-left-radius: 4px !important;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.08) !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06) !important;
 }
 
 .hu-user .hu-msg-bubble {
   background: linear-gradient(135deg, #36873A 0%, #2A6B2E 100%) !important;
   color: white !important;
   border-bottom-right-radius: 4px !important;
-  box-shadow: 0 2px 8px rgba(54,135,58,0.25) !important;
+  box-shadow: 0 2px 6px rgba(54,135,58,0.2) !important;
 }
 
 .hu-msg-time {
-  font-size: 10px !important;
+  font-size: 9px !important;
   color: #aaa !important;
-  margin-top: 4px !important;
+  margin-top: 3px !important;
   padding: 0 2px !important;
 }
 
@@ -404,21 +396,20 @@
   text-align: right !important;
 }
 
-/* Typing indicator */
 .hu-typing {
   display: flex !important;
   align-items: center !important;
-  gap: 4px !important;
-  padding: 12px 16px !important;
+  gap: 3px !important;
+  padding: 10px 14px !important;
   background: white !important;
-  border-radius: 16px !important;
+  border-radius: 14px !important;
   border-bottom-left-radius: 4px !important;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.08) !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06) !important;
 }
 
 .hu-dot {
-  width: 7px !important;
-  height: 7px !important;
+  width: 6px !important;
+  height: 6px !important;
   border-radius: 50% !important;
   background: #A2C37F !important;
   display: inline-block !important;
@@ -430,23 +421,22 @@
 
 @keyframes hu-typing {
   0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-  30% { transform: translateY(-8px); opacity: 1; }
+  30% { transform: translateY(-6px); opacity: 1; }
 }
 
-/* FAQ buttons */
 .hu-faq-list {
-  margin-top: 8px !important;
+  margin-top: 6px !important;
   display: flex !important;
   flex-direction: column !important;
-  gap: 6px !important;
+  gap: 5px !important;
 }
 
 .hu-faq-item {
-  padding: 8px 12px !important;
+  padding: 7px 10px !important;
   background: white !important;
   border: 1px solid #E0E0E0 !important;
-  border-radius: 10px !important;
-  font-size: 12.5px !important;
+  border-radius: 8px !important;
+  font-size: 12px !important;
   color: #36873A !important;
   cursor: pointer !important;
   text-align: left !important;
@@ -461,22 +451,61 @@
   transform: translateX(3px) !important;
 }
 
+/* FAQ PAGINATION STYLES */
+.hu-faq-pagination {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  margin-top: 8px !important;
+  padding: 0 4px !important;
+}
+
+.hu-pag-btn {
+  background: transparent !important;
+  border: none !important;
+  color: #36873A !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  transition: all 0.2s !important;
+  padding: 4px 8px !important;
+  border-radius: 6px !important;
+}
+
+.hu-pag-btn:hover:not(:disabled) {
+  background-color: rgba(54, 135, 58, 0.1) !important;
+}
+
+.hu-pag-btn:disabled {
+  color: #ccc !important;
+  cursor: not-allowed !important;
+}
+
+.hu-pag-info {
+  font-size: 0.7rem !important;
+  color: #999 !important;
+  font-weight: 500 !important;
+}
+
 /* ============================================
     THẺ SẢN PHẨM (PRODUCT CARDS)
    ============================================ */
 
 .hu-product-cards-wrapper {
-  width: calc(100% + 20px) !important; 
-  margin-left: -5px !important; 
-  margin-top: 10px !important;
+  width: calc(100% + 16px) !important; 
+  margin-left: -4px !important; 
+  margin-top: 8px !important;
   overflow: visible !important; 
 }
 
 .hu-product-cards-container {
   display: flex !important;
-  gap: 12px !important;
+  gap: 10px !important;
   overflow-x: auto !important; 
-  padding: 10px 25px 15px 5px !important; 
+  padding: 8px 20px 12px 4px !important; 
   scrollbar-width: none !important; 
   -ms-overflow-style: none !important;
 }
@@ -486,28 +515,28 @@
 }
 
 .hu-product-card {
-  min-width: 155px !important;
-  max-width: 155px !important;
+  min-width: 140px !important;
+  max-width: 140px !important;
   background: white !important;
-  border-radius: 14px !important;
+  border-radius: 12px !important;
   overflow: hidden !important;
   border: 1px solid #f0f0f0 !important;
   transition: all 0.3s ease !important;
   display: flex !important;
   flex-direction: column !important;
   flex-shrink: 0 !important;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05) !important;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.04) !important;
 }
 
 .hu-product-card:hover {
-  transform: translateY(-3px) !important;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.1) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.08) !important;
   border-color: #36873A !important;
 }
 
 .hu-card-img {
   width: 100% !important;
-  height: 95px !important;
+  height: 85px !important;
   background: #f8f9fa !important;
   overflow: hidden !important;
 }
@@ -519,14 +548,14 @@
 }
 
 .hu-card-body {
-  padding: 12px !important;
+  padding: 10px !important;
   display: flex !important;
   flex-direction: column !important;
-  gap: 4px !important;
+  gap: 3px !important;
 }
 
 .hu-prod-name {
-  font-size: 13px !important;
+  font-size: 12px !important;
   font-weight: 700 !important;
   color: #333 !important;
   margin: 0 !important;
@@ -536,20 +565,20 @@
 }
 
 .hu-prod-price {
-  font-size: 12px !important;
+  font-size: 11.5px !important;
   font-weight: 800 !important;
   color: #36873A !important;
-  margin-bottom: 5px !important;
+  margin-bottom: 4px !important;
 }
 
 .hu-btn-detail {
   width: 100% !important;
-  padding: 7px 0 !important;
+  padding: 6px 0 !important;
   background: #f1f3f5 !important;
   color: #555 !important;
   border: none !important;
-  border-radius: 8px !important;
-  font-size: 11px !important;
+  border-radius: 6px !important;
+  font-size: 10.5px !important;
   font-weight: 700 !important;
   cursor: pointer !important;
   text-align: center !important;
@@ -562,56 +591,101 @@
 }
 
 /* ============================================
-    QUICK REPLIES
+    ✅ NEW: EXPANDABLE QUICK REPLIES
    ============================================ */
 
 .hu-quick-replies {
-  padding: 12px 16px !important;
   background: white !important;
   border-top: 1px solid #E0E0E0 !important;
   flex-shrink: 0 !important;
+  transition: all 0.3s ease !important;
+}
+
+.hu-qr-header {
+  padding: 10px 14px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  cursor: pointer !important;
+  background: #f9f9f9 !important;
+  transition: background 0.2s !important;
+}
+
+.hu-qr-header:hover {
+  background: #f0f7f0 !important;
+}
+
+.hu-qr-header-left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  color: #36873A !important;
+}
+
+.hu-qr-header-left i {
+  font-size: 14px !important;
 }
 
 .hu-qr-title {
   font-size: 12px !important;
+  color: #555 !important;
+  margin: 0 !important;
+  font-weight: 600 !important;
+}
+
+.hu-qr-header > i {
+  font-size: 12px !important;
   color: #888 !important;
-  margin: 0 0 8px 0 !important;
-  font-weight: 500 !important;
+  transition: transform 0.3s !important;
+}
+
+.hu-qr-content {
+  padding: 0 14px 12px !important;
+  animation: hu-fade-down 0.25s ease-out !important;
+}
+
+@keyframes hu-fade-down {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .hu-qr-buttons {
   display: flex !important;
   flex-wrap: wrap !important;
   gap: 6px !important;
+  margin-top: 8px !important;
 }
 
 .hu-qr-btn {
   padding: 6px 14px !important;
-  background: white !important;
-  border: 1px solid #E0E0E0 !important;
+  background: #fff !important;
+  border: 1px solid #e0e0e0 !important;
   border-radius: 20px !important;
   font-size: 12px !important;
   color: #36873A !important;
   cursor: pointer !important;
   transition: all 0.2s ease !important;
-  white-space: nowrap !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 4px !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important;
 }
 
 .hu-qr-btn:hover {
   background: #36873A !important;
   color: white !important;
   border-color: #36873A !important;
+  transform: translateY(-1px) !important;
+}
+
+.hu-qr-expanded .hu-qr-header {
+  border-bottom: 1px solid #f0f0f0 !important;
+  background: #fff !important;
 }
 
 /* ============================================
-    INPUT
+    INPUT AREA
    ============================================ */
 
 .hu-input-wrapper {
-  padding: 12px 16px 10px !important;
+  padding: 10px 14px 8px !important;
   background: white !important;
   border-top: 1px solid #E0E0E0 !important;
   flex-shrink: 0 !important;
@@ -621,15 +695,15 @@
   display: flex !important;
   align-items: center !important;
   gap: 8px !important;
-  margin-bottom: 6px !important;
+  margin-bottom: 4px !important;
 }
 
 #hu-chat-input {
   flex: 1 !important;
-  padding: 10px 16px !important;
+  padding: 8px 14px !important;
   border: 1.5px solid #E0E0E0 !important;
-  border-radius: 24px !important;
-  font-size: 13.5px !important;
+  border-radius: 20px !important;
+  font-size: 13px !important;
   outline: none !important;
   background: #FAF6F0 !important;
   color: #333 !important;
@@ -648,8 +722,8 @@
 }
 
 .hu-send-btn {
-  width: 40px !important;
-  height: 40px !important;
+  width: 36px !important;
+  height: 36px !important;
   border-radius: 50% !important;
   background: linear-gradient(135deg, #36873A 0%, #2A6B2E 100%) !important;
   border: none !important;
@@ -665,7 +739,7 @@
 
 .hu-send-btn:hover {
   transform: scale(1.08) !important;
-  box-shadow: 0 4px 12px rgba(54,135,58,0.3) !important;
+  box-shadow: 0 4px 10px rgba(54,135,58,0.25) !important;
 }
 
 .hu-send-btn:active {
@@ -679,7 +753,7 @@
 }
 
 .hu-powered-by {
-  font-size: 10.5px !important;
+  font-size: 10px !important;
   color: #bbb !important;
   text-align: center !important;
   margin: 0 !important;

@@ -1,13 +1,53 @@
-const router = require('express').Router();
-const bcrypt = require('bcrypt');
+const router   = require('express').Router();
+const bcrypt   = require('bcrypt');
 const mongoose = require('mongoose');
-const User  = require('../models/User');
-const Order = require('../models/Order');
+const User     = require('../models/User');
+const Order    = require('../models/Order');
 const { authenticateToken } = require('../middleware/auth');
 
-// ─────────────────────────────────────────
-// GET /api/users/:id  →  Lấy thông tin user
-// ─────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPER: tính memberRank theo window 3 tháng
+// VIP: tổng tiền đơn delivered (không return completed) trong 3 tháng gần nhất >= 2.000.000₫
+// FIX: dùng createdAt thay vì updatedAt — đơn được tạo trong 3 tháng, không phải cập nhật
+// ─────────────────────────────────────────────────────────────────────────────
+async function calcMemberRank(userId) {
+  const threeMonthsAgo = new Date();
+  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+  // Tổng chi tiêu trong 3 tháng → dùng để xét hạng
+  const aggRecent = await Order.aggregate([
+    {
+      $match: {
+        userId:       new mongoose.Types.ObjectId(String(userId)),
+        status:       'delivered',
+        returnStatus: { $ne: 'completed' },
+        createdAt:    { $gte: threeMonthsAgo }   // FIX: createdAt thay vì updatedAt
+      }
+    },
+    { $group: { _id: null, total: { $sum: '$total' } } }
+  ]);
+  const recentSpent = aggRecent[0]?.total || 0;
+  const memberRank  = recentSpent >= 2_000_000 ? 'vip' : 'member';
+
+  // Tổng chi tiêu toàn lịch sử → lưu vào DB để admin xem
+  const aggAll = await Order.aggregate([
+    {
+      $match: {
+        userId:       new mongoose.Types.ObjectId(String(userId)),
+        status:       'delivered',
+        returnStatus: { $ne: 'completed' }
+      }
+    },
+    { $group: { _id: null, total: { $sum: '$total' } } }
+  ]);
+  const totalSpent = aggAll[0]?.total || 0;
+
+  return { memberRank, totalSpent, recentSpent };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/users/:id
+// ─────────────────────────────────────────────────────────────────────────────
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
     if (req.user.userId !== req.params.id && req.user.role !== 'admin') {
@@ -17,44 +57,34 @@ router.get('/:id', authenticateToken, async (req, res) => {
     const user = await User.findById(req.params.id).select('-passwordHash').lean();
     if (!user) return res.status(404).json({ message: 'Không tìm thấy user' });
 
-    // Tính lại totalSpent từ lịch sử đơn delivered (tránh lỗi dữ liệu cũ)
-    const agg = await Order.aggregate([
-      {
-        $match: {
-          userId: new mongoose.Types.ObjectId(String(req.params.id)),
-          status: 'delivered'
-        }
-      },
-      { $group: { _id: null, total: { $sum: '$total' } } }
-    ]);
-    const totalSpent = agg[0]?.total || 0;
-    const memberRank = totalSpent >= 5_000_000 ? 'vip' : 'member';
+    const { memberRank, totalSpent, recentSpent } = await calcMemberRank(req.params.id);
 
-    // Cập nhật lại DB nếu lệch (chạy ngầm, không block response)
+    // Cập nhật DB nếu lệch (chạy ngầm, không block response)
     if (totalSpent !== (user.totalSpent || 0) || memberRank !== (user.memberRank || 'member')) {
       User.findByIdAndUpdate(req.params.id, { totalSpent, memberRank }).catch(() => {});
     }
 
     res.json({
-      id:         String(user._id),
-      username:   user.username,
-      phone:      user.phone,
-      email:      user.email || '',
-      dob:        user.dob || '',
-      gender:     user.gender || 'male',
-      address:    user.address || '',
-      role:       user.role,
+      id:          String(user._id),
+      username:    user.username,
+      phone:       user.phone,
+      email:       user.email   || '',
+      dob:         user.dob     || '',
+      gender:      user.gender  || 'male',
+      address:     user.address || '',
+      role:        user.role,
       memberRank,
       totalSpent,
+      recentSpent,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-// ─────────────────────────────────────────────────
-// PUT /api/users/:id  →  Cập nhật thông tin profile
-// ─────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// PUT /api/users/:id
+// ─────────────────────────────────────────────────────────────────────────────
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
     if (req.user.userId !== req.params.id && req.user.role !== 'admin') {
@@ -67,7 +97,6 @@ router.put('/:id', authenticateToken, async (req, res) => {
       const exists = await User.findOne({ username, _id: { $ne: req.params.id } });
       if (exists) return res.status(409).json({ message: 'Tên tài khoản đã tồn tại' });
     }
-
     if (email) {
       const exists = await User.findOne({ email: email.toLowerCase(), _id: { $ne: req.params.id } });
       if (exists) return res.status(409).json({ message: 'Email đã tồn tại' });
@@ -95,9 +124,9 @@ router.put('/:id', authenticateToken, async (req, res) => {
         id:       String(updated._id),
         username: updated.username,
         phone:    updated.phone,
-        email:    updated.email || '',
-        dob:      updated.dob || '',
-        gender:   updated.gender || 'male',
+        email:    updated.email   || '',
+        dob:      updated.dob     || '',
+        gender:   updated.gender  || 'male',
         address:  updated.address || '',
         role:     updated.role,
       }
@@ -105,16 +134,16 @@ router.put('/:id', authenticateToken, async (req, res) => {
   } catch (err) {
     if (err?.code === 11000) {
       const field = Object.keys(err.keyPattern || {})[0] || 'field';
-      const map = { phone: 'Số điện thoại', email: 'Email', username: 'Tên tài khoản' };
+      const map   = { phone: 'Số điện thoại', email: 'Email', username: 'Tên tài khoản' };
       return res.status(409).json({ message: `${map[field] || field} đã tồn tại` });
     }
     res.status(500).json({ message: err.message });
   }
 });
 
-// ─────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 // PUT /api/users/:id/change-password
-// ─────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 router.put('/:id/change-password', authenticateToken, async (req, res) => {
   try {
     if (req.user.userId !== req.params.id) {
@@ -141,9 +170,9 @@ router.put('/:id/change-password', authenticateToken, async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 // GET /api/users/:id/wishlist
-// ─────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 router.get('/:id/wishlist', authenticateToken, async (req, res) => {
   try {
     if (req.user.userId !== req.params.id && req.user.role !== 'admin') {
@@ -162,43 +191,33 @@ router.get('/:id/wishlist', authenticateToken, async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 // POST /api/users/:id/wishlist
-// ─────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 router.post('/:id/wishlist', authenticateToken, async (req, res) => {
   try {
     if (req.user.userId !== req.params.id) {
       return res.status(403).json({ message: 'Không có quyền' });
     }
-
     const { productId } = req.body;
     if (!productId) return res.status(400).json({ message: 'Thiếu productId' });
 
-    await User.findByIdAndUpdate(
-      req.params.id,
-      { $addToSet: { wishlist: productId } }
-    );
-
+    await User.findByIdAndUpdate(req.params.id, { $addToSet: { wishlist: productId } });
     res.json({ message: 'Đã thêm vào yêu thích' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-// ─────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 // DELETE /api/users/:id/wishlist/:productId
-// ─────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 router.delete('/:id/wishlist/:productId', authenticateToken, async (req, res) => {
   try {
     if (req.user.userId !== req.params.id) {
       return res.status(403).json({ message: 'Không có quyền' });
     }
-
-    await User.findByIdAndUpdate(
-      req.params.id,
-      { $pull: { wishlist: req.params.productId } }
-    );
-
+    await User.findByIdAndUpdate(req.params.id, { $pull: { wishlist: req.params.productId } });
     res.json({ message: 'Đã xóa khỏi yêu thích' });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -209,21 +228,28 @@ router.delete('/:id/wishlist/:productId', authenticateToken, async (req, res) =>
 // ADDRESS ROUTES
 // ═══════════════════════════════════════════════════════
 
-// GET /api/users/:id/addresses
 router.get('/:id/addresses', authenticateToken, async (req, res) => {
   try {
     if (req.user.userId !== req.params.id && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Không có quyền' });
     }
-    const user = await User.findById(req.params.id).select('addresses').lean();
+    // Select cả field `addresses` (mới) và `address` (legacy) để fallback cho dữ liệu cũ.
+    const user = await User.findById(req.params.id).select('addresses address').lean();
     if (!user) return res.status(404).json({ message: 'Không tìm thấy user' });
-    res.json({ addresses: user.addresses || [] });
+    // Dữ liệu cũ có thể lưu địa chỉ vào field legacy `address` (thay vì `addresses`).
+    // Vì schema mới dùng `addresses` nên `user.addresses` sẽ trống → UI luôn báo "Chưa có địa chỉ nào".
+    // Fallback: nếu `addresses` trống mà `address` lại là mảng thì trả về `address`.
+    const fromAddresses = Array.isArray(user.addresses) ? user.addresses : [];
+    // Lưu ý: do select('addresses') ở trên nên `user.address` thường không có.
+    // Nhưng vẫn giữ logic defensively để không crash nếu backend trả về field khác ở một số trường hợp.
+    const legacyArray = Array.isArray(user.address) ? user.address : [];
+    const merged = fromAddresses.length ? fromAddresses : legacyArray;
+    res.json({ addresses: merged });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-// POST /api/users/:id/addresses
 router.post('/:id/addresses', authenticateToken, async (req, res) => {
   try {
     if (req.user.userId !== req.params.id) {
@@ -252,7 +278,6 @@ router.post('/:id/addresses', authenticateToken, async (req, res) => {
   }
 });
 
-// PUT /api/users/:id/addresses/:addrId
 router.put('/:id/addresses/:addrId', authenticateToken, async (req, res) => {
   try {
     if (req.user.userId !== req.params.id) {
@@ -280,7 +305,6 @@ router.put('/:id/addresses/:addrId', authenticateToken, async (req, res) => {
   }
 });
 
-// DELETE /api/users/:id/addresses/:addrId
 router.delete('/:id/addresses/:addrId', authenticateToken, async (req, res) => {
   try {
     if (req.user.userId !== req.params.id) {
@@ -304,7 +328,6 @@ router.delete('/:id/addresses/:addrId', authenticateToken, async (req, res) => {
   }
 });
 
-// PUT /api/users/:id/addresses/:addrId/set-default
 router.put('/:id/addresses/:addrId/set-default', authenticateToken, async (req, res) => {
   try {
     if (req.user.userId !== req.params.id) {

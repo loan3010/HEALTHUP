@@ -44,6 +44,31 @@ function deactivationAuditForDoc(u) {
   };
 }
 
+/** Map tab lọc trạng thái đơn (giống bên user). */
+function orderTabBy(order) {
+  const status = String(order?.status || '');
+  const returnStatus = String(order?.returnStatus || 'none');
+  if (returnStatus && returnStatus !== 'none') return 'return';
+  if (status === 'pending') return 'pending';
+  if (status === 'confirmed' || status === 'shipping' || status === 'delivery_failed') return 'in_transit';
+  if (status === 'delivered') return 'delivered';
+  if (status === 'cancelled') return 'cancelled';
+  return 'other';
+}
+
+/** Nhãn tiếng Việt thống nhất với user/admin order. */
+function orderStatusLabel(status) {
+  const map = {
+    pending: 'Chờ xác nhận',
+    confirmed: 'Chờ giao hàng',
+    shipping: 'Đang giao',
+    delivery_failed: 'Giao thất bại',
+    delivered: 'Đã giao',
+    cancelled: 'Đã hủy',
+  };
+  return map[String(status || '')] || String(status || '');
+}
+
 // Lưu ý:
 // - Ứng dụng my-admin hiện chưa có luồng đăng nhập + gửi token.
 // - Để màn hình customer kết nối được dữ liệu thật ngay trong môi trường dev,
@@ -238,6 +263,111 @@ router.get('/:id/addresses', async (req, res) => {
   }
 });
 
+// GET /api/admin/customers/:id/order-history
+// Lịch sử đơn hàng + đếm theo tab + top sản phẩm hay mua.
+router.get('/:id/order-history', async (req, res) => {
+  try {
+    const rawId = String(req.params.id || '').trim();
+    if (!mongoose.Types.ObjectId.isValid(rawId)) {
+      return res.status(400).json({ message: 'ID khách không hợp lệ' });
+    }
+
+    const user = await User.findOne({ _id: rawId, role: 'user' }).select('_id phone').lean();
+    if (!user) return res.status(404).json({ message: 'Không tìm thấy khách hàng' });
+
+    const tab = String(req.query.tab || 'all').trim().toLowerCase();
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.max(parseInt(req.query.limit, 10) || 5, 1);
+
+    const phoneRaw = String(user.phone || '').trim();
+    const phoneNorm = normalizePhone(phoneRaw);
+    const phoneCandidates = Array.from(new Set([
+      phoneRaw,
+      phoneNorm,
+      phoneNorm && phoneNorm.startsWith('84') ? `0${phoneNorm.slice(2)}` : '',
+      phoneNorm && phoneNorm.startsWith('0') ? `84${phoneNorm.slice(1)}` : '',
+    ].filter(Boolean)));
+
+    // Gom đơn có userId + đơn guest có cùng SĐT để nhìn xuyên suốt lịch sử mua.
+    const orders = await Order.find({
+      $or: [
+        { userId: rawId },
+        { userId: null, 'customer.phone': { $in: phoneCandidates } },
+      ],
+    })
+      .sort({ createdAt: -1 })
+      .select('orderCode createdAt status returnStatus total items')
+      .lean();
+
+    const byId = new Map();
+    for (const o of orders) byId.set(String(o._id), o);
+    const allOrders = Array.from(byId.values());
+
+    const counts = {
+      all: allOrders.length,
+      pending: allOrders.filter((o) => orderTabBy(o) === 'pending').length,
+      in_transit: allOrders.filter((o) => orderTabBy(o) === 'in_transit').length,
+      delivered: allOrders.filter((o) => orderTabBy(o) === 'delivered').length,
+      cancelled: allOrders.filter((o) => orderTabBy(o) === 'cancelled').length,
+      return: allOrders.filter((o) => orderTabBy(o) === 'return').length,
+    };
+
+    const filtered = tab === 'all'
+      ? allOrders
+      : allOrders.filter((o) => orderTabBy(o) === tab);
+
+    const total = filtered.length;
+    const totalPages = Math.max(Math.ceil(total / limit), 1);
+    const safePage = Math.min(page, totalPages);
+    const skip = (safePage - 1) * limit;
+    const paged = filtered.slice(skip, skip + limit);
+
+    const rows = paged.map((o) => ({
+      _id: String(o._id),
+      orderCode: o.orderCode || '',
+      createdAt: o.createdAt,
+      status: String(o.status || ''),
+      statusLabel: orderStatusLabel(o.status),
+      returnStatus: String(o.returnStatus || 'none'),
+      total: Number(o.total || 0),
+      items: (o.items || []).map((i) => ({
+        name: String(i.name || ''),
+        quantity: Number(i.quantity || 0),
+      })),
+    }));
+
+    const freq = new Map();
+    for (const o of allOrders) {
+      // "Hay mua" tính trên đơn không hủy để phản ánh gu mua thật.
+      if (String(o.status || '') === 'cancelled') continue;
+      for (const i of o.items || []) {
+        const name = String(i.name || '').trim();
+        if (!name) continue;
+        const qty = Math.max(Number(i.quantity || 0), 1);
+        const cur = freq.get(name) || 0;
+        freq.set(name, cur + qty);
+      }
+    }
+    const topProducts = Array.from(freq.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 15);
+
+    res.json({
+      tab,
+      counts,
+      data: rows,
+      total,
+      page: safePage,
+      totalPages,
+      topProducts,
+    });
+  } catch (err) {
+    console.error('GET /api/admin/customers/:id/order-history error:', err);
+    res.status(500).json({ message: err.message || 'Lỗi server' });
+  }
+});
+
 // GET /api/admin/customers/:id
 router.get('/:id', async (req, res) => {
   try {
@@ -404,4 +534,3 @@ router.delete('/:id', async (req, res) => {
 });
 
 module.exports = router;
-

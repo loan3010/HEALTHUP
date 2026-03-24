@@ -48,18 +48,23 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST — tạo thông báo mới
+// POST — tạo thông báo mới (CẬP NHẬT: Thêm orderId và productId)
 router.post('/', async (req, res) => {
   try {
-    const { userId, type, title, message, link, icon } = req.body;
+    const { userId, type, title, message, link, icon, orderId, productId } = req.body;
 
     if (!userId || !mongoose.Types.ObjectId.isValid(userId))
       return res.status(400).json({ message: 'userId invalid' });
 
     const noti = await Notification.create({
-      userId, type, title, message,
+      userId, 
+      type: type || 'order', 
+      title, 
+      message,
       link: link || '',
       icon: icon || '🔔',
+      orderId: orderId || null,
+      productId: productId || null
     });
 
     res.status(201).json(noti);

@@ -72,10 +72,16 @@
   border: 1.5px solid #a5d6a7;
 }
 
+/* VIP badge: nền cam nhạt, chữ cam đậm, viền cam */
 .po-badge-vip {
-  background: #fff8e1;
-  color: #f57f17;
-  border: 1.5px solid #ffe082;
+  background: #fff3e0;
+  color: #e65100;
+  border: 1.5px solid #ffcc80;
+}
+
+/* Ngôi sao màu cam dùng cho VIP — ghi đè màu vàng mặc định */
+.po-star-orange {
+  color: #f57f17 !important;
 }
 
 /* Right */
@@ -131,9 +137,7 @@
 
 .po-rank-remain strong { color: #36873A; font-weight: 700; }
 
-/* VIP header */
-.po-rank-vip-header { margin-bottom: 14px; }
-
+/* VIP msg (thay thế po-rank-vip-header) */
 .po-rank-vip-msg {
   display: inline-flex;
   align-items: center;
@@ -169,8 +173,8 @@
 }
 
 .po-rank-perk-col.perk-col-vip {
-  border-color: #ffe082;
-  background: #fffde7;
+  border-color: #ffcc80;
+  background: #fff8f0;
 }
 
 .po-rank-perk-title {
@@ -191,7 +195,6 @@
   font-weight: 700;
 }
 
-/* Badge "Hiện tại" — KHÔNG dùng absolute, dùng inline */
 .po-current-tag {
   display: inline-flex;
   align-items: center;
@@ -202,9 +205,9 @@
   padding: 2px 8px;
   border-radius: 10px;
   white-space: nowrap;
-  /* KHÔNG dùng position: absolute */
 }
 
+/* Tag "Hiện tại" cho VIP: màu cam */
 .po-tag-vip { background: #f57f17; }
 
 .po-perk-list {

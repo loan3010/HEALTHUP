@@ -190,7 +190,6 @@ export class OrderDetail implements OnChanges {
     const p = this.pendingConfirm;
     if (!p) return '';
     if (p.kind === 'order') {
-      // Hai nghĩa «Hủy đơn»: (1) chưa bao giờ bắt đầu giao — (2) đã giao lỗi, chọn hủy thay vì giao lại.
       if (p.next === 'cancelled') {
         if (this.order?.status === 'delivery_failed') {
           return (
@@ -221,8 +220,7 @@ export class OrderDetail implements OnChanges {
       const lines: Partial<Record<AdminReturnStatus, string>> = {
         approved: 'Chấp nhận yêu cầu hoàn / trả hàng của khách?',
         rejected: 'Từ chối yêu cầu hoàn / trả? Nhập lý do ở ô bên dưới.',
-        // Luồng mới bỏ bước `completed`. Trường hợp dữ liệu cũ còn `completed` thì vẫn hiển thị nhãn tương đương `approved`.
-        completed: 'Đã chấp nhận hoàn (cũ).',
+        completed: 'Xác nhận đã hoàn tiền / xử lý trả hàng xong?',
       };
       return lines[p.next] || 'Cập nhật trạng thái trả hàng / hoàn tiền?';
     }
@@ -370,10 +368,8 @@ export class OrderDetail implements OnChanges {
   }
 
   /**
-   * Admin chỉ chuyển: requested→approved|rejected.
-   * Với luồng mới thì `approved` là trạng thái kết thúc luôn.
+   * Mở modal xác nhận trước khi đổi trạng thái hoàn / trả.
    */
-  /** Mở modal xác nhận trước khi đổi trạng thái hoàn / trả. */
   requestReturnStatus(next: AdminReturnStatus): void {
     if (!this.order || this.actionLoading) return;
     this.confirmModalInlineError = '';
@@ -428,10 +424,20 @@ export class OrderDetail implements OnChanges {
       pending: 'Chờ xác nhận',
       confirmed: 'Chờ giao hàng',
       shipping: 'Đang giao',
+      delivery_failed: 'Giao thất bại',
       delivered: 'Đã giao',
       cancelled: 'Đã hủy'
     };
     return map[this.order?.status || ''] || (this.order?.status || '');
+  }
+
+  /** Nhãn nguồn hủy để phân biệt khách hủy vs admin hủy. */
+  get cancelActorLabel(): string {
+    const by = String(this.order?.cancelledByType || '').toLowerCase();
+    if (by === 'customer') return 'Khách hàng hủy';
+    if (by === 'admin') return 'Admin hủy';
+    if (by === 'system') return 'Hệ thống hủy';
+    return 'Chưa rõ nguồn hủy';
   }
 
   paymentLabel(m: string): string {
@@ -440,11 +446,28 @@ export class OrderDetail implements OnChanges {
   }
 
   tierLabel(tier: string): string {
+    if (String(tier || '').toLowerCase() === 'none') return 'Không hạng';
     return String(tier || '').toLowerCase() === 'vip' ? 'VIP' : 'Thành viên';
   }
 
   getTierClass(tier: string): string {
-    return String(tier || '').toLowerCase() === 'vip' ? 'tier-vip' : 'tier-member';
+    const t = String(tier || '').toLowerCase();
+    if (t === 'none') return 'tier-none';
+    return t === 'vip' ? 'tier-vip' : 'tier-member';
+  }
+
+  /** Đơn không có customerID được xem là khách vãng lai (không hạng). */
+  isGuestOrder(): boolean {
+    return !String(this.order?.customerSummary?.customerID || '').trim();
+  }
+
+  displayCustomerId(): string {
+    return this.isGuestOrder() ? 'Không có' : String(this.order?.customerSummary?.customerID || '').trim();
+  }
+
+  displayMembershipTier(): string {
+    if (this.isGuestOrder()) return 'none';
+    return String(this.order?.customerSummary?.membershipTier || 'member');
   }
 
   formatMoney(value: number): string {
@@ -500,6 +523,10 @@ export class OrderDetail implements OnChanges {
   canRejectReturn(): boolean {
     return this.order?.status === 'delivered' && this.order?.returnStatus === 'requested';
   }
+  /** Đã nhận hàng trả & hoàn tiền — chỉ sau khi đã chấp nhận (approved). */
+  canCompleteReturn(): boolean {
+    return this.order?.status === 'delivered' && this.order?.returnStatus === 'approved';
+  }
 
   /** Nhãn hiển thị cột trả/hoàn + khối chi tiết. */
   returnFlowLabel(rs: string | undefined): string {
@@ -508,8 +535,7 @@ export class OrderDetail implements OnChanges {
       requested: 'Yêu cầu hoàn/trả',
       approved: 'Đã chấp nhận hoàn',
       rejected: 'Từ chối hoàn',
-      // Dữ liệu cũ: `completed` coi như `approved` (kết thúc).
-      completed: 'Đã chấp nhận hoàn',
+      completed: 'Đã hoàn tiền / trả xong',
     };
     return map[rs || 'none'] || (rs || '');
   }

@@ -68,6 +68,21 @@ const OrderSchema = new mongoose.Schema(
      * Hủy trước khi giao: bắt buộc có khi admin hủy; khách tự hủy pending có thể là chuỗi mặc định.
      */
     cancelReason: { type: String, default: '', trim: true, maxlength: 2000 },
+    
+    /**
+     * Nguồn hủy đơn để phân biệt rõ trên UI/admin:
+     * - customer: khách tự hủy
+     * - admin: quản trị viên hủy
+     * - system: hệ thống tự động hủy (nếu có luồng sau này)
+     * - unknown: dữ liệu cũ chưa có nguồn
+     */
+    cancelledByType: {
+      type: String,
+      enum: ['customer', 'admin', 'system', 'unknown'],
+      default: 'unknown'
+    },
+    /** ID người thực hiện hủy (userId/adminId), nếu xác định được. */
+    cancelledById: { type: String, default: '', trim: true, maxlength: 200 },
 
     /** Đã hoàn kho khi hủy (tránh hoàn trùng). Đơn mới: false; trừ kho lúc tạo đơn. */
     inventoryReleased: { type: Boolean, default: false },

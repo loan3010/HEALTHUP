@@ -1,7 +1,8 @@
 .toast-container {
   position: fixed;
-  bottom: 28px;
+  top: 80px;
   right: 28px;
+  bottom: auto !important;
   z-index: 99999;
   display: flex;
   flex-direction: column;

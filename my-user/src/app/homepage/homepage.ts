@@ -5,12 +5,14 @@ import { RouterModule } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { ApiService, STATIC_BASE } from '../services/api.service';
 
+
 export interface Category {
   name: string;
   count: string;
   color: string;
   image: string;
 }
+
 
 export interface BlogPost {
   _id?: string;
@@ -22,11 +24,13 @@ export interface BlogPost {
   date: string;
 }
 
+
 export interface TrustItem {
   icon: string;
   title: string;
   sub: string;
 }
+
 
 // Cấu hình Interface phù hợp với dữ liệu từ Database
 export interface BannerSlide {
@@ -39,6 +43,7 @@ export interface BannerSlide {
   order?: number;
 }
 
+
 @Component({
   selector: 'app-homepage',
   standalone: true,
@@ -48,6 +53,7 @@ export interface BannerSlide {
 })
 export class HomepageComponent implements OnInit, OnDestroy {
 
+
   // ── State chung ──────────────────────────────────────────────────────────
   activeCategory = 0;
   featuredProducts: any[] = [];
@@ -55,12 +61,15 @@ export class HomepageComponent implements OnInit, OnDestroy {
   isBlogLoading = true;
   blogPosts: BlogPost[] = [];
 
+
   wishlist: string[] = [];
   private wishlistSub!: Subscription;
+
 
   readonly STATIC_BASE         = STATIC_BASE;
   readonly PLACEHOLDER_PRODUCT = `${STATIC_BASE}/images/products/placeholder.png`;
   readonly PLACEHOLDER_BLOG    = `${STATIC_BASE}/images/blogs/placeholder.png`;
+
 
   // ── BANNER SLIDER (Dữ liệu thực tế từ API) ────────────────────────────────
   banners: BannerSlide[] = [];
@@ -70,16 +79,19 @@ export class HomepageComponent implements OnInit, OnDestroy {
   readonly BANNER_INTERVAL    = 5000;
   readonly TRANSITION_LOCK_MS = 700;
 
+
   constructor(
     private router: Router,
     public  api: ApiService,
     private cdr: ChangeDetectorRef
   ) {}
 
+
   ngOnInit(): void {
     this.loadBanners();
     this.loadFeaturedProducts();
     this.loadBlogs();
+
 
     this.wishlistSub = this.api.wishlist$.subscribe(list => {
       this.wishlist = list;
@@ -87,10 +99,12 @@ export class HomepageComponent implements OnInit, OnDestroy {
     });
   }
 
+
   ngOnDestroy(): void {
     this.wishlistSub?.unsubscribe();
     this.stopTimer();
   }
+
 
   /**
    * Truy xuất danh sách banner và lọc theo thời hạn hiển thị
@@ -99,16 +113,18 @@ export class HomepageComponent implements OnInit, OnDestroy {
     this.api.getBanners().subscribe({
       next: (res) => {
         const hiện_tại = new Date();
-        
+       
         // Lọc banner dựa trên thời gian bắt đầu và kết thúc
         this.banners = res.filter(b => {
           const ngày_bắt_đầu = b.startDate ? new Date(b.startDate) : null;
           const ngày_kết_thúc = b.endDate ? new Date(b.endDate) : null;
 
+
           if (ngày_bắt_đầu && hiện_tại < ngày_bắt_đầu) return false;
           if (ngày_kết_thúc && hiện_tại > ngày_kết_thúc) return false;
           return true;
         });
+
 
         // Chỉ bắt đầu bộ đếm thời gian nếu có từ 2 banner trở lên
         if (this.banners.length > 1) {
@@ -122,6 +138,7 @@ export class HomepageComponent implements OnInit, OnDestroy {
     });
   }
 
+
   /**
    * Xử lý URL hình ảnh banner
    */
@@ -129,6 +146,7 @@ export class HomepageComponent implements OnInit, OnDestroy {
     if (!url) return this.PLACEHOLDER_PRODUCT;
     return url.startsWith('http') ? url : `${STATIC_BASE}${url}`;
   }
+
 
   /**
    * Xử lý sự kiện khi nhấn vào banner để điều hướng
@@ -140,6 +158,7 @@ export class HomepageComponent implements OnInit, OnDestroy {
       return;
     }
 
+
     if (url.startsWith('http')) {
       // Mở liên kết bên ngoài trong tab mới
       window.open(url, '_blank');
@@ -149,6 +168,7 @@ export class HomepageComponent implements OnInit, OnDestroy {
     }
   }
 
+
   private goToSlide(index: number): void {
     if (this.isTransitioning || this.banners.length === 0) return;
     this.isTransitioning = true;
@@ -157,9 +177,11 @@ export class HomepageComponent implements OnInit, OnDestroy {
     setTimeout(() => { this.isTransitioning = false; }, this.TRANSITION_LOCK_MS);
   }
 
+
   prevBanner(): void { this.goToSlide(this.currentBanner - 1); this.resetTimer(); }
   nextBanner(): void { this.goToSlide(this.currentBanner + 1); this.resetTimer(); }
   goToBanner(i: number): void { this.goToSlide(i); this.resetTimer(); }
+
 
   startTimer(): void {
     this.stopTimer();
@@ -168,11 +190,13 @@ export class HomepageComponent implements OnInit, OnDestroy {
     }, this.BANNER_INTERVAL);
   }
 
+
   stopTimer(): void {
     if (this.bannerTimer) {
       clearInterval(this.bannerTimer);
     }
   }
+
 
   resetTimer(): void {
     this.stopTimer();
@@ -182,12 +206,14 @@ export class HomepageComponent implements OnInit, OnDestroy {
   }
   // ──────────────────────────────────────────────────────────────────────────
 
+
   trustItems: TrustItem[] = [
     { icon: 'bi-patch-check',  title: 'Nguồn gốc rõ ràng', sub: 'Truy xuất tận nơi sản xuất' },
     { icon: 'bi-star-fill',    title: '4.9/5 đánh giá',     sub: 'Từ 10.000+ khách hàng'      },
     { icon: 'bi-arrow-repeat', title: 'Đổi trả 7 ngày',     sub: 'Không cần lý do'            },
     { icon: 'bi-shield-check', title: 'Thanh toán bảo mật', sub: 'VNPay · Momo · COD'        },
   ];
+
 
   categories: Category[] = [
     { name: 'Hạt dinh dưỡng', count: 'Xem tất cả', color: '#EAF2E3', image: `${STATIC_BASE}/images/products/black-bag-chia-500g.png`          },
@@ -198,12 +224,14 @@ export class HomepageComponent implements OnInit, OnDestroy {
     { name: 'Combo',           count: 'Xem tất cả', color: '#FFF5E8', image: `${STATIC_BASE}/images/products/granola-matcha-combo-2x500g.png` },
   ];
 
+
   private loadFeaturedProducts(): void {
     this.api.getProducts({ sort: 'popular', limit: 8 }).subscribe({
       next:  (res) => { this.featuredProducts = res.products || []; this.isLoading = false; this.cdr.detectChanges(); },
       error: ()    => { this.isLoading = false; this.cdr.detectChanges(); },
     });
   }
+
 
   private loadBlogs(): void {
     this.api.getBlogs(3).subscribe({
@@ -212,31 +240,38 @@ export class HomepageComponent implements OnInit, OnDestroy {
     });
   }
 
+
   getBlogImageUrl(coverImage: string): string {
     if (!coverImage) return this.PLACEHOLDER_BLOG;
     return coverImage.startsWith('http') ? coverImage : `${STATIC_BASE}${coverImage}`;
   }
+
 
   getStars(rating: number): string {
     const n = Math.min(5, Math.max(0, Math.round(rating)));
     return '★'.repeat(n) + '☆'.repeat(5 - n);
   }
 
+
   isWishlisted(id: string): boolean { return this.wishlist.includes(id); }
+
 
   onCategoryClick(index: number, catName: string): void {
     this.activeCategory = index;
     this.router.navigate(['/product-listing-page'], { queryParams: { cat: catName } });
   }
 
+
   toggleWishlist(event: Event, id: string, productName?: string): void {
     event.stopPropagation();
     this.api.toggleWishlist(id, productName);
   }
 
+
   isOutOfStock(product: any): boolean {
     if (!product) return true;
     if (product.isOutOfStock) return true;
+
 
     if (Array.isArray(product.variants) && product.variants.length > 0) {
       const totalStock = product.variants.reduce(
@@ -247,19 +282,46 @@ export class HomepageComponent implements OnInit, OnDestroy {
     return Number(product.stock || 0) <= 0;
   }
 
+
+  /**
+   * FIX: Lấy variant mặc định cho sản phẩm (variant đầu tiên còn hàng)
+   * để đảm bảo cùng productId + variantId khi thêm vào giỏ từ nhiều nơi
+   */
+  private getDefaultVariant(product: any): { variantId: string | null; variantLabel: string } {
+    if (Array.isArray(product.variants) && product.variants.length > 0) {
+      // Tìm variant còn hàng đầu tiên
+      const inStockVariant = product.variants.find((v: any) => Number(v.stock || 0) > 0);
+      const defaultVariant = inStockVariant || product.variants[0];
+      return {
+        variantId: String(defaultVariant._id),
+        variantLabel: String(defaultVariant.label || '')
+      };
+    }
+    return { variantId: null, variantLabel: '' };
+  }
+
+
+  /**
+   * FIX: Thêm vào giỏ với variant mặc định để đồng bộ giỏ hàng
+   */
   addToCart(event: Event, product: any): void {
     event.stopPropagation();
     if (!product?._id) return;
+
 
     if (this.isOutOfStock(product)) {
       this.api.showToast('Sản phẩm hiện đã hết hàng.', 'error');
       return;
     }
 
-    this.api.addToCart(product._id, 1, product.name).subscribe({
+
+    const { variantId, variantLabel } = this.getDefaultVariant(product);
+    
+    this.api.addToCart(product._id, 1, product.name, variantId, variantLabel).subscribe({
       error: () => this.api.showToast('Không thể thêm sản phẩm vào giỏ hàng.', 'error'),
     });
   }
+
 
   goToDetail(id: string):     void { if (id) this.router.navigate(['/product-detail-page', id]); }
   goToBlogDetail(id: string): void { if (id) this.router.navigate(['/blog', id]); }
