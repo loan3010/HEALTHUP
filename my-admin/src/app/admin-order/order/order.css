@@ -146,6 +146,14 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
 .mono { font-family: monospace; color: #555; }
 .name { font-weight: 600; }
 .sub { font-size: 0.76rem; color: #818181; margin-top: 2px; }
+
+/* Một dòng mô tả loại đơn — không badge, tránh rối cột Khách hàng. */
+.customer-segment-hint {
+  font-size: 0.72rem;
+  color: #959595;
+  margin-top: 3px;
+  line-height: 1.25;
+}
 .money { font-weight: 700; }
 
 .status-badge {

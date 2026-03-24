@@ -51,10 +51,24 @@
           <span class="status-badge" [ngClass]="'status-' + order.status">
             {{ getStatusLabel(order.status) }}
           </span>
-          <p class="od-cancel-reason" *ngIf="order.status === 'cancelled' && order.cancelReason">
-            <span class="od-cancel-reason-label">Lý do hủy</span>
-            <span class="od-cancel-reason-text">{{ order.cancelReason }}</span>
-          </p>
+          <!-- Đơn hủy: ai hủy, lúc nào, lý do (backend: cancelledByType, cancelledAt, cancelReason) -->
+          <div class="od-cancel-block" *ngIf="order.status === 'cancelled'">
+            <p class="od-cancel-line" *ngIf="getCancelActorLabel()">
+              <span class="od-cancel-reason-label">Người hủy</span>
+              <span class="od-cancel-reason-text">{{ getCancelActorLabel() }}</span>
+            </p>
+            <p class="od-cancel-line" *ngIf="getCancelledAtDisplay()">
+              <span class="od-cancel-reason-label">Thời gian hủy</span>
+              <span class="od-cancel-reason-text">
+                {{ getCancelledAtDisplay() }}
+                <em class="od-cancel-est" *ngIf="isCancelledTimeEstimated()"> (ước lượng theo cập nhật cuối)</em>
+              </span>
+            </p>
+            <p class="od-cancel-reason" *ngIf="order.cancelReason">
+              <span class="od-cancel-reason-label">Lý do hủy</span>
+              <span class="od-cancel-reason-text">{{ order.cancelReason }}</span>
+            </p>
+          </div>
         </div>
       </div>
 

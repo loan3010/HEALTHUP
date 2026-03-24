@@ -2,69 +2,102 @@
   <div class="gol-inner">
     <h1 class="gol-title">Tra cứu đơn hàng</h1>
     <p class="gol-sub">
-      Nhập <strong>số điện thoại đặt hàng</strong> và <strong>mã đơn</strong> (VD: ORD00000000001).
-      <a routerLink="/login">Đăng nhập</a> để xem đơn trong tài khoản và dùng mã khuyến mãi khi mua.
+      Vui lòng nhập <strong>Mã tra cứu bí mật</strong> được gửi qua tin nhắn SMS khi bạn đặt hàng thành công (Ví dụ: HU-7K9M2P).
+      <a routerLink="/login">Đăng nhập</a> để xem đầy đủ lịch sử đơn hàng.
     </p>
 
     <div class="gol-policy">
-      <i class="bi bi-info-circle"></i>
+      <i class="bi bi-shield-check"></i>
       <div>
-        <strong>Chính sách đổi trả (gợi ý):</strong> chỉ áp dụng khi đơn <strong>đã giao</strong>, trong vòng
-        <strong>7 ngày</strong> kể từ khi nhận hàng (chi tiết xem trang
-        <a routerLink="/policies">Chính sách</a>). Vui lòng gửi ảnh minh chứng nếu sản phẩm lỗi.
+        <strong>Lưu ý bảo mật:</strong> Mã tra cứu này được dùng để thay thế cho thông tin cá nhân. Vui lòng không chia sẻ mã này cho người khác để bảo vệ thông tin đơn hàng của bạn.
       </div>
     </div>
 
     <div class="gol-card">
       <div class="gol-row">
-        <label>Số điện thoại</label>
-        <input class="gol-inp" type="tel" [(ngModel)]="phone" placeholder="0xxxxxxxxx" maxlength="10" />
+        <label>Mã tra cứu đơn hàng</label>
+        <div class="gol-input-wrapper">
+          <i class="bi bi-ticket-perforated"></i>
+          <input class="gol-inp" type="text" [(ngModel)]="lookupCode" placeholder="Nhập mã HU-XXXXXX..." />
+        </div>
       </div>
-      <div class="gol-row">
-        <label>Mã đơn hàng</label>
-        <input class="gol-inp" type="text" [(ngModel)]="orderCode" placeholder="ORD00000000001" />
-      </div>
+
       <button class="gol-btn" type="button" [disabled]="loading" (click)="lookup()">
-        {{ loading ? 'Đang tìm...' : 'Tra cứu' }}
+        <span *ngIf="!loading"><i class="bi bi-search"></i> Kiểm tra ngay</span>
+        <span *ngIf="loading">Đang tìm đơn...</span>
       </button>
+
       <p class="gol-err" *ngIf="errorMsg && !order">{{ errorMsg }}</p>
     </div>
 
     <div class="gol-result" *ngIf="order">
-      <h2>Đơn #{{ order.orderCode || order._id }}</h2>
-      <p class="gol-meta">
-        Trạng thái: <strong>{{ statusLabel(order.status) }}</strong>
-        <span *ngIf="order.returnStatus && order.returnStatus !== 'none'">
-          · Hoàn/trả: <strong>{{ order.returnStatus }}</strong>
-        </span>
-      </p>
-      <p class="gol-cust">
-        {{ order.customer?.fullName }} — {{ order.customer?.phone }}<br />
-        <span class="gol-addr">{{ order.customer?.address }}</span>
-      </p>
+      <div class="gol-result-header">
+        <div>
+          <h2>Đơn hàng #{{ order.orderCode }}</h2>
+          <span class="gol-badge-status" [attr.data-status]="order.status">
+            {{ statusLabel(order.status) }}
+          </span>
+        </div>
+
+        <button
+          *ngIf="order.status === 'pending'"
+          class="gol-btn-cancel-order"
+          type="button"
+          (click)="openCancelModal()">
+          <i class="bi bi-x-circle"></i> Hủy đơn
+        </button>
+      </div>
+
+      <div class="gol-cancel-info" *ngIf="order.status === 'cancelled'">
+        <p *ngIf="cancelLookupActor()"><strong>Người hủy:</strong> {{ cancelLookupActor() }}</p>
+        <p *ngIf="cancelLookupTime()">
+          <strong>Thời gian hủy:</strong> {{ cancelLookupTime() }}
+          <span class="gol-cancel-est" *ngIf="cancelLookupTimeIsEstimate()"> (ước lượng)</span>
+        </p>
+        <p *ngIf="order.cancelReason"><strong>Lý do:</strong> {{ order.cancelReason }}</p>
+      </div>
+
+      <div class="gol-meta-grid">
+        <p class="gol-cust">
+          <i class="bi bi-person"></i> {{ order.customer?.fullName }}<br />
+          <i class="bi bi-geo-alt"></i> <span class="gol-addr">{{ order.customer?.address }}</span>
+        </p>
+
+        <p class="gol-meta" *ngIf="order.returnStatus && order.returnStatus !== 'none'">
+          Trạng thái Hoàn/Trả: <strong>{{ returnStatusLabel(order.returnStatus) }}</strong>
+        </p>
+      </div>
 
       <div class="gol-items">
         <div class="gol-item" *ngFor="let it of order.items">
           <img [src]="getImageUrl(it.imageUrl || orderLineImageRaw(it))" alt="" onerror="this.src='/assets/images/placeholder.png'" />
-          <div>
+          <div class="gol-item-info">
             <div class="gol-iname">{{ it.name }}</div>
-            <div>{{ formatMoney(it.price) }} × {{ it.quantity }}</div>
+            <div class="gol-iqty">{{ formatMoney(it.price) }} × {{ it.quantity }}</div>
           </div>
           <div class="gol-itot">{{ formatMoney(it.price * it.quantity) }}</div>
         </div>
       </div>
-      <p class="gol-total">Tổng: <strong>{{ formatMoney(order.total) }}</strong></p>
+
+      <div class="gol-total-bar">
+        <span>Tổng thanh toán:</span>
+        <strong>{{ formatMoney(order.total) }}</strong>
+      </div>
 
       <div class="gol-ok" *ngIf="submitOkMsg">{{ submitOkMsg }}</div>
       <p class="gol-err" *ngIf="errorMsg && order">{{ errorMsg }}</p>
 
       <div class="gol-return" *ngIf="canShowReturnForm() && !submitOkMsg">
+        <div class="gol-return-divider"></div>
         <h3>Yêu cầu đổi / trả hàng</h3>
+        <p class="gol-return-hint">Vui lòng chọn lý do và số lượng sản phẩm cần hoàn trả.</p>
+
         <div class="gol-reasons">
           <button type="button" class="gol-chip" *ngFor="let r of REASONS"
             [class.on]="returnReason === r" (click)="returnReason = r">{{ r }}</button>
         </div>
-        <textarea class="gol-ta" [(ngModel)]="returnNote" rows="3" maxlength="500" placeholder="Ghi chú thêm (tuỳ chọn)"></textarea>
+
+        <textarea class="gol-ta" [(ngModel)]="returnNote" rows="3" maxlength="500" placeholder="Mô tả chi tiết lỗi sản phẩm (tuỳ chọn)"></textarea>
 
         <div class="gol-ret-lines">
           <div class="gol-ret-row" *ngFor="let line of returnLines">
@@ -78,8 +111,12 @@
         </div>
 
         <div class="gol-img-block">
-          <label>Ảnh minh chứng (tuỳ chọn, tối đa {{ MAX_IMAGES }})</label>
-          <input type="file" accept="image/*" multiple (change)="onImagesSelected($event)" />
+          <label>Ảnh minh chứng (tối đa {{ MAX_IMAGES }} ảnh)</label>
+          <div class="gol-upload-btn">
+            <input type="file" id="returnImg" accept="image/*" multiple (change)="onImagesSelected($event)" hidden />
+            <label for="returnImg"><i class="bi bi-camera"></i> Thêm ảnh</label>
+          </div>
+
           <div class="gol-previews">
             <div class="gol-pr" *ngFor="let pr of imagePreviews; let i = index">
               <img [src]="pr" alt="" />
@@ -93,27 +130,45 @@
           {{ isSubmitting ? 'Đang gửi...' : 'Gửi yêu cầu đổi trả' }}
         </button>
 
-        <!-- CONFIRM MODAL -->
         <div class="confirm-return-overlay" *ngIf="showConfirmSubmit" (click)="cancelSubmitReturnConfirm()">
           <div class="confirm-return-modal" (click)="$event.stopPropagation()">
             <h3 class="confirm-return-title">Xác nhận gửi yêu cầu</h3>
             <p class="confirm-return-sub">
-              Sau khi gửi yêu cầu hoàn hàng, bạn sẽ không thể hủy yêu cầu này. Vui lòng cân nhắc trước khi xác nhận.
+              Sau khi gửi yêu cầu hoàn hàng, bạn sẽ không thể tự hủy yêu cầu này. Đội ngũ HealthUp sẽ liên hệ với bạn trong vòng 24h.
             </p>
             <div class="confirm-return-actions">
-              <button class="confirm-return-btn" type="button" (click)="cancelSubmitReturnConfirm()">Cancel</button>
+              <button class="confirm-return-btn" type="button" (click)="cancelSubmitReturnConfirm()">Quay lại</button>
               <button class="confirm-return-btn confirm-return-ok" type="button"
                 (click)="confirmSubmitReturn()" [disabled]="isSubmitting">
-                Xác nhận
+                Xác nhận gửi
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      <p class="gol-hint" *ngIf="order.status !== 'delivered'">
-        Chỉ có thể yêu cầu đổi trả khi đơn ở trạng thái <strong>Đã giao</strong>.
+      <p class="gol-hint-info" *ngIf="order.status !== 'delivered' && order.status !== 'cancelled' && order.status !== 'pending'">
+        <i class="bi bi-info-circle"></i> Bạn chỉ có thể yêu cầu đổi trả khi đơn hàng đã ở trạng thái <strong>Đã giao thành công</strong>.
       </p>
+    </div>
+  </div>
+</div>
+
+<div class="confirm-return-overlay" *ngIf="showCancelConfirm" (click)="closeCancelModal()">
+  <div class="confirm-return-modal" (click)="$event.stopPropagation()">
+    <div class="cancel-icon-circle">
+      <i class="bi bi-exclamation-triangle"></i>
+    </div>
+    <h3 class="confirm-return-title">Xác nhận hủy đơn?</h3>
+    <p class="confirm-return-sub">
+      Bạn có chắc chắn muốn hủy đơn hàng này không? Hành động này không thể hoàn tác sau khi thực hiện.
+    </p>
+    <div class="confirm-return-actions">
+      <button class="confirm-return-btn" type="button" (click)="closeCancelModal()">Để tôi nghĩ lại</button>
+      <button class="confirm-return-btn btn-danger-solid" type="button"
+        (click)="confirmCancelOrder()" [disabled]="isCancelling">
+        {{ isCancelling ? 'Đang xử lý...' : 'Xác nhận hủy đơn' }}
+      </button>
     </div>
   </div>
 </div>

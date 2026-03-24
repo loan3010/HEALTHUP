@@ -134,20 +134,42 @@
 .status-delivered { background: #dcfce7; color: #166534; }
 .status-cancelled { background: #f1f5f9; color: #475569; }
 
-.od-cancel-reason {
+.od-cancel-block {
   margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-width: min(100%, 360px);
+}
+
+.od-cancel-line {
+  margin: 0;
   font-size: 0.75rem;
   color: #64748b;
   background: #f8fafc;
   padding: 0.5rem 0.75rem;
   border-radius: 10px;
-  max-width: 280px;
+}
+
+.od-cancel-reason {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #64748b;
+  background: #f8fafc;
+  padding: 0.5rem 0.75rem;
+  border-radius: 10px;
 }
 
 .od-cancel-reason-label {
   font-weight: 600;
   margin-right: 0.5rem;
   color: #475569;
+}
+
+.od-cancel-est {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  font-style: italic;
 }
 
 /* Info Grid - 2 cột cân đối */

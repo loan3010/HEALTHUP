@@ -30,7 +30,37 @@ const OrderSchema = new mongoose.Schema(
   {
     orderCode: { type: String, unique: true, sparse: true, index: true, trim: true },
 
+    /**
+     * Mã tra cứu ngắn cho khách (SMS) — VD: HU-7K9M2P. Khác orderCode ORD...
+     */
+    guestLookupCode: {
+      type: String,
+      unique: true,
+      sparse: true,
+      index: true,
+      trim: true,
+    },
+
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null, index: true },
+
+    /**
+     * Nguồn tạo đơn — phục vụ lọc admin.
+     * Đơn cũ không có trường này: API coi như đặt từ website khi filter orderSource=web.
+     */
+    orderSource: {
+      type: String,
+      enum: ['web', 'admin_hotline'],
+      index: true,
+    },
+    /**
+     * Loại liên kết User trên đơn (không có / guest / user đăng ký).
+     * Đơn cũ không có field: lọc guest|user dựa User.role + userId; none = không userId.
+     */
+    buyerLinkType: {
+      type: String,
+      enum: ['none', 'guest', 'user'],
+      index: true,
+    },
 
     customer: {
       fullName: { type: String, required: true, trim: true },
@@ -83,6 +113,8 @@ const OrderSchema = new mongoose.Schema(
     },
     /** ID người thực hiện hủy (userId/adminId), nếu xác định được. */
     cancelledById: { type: String, default: '', trim: true, maxlength: 200 },
+    /** Thời điểm chuyển sang trạng thái hủy (server). Đơn cũ có thể null — UI fallback updatedAt. */
+    cancelledAt: { type: Date, default: null },
 
     /** Đã hoàn kho khi hủy (tránh hoàn trùng). Đơn mới: false; trừ kho lúc tạo đơn. */
     inventoryReleased: { type: Boolean, default: false },

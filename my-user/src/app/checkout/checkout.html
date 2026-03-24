@@ -1,23 +1,141 @@
-<!-- ══════════ SUCCESS MODAL ══════════ -->
-<div class="co-modal-backdrop" *ngIf="showSuccess()" (click)="goToHome()">
-  <div class="co-modal" (click)="$event.stopPropagation()">
-    <div class="co-modal-icon">
-      <svg viewBox="0 0 52 52" fill="none">
-        <circle cx="26" cy="26" r="25" stroke="#36873A" stroke-width="2"/>
-        <path d="M14 27l8 8 16-16" stroke="#36873A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
+<!-- ══════════ SUCCESS MODAL (mockup SMS + bảo mật — HealthUp) ══════════ -->
+<div class="co-modal-backdrop co-success-backdrop" *ngIf="showSuccess()" (click)="goToHome()">
+  <div class="co-modal co-success-modal" (click)="$event.stopPropagation()">
+    <!-- Animation checkmark tròn (theo bản thiết kế) -->
+    <div class="success-checkmark" aria-hidden="true">
+      <div class="check-icon">
+        <span class="icon-line line-tip"></span>
+        <span class="icon-line line-long"></span>
+        <div class="icon-circle"></div>
+      </div>
     </div>
+
     <h2 class="co-modal-title">Đặt hàng thành công!</h2>
-    <p class="co-modal-sub">Cảm ơn bạn đã tin tưởng HealthUp 🌿<br>Đơn hàng đang được xử lý.</p>
-    <div class="co-modal-id" *ngIf="successOrderId()">
-      Mã đơn: <strong>{{ successOrderCode() || ('#' + successOrderId()) }}</strong>
-    </div>
-    <p class="co-modal-hint" *ngIf="successOrderCode()">
-      Lưu mã để tra cứu tại <a routerLink="/tra-cuu-don">Tra cứu đơn</a> (không cần đăng nhập).
+
+    <p class="co-modal-sub" *ngIf="successGuestLookupCode() && successOrderPhone()">
+      Mã tra cứu đã được gửi qua tin nhắn đến số
+      <span class="co-modal-phone">{{ successOrderPhone() }}</span>
     </p>
-    <div class="co-modal-actions">
-      <button class="co-btn co-btn-outline" (click)="goToHome()">Về trang chủ</button>
-      <button class="co-btn co-btn-primary" (click)="goToOrderDetail()">Xem đơn hàng</button>
+    <p class="co-modal-sub" *ngIf="!(successGuestLookupCode() && successOrderPhone())">
+      Cảm ơn bạn đã tin tưởng HealthUp. Đơn hàng đang được xử lý.
+    </p>
+
+    <!-- Khối giả lập tin nhắn (chỉ khi có mã HU-) -->
+    <div class="sms-mockup-container" *ngIf="successGuestLookupCode()">
+      <div class="sms-header">Tin nhắn từ HealthUp</div>
+      <div class="sms-bubble">
+        <p>
+          HEALTHUP: Đơn hàng <strong>{{ successGuestLookupCode() }}</strong> đã tạo.
+          Tra cứu tại:
+          <a [href]="guestOrderLookupAbsUrl()" class="sms-link" target="_blank" rel="noopener noreferrer">
+            {{ guestOrderLookupAbsUrl() }}
+          </a>.
+          Hỗ trợ: {{ supportHotlineDisplay }}
+        </p>
+        <span class="sms-time">Vừa xong</span>
+      </div>
+    </div>
+
+    <div class="security-note" *ngIf="successGuestLookupCode()">
+      <i class="bi bi-shield-lock" aria-hidden="true"></i>
+      <p>
+        <strong>Lưu ý bảo mật:</strong>
+        Vui lòng không chia sẻ mã này cho người lạ để đảm bảo quyền lợi đơn hàng của bạn.
+      </p>
+    </div>
+
+    <!-- Không có mã HU- (đơn cũ / lỗi) — vẫn hiện mã đơn ORD -->
+    <div class="co-modal-id co-modal-id-secondary" *ngIf="!successGuestLookupCode() && successOrderCode()">
+      Mã đơn: <strong>{{ successOrderCode() }}</strong>
+    </div>
+
+    <div class="co-modal-actions co-success-actions">
+      <button type="button" class="co-btn co-btn-outline co-btn-home" (click)="goToHome()">Về trang chủ</button>
+      <button type="button" class="co-btn co-btn-primary co-btn-track" (click)="goToOrderDetail()">
+        {{ canUseVouchers ? 'Xem đơn hàng' : 'Tra cứu ngay' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════ MODAL OTP — mockup SMS HEALTHUP (sau khi bấm Đặt hàng, khách) ══════════ -->
+<div
+  class="co-modal-backdrop co-guest-otp-backdrop"
+  *ngIf="showGuestOtpModal()"
+  (click)="closeGuestOtpModal()">
+  <div class="co-modal co-success-modal co-guest-otp-modal" (click)="$event.stopPropagation()">
+    <h2 class="co-modal-title co-guest-otp-title">Xác nhận đặt hàng</h2>
+    <p class="co-modal-sub co-guest-otp-sub">
+      Kiểm tra tin nhắn từ <strong>HEALTHUP</strong> gửi tới số
+      <span class="co-modal-phone">{{ maskPhoneDisplay(shippingAddr?.phone || '') }}</span>
+    </p>
+
+    <div class="sms-mockup-container co-guest-otp-sms">
+      <div class="sms-header">Tin nhắn từ HealthUp</div>
+      <div class="sms-bubble">
+        <p *ngIf="guestOtpModalDevCode()">
+          HEALTHUP: Mã xác nhận đặt hàng:
+          <strong>{{ guestOtpModalDevCode() }}</strong>. Hiệu lực 10 phút. Không chia sẻ mã cho người khác.
+        </p>
+        <p *ngIf="!guestOtpModalDevCode()">
+          HEALTHUP: Mã xác nhận đặt hàng (6 số) đã được gửi. Vui lòng mở tin nhắn SMS trên điện thoại và nhập mã bên dưới.
+        </p>
+        <span class="sms-time">Vừa xong</span>
+      </div>
+    </div>
+
+    <!-- Có mã trong bubble = dev / SMS console; không có = production (mã chỉ trên điện thoại) -->
+    <p class="co-guest-otp-mock-hint" *ngIf="guestOtpModalDevCode()">
+      <i class="bi bi-info-circle"></i>
+      Đang dùng chế độ thử (SMS console hoặc bật SMS_DEBUG_RETURN_OTP) — mã hiển thị ở trên để bạn nhập cho đúng.
+    </p>
+    <p class="co-guest-otp-mock-hint co-guest-otp-mock-hint--prod" *ngIf="!guestOtpModalDevCode()">
+      <i class="bi bi-phone"></i>
+      Mã 6 số nằm trong <strong>tin nhắn SMS</strong> trên điện thoại (HealthUp không gửi mã qua mạng xã hội). Khung trên chỉ mô phỏng giao diện tin nhắn.
+    </p>
+
+    <div class="co-guest-otp-input-block">
+      <label class="co-label">Nhập mã 6 số</label>
+      <input
+        class="co-inp co-otp-input"
+        type="text"
+        inputmode="numeric"
+        autocomplete="one-time-code"
+        maxlength="6"
+        placeholder="• • • • • •"
+        [value]="guestOtpModalCode()"
+        (input)="onGuestOtpModalInput($event)" />
+    </div>
+
+    <p class="co-guest-otp-error" *ngIf="guestOtpModalError()">{{ guestOtpModalError() }}</p>
+
+    <button
+      type="button"
+      class="co-btn co-btn-outline co-guest-otp-resend"
+      (click)="resendGuestOtpFromModal()"
+      [disabled]="isSendingOtp() || otpCooldownSec() > 0">
+      <ng-container *ngIf="isSendingOtp()">Đang gửi...</ng-container>
+      <ng-container *ngIf="!isSendingOtp() && otpCooldownSec() > 0">
+        Gửi lại sau {{ otpCooldownSec() }}s
+      </ng-container>
+      <ng-container *ngIf="!isSendingOtp() && otpCooldownSec() === 0">
+        <i class="bi bi-arrow-repeat"></i> Gửi lại mã SMS
+      </ng-container>
+    </button>
+
+    <div class="co-modal-actions co-guest-otp-footer">
+      <button type="button" class="co-btn co-btn-outline" (click)="closeGuestOtpModal()">Hủy</button>
+      <button
+        type="button"
+        class="co-btn co-btn-primary"
+        (click)="confirmGuestOrderFromModal()"
+        [disabled]="isPlacing()">
+        <span *ngIf="!isPlacing()">Xác nhận &amp; đặt hàng</span>
+        <span *ngIf="isPlacing()" class="co-btn-loading">
+          <span class="co-spinner co-spinner-white"></span> Đang tạo đơn...
+        </span>
+      </button>
     </div>
   </div>
 </div>
@@ -227,9 +345,15 @@
           </button>
         </div>
         <div class="co-addr-loading" *ngIf="isLoadingAddr()"><span class="co-spinner"></span> Đang tải sổ địa chỉ...</div>
+        <!-- Một khối văn bản trong <p> — tránh flex tách từng node thành nhiều “cột” -->
         <div class="co-guest-notice" *ngIf="!userId">
-          <i class="bi bi-info-circle"></i>
-          Bạn chưa đăng nhập. <a routerLink="/login">Đăng nhập</a> để dùng sổ địa chỉ, lưu đơn trong tài khoản và <strong>dùng mã khuyến mãi</strong>.
+          <i class="bi bi-info-circle co-guest-notice-icon" aria-hidden="true"></i>
+          <p class="co-guest-notice-text">
+            Bạn chưa đăng nhập.
+            <a routerLink="/login">Đăng nhập</a>
+            để dùng sổ địa chỉ, lưu đơn trong tài khoản và
+            <strong>dùng mã khuyến mãi</strong>.
+          </p>
         </div>
         
         <!-- HOTLINE BANNER -->
@@ -251,9 +375,48 @@
             <label>Số điện thoại *</label>
             <input class="co-inp" type="tel" formControlName="phone" placeholder="0xxxxxxxxx" maxlength="10" />
           </div>
+
+          <!-- Bắt buộc chọn tỉnh → huyện → xã + địa chỉ chi tiết (cùng chuẩn sổ địa chỉ khi đã đăng nhập) -->
           <div class="co-guest-addr-row">
-            <label>Địa chỉ nhận hàng *</label>
-            <textarea class="co-inp co-textarea" rows="2" formControlName="address" placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh..."></textarea>
+            <label>Tỉnh / Thành phố *</label>
+            <select
+              class="co-inp co-select"
+              formControlName="province"
+              (change)="onGuestProvinceChange()"
+              [disabled]="loadingProvinces">
+              <option value="">— Chọn tỉnh/thành —</option>
+              <option *ngFor="let p of provinces" [value]="p.code">{{ p.name }}</option>
+            </select>
+            <span class="co-field-err" *ngIf="showGuestAddrError('province')">Vui lòng chọn tỉnh/thành phố</span>
+          </div>
+          <div class="co-guest-addr-row">
+            <label>Quận / Huyện *</label>
+            <select
+              class="co-inp co-select"
+              formControlName="district"
+              (change)="onGuestDistrictChange()"
+              [disabled]="!guestDistricts.length || loadingGuestDistricts">
+              <option value="">— Chọn quận/huyện —</option>
+              <option *ngFor="let d of guestDistricts" [value]="d.code">{{ d.name }}</option>
+            </select>
+            <span class="co-field-err" *ngIf="showGuestAddrError('district')">Vui lòng chọn quận/huyện</span>
+          </div>
+          <div class="co-guest-addr-row">
+            <label>Phường / Xã *</label>
+            <select
+              class="co-inp co-select"
+              formControlName="ward"
+              (change)="onGuestWardChange()"
+              [disabled]="!guestWards.length || loadingGuestWards">
+              <option value="">— Chọn phường/xã —</option>
+              <option *ngFor="let w of guestWards" [value]="w.code">{{ w.name }}</option>
+            </select>
+            <span class="co-field-err" *ngIf="showGuestAddrError('ward')">Vui lòng chọn phường/xã</span>
+          </div>
+          <div class="co-guest-addr-row">
+            <label>Số nhà, tên đường *</label>
+            <input class="co-inp" type="text" formControlName="street" placeholder="Ví dụ: 123 Quang Trung" />
+            <span class="co-field-err" *ngIf="showGuestAddrError('street')">Nhập số nhà và tên đường</span>
           </div>
         </div>
         <div class="ab-dropdown" *ngIf="!isLoadingAddr() && savedAddresses().length > 0">
@@ -314,13 +477,13 @@
             <input type="radio" [checked]="shippingMethod() === 'standard'" (change)="setShipping('standard')" />
             <i class="bi bi-truck"></i>
             <div class="co-opt-body"><div class="co-opt-title">Giao tiêu chuẩn</div><div class="co-opt-sub">2–4 ngày làm việc</div></div>
-            <div class="co-opt-price">{{ vnd(shippingFee()) }}</div>
+            <div class="co-opt-price">{{ vnd(standardOptionDisplayFee()) }}</div>
           </label>
           <label class="co-opt" [class.selected]="shippingMethod() === 'express'">
             <input type="radio" [checked]="shippingMethod() === 'express'" (change)="setShipping('express')" />
             <i class="bi bi-lightning"></i>
             <div class="co-opt-body"><div class="co-opt-title">Giao nhanh <span class="co-badge">Ưu tiên</span></div><div class="co-opt-sub">1–2 ngày làm việc</div></div>
-            <div class="co-opt-price">{{ vnd(30000) }}</div>
+            <div class="co-opt-price">{{ vnd(expressShippingFee) }}</div>
           </label>
         </div>
         <div class="co-delivery-estimate">
@@ -445,8 +608,11 @@
 
 
         <div class="co-voucher-guest-hint" *ngIf="!canUseVouchers">
-          <i class="bi bi-ticket-perforated"></i>
-          Mã khuyến mãi chỉ áp dụng khi <a routerLink="/login">đăng nhập</a> hoặc <a routerLink="/register">đăng ký</a>. Bạn vẫn đặt hàng bình thường với tài khoản khách (theo SĐT).
+          <i class="bi bi-ticket-perforated co-voucher-guest-hint-icon" aria-hidden="true"></i>
+          <!-- Toàn bộ nội dung trong một <p> để flex không tách từng node thành nhiều cột -->
+          <p class="co-voucher-guest-hint-text">
+            Mã khuyến mãi chỉ áp dụng khi <a routerLink="/login">đăng nhập</a> hoặc <a routerLink="/register">đăng ký</a>. Bạn vẫn đặt hàng bình thường với tài khoản khách (theo SĐT).
+          </p>
         </div>
 
 
@@ -471,9 +637,20 @@
 
         <div class="co-actions">
           <button class="co-btn co-btn-outline" type="button" (click)="goToCart()"><i class="bi bi-arrow-left"></i> Giỏ hàng</button>
-          <button class="co-btn co-btn-primary" type="button" [disabled]="isPlacing()" (click)="placeOrder()">
-            <span *ngIf="!isPlacing()"><i class="bi bi-check2-circle"></i> Đặt hàng</span>
-            <span *ngIf="isPlacing()" class="co-btn-loading"><span class="co-spinner co-spinner-white"></span> Đang xử lý...</span>
+          <button
+            class="co-btn co-btn-primary"
+            type="button"
+            [disabled]="isPlacing() || isSendingCheckoutOtp()"
+            (click)="placeOrder()">
+            <span *ngIf="!isPlacing() && !isSendingCheckoutOtp()">
+              <i class="bi bi-check2-circle"></i> Đặt hàng
+            </span>
+            <span *ngIf="isSendingCheckoutOtp()" class="co-btn-loading">
+              <span class="co-spinner co-spinner-white"></span> Đang gửi mã xác nhận...
+            </span>
+            <span *ngIf="isPlacing() && !isSendingCheckoutOtp()" class="co-btn-loading">
+              <span class="co-spinner co-spinner-white"></span> Đang xử lý...
+            </span>
           </button>
         </div>
       </div>

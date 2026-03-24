@@ -24,6 +24,8 @@ export class Order implements OnInit, OnDestroy {
   statusFilter = '';
   paymentMethodFilter = '';
   returnStatusFilter = '';
+  /** Khách có TK / khách vãng lai / admin tạo — rỗng = tất cả. */
+  orderSegmentFilter = '';
   fromDate = '';
   toDate = '';
   sortBy = 'createdAt';
@@ -108,6 +110,7 @@ export class Order implements OnInit, OnDestroy {
       status: this.statusFilter,
       paymentMethod: this.paymentMethodFilter,
       returnStatus: this.returnStatusFilter,
+      orderSegment: this.orderSegmentFilter,
       from: this.fromDate,
       to: this.toDate,
       sortBy: this.sortBy,
@@ -150,6 +153,7 @@ export class Order implements OnInit, OnDestroy {
     this.statusFilter = '';
     this.paymentMethodFilter = '';
     this.returnStatusFilter = '';
+    this.orderSegmentFilter = '';
     this.fromDate = '';
     this.toDate = '';
     this.sortBy = 'createdAt';
@@ -246,7 +250,24 @@ export class Order implements OnInit, OnDestroy {
     if (this.paymentMethodFilter) parts.push('Thanh toán');
     if (this.returnStatusFilter) parts.push('Trả/hoàn');
     if (this.fromDate || this.toDate) parts.push('Khoảng ngày');
+    if (this.orderSegmentFilter) parts.push('Loại đơn');
     return parts.length ? parts.join(' · ') : 'Mặc định';
+  }
+
+  /**
+   * Một dòng phụ dưới SĐT — tiếng Việt, không badge (đồng bộ nhãn với bộ lọc).
+   * Đơn cũ thiếu buyerLinkType: suy từ role trong buyerAccount khi có.
+   */
+  buyerSegmentLine(o: AdminOrder): string {
+    if (o.orderSource === 'admin_hotline') return 'Admin tạo đơn';
+    const b = o.buyerLinkType;
+    if (b === 'user') return 'Khách có tài khoản';
+    if (b === 'guest' || b === 'none') return 'Khách vãng lai';
+    const r = o.buyerAccount?.role;
+    if (r === 'user') return 'Khách có tài khoản (đơn cũ)';
+    if (r === 'guest') return 'Khách vãng lai (đơn cũ)';
+    if (!o.userId) return 'Khách vãng lai (đơn cũ)';
+    return 'Khách có tài khoản (đơn cũ)';
   }
 
   prevPage(): void {

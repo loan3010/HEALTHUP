@@ -250,6 +250,21 @@ export class OrderDetail implements OnChanges {
   }
 
   /**
+   * Cùng nhãn ngắn như bảng; chỉ thêm «đơn cũ» khi suy từ role / thiếu field.
+   */
+  orderSegmentLabelDetail(o: AdminOrder): string {
+    if (o.orderSource === 'admin_hotline') return 'Admin tạo đơn';
+    const b = o.buyerLinkType;
+    if (b === 'user') return 'Khách có tài khoản';
+    if (b === 'guest' || b === 'none') return 'Khách vãng lai';
+    const r = o.buyerAccount?.role;
+    if (r === 'user') return 'Khách có tài khoản (đơn cũ)';
+    if (r === 'guest') return 'Khách vãng lai (đơn cũ)';
+    if (!o.userId) return 'Khách vãng lai (đơn cũ)';
+    return 'Khách có tài khoản (đơn cũ)';
+  }
+
+  /**
    * Sai địa chỉ / khách từ chối → backend không cho `delivery_failed` → `shipping`.
    */
   redeliveryAllowedByPreset(o: AdminOrder | null | undefined): boolean {

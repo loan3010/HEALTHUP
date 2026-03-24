@@ -82,11 +82,19 @@ export interface AdminOrder {
   discountOnShipping: number;
   total: number;
   createdAt: string;
+  /** Mongoose timestamps — dùng fallback khi đơn cũ không có cancelledAt. */
+  updatedAt?: string;
+  cancelledAt?: string | null;
   /**
    * Tài khoản User đặt đơn (username + SĐT đăng ký). Khác `customer` (người nhận / địa chỉ giao).
    * null nếu guest hoặc không gắn userId / user đã xóa — khi đó UI fallback sang customer.
    */
-  buyerAccount?: { username: string; phone: string; email: string } | null;
+  /** role: guest | user — hỗ trợ hiển thị / suy luận đơn cũ khi thiếu buyerLinkType. */
+  buyerAccount?: { username: string; phone: string; email: string; role?: string } | null;
+  /** Nguồn tạo: website vs admin hotline. Đơn cũ có thể undefined → UI coi là web. */
+  orderSource?: 'web' | 'admin_hotline';
+  /** none | guest | user — đơn cũ có thể undefined. */
+  buyerLinkType?: 'none' | 'guest' | 'user';
   customerSummary?: {
     customerID?: string;
     membershipTier?: string;
@@ -162,6 +170,8 @@ export class AdminOrderService {
     status?: string;
     paymentMethod?: string;
     returnStatus?: string;
+    /** Gộp: member | guest | admin — backend query.orderSegment */
+    orderSegment?: string;
     from?: string;
     to?: string;
     sortBy?: string;
@@ -177,6 +187,7 @@ export class AdminOrderService {
     if (params.status) p = p.set('status', params.status);
     if (params.paymentMethod) p = p.set('paymentMethod', params.paymentMethod);
     if (params.returnStatus) p = p.set('returnStatus', params.returnStatus);
+    if (params.orderSegment) p = p.set('orderSegment', params.orderSegment);
     if (params.from) p = p.set('from', params.from);
     if (params.to) p = p.set('to', params.to);
 

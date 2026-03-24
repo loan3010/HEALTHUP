@@ -30,7 +30,10 @@
       <div class="col-12 col-lg-5">
         <div class="position-sticky" style="top:88px;">
           <div class="gallery-main mb-3" style="position:relative;">
-            <img [src]="activeImage || 'assets/images/placeholder.png'" [alt]="product.name" />
+            <img
+              [src]="activeImage || 'assets/images/placeholder.png'"
+              [alt]="product.name"
+              (error)="$any($event.target).src='assets/images/placeholder.png'" />
             <div class="out-of-stock-overlay" *ngIf="isProductCompletelyOutOfStock() || product.isOutOfStock">
               <div class="out-of-stock-circle">
                 <i class="bi bi-slash-circle"></i>
@@ -43,7 +46,7 @@
               *ngFor="let img of product.images"
               [class.active]="activeImage === img"
               (click)="activeImage = img">
-              <img [src]="img" [alt]="product.name" />
+              <img [src]="img" [alt]="product.name" (error)="$any($event.target).src='assets/images/placeholder.png'" />
             </div>
           </div>
         </div>

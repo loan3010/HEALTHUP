@@ -119,7 +119,7 @@ router.get('/', async (req, res) => {
     /** @type {Array<Record<string, unknown>>} */
     let data = users.map(u => {
       const stats = statsForUser(u, statsMaps);
-      const membershipTier = membershipTierFromTotalSpent90d(stats.totalSpent90d);
+      const membershipTier = membershipTierFromTotalSpent90d(stats.totalSpent);
 
       const audit = deactivationAuditForDoc(u);
       return {
@@ -376,7 +376,7 @@ router.get('/:id', async (req, res) => {
 
     const statsMaps = await buildCustomerListStatsMaps(Order);
     const stats = statsForUser(user, statsMaps);
-    const membershipTier = membershipTierFromTotalSpent90d(stats.totalSpent90d);
+    const membershipTier = membershipTierFromTotalSpent90d(stats.totalSpent);
 
     const audit = deactivationAuditForDoc(user);
     res.json({
@@ -432,7 +432,7 @@ router.put('/:id', async (req, res) => {
 
     const statsMaps = await buildCustomerListStatsMaps(Order);
     const stats = statsForUser(user, statsMaps);
-    const membershipTier = membershipTierFromTotalSpent90d(stats.totalSpent90d);
+    const membershipTier = membershipTierFromTotalSpent90d(stats.totalSpent);
     const audit = deactivationAuditForDoc(user);
 
     res.json({

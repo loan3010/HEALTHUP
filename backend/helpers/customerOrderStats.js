@@ -145,6 +145,16 @@ function statsForUser(user, maps) {
 
 
 /**
+ * Tương thích ngược cho các route admin đang gọi tên hàm cũ.
+ * Trả về hạng đơn giản: member | vip.
+ * Lưu ý: hiện tại route truyền vào tổng chi tiêu đã tính theo rule delivered.
+ */
+function membershipTierFromTotalSpent90d(totalSpent) {
+  return Number(totalSpent || 0) >= 2_000_000 ? 'vip' : 'member';
+}
+
+
+/**
  * Thống kê một nhóm đơn (userId hoặc customer.phone).
  * @param {import('mongoose').Model} Order
  * @param {Record<string, unknown>} matchFilter — ví dụ { userId } hoặc { 'customer.phone': '...' }
@@ -170,5 +180,6 @@ module.exports = {
   normalizePhone,
   buildCustomerListStatsMaps,
   statsForUser,
+  membershipTierFromTotalSpent90d,
   aggregateStatsForMatch,
 };

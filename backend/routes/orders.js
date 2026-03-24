@@ -27,6 +27,11 @@ const {
   notifyAdminReturnRequested,
 } = require('../services/adminNotificationService');
 const { restoreInventoryForOrderIfNeeded } = require('../helpers/orderInventory');
+const {
+  requestGuestCheckoutOtp,
+  consumeGuestCheckoutOtp,
+} = require('../helpers/guestCheckoutOtp');
+const { sendOrderLookupSms } = require('../services/smsService');
 
 
 
@@ -507,7 +512,10 @@ function parseDateEnd(d) {
 
 
 
-function buildAdminOrderFilter(query) {
+/**
+ * Lọc danh sách đơn admin. Async khi cần distinct User.role (đơn cũ thiếu buyerLinkType).
+ */
+async function buildAdminOrderFilter(query) {
   const filter = {};
   const and    = [];
 
@@ -560,6 +568,52 @@ function buildAdminOrderFilter(query) {
 
 
 
+  // --- Một tham số gộp: khách có TK / khách vãng lai / admin tạo (khớp UI admin). ---
+  // Đơn cũ thiếu orderSource vẫn coi là kênh khách (web); admin chỉ khi orderSource=gán.
+  const isCustomerChannel = {
+    $or: [
+      { orderSource: 'web' },
+      { orderSource: { $exists: false } },
+      { orderSource: null },
+    ],
+  };
+  const seg = String(query.orderSegment || '').trim();
+  if (seg === 'admin') {
+    filter.orderSource = 'admin_hotline';
+  } else if (seg === 'member') {
+    const regIds = await User.find({ role: 'user' }).distinct('_id');
+    and.push({
+      $and: [
+        isCustomerChannel,
+        {
+          $or: [
+            { buyerLinkType: 'user' },
+            {
+              buyerLinkType: { $exists: false },
+              userId: { $in: regIds },
+            },
+          ],
+        },
+      ],
+    });
+  } else if (seg === 'guest') {
+    const guestIds = await User.find({ role: 'guest' }).distinct('_id');
+    and.push({
+      $and: [
+        isCustomerChannel,
+        {
+          $or: [
+            { buyerLinkType: 'guest' },
+            {
+              buyerLinkType: { $exists: false },
+              userId: { $in: guestIds },
+            },
+          ],
+        },
+      ],
+    });
+  }
+
   if (and.length) filter.$and = and;
   return filter;
 }
@@ -589,7 +643,7 @@ async function attachBuyerAccountToOrders(orders) {
     return orders.map((o) => ({ ...o, buyerAccount: null }));
   }
   const users = await User.find({ _id: { $in: [...idSet] } })
-    .select('username phone email')
+    .select('username phone email role')
     .lean();
   const byId = new Map(users.map((u) => [String(u._id), u]));
   return orders.map((o) => {
@@ -601,6 +655,7 @@ async function attachBuyerAccountToOrders(orders) {
             username: String(u.username || ''),
             phone: String(u.phone || ''),
             email: String(u.email || ''),
+            role: String(u.role || ''),
           }
         : null,
     };
@@ -617,6 +672,43 @@ async function generateNextOrderCode() {
     .lean();
   const current = Number(String(latest?.orderCode || '').replace(/^ORD/, '')) || 0;
   return `ORD${String(current + 1).padStart(11, '0')}`;
+}
+
+
+
+
+/** Ký tự dễ đọc qua SMS (tránh 0/O, 1/I lẫn nhau). */
+const GUEST_LOOKUP_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+
+
+
+/**
+ * Chuẩn hoá mã tra cứu khách: HU- + 6 ký tự (cho phép nhập HUXXXXXX).
+ */
+function normalizeGuestLookupCode(raw) {
+  const s = String(raw || '').replace(/\s/g, '').toUpperCase();
+  if (!s) return '';
+  if (/^HU-[A-Z0-9]{6}$/.test(s)) return s;
+  if (/^HU[A-Z0-9]{6}$/.test(s)) return `HU-${s.slice(2)}`;
+  return '';
+}
+
+
+
+
+async function generateUniqueGuestLookupCode() {
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    let code = 'HU-';
+    for (let j = 0; j < 6; j += 1) {
+      code += GUEST_LOOKUP_ALPHABET.charAt(
+        Math.floor(Math.random() * GUEST_LOOKUP_ALPHABET.length)
+      );
+    }
+    const exists = await Order.exists({ guestLookupCode: code });
+    if (!exists) return code;
+  }
+  throw new Error('Không tạo được mã tra cứu (guest)');
 }
 
 
@@ -775,6 +867,14 @@ async function prepareOrderFromRequestBody(body, opts = {}) {
     const p = map.get(i.productId);
     let variant = null;
 
+    // Chặn đặt hàng nếu admin đã bật "tạm ngừng bán" cho sản phẩm.
+    if (p?.isOutOfStock) {
+      return {
+        ok: false, status: 400,
+        payload: { message: `Sản phẩm "${p.name}" hiện tạm ngừng bán` }
+      };
+    }
+
 
 
 
@@ -784,6 +884,15 @@ async function prepareOrderFromRequestBody(body, opts = {}) {
         return {
           ok: false, status: 400,
           payload: { message: `Biến thể không tồn tại cho sản phẩm ${p.name}` }
+        };
+      }
+      // Chặn đặt hàng nếu biến thể bị admin vô hiệu hóa.
+      if (variant?.isActive === false) {
+        return {
+          ok: false, status: 400,
+          payload: {
+            message: `Phân loại "${variant.label}" của sản phẩm "${p.name}" hiện đã ngừng kinh doanh`
+          }
         };
       }
     }
@@ -892,6 +1001,18 @@ async function prepareOrderFromRequestBody(body, opts = {}) {
 
 
 
+  // Meta nguồn đơn + loại TK — lưu vào Order để admin lọc; không bắt migration cho đơn cũ.
+  const orderSource =
+    opts.orderSource === 'admin_hotline' ? 'admin_hotline' : 'web';
+  let buyerLinkType = 'none';
+  if (orderData.userId) {
+    const acc = await User.findById(orderData.userId).select('role').lean();
+    const r = String(acc?.role || '');
+    buyerLinkType = r === 'guest' ? 'guest' : 'user';
+  }
+  orderData.orderSource = orderSource;
+  orderData.buyerLinkType = buyerLinkType;
+
   return {
     ok: true,
     orderData,
@@ -916,6 +1037,7 @@ async function persistNewOrder(
   for (let i = 0; i < 4; i += 1) {
     try {
       orderData.orderCode = await generateNextOrderCode();
+      orderData.guestLookupCode = await generateUniqueGuestLookupCode();
       order = await Order.create(orderData);
       lastErr = null;
       break;
@@ -1013,6 +1135,31 @@ async function persistNewOrder(
 
 
 
+// ======================= GUEST CHECKOUT OTP (gửi SMS, không cần đăng nhập) =======================
+
+
+
+
+router.post('/guest-checkout-otp/send', async (req, res) => {
+  try {
+    const result = await requestGuestCheckoutOtp(req.body?.phone);
+    if (!result.ok) {
+      return res.status(result.status || 400).json({ message: result.message });
+    }
+    const json = { message: result.message };
+    if (result.devPlainOtp) {
+      json.devPlainOtp = result.devPlainOtp;
+    }
+    return res.json(json);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: err?.message || 'Không gửi được OTP' });
+  }
+});
+
+
+
+
 // ======================= CREATE ORDER =======================
 
 
@@ -1022,6 +1169,8 @@ router.post('/', async (req, res) => {
   try {
     let allowVouchers = false;
     let lockedUserId  = null;
+    /** Khách đã đăng nhập member (JWT role user) — không bắt OTP SMS */
+    let isMemberJwt   = false;
 
 
 
@@ -1039,8 +1188,36 @@ router.post('/', async (req, res) => {
           }
           lockedUserId  = decoded.userId;
           allowVouchers = true;
+          isMemberJwt   = true;
         }
       } catch (_e) { /* token hết hạn / sai → xử lý như khách */ }
+    }
+
+
+
+
+    /**
+     * Khách không đăng nhập: bắt buộc OTP đã gửi SMS trước khi tạo đơn
+     * (tránh spam đơn / bot).
+     */
+    if (!isMemberJwt) {
+      const custEarly = req.body?.customer;
+      const phoneEarly = String(custEarly?.phone || '').trim();
+      if (!isValidPhoneVN(phoneEarly)) {
+        return res.status(400).json({
+          message: 'Vui lòng nhập số điện thoại người nhận hợp lệ (10 số, bắt đầu 0).',
+        });
+      }
+      const otpRaw = String(req.body?.guestCheckoutOtp || '').replace(/\D/g, '');
+      if (!/^\d{6}$/.test(otpRaw)) {
+        return res.status(400).json({
+          message: 'Vui lòng nhập mã OTP 6 số đã gửi qua SMS.',
+        });
+      }
+      const otpCheck = await consumeGuestCheckoutOtp(phoneEarly, otpRaw);
+      if (!otpCheck.ok) {
+        return res.status(400).json({ message: otpCheck.message });
+      }
     }
 
 
@@ -1060,7 +1237,11 @@ router.post('/', async (req, res) => {
 
 
 
-    const prep = await prepareOrderFromRequestBody(req.body, { allowVouchers, lockedUserId });
+    const prep = await prepareOrderFromRequestBody(req.body, {
+      allowVouchers,
+      lockedUserId,
+      orderSource: 'web',
+    });
     if (!prep.ok) {
       return res.status(prep.status).json(prep.payload);
     }
@@ -1130,7 +1311,32 @@ router.post('/', async (req, res) => {
 
 
 
-    return res.status(201).json({ orderId: order._id, orderCode: order.orderCode });
+    /**
+     * SMS thứ 2: mã tra cứu HU- (sau khi đơn đã tạo).
+     * Member đăng nhập không gửi (họ xem đơn trong tài khoản).
+     */
+    if (!isMemberJwt && order.guestLookupCode && order.customer?.phone) {
+      const origin = String(
+        process.env.FRONTEND_PUBLIC_URL ||
+          process.env.APP_PUBLIC_URL ||
+          'http://localhost:4200'
+      ).replace(/\/$/, '');
+      const lookupUrl = `${origin}/tra-cuu-don`;
+      sendOrderLookupSms(
+        order.customer.phone,
+        order.guestLookupCode,
+        lookupUrl
+      ).catch((e) => console.error('SMS mã tra cứu:', e));
+    }
+
+
+
+
+    return res.status(201).json({
+      orderId: order._id,
+      orderCode: order.orderCode,
+      guestLookupCode: order.guestLookupCode || null,
+    });
   } catch (err) {
     console.error(err);
     if (err?.name === 'CastError') {
@@ -1235,7 +1441,7 @@ router.get('/admin/list', authenticateToken, requireAdmin, async (req, res) => {
     const page  = Math.max(1, Number(req.query.page  || 1));
     const limit = Math.min(100, Math.max(1, Number(req.query.limit || 50)));
     const skip  = (page - 1) * limit;
-    const filter = buildAdminOrderFilter(req.query);
+    const filter = await buildAdminOrderFilter(req.query);
     const sort   = getAdminSort(req.query.sortBy, req.query.sortDir);
 
 
@@ -1285,7 +1491,10 @@ router.get('/admin/list', authenticateToken, requireAdmin, async (req, res) => {
 // ======================= ADMIN HOTLINE PREVIEW =======================
 router.post('/admin/hotline-preview', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const prep = await prepareOrderFromRequestBody(req.body, { allowVouchers: true });
+    const prep = await prepareOrderFromRequestBody(req.body, {
+      allowVouchers: true,
+      orderSource: 'admin_hotline',
+    });
     if (!prep.ok) {
       return res.status(prep.status).json(prep.payload);
     }
@@ -1317,7 +1526,10 @@ router.post('/admin/hotline-preview', authenticateToken, requireAdmin, async (re
 // ======================= ADMIN HOTLINE CREATE =======================
 router.post('/admin/hotline', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const prep = await prepareOrderFromRequestBody(req.body, { allowVouchers: true });
+    const prep = await prepareOrderFromRequestBody(req.body, {
+      allowVouchers: true,
+      orderSource: 'admin_hotline',
+    });
     if (!prep.ok) {
       return res.status(prep.status).json(prep.payload);
     }
@@ -1327,7 +1539,11 @@ router.post('/admin/hotline', authenticateToken, requireAdmin, async (req, res) 
       prep.voucherCodeRaw,
       prep.shipVoucherCodeRaw
     );
-    return res.status(201).json({ orderId: order._id, orderCode: order.orderCode });
+    return res.status(201).json({
+      orderId: order._id,
+      orderCode: order.orderCode,
+      guestLookupCode: order.guestLookupCode || null,
+    });
   } catch (err) {
     console.error(err);
     if (err?.name === 'CastError') {
@@ -1358,10 +1574,14 @@ router.get('/admin/:id', authenticateToken, requireAdmin, async (req, res) => {
 
     let user = null;
     if (order.userId && mongoose.Types.ObjectId.isValid(String(order.userId))) {
-      user = await User.findById(order.userId).select('customerID username phone email').lean();
+      user = await User.findById(order.userId)
+        .select('customerID username phone email role')
+        .lean();
     } else if (order.customer?.phone) {
       const digits     = normalizePhone(order.customer.phone);
-      const candidates = await User.find({ role: 'user' }).select('customerID username phone email').lean();
+      const candidates = await User.find({ role: 'user' })
+        .select('customerID username phone email role')
+        .lean();
       user = candidates.find(u => normalizePhone(u.phone) === digits) || null;
     }
 
@@ -1394,6 +1614,7 @@ router.get('/admin/:id', authenticateToken, requireAdmin, async (req, res) => {
           username: String(user.username || ''),
           phone: String(user.phone || ''),
           email: String(user.email || ''),
+          role: String(user.role || ''),
         }
       : null;
 
@@ -1493,6 +1714,9 @@ router.patch('/admin/:id/status', authenticateToken, requireAdmin, async (req, r
         });
       }
       order.cancelReason = cancelReason;
+      order.cancelledByType = 'admin';
+      order.cancelledById = String(req.user?.userId || '');
+      order.cancelledAt = new Date();
       await restoreInventoryForOrderIfNeeded(order);
       const pm = String(order.paymentMethod || '');
       if (['momo', 'vnpay'].includes(pm) && order.refundStatus !== 'completed') {
@@ -1725,35 +1949,39 @@ router.patch('/admin/:id/return-status', authenticateToken, requireAdmin, async 
 // ======================= GUEST: tra cứu đơn =======================
 router.post('/guest-lookup', async (req, res) => {
   try {
+    const glc = normalizeGuestLookupCode(req.body?.guestLookupCode || req.body?.lookupCode || '');
     const phone   = String(req.body?.phone    || '').trim();
     const rawCode = String(req.body?.orderCode || '').replace(/\s/g, '').toUpperCase();
+
+    // Ưu tiên mã SMS ngắn HU-XXXXXX — không cần SĐT.
+    if (glc) {
+      const order = await Order.findOne({ guestLookupCode: glc })
+        .populate({ path: 'items.productId', select: 'images name' })
+        .lean();
+      if (!order) {
+        return res.status(404).json({ message: 'Mã tra cứu không đúng hoặc đơn không tồn tại.' });
+      }
+      return res.json({ order });
+    }
+
+    // Đơn cũ: SĐT + mã ORD đầy đủ
     if (!isValidPhoneVN(phone)) {
       return res.status(400).json({ message: 'Số điện thoại không hợp lệ' });
     }
     if (!/^ORD\d{11}$/.test(rawCode)) {
-      return res.status(400).json({ message: 'Mã đơn không hợp lệ (VD: ORD00000000001)' });
+      return res.status(400).json({
+        message: 'Nhập mã tra cứu dạng HU-XXXXXX (trong SMS) hoặc dùng SĐT + mã ORD (đơn cũ).',
+      });
     }
-
-
-
-
     const order = await Order.findOne({ orderCode: rawCode })
       .populate({ path: 'items.productId', select: 'images name' })
       .lean();
-
-
-
-
     if (!order) {
       return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
     }
     if (normalizePhone(order.customer?.phone) !== normalizePhone(phone)) {
       return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
     }
-
-
-
-
     return res.json({ order });
   } catch (err) {
     console.error(err);
@@ -1775,7 +2003,7 @@ router.patch('/:id/guest-request-return', (req, res) => {
 
 
 
-      const { reason, note, items, phone, orderCode } = req.body;
+      const { reason, note, items, phone, orderCode, guestLookupCode: glcBody } = req.body;
 
 
 
@@ -1788,16 +2016,9 @@ router.patch('/:id/guest-request-return', (req, res) => {
 
 
 
+      const glc = normalizeGuestLookupCode(glcBody || '');
       const phoneVal = String(phone     || '').trim();
       const rawCode  = String(orderCode || '').replace(/\s/g, '').toUpperCase();
-      if (!isValidPhoneVN(phoneVal)) {
-        (req.files || []).forEach((f) => fs.unlink(f.path, () => {}));
-        return res.status(400).json({ message: 'Số điện thoại không hợp lệ' });
-      }
-      if (!/^ORD\d{11}$/.test(rawCode)) {
-        (req.files || []).forEach((f) => fs.unlink(f.path, () => {}));
-        return res.status(400).json({ message: 'Mã đơn không hợp lệ' });
-      }
       if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
         (req.files || []).forEach((f) => fs.unlink(f.path, () => {}));
         return res.status(400).json({ message: 'ID không hợp lệ' });
@@ -1815,13 +2036,29 @@ router.patch('/:id/guest-request-return', (req, res) => {
 
 
 
-      if (String(order.orderCode || '').toUpperCase() !== rawCode) {
-        (req.files || []).forEach((f) => fs.unlink(f.path, () => {}));
-        return res.status(403).json({ message: 'Mã đơn không khớp' });
-      }
-      if (normalizePhone(order.customer?.phone) !== normalizePhone(phoneVal)) {
-        (req.files || []).forEach((f) => fs.unlink(f.path, () => {}));
-        return res.status(403).json({ message: 'Số điện thoại không khớp đơn hàng' });
+      if (glc) {
+        const onFile = String(order.guestLookupCode || '').toUpperCase();
+        if (!onFile || onFile !== glc) {
+          (req.files || []).forEach((f) => fs.unlink(f.path, () => {}));
+          return res.status(403).json({ message: 'Mã tra cứu không khớp đơn hàng' });
+        }
+      } else {
+        if (!isValidPhoneVN(phoneVal)) {
+          (req.files || []).forEach((f) => fs.unlink(f.path, () => {}));
+          return res.status(400).json({ message: 'Số điện thoại không hợp lệ' });
+        }
+        if (!/^ORD\d{11}$/.test(rawCode)) {
+          (req.files || []).forEach((f) => fs.unlink(f.path, () => {}));
+          return res.status(400).json({ message: 'Mã đơn không hợp lệ' });
+        }
+        if (String(order.orderCode || '').toUpperCase() !== rawCode) {
+          (req.files || []).forEach((f) => fs.unlink(f.path, () => {}));
+          return res.status(403).json({ message: 'Mã đơn không khớp' });
+        }
+        if (normalizePhone(order.customer?.phone) !== normalizePhone(phoneVal)) {
+          (req.files || []).forEach((f) => fs.unlink(f.path, () => {}));
+          return res.status(403).json({ message: 'Số điện thoại không khớp đơn hàng' });
+        }
       }
       if (order.status !== 'delivered') {
         (req.files || []).forEach((f) => fs.unlink(f.path, () => {}));
@@ -1907,7 +2144,7 @@ router.get('/:id', async (req, res) => {
 
 router.patch('/:id/status', async (req, res) => {
   try {
-    const { status, cancelReason: userCancelReason } = req.body;
+    const { status, cancelReason: userCancelReason, guestLookupCode: cancelGlcRaw } = req.body;
     const allowed = [
       'pending',
       'confirmed',
@@ -1944,10 +2181,24 @@ router.patch('/:id/status', async (req, res) => {
 
 
 
+    const cancelGlc = normalizeGuestLookupCode(cancelGlcRaw || '');
+    if (status === 'cancelled' && cancelGlc) {
+      const onOrder = String(order.guestLookupCode || '').toUpperCase();
+      if (!onOrder || onOrder !== cancelGlc) {
+        return res.status(403).json({ message: 'Mã tra cứu không khớp — không thể hủy đơn.' });
+      }
+    }
+
+
+
+
     if (status === 'cancelled') {
       const fromUser = String(userCancelReason || '').trim().slice(0, 2000);
       order.cancelReason =
         fromUser.length >= 2 ? fromUser : 'Khách hàng hủy đơn (chờ xác nhận).';
+      order.cancelledByType = 'customer';
+      order.cancelledById = order.userId ? String(order.userId) : '';
+      order.cancelledAt = new Date();
       await restoreInventoryForOrderIfNeeded(order);
       const pm = String(order.paymentMethod || '');
       if (['momo', 'vnpay'].includes(pm) && order.refundStatus !== 'completed') {

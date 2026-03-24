@@ -17,14 +17,33 @@
         <div class="card">
           <div class="order-code">#{{ order.orderCode || order._id.slice(-12).toUpperCase() }}</div>
           <div class="date">{{ order.createdAt | date:'dd/MM/yyyy HH:mm' }}</div>
+          <div class="source-row compact">
+            <div class="label">Loại đơn</div>
+            <div class="source-hint">{{ orderSegmentLabelDetail(order) }}</div>
+          </div>
           <div class="status-wrap">
             <div>
               <div class="label">Trạng thái đơn hàng</div>
               <span class="badge">{{ statusLabel }}</span>
-              <div class="cancel-reason-admin" *ngIf="order.status === 'cancelled' && order.cancelReason">
+              <div class="cancel-reason-admin" *ngIf="order.status === 'cancelled'">
                 <span class="cancel-actor-chip">{{ cancelActorLabel }}</span>
-                <span class="label">Lý do hủy (hiển thị cho khách)</span>
-                <span class="cancel-reason-text">{{ order.cancelReason }}</span>
+                <ng-container *ngIf="order.cancelReason">
+                  <span class="label">Lý do hủy (hiển thị cho khách)</span>
+                  <span class="cancel-reason-text">{{ order.cancelReason }}</span>
+                </ng-container>
+                <div class="cancel-meta-admin" *ngIf="order.cancelledAt || order.updatedAt">
+                  <span class="label">Thời gian hủy</span>
+                  <span>{{ (order.cancelledAt || order.updatedAt) | date:'dd/MM/yyyy HH:mm' }}</span>
+                  <span class="hint" *ngIf="!order.cancelledAt"> (ước lượng — đơn cũ)</span>
+                </div>
+                <div class="cancel-meta-admin" *ngIf="order.cancelledById && order.cancelledByType === 'admin'">
+                  <span class="label">Admin thao tác (ID)</span>
+                  <span class="mono">{{ order.cancelledById }}</span>
+                </div>
+                <div class="cancel-meta-admin" *ngIf="order.cancelledById && order.cancelledByType === 'customer'">
+                  <span class="label">Tài khoản đặt hàng (ID)</span>
+                  <span class="mono">{{ order.cancelledById }}</span>
+                </div>
               </div>
             </div>
             <div>

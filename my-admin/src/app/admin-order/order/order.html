@@ -95,6 +95,15 @@
               </select>
             </div>
             <div class="filter-row">
+              <label>Loại đơn / khách</label>
+              <select [(ngModel)]="orderSegmentFilter">
+                <option value="">Tất cả</option>
+                <option value="member">Khách có tài khoản</option>
+                <option value="guest">Khách vãng lai</option>
+                <option value="admin">Admin tạo đơn</option>
+              </select>
+            </div>
+            <div class="filter-row">
               <label>Từ ngày</label>
               <input type="date" [(ngModel)]="fromDate" />
             </div>
@@ -171,6 +180,7 @@
               <!-- Ưu tiên tài khoản đặt hàng; customer = người nhận (sổ địa chỉ khi checkout). -->
               <div class="name">{{ order.buyerAccount?.username || order.customer.fullName }}</div>
               <div class="sub">{{ order.buyerAccount?.phone || order.customer.phone }}</div>
+              <div class="customer-segment-hint">{{ buyerSegmentLine(order) }}</div>
             </td>
             <td>
               <span class="status-badge" [ngClass]="'status-' + order.status">{{ statusLabel(order.status) }}</span>

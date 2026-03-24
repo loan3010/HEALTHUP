@@ -7,14 +7,13 @@ import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Subject, Subscription, of } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap, filter } from 'rxjs/operators';
-import { TrackOrderModal } from '../track-order-modal/track-order-modal';
 import { SearchService, SearchProduct } from '../services/search.service';
 import { ApiService } from '../services/api.service';
 
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, TrackOrderModal],
+  imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './header.html',
   styleUrls: ['./header.css']
 })
@@ -24,7 +23,6 @@ export class Header implements OnInit, OnDestroy {
   userName = '';
   showDropdown = false;
   menuOpen = false;
-  showTrackOrderModal = false;
   showLogoutConfirm = false;
 
   cartCount = 0;
@@ -263,17 +261,7 @@ export class Header implements OnInit, OnDestroy {
     }
   }
 
-  openTrackOrder()       { this.showTrackOrderModal = true;  this.cdr.detectChanges(); }
-  closeTrackOrderModal() { this.showTrackOrderModal = false; this.cdr.detectChanges(); }
-
-  /** Tra cứu đơn trên menu = mở modal xanh (app-track-order-modal), không tách luồng mới. */
-  openTrackOrderFromNav(event: Event, closeMobileMenu: boolean): void {
-    event.preventDefault();
-    if (closeMobileMenu) this.closeMenu();
-    this.openTrackOrder();
-  }
-
-  /** Gạch chân menu khi đang xem trang chi tiết tra cứu (sau khi modal redirect). */
+  /** Gạch chân menu khi đang xem trang tra cứu đơn đầy đủ. */
   get isTrackOrderPage(): boolean {
     return this.router.url.split('?')[0] === '/tra-cuu-don';
   }

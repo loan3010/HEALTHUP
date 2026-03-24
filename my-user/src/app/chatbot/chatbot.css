@@ -36,22 +36,25 @@
   padding: 0 !important;
 }
 
+/* Nút Zalo: cùng cột với nút chat (cùng right + width), không bọc tròn — theo khung bo góc vừa phải */
 .hu-zalo-float-button {
   position: fixed !important;
   right: 35px !important;
-  bottom: 112px !important; /* Nằm trên nút chat chính */
-  width: 54px !important;
-  height: 54px !important;
-  border-radius: 50% !important;
+  /* Cách mép dưới viewport = đáy chat + chiều cao chat + khoảng cách cố định (12px) */
+  bottom: calc(35px + 65px + 12px) !important;
+  width: 65px !important;
+  height: 65px !important;
+  border-radius: 14px !important;
   background: #ffffff !important;
   border: 1px solid #dbeafe !important;
-  box-shadow: 0 8px 24px rgba(0, 104, 255, 0.28) !important;
+  box-shadow: 0 8px 24px rgba(0, 104, 255, 0.22) !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
   text-decoration: none !important;
   z-index: 999997 !important;
   transition: transform 0.2s ease !important;
+  box-sizing: border-box !important;
 }
 
 .hu-zalo-float-button:hover {
@@ -59,9 +62,11 @@
 }
 
 .hu-zalo-float-button img {
-  /* Giữ icon to vừa đủ, không scale quá tay để tránh vỡ/lem. */
-  width: 34px !important;
-  height: 34px !important;
+  /* Gần bằng icon chat trong nút 65px (padding viền ~10px mỗi bên). */
+  width: 44px !important;
+  height: 44px !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
   object-fit: contain !important;
   display: block !important;
 }
@@ -741,7 +746,7 @@
 
   .hu-zalo-float-button {
     right: 16px !important;
-    bottom: 86px !important;
+    bottom: calc(16px + 65px + 12px) !important;
   }
 
   .hu-msg-content {

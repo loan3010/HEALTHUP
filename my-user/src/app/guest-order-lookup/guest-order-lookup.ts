@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { ApiService, STATIC_BASE } from '../services/api.service';
 
-/** Dòng chọn số lượng trả (giống return-management). */
+/** Dòng chọn số lượng trả */
 interface RetLine {
   productId: string;
   name: string;
@@ -22,8 +22,8 @@ interface RetLine {
   styleUrls: ['./guest-order-lookup.css'],
 })
 export class GuestOrderLookup implements OnInit {
-  phone = '';
-  orderCode = '';
+  /** Mã tra cứu SMS — HU-XXXXXX */
+  lookupCode = '';
   loading = false;
   errorMsg = '';
   order: any = null;
@@ -37,6 +37,9 @@ export class GuestOrderLookup implements OnInit {
   isSubmitting = false;
   showConfirmSubmit = false;
   submitOkMsg = '';
+
+  showCancelConfirm = false;
+  isCancelling = false;
 
   readonly REASONS = [
     'Sản phẩm bị lỗi / hư hỏng',
@@ -53,56 +56,143 @@ export class GuestOrderLookup implements OnInit {
     private cdr: ChangeDetectorRef
   ) {}
 
-  /** Đã tự tra cứu một lần từ URL (mở từ modal header: phone + code). */
   private autoLookupFromQueryDone = false;
+
+  /**
+   * Khi tra cứu bằng SĐT + ORD (link cũ): lưu SĐT để gửi đổi trả đúng nhánh API.
+   * Đơn có guestLookupCode thì luôn null.
+   */
+  private verifiedLegacyPhone: string | null = null;
 
   ngOnInit(): void {
     this.route.queryParams.subscribe((p) => {
       const c = p['code'];
       const ph = p['phone'];
       if (c && typeof c === 'string') {
-        this.orderCode = c.trim();
-      }
-      if (ph && typeof ph === 'string') {
-        this.phone = ph.trim();
+        this.lookupCode = c.trim();
       }
       this.cdr.detectChanges();
 
-      const pOk = /^0\d{9}$/.test(String(this.phone || '').trim());
-      const cOk = /^ORD\d{11}$/i.test(String(this.orderCode || '').trim());
-      if (pOk && cOk && !this.autoLookupFromQueryDone && !this.order) {
+      if (this.autoLookupFromQueryDone || this.order) return;
+
+      const normHu = this.normalizeLookupInput(this.lookupCode);
+      const rawC = String(this.lookupCode || '').replace(/\s/g, '').toUpperCase();
+      const phOk = typeof ph === 'string' && /^0\d{9}$/.test(ph.trim());
+      const ordOk = /^ORD\d{11}$/.test(rawC);
+
+      if (normHu) {
         this.autoLookupFromQueryDone = true;
         this.lookup();
+      } else if (ordOk && phOk) {
+        // Link cũ từ header (?phone=&code=ORD...) — vẫn tra được một lần
+        this.autoLookupFromQueryDone = true;
+        this.lookupLegacyPhoneOrd(ph.trim(), rawC);
       }
     });
+  }
+
+  /** Đồng bộ quy tắc với backend normalizeGuestLookupCode */
+  private normalizeLookupInput(raw: string): string {
+    const s = String(raw || '').replace(/\s/g, '').toUpperCase();
+    if (!s) return '';
+    if (/^HU-[A-Z0-9]{6}$/.test(s)) return s;
+    if (/^HU[A-Z0-9]{6}$/.test(s)) return `HU-${s.slice(2)}`;
+    return '';
   }
 
   lookup(): void {
     this.errorMsg = '';
     this.order = null;
     this.submitOkMsg = '';
-    const p = this.phone.trim();
-    const c = this.orderCode.trim().toUpperCase();
-    if (!/^0\d{9}$/.test(p)) {
-      this.errorMsg = 'Số điện thoại không hợp lệ (10 số, bắt đầu 0).';
-      return;
-    }
-    if (!/^ORD\d{11}$/i.test(c)) {
-      this.errorMsg = 'Mã đơn không hợp lệ (VD: ORD00000000001).';
+
+    const normHu = this.normalizeLookupInput(this.lookupCode);
+    if (normHu) {
+      this.runGuestLookup({ guestLookupCode: normHu });
       return;
     }
 
+    const raw = String(this.lookupCode || '').replace(/\s/g, '').toUpperCase();
+    if (/^ORD\d{11}$/.test(raw)) {
+      this.errorMsg =
+        'Mã ORD dài chỉ dùng kèm link có sẵn SĐT. Vui lòng tra cứu bằng mã HU-… trong SMS, hoặc đăng nhập để xem đơn.';
+      return;
+    }
+
+    this.errorMsg = 'Vui lòng nhập mã tra cứu (VD: HU-7K9M2P trong tin nhắn SMS).';
+  }
+
+  /** Đơn cũ: API yêu c chỉ kèm SĐT (từ query, không hiện form ORD trên UI). */
+  private lookupLegacyPhoneOrd(phone: string, orderCode: string): void {
+    this.errorMsg = '';
+    this.order = null;
+    this.submitOkMsg = '';
+    this.runGuestLookup({ phone, orderCode });
+  }
+
+  private runGuestLookup(payload: {
+    guestLookupCode?: string;
+    phone?: string;
+    orderCode?: string;
+  }): void {
     this.loading = true;
-    this.api.guestLookupOrder(p, c).subscribe({
+    this.api.guestLookupOrder(payload).subscribe({
       next: (res) => {
         this.order = res.order;
+        if (payload.phone && payload.orderCode) {
+          this.verifiedLegacyPhone = String(payload.phone).trim();
+        } else {
+          this.verifiedLegacyPhone = null;
+        }
         this.buildReturnLines();
         this.loading = false;
         this.cdr.detectChanges();
       },
       error: (err) => {
         this.loading = false;
-        this.errorMsg = err?.error?.message || 'Không tìm thấy đơn hàng.';
+        this.errorMsg =
+          err?.error?.message ||
+          'Mã tra cứu không chính xác hoặc đơn hàng không tồn tại.';
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  openCancelModal(): void {
+    this.showCancelConfirm = true;
+  }
+
+  closeCancelModal(): void {
+    this.showCancelConfirm = false;
+  }
+
+  confirmCancelOrder(): void {
+    if (!this.order?._id || this.isCancelling) return;
+    const glc = this.normalizeLookupInput(this.lookupCode);
+    const huOnOrder = String(this.order.guestLookupCode || '').trim();
+    if (huOnOrder) {
+      if (!glc || glc !== huOnOrder.toUpperCase()) {
+        this.errorMsg = 'Mã tra cứu trong ô nhập phải trùng mã SMS để hủy đơn.';
+        return;
+      }
+    }
+
+    this.isCancelling = true;
+    this.errorMsg = '';
+
+    const cancelOpts = huOnOrder && glc ? { guestLookupCode: glc } : undefined;
+    this.api.cancelOrder(this.order._id, cancelOpts).subscribe({
+      next: () => {
+        this.isCancelling = false;
+        this.showCancelConfirm = false;
+        this.order.status = 'cancelled';
+        this.api.showToast('Đã hủy đơn hàng thành công!', 'info');
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.isCancelling = false;
+        this.errorMsg =
+          err?.error?.message ||
+          'Không thể hủy đơn hàng lúc này. Vui lòng liên hệ hotline để được hỗ trợ.';
         this.cdr.detectChanges();
       },
     });
@@ -114,7 +204,6 @@ export class GuestOrderLookup implements OnInit {
     return String(x ?? '');
   }
 
-  /** Public: template dùng cho ảnh dòng đơn (populate). */
   orderLineImageRaw(item: any): string {
     const direct = item?.imageUrl;
     if (direct != null && String(direct).trim()) return String(direct).trim();
@@ -208,30 +297,57 @@ export class GuestOrderLookup implements OnInit {
     if (this.isSubmitting) return;
     if (!this.order?._id) return;
 
+    const glc = this.normalizeLookupInput(this.lookupCode);
+    const huOnOrder = String(this.order.guestLookupCode || '').trim();
+    const phone =
+      this.verifiedLegacyPhone ||
+      String(this.order?.customer?.phone || '').trim();
+    const ord = String(this.order?.orderCode || '').trim().toUpperCase();
+
+    if (huOnOrder) {
+      if (!glc || glc !== huOnOrder.toUpperCase()) {
+        this.errorMsg = 'Mã tra cứu không khớp — không thể gửi yêu cầu.';
+        this.showConfirmSubmit = false;
+        return;
+      }
+    } else {
+      if (!/^0\d{9}$/.test(phone) || !/^ORD\d{11}$/.test(ord)) {
+        this.errorMsg = 'Thiếu thông tin xác minh đơn cũ. Vui lòng mở lại link tra cứu có đủ SĐT + mã ORD.';
+        this.showConfirmSubmit = false;
+        return;
+      }
+    }
+
     this.showConfirmSubmit = false;
     this.isSubmitting = true;
     this.errorMsg = '';
 
     const items = this.returnLines.filter((x) => x.returnQty > 0);
+
+    const returnBody: Parameters<ApiService['guestRequestReturn']>[1] = {
+      phone,
+      orderCode: ord,
+      reason: this.returnReason,
+      note: this.returnNote,
+      items,
+      images: this.selectedImages,
+    };
+    if (huOnOrder && glc) returnBody.guestLookupCode = glc;
+
     this.api
-      .guestRequestReturn(String(this.order._id), {
-        phone: this.phone.trim(),
-        orderCode: this.orderCode.trim().toUpperCase(),
-        reason: this.returnReason,
-        note: this.returnNote,
-        items,
-        images: this.selectedImages,
-      })
+      .guestRequestReturn(String(this.order._id), returnBody)
       .subscribe({
         next: () => {
           this.isSubmitting = false;
-          this.submitOkMsg = 'Đã gửi yêu cầu đổi trả. Shop sẽ xử lý và liên hệ bạn.';
+          this.submitOkMsg =
+            'Yêu cầu đổi trả của bạn đã được gửi thành công. HealthUp sẽ liên hệ với bạn sớm nhất có thể.';
           if (this.order) this.order.returnStatus = 'requested';
           this.cdr.detectChanges();
         },
         error: (err) => {
           this.isSubmitting = false;
-          this.errorMsg = err?.error?.message || 'Gửi thất bại. Thử lại.';
+          this.errorMsg =
+            err?.error?.message || 'Gửi yêu cầu thất bại. Vui lòng kiểm tra lại kết nối.';
           this.cdr.detectChanges();
         },
       });
@@ -244,12 +360,52 @@ export class GuestOrderLookup implements OnInit {
   statusLabel(s: string): string {
     const m: Record<string, string> = {
       pending: 'Chờ xác nhận',
-      confirmed: 'Chờ giao',
-      shipping: 'Đang giao',
-      delivery_failed: 'Giao thất bại',
-      delivered: 'Đã giao',
-      cancelled: 'Đã hủy',
+      confirmed: 'Chờ giao hàng',
+      shipping: 'Đang vận chuyển',
+      delivery_failed: 'Giao hàng không thành công',
+      delivered: 'Đã giao hàng thành công',
+      cancelled: 'Đã hủy đơn',
     };
     return m[s] || s;
+  }
+
+  returnStatusLabel(rs: string): string {
+    const m: Record<string, string> = {
+      none: 'Không',
+      requested: 'Đã gửi yêu cầu',
+      approved: 'Đã chấp nhận hoàn',
+      rejected: 'Từ chối hoàn',
+      completed: 'Hoàn tất',
+    };
+    return m[rs] || rs;
+  }
+
+  cancelLookupActor(): string {
+    const o = this.order;
+    if (!o || o.status !== 'cancelled') return '';
+    const by = String(o.cancelledByType || '').toLowerCase();
+    if (by === 'customer') return 'Khách hàng';
+    if (by === 'admin') return 'Cửa hàng / Admin';
+    if (by === 'system') return 'Hệ thống';
+    return 'Chưa ghi nhận (đơn cũ)';
+  }
+
+  cancelLookupTime(): string {
+    const o = this.order;
+    if (!o || o.status !== 'cancelled') return '';
+    const raw = o.cancelledAt || o.updatedAt;
+    if (!raw) return '';
+    return new Date(raw).toLocaleString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+
+  cancelLookupTimeIsEstimate(): boolean {
+    const o = this.order;
+    return !!(o && o.status === 'cancelled' && !o.cancelledAt && o.updatedAt);
   }
 }

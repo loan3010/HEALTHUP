@@ -238,6 +238,36 @@ export class OrderDetail implements OnInit {
     return map[status] || status;
   }
 
+  /** Ai đã hủy đơn — đồng bộ field backend cancelledByType. */
+  getCancelActorLabel(): string {
+    const by = String(this.order?.cancelledByType || '').toLowerCase();
+    if (by === 'customer') return 'Bạn (khách hàng)';
+    if (by === 'admin') return 'Cửa hàng / Admin';
+    if (by === 'system') return 'Hệ thống';
+    if (this.order?.status === 'cancelled') return 'Chưa ghi nhận (đơn tạo trước khi cập nhật hệ thống)';
+    return '';
+  }
+
+  /**
+   * Thời điểm hủy: ưu tiên cancelledAt.
+   * Đơn cũ chưa có field → dùng updatedAt (thường trùng lúc hủy nếu không chỉnh sau đó).
+   */
+  getCancelledAtDisplay(): string {
+    if (this.order?.status !== 'cancelled') return '';
+    const raw = this.order?.cancelledAt || this.order?.updatedAt;
+    if (!raw) return '';
+    return this.formatDate(String(raw));
+  }
+
+  /** true = thời gian hiển thị là ước lượng (đơn cũ không có cancelledAt). */
+  isCancelledTimeEstimated(): boolean {
+    return (
+      this.order?.status === 'cancelled' &&
+      !this.order?.cancelledAt &&
+      !!this.order?.updatedAt
+    );
+  }
+
 
   getPaymentLabel(method: string): string {
     const map: Record<string, string> = {
