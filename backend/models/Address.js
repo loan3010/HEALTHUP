@@ -1,5 +1,3 @@
-// backend/models/Address.js
-
 const mongoose = require('mongoose');
 
 const addressSchema = new mongoose.Schema({
@@ -25,20 +23,26 @@ const addressSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Vui lòng nhập địa chỉ'],
     trim: true,
-    minlength: [10, 'Địa chỉ phải có ít nhất 10 ký tự']
+    minlength: [5, 'Địa chỉ phải có ít nhất 5 ký tự']
   },
+  // ✅ Thêm các field riêng
+  street:       { type: String, trim: true, default: '' },
+  wardName:     { type: String, trim: true, default: '' },
+  wardCode:     { type: Number, default: null },
+  districtName: { type: String, trim: true, default: '' },
+  districtCode: { type: Number, default: null },
+  provinceName: { type: String, trim: true, default: '' },
+  provinceCode: { type: Number, default: null },
   isDefault: {
     type: Boolean,
     default: false
   }
 }, {
-  timestamps: true // Tự động tạo createdAt và updatedAt
+  timestamps: true
 });
 
-// Index để tìm kiếm nhanh theo userId
 addressSchema.index({ userId: 1 });
 
-// Middleware: Trước khi lưu địa chỉ mặc định, bỏ default của các địa chỉ khác
 addressSchema.pre('save', async function(next) {
   if (this.isDefault && this.isModified('isDefault')) {
     await mongoose.model('Address').updateMany(

@@ -6,7 +6,6 @@
 /* ── Page ── */
 .orders-page {
   padding: 32px 30px;
-  /* background: #F2F7EE; */
   min-height: 100vh;
   font-family: 'Nunito', 'Segoe UI', sans-serif;
 }
@@ -17,6 +16,8 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 28px;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
 .orders-title {
@@ -31,6 +32,7 @@
   position: relative;
   display: flex;
   align-items: center;
+  flex: 0 0 auto;
 }
 
 .search-wrap svg {
@@ -75,12 +77,13 @@
   margin-bottom: 24px;
   overflow-x: auto;
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 .order-tabs::-webkit-scrollbar { display: none; }
 
 .order-tabs button {
-  flex: 1;
+  flex: 0 0 auto;
   min-width: max-content;
   border: none;
   background: transparent;
@@ -382,27 +385,119 @@
 }
 .btn-detail:hover { background: #2D5016; color: #fff; border-color: #2D5016; }
 
-/* ── Responsive ── */
-@media (max-width: 768px) {
-  .orders-page { padding: 20px 16px; }
+/* ================= RESPONSIVE ================= */
 
+/* Tablet */
+@media (max-width: 1024px) {
+  .orders-page { padding: 24px 20px; }
+  .search-input { width: 220px; }
+  .order-tabs button { padding: 8px 12px; font-size: 13px; }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .orders-page { padding: 16px 12px; }
+
+  /* Header */
   .orders-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
-  }
-
-  .search-wrap { width: 100%; }
-  .search-input { width: 100%; }
-
-  .order-tabs { gap: 3px; }
-  .order-tabs button { padding: 8px 10px; font-size: 12px; }
-
-  .order-footer {
-    flex-direction: column;
-    align-items: flex-start;
     gap: 10px;
+    margin-bottom: 16px;
+  }
+  .orders-title { font-size: 20px; }
+  .search-wrap { width: 100%; }
+  .search-input { width: 100%; box-sizing: border-box; }
+
+  /* Tabs */
+  .order-tabs { padding: 4px; gap: 3px; margin-bottom: 16px; border-radius: 12px; }
+  .order-tabs button { padding: 7px 10px; font-size: 12px; gap: 4px; }
+  .tab-badge { padding: 1px 6px; font-size: 10px; }
+
+  /* Card */
+  .order-card { border-radius: 14px; margin-bottom: 12px; }
+  .order-status { padding: 8px 14px; font-size: 11px; }
+
+  /* Product */
+  .order-product { padding: 12px 14px; gap: 10px; }
+  .product-img { width: 50px; height: 50px; padding: 4px; }
+  .product-name { font-size: 13px; }
+  .product-price { font-size: 12px; }
+  .product-total { font-size: 13px; }
+
+  /* ✅ Footer: stack dọc hoàn toàn */
+  .order-footer {
+    padding: 10px 14px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
   }
 
-  .order-actions { width: 100%; flex-wrap: wrap; }
+  .order-total {
+    flex: unset;
+    min-width: unset;
+    width: 100%;
+    font-size: 13px;
+  }
+  .order-total strong { font-size: 15px; }
+
+  /* ✅ Actions: các nút cùng hàng chia đều */
+  .order-actions {
+    width: 100%;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+
+  .order-actions .btn-primary,
+  .order-actions .btn-outline,
+  .order-actions .btn-danger {
+    flex: 1;
+    min-width: 0;
+    justify-content: center;
+    padding: 8px 6px;
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ✅ Xem chi tiết: full width hàng cuối */
+  .btn-detail {
+    width: 100%;
+    box-sizing: border-box;
+    justify-content: center;
+    padding: 8px 14px;
+    font-size: 12px;
+  }
+
+  .orders-empty { padding: 48px 20px; }
+  .empty-icon { width: 56px; height: 56px; }
+}
+
+/* Mobile nhỏ < 480px */
+@media (max-width: 480px) {
+  .orders-page { padding: 12px 8px; }
+  .orders-title { font-size: 18px; }
+
+  .order-tabs button { padding: 6px 8px; font-size: 11px; }
+  .tab-badge { display: none; }
+
+  .order-product { padding: 10px 12px; }
+  .product-img { width: 44px; height: 44px; }
+  .product-name { font-size: 12px; }
+
+  .order-footer { padding: 8px 12px; gap: 6px; }
+
+  .order-actions .btn-primary,
+  .order-actions .btn-outline,
+  .order-actions .btn-danger {
+    font-size: 11px;
+    padding: 7px 4px;
+  }
+
+  .btn-detail { font-size: 11px; padding: 7px 12px; }
+
+  .orders-empty { padding: 40px 16px; }
+  .empty-icon { width: 48px; height: 48px; }
 }

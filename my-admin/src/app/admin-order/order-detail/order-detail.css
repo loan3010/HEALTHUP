@@ -137,6 +137,7 @@ h3, h4 { margin: 0 0 10px; }
 }
 .tier-member { background: #e8f5e9; color: #2e7d32; }
 .tier-vip { background: #fff3e0; color: #ef6c00; }
+.tier-none { background: #f3f4f6; color: #4b5563; }
 
 .actions {
   display: grid;

@@ -152,14 +152,14 @@
         <div class="card">
           <h4>Thông tin người mua (tài khoản)</h4>
           <!-- buyerAccount = User đăng nhập đặt đơn; không có thì guest → hiện customer như trước. -->
-          <div class="line"><span>{{ order.buyerAccount?.username || order.customer.fullName }}</span></div>
-          <div class="line"><span>{{ order.buyerAccount?.phone || order.customer.phone }}</span></div>
-          <div class="line"><span>{{ order.buyerAccount?.email || order.customer.email || '—' }}</span></div>
-          <div class="line"><label>ID khách hàng</label><strong>{{ order.customerSummary?.customerID || 'KH0000' }}</strong></div>
+          <div class="line"><label>Họ tên</label><strong>{{ order.buyerAccount?.username || order.customer.fullName }}</strong></div>
+          <div class="line"><label>Số điện thoại</label><strong>{{ order.buyerAccount?.phone || order.customer.phone }}</strong></div>
+          <div class="line"><label>Email</label><strong>{{ order.buyerAccount?.email || order.customer.email || '—' }}</strong></div>
+          <div class="line"><label>ID khách hàng</label><strong>{{ displayCustomerId() }}</strong></div>
           <div class="line">
             <label>Hạng thành viên</label>
-            <span class="tier-badge" [ngClass]="getTierClass(order.customerSummary?.membershipTier || 'member')">
-              {{ tierLabel(order.customerSummary?.membershipTier || 'member') }}
+            <span class="tier-badge" [ngClass]="getTierClass(displayMembershipTier())">
+              {{ tierLabel(displayMembershipTier()) }}
             </span>
             <span class="tier-provisional" *ngIf="order.customerSummary?.hasProvisionalSpend">(tạm — đang có đơn chờ hoàn)</span>
           </div>

@@ -5,8 +5,10 @@ import { HttpClient, HttpClientModule, HttpHeaders, HttpErrorResponse } from '@a
 import { CommonModule } from '@angular/common';
 import { ApiService, GUEST_CART_STORAGE_KEY } from '../services/api.service';
 
+
 type ShippingMethod = 'standard' | 'express';
 type PaymentMethod  = 'cod' | 'momo' | 'vnpay';
+
 
 type CheckoutItem = {
   productId: string;
@@ -18,18 +20,28 @@ type CheckoutItem = {
   imageUrl?: string | null;
 };
 
+
 interface SavedAddress {
   _id?: string;
   id?: string;
   name: string;
   phone: string;
   address: string;
+  street?: string;
+  wardName?: string;
+  wardCode?: number;
+  districtName?: string;
+  districtCode?: number;
+  provinceName?: string;
+  provinceCode?: number;
   isDefault: boolean;
 }
+
 
 interface Province { code: number; name: string; }
 interface District { code: number; name: string; }
 interface Ward     { code: number; name: string; }
+
 
 export interface VoucherInfo {
   code: string;
@@ -45,6 +57,7 @@ export interface VoucherInfo {
   vipOnly?: boolean;
 }
 
+
 interface ApplyVoucherResult {
   valid: boolean;
   code?: string;
@@ -57,6 +70,7 @@ interface ApplyVoucherResult {
   discountAmount?: number;
   message: string;
 }
+
 
 @Component({
   selector: 'app-checkout',
@@ -71,21 +85,27 @@ export class Checkout implements OnInit {
   private readonly CART_KEY     = 'cart_v1';
   private readonly CHECKOUT_KEY = 'checkout_v1';
 
+
   userId = '';
   private token = '';
+
 
   items     = signal<CheckoutItem[]>([]);
   errorMsg  = signal('');
   isPlacing = signal(false);
 
+
   showSuccess      = signal(false);
   successOrderId   = signal('');
   successOrderCode = signal('');
 
+
   guestAddrForm!: FormGroup;
+
 
   shippingMethod = signal<ShippingMethod>('standard');
   paymentMethod  = signal<PaymentMethod>('cod');
+
 
   // ── Voucher tiền hàng ──
   orderVoucherCode       = signal('');
@@ -93,11 +113,13 @@ export class Checkout implements OnInit {
   orderVoucherResult     = signal<ApplyVoucherResult | null>(null);
   isApplyingOrderVoucher = false;
 
+
   // ── Voucher phí vận chuyển ──
   shipVoucherCode       = signal('');
   shipVoucherMsg        = signal('');
   shipVoucherResult     = signal<ApplyVoucherResult | null>(null);
   isApplyingShipVoucher = false;
+
 
   // ── Modal voucher ──
   showVoucherModal     = false;
@@ -105,7 +127,9 @@ export class Checkout implements OnInit {
   availableVouchers    = signal<VoucherInfo[]>([]);
   isLoadingVouchers    = false;
 
+
   bestVoucherCode = signal<string>('');
+
 
   // ── Hạng thành viên ──
   userRank    = signal<string>('member');
@@ -113,18 +137,22 @@ export class Checkout implements OnInit {
   recentSpent = signal<number>(0);
   showRankTooltip = false;
 
+
   rankProgressPercent = computed(() =>
     Math.min(100, Math.round((this.recentSpent() / 2_000_000) * 100))
   );
+
 
   rankProgressRemain = computed(() =>
     Math.max(0, 2_000_000 - this.recentSpent())
   );
 
+
   // ── Address ──
   savedAddresses = signal<SavedAddress[]>([]);
   selectedAddrId = signal<string>('');
   isLoadingAddr  = signal(false);
+
 
   showAddrModal    = false;
   addrDropdownOpen = false;
@@ -134,6 +162,7 @@ export class Checkout implements OnInit {
   addrModalError   = '';
   addrModalSuccess = '';
 
+
   provinces: Province[] = [];
   districts: District[] = [];
   wards:     Ward[]     = [];
@@ -142,17 +171,26 @@ export class Checkout implements OnInit {
   loadingWards     = false;
   fullAddressPreview = '';
 
+
   addrForm!: FormGroup;
   checkoutForm!: FormGroup;
+
 
   // ── Computed ──
   subTotal = computed(() =>
     this.items().reduce((s, i) => s + (Number(i.price) || 0) * (Number(i.quantity) || 0), 0)
   );
 
+
   shippingFee = computed(() =>
     this.shippingMethod() === 'express' ? 30000 : (this.subTotal() > 500000 ? 0 : 20000)
   );
+
+
+  // Giá cố định từng option để hiển thị trong UI (không phụ thuộc method đang chọn)
+  standardFee = computed(() => this.subTotal() > 500000 ? 0 : 20000);
+  expressFee  = computed(() => 30000);
+
 
   discountOnItems = computed(() => {
     const r = this.orderVoucherResult();
@@ -160,25 +198,31 @@ export class Checkout implements OnInit {
     return r.discountAmount ?? 0;
   });
 
+
   discountOnShipping = computed(() => {
     const r = this.shipVoucherResult();
     if (!r?.valid || r.discountOnType !== 'shipping') return 0;
     return r.discountAmount ?? 0;
   });
 
+
   discount = computed(() => this.discountOnItems() + this.discountOnShipping());
+
 
   total = computed(() =>
     Math.max(0, this.subTotal() - this.discountOnItems() + this.shippingFee() - this.discountOnShipping())
   );
 
+
   get selectedAddr(): SavedAddress | undefined {
     return this.savedAddresses().find(a => this.getId(a) === this.selectedAddrId());
   }
 
+
   get canUseVouchers(): boolean {
     return !!(this.token && this.userId);
   }
+
 
   get shippingAddr(): SavedAddress | null {
     if (this.userId) {
@@ -194,13 +238,16 @@ export class Checkout implements OnInit {
     return { name, phone, address, isDefault: false };
   }
 
+
   get isOrderVoucherApplied(): boolean {
     return this.orderVoucherResult()?.valid === true;
   }
 
+
   get isShipVoucherApplied(): boolean {
     return this.shipVoucherResult()?.valid === true;
   }
+
 
   get appliedOrderVoucherInfo(): VoucherInfo | undefined {
     const r = this.orderVoucherResult();
@@ -215,6 +262,7 @@ export class Checkout implements OnInit {
     };
   }
 
+
   get appliedShipVoucherInfo(): VoucherInfo | undefined {
     const r = this.shipVoucherResult();
     if (!r?.valid || !r.code) return undefined;
@@ -228,9 +276,11 @@ export class Checkout implements OnInit {
     };
   }
 
+
   get memberRankLabel(): string {
     return this.userRank() === 'vip' ? '⭐ VIP' : 'Thành viên';
   }
+
 
   constructor(
     private fb:     FormBuilder,
@@ -239,6 +289,7 @@ export class Checkout implements OnInit {
     private cdr:    ChangeDetectorRef,
     private api:    ApiService
   ) {}
+
 
   ngOnInit(): void {
     this.checkoutForm  = this.fb.group({ note: [''] });
@@ -251,16 +302,19 @@ export class Checkout implements OnInit {
     this.loadCheckoutItems();
     if (!this.items().length) { this.router.navigateByUrl('/cart'); return; }
 
+
     try {
       const u     = JSON.parse(localStorage.getItem('user') || '{}');
       this.token  = localStorage.getItem('token') || '';
       this.userId = u.id || u._id || '';
     } catch {}
 
+
     if (!this.canUseVouchers) {
       this.removeVoucher('order');
       this.removeVoucher('shipping');
     }
+
 
     this.loadProvinces();
     if (this.userId && this.token) {
@@ -269,9 +323,11 @@ export class Checkout implements OnInit {
     }
   }
 
+
   private get headers() {
     return new HttpHeaders({ Authorization: `Bearer ${this.token}` });
   }
+
 
   private loadUserRank(): void {
     this.http.get<any>(`${this.API_BASE}/users/${this.userId}`, { headers: this.headers })
@@ -286,8 +342,10 @@ export class Checkout implements OnInit {
       });
   }
 
+
   getId(a: SavedAddress): string { return (a._id || a.id || '') as string; }
   getInitial(name: string): string { return (name || 'U').charAt(0).toUpperCase(); }
+
 
   // ── Address ──
   loadSavedAddresses(): void {
@@ -310,7 +368,9 @@ export class Checkout implements OnInit {
     });
   }
 
+
   selectAddress(id: string): void { this.selectedAddrId.set(id); this.cdr.detectChanges(); }
+
 
   setDefaultAddr(idx: number): void {
     const id = this.getId(this.savedAddresses()[idx]);
@@ -323,6 +383,7 @@ export class Checkout implements OnInit {
         }
       });
   }
+
 
   deleteAddr(idx: number): void {
     if (!confirm('Xóa địa chỉ này?')) return;
@@ -340,6 +401,7 @@ export class Checkout implements OnInit {
       });
   }
 
+
   private buildAddrForm(): void {
     this.addrForm = this.fb.group({
       name:      ['', [Validators.required, Validators.minLength(2)]],
@@ -353,35 +415,195 @@ export class Checkout implements OnInit {
     this.addrForm.valueChanges.subscribe(() => this.updatePreview());
   }
 
+
+  // ── Thêm mới ──
   openAddAddrModal(): void {
-    this.isAddrEditMode = false; this.editingAddrIdx = -1;
-    this.addrModalError = ''; this.addrModalSuccess = '';
-    this.districts = []; this.wards = []; this.fullAddressPreview = '';
+    this.isAddrEditMode   = false;
+    this.editingAddrIdx   = -1;
+    this.addrModalError   = '';
+    this.addrModalSuccess = '';
+    this.districts        = [];
+    this.wards            = [];
+    this.fullAddressPreview = '';
+
+
+    this.addrForm.get('province')?.setValidators(Validators.required);
+    this.addrForm.get('district')?.setValidators(Validators.required);
+    this.addrForm.get('ward')?.setValidators(Validators.required);
+    this.addrForm.get('province')?.updateValueAndValidity();
+    this.addrForm.get('district')?.updateValueAndValidity();
+    this.addrForm.get('ward')?.updateValueAndValidity();
+
+
     this.addrForm.reset({ isDefault: false });
-    this.showAddrModal = true; this.cdr.detectChanges();
-  }
-
-  openEditAddrModal(idx: number): void {
-    this.isAddrEditMode = true; this.editingAddrIdx = idx;
-    this.addrModalError = ''; this.addrModalSuccess = '';
-    this.districts = []; this.wards = [];
-    const a = this.savedAddresses()[idx];
-    this.fullAddressPreview = a.address;
-    this.addrForm.reset({ name: a.name, phone: a.phone, province: '', district: '', ward: '', street: a.address, isDefault: a.isDefault });
-    setTimeout(() => { this.cdr.detectChanges(); }, 0);
-    this.showAddrModal = true; this.cdr.detectChanges();
-  }
-
-  closeAddrModal(): void {
-    this.showAddrModal = false; this.addrForm.reset();
-    this.fullAddressPreview = ''; this.addrModalError = ''; this.addrModalSuccess = '';
+    this.showAddrModal = true;
     this.cdr.detectChanges();
   }
+
+
+  // ✅ FIX: Parse tên từ address string, fuzzy match để lấy code
+  openEditAddrModal(idx: number): void {
+    this.isAddrEditMode   = true;
+    this.editingAddrIdx   = idx;
+    this.addrModalError   = '';
+    this.addrModalSuccess = '';
+    this.districts        = [];
+    this.wards            = [];
+
+
+    const a = this.savedAddresses()[idx];
+    this.fullAddressPreview = a.address;
+
+
+    this.addrForm.get('province')?.clearValidators();
+    this.addrForm.get('district')?.clearValidators();
+    this.addrForm.get('ward')?.clearValidators();
+    this.addrForm.get('province')?.updateValueAndValidity();
+    this.addrForm.get('district')?.updateValueAndValidity();
+    this.addrForm.get('ward')?.updateValueAndValidity();
+
+
+    // ✅ Tách street: chỉ lấy phần số nhà/tên đường, bỏ phần tỉnh/huyện/xã
+    const allParts = a.address.split(',').map((p: string) => p.trim()).filter(Boolean);
+    const geoKeywords = ['tỉnh', 'thành phố', 'tp.', 'huyện', 'quận', 'thị xã', 'tx.', 'xã', 'phường', 'thị trấn', 'tt.'];
+    const isGeoPart = (p: string) => geoKeywords.some(k => p.toLowerCase().startsWith(k));
+    const streetOnly = a.street || allParts.filter(p => !isGeoPart(p)).join(', ') || a.address;
+
+
+    this.addrForm.patchValue({
+      name:      a.name,
+      phone:     a.phone,
+      province:  '',
+      district:  '',
+      ward:      '',
+      street:    streetOnly,
+      isDefault: a.isDefault,
+    });
+
+
+    this.showAddrModal = true;
+    this.cdr.detectChanges();
+
+
+    // ✅ Parse tên tỉnh/huyện/xã bằng keyword để tránh lệch index
+    const parts = allParts;
+    const provinceKeywords = ['tỉnh', 'thành phố', 'tp.'];
+    const districtKeywords = ['huyện', 'quận', 'thị xã', 'tx.'];
+    const wardKeywords     = ['xã', 'phường', 'thị trấn', 'tt.'];
+    const findPart = (keywords: string[]) =>
+      parts.find(p => keywords.some(k => p.toLowerCase().startsWith(k))) || '';
+    const provinceName = a.provinceName || findPart(provinceKeywords);
+    const districtName = a.districtName || findPart(districtKeywords);
+    const wardName     = a.wardName     || findPart(wardKeywords);
+
+
+    const fuzzy = (a: string, b: string) =>
+      a.toLowerCase().includes(b.toLowerCase()) || b.toLowerCase().includes(a.toLowerCase());
+
+
+    const doMatch = () => {
+      // Nếu có provinceCode thì dùng luôn, không thì fuzzy match theo tên
+      const province = a.provinceCode
+        ? this.provinces.find(p => p.code === a.provinceCode)
+        : this.provinces.find(p => fuzzy(p.name, provinceName));
+
+
+      if (!province) return;
+
+
+      this.loadingDistricts = true;
+      this.cdr.detectChanges();
+
+
+      this.http.get<any>(`${this.GEO_API}/p/${province.code}?depth=2`).subscribe({
+        next: (d) => {
+          this.districts = d.districts || [];
+          this.loadingDistricts = false;
+          this.addrForm.patchValue({ province: province.code }, { emitEvent: false });
+
+
+          const district = a.districtCode
+            ? this.districts.find(d => d.code === a.districtCode)
+            : this.districts.find(d => fuzzy(d.name, districtName));
+
+
+          if (!district) { this.cdr.detectChanges(); return; }
+
+
+          this.loadingWards = true;
+          this.cdr.detectChanges();
+
+
+          this.http.get<any>(`${this.GEO_API}/d/${district.code}?depth=2`).subscribe({
+            next: (dw) => {
+              this.wards = dw.wards || [];
+              this.loadingWards = false;
+
+
+              const ward = a.wardCode
+                ? this.wards.find(w => w.code === a.wardCode)
+                : this.wards.find(w => fuzzy(w.name, wardName));
+
+
+              this.addrForm.patchValue({
+                district: district.code,
+                ward:     ward?.code || '',
+              }, { emitEvent: false });
+
+
+              this.updatePreview();
+              this.cdr.detectChanges();
+            },
+            error: () => { this.loadingWards = false; this.cdr.detectChanges(); }
+          });
+        },
+        error: () => { this.loadingDistricts = false; this.cdr.detectChanges(); }
+      });
+    };
+
+
+    if (!this.provinces.length) {
+      this.loadingProvinces = true;
+      this.cdr.detectChanges();
+      this.http.get<Province[]>(`${this.GEO_API}/?depth=1`).subscribe({
+        next: (d) => {
+          this.provinces = d;
+          this.loadingProvinces = false;
+          this.cdr.detectChanges();
+          doMatch();
+        },
+        error: () => { this.loadingProvinces = false; }
+      });
+    } else {
+      doMatch();
+    }
+  }
+
+
+  // ── Đóng modal — restore validators ──
+  closeAddrModal(): void {
+    this.addrForm.get('province')?.setValidators(Validators.required);
+    this.addrForm.get('district')?.setValidators(Validators.required);
+    this.addrForm.get('ward')?.setValidators(Validators.required);
+    this.addrForm.get('province')?.updateValueAndValidity();
+    this.addrForm.get('district')?.updateValueAndValidity();
+    this.addrForm.get('ward')?.updateValueAndValidity();
+
+
+    this.showAddrModal      = false;
+    this.fullAddressPreview = '';
+    this.addrModalError     = '';
+    this.addrModalSuccess   = '';
+    this.addrForm.reset();
+    this.cdr.detectChanges();
+  }
+
 
   showAddrFieldError(field: string): boolean {
     const f = this.addrForm.get(field);
     return !!(f && f.invalid && (f.dirty || f.touched));
   }
+
 
   submitAddrForm(): void {
     if (this.addrForm.invalid) {
@@ -392,17 +614,47 @@ export class Checkout implements OnInit {
     this.isAddrEditMode ? this.updateAddr() : this.addAddr();
   }
 
-  private getFullAddr(): string { return this.fullAddressPreview || this.addrForm.value.street; }
+
+  private getFullAddr(): string {
+    const v = this.addrForm.value;
+    if (v.province && v.district && v.ward && this.fullAddressPreview) {
+      return this.fullAddressPreview;
+    }
+    return this.fullAddressPreview || v.street || '';
+  }
+
 
   private addAddr(): void {
     this.isAddrSaving = true; this.addrModalError = '';
-    const v    = this.addrForm.value;
-    const body = { name: v.name, phone: v.phone, address: this.getFullAddr(), isDefault: v.isDefault, userId: this.userId };
+    const v = this.addrForm.value;
+
+
+    const provinceName = this.provinces.find(p => p.code == v.province)?.name || '';
+    const districtName = this.districts.find(d => d.code == v.district)?.name || '';
+    const wardName     = this.wards.find(w => w.code == v.ward)?.name || '';
+
+
+    const body = {
+      name:         v.name,
+      phone:        v.phone,
+      address:      this.getFullAddr(),
+      street:       v.street       || '',
+      wardName,
+      wardCode:     v.ward         || null,
+      districtName,
+      districtCode: v.district     || null,
+      provinceName,
+      provinceCode: v.province     || null,
+      isDefault:    v.isDefault,
+      userId:       this.userId
+    };
+
+
     this.http.post<any>(`${this.API_BASE}/users/${this.userId}/addresses`, body, { headers: this.headers })
       .subscribe({
         next: (res) => {
           this.isAddrSaving = false;
-          const newAddr: SavedAddress = res.address;
+          const newAddr: SavedAddress = res.address || res;
           let addrs = [...this.savedAddresses()];
           if (newAddr.isDefault) addrs = addrs.map(a => ({ ...a, isDefault: false }));
           addrs.push(newAddr);
@@ -418,16 +670,40 @@ export class Checkout implements OnInit {
       });
   }
 
+
   private updateAddr(): void {
     this.isAddrSaving = true; this.addrModalError = '';
-    const v  = this.addrForm.value;
-    const id = this.getId(this.savedAddresses()[this.editingAddrIdx]);
-    const body = { name: v.name, phone: v.phone, address: this.getFullAddr() || v.street, isDefault: v.isDefault, userId: this.userId };
+    const v   = this.addrForm.value;
+    const id  = this.getId(this.savedAddresses()[this.editingAddrIdx]);
+    const old = this.savedAddresses()[this.editingAddrIdx];
+
+
+    const provinceName = this.provinces.find(p => p.code == v.province)?.name || old.provinceName || '';
+    const districtName = this.districts.find(d => d.code == v.district)?.name || old.districtName || '';
+    const wardName     = this.wards.find(w => w.code == v.ward)?.name         || old.wardName     || '';
+
+
+    const body = {
+      name:         v.name,
+      phone:        v.phone,
+      address:      this.getFullAddr(),
+      street:       v.street    || old.street       || '',
+      wardName,
+      wardCode:     v.ward      || old.wardCode      || null,
+      districtName,
+      districtCode: v.district  || old.districtCode  || null,
+      provinceName,
+      provinceCode: v.province  || old.provinceCode  || null,
+      isDefault:    v.isDefault,
+      userId:       this.userId
+    };
+
+
     this.http.put<any>(`${this.API_BASE}/users/${this.userId}/addresses/${id}`, body, { headers: this.headers })
       .subscribe({
         next: (res) => {
           this.isAddrSaving = false;
-          const updated: SavedAddress = res.address;
+          const updated: SavedAddress = res.address || res;
           let addrs = [...this.savedAddresses()];
           if (updated.isDefault) addrs = addrs.map(a => ({ ...a, isDefault: false }));
           addrs[this.editingAddrIdx] = updated;
@@ -442,6 +718,7 @@ export class Checkout implements OnInit {
       });
   }
 
+
   loadProvinces(): void {
     if (this.provinces.length) return;
     this.loadingProvinces = true;
@@ -450,6 +727,7 @@ export class Checkout implements OnInit {
       error: () => { this.loadingProvinces = false; }
     });
   }
+
 
   onProvinceChange(): void {
     const code = this.addrForm.get('province')?.value;
@@ -463,6 +741,7 @@ export class Checkout implements OnInit {
     });
   }
 
+
   onDistrictChange(): void {
     const code = this.addrForm.get('district')?.value;
     this.wards = [];
@@ -475,7 +754,9 @@ export class Checkout implements OnInit {
     });
   }
 
+
   onWardChange(): void { this.updatePreview(); }
+
 
   updatePreview(): void {
     const v     = this.addrForm.value;
@@ -485,14 +766,17 @@ export class Checkout implements OnInit {
     this.fullAddressPreview = [v.street, wName, dName, pName].filter(Boolean).join(', ');
   }
 
+
   // ══════════════════════════════════════
   // VOUCHER
   // ══════════════════════════════════════
+
 
   isVoucherEligible(v: VoucherInfo): boolean {
     if (v.eligible === false) return false;
     return this.subTotal() >= (v.minOrder ?? 0);
   }
+
 
   voucherDisabledReason(v: VoucherInfo): string {
     if (v.ineligibleReason) return v.ineligibleReason;
@@ -502,6 +786,7 @@ export class Checkout implements OnInit {
     }
     return '';
   }
+
 
   calcVoucherSaving(v: VoucherInfo): number {
     if (!this.isVoucherEligible(v)) return 0;
@@ -514,6 +799,7 @@ export class Checkout implements OnInit {
     if (v.discountType === 'fixed') return Math.min(v.discountValue, base);
     return 0;
   }
+
 
   onVoucherInput(v: string, forType: 'order' | 'shipping'): void {
     const upper = v.trim().toUpperCase();
@@ -529,9 +815,9 @@ export class Checkout implements OnInit {
     this.cdr.detectChanges();
   }
 
+
   applyVoucher(forType: 'order' | 'shipping'): void {
     if (!this.canUseVouchers) return;
-
     const code = forType === 'order' ? this.orderVoucherCode() : this.shipVoucherCode();
     if (!code) {
       forType === 'order'
@@ -542,6 +828,7 @@ export class Checkout implements OnInit {
     if (forType === 'order'    && this.isApplyingOrderVoucher) return;
     if (forType === 'shipping' && this.isApplyingShipVoucher)  return;
 
+
     if (forType === 'order') {
       this.isApplyingOrderVoucher = true;
       this.orderVoucherMsg.set('');
@@ -551,7 +838,9 @@ export class Checkout implements OnInit {
     }
     this.cdr.detectChanges();
 
+
     const cartProductIds = this.items().map(i => i.productId);
+
 
     this.http.post<ApplyVoucherResult>(
       `${this.API_BASE}/promotions/apply`,
@@ -571,7 +860,6 @@ export class Checkout implements OnInit {
           this.shipVoucherMsg.set('Mã này chỉ dùng cho tiền hàng, hãy nhập vào ô bên trên');
           this.cdr.detectChanges(); return;
         }
-
         if (forType === 'order') {
           this.isApplyingOrderVoucher = false;
           this.orderVoucherResult.set(res);
@@ -599,6 +887,7 @@ export class Checkout implements OnInit {
     });
   }
 
+
   removeVoucher(forType: 'order' | 'shipping'): void {
     if (forType === 'order') {
       this.orderVoucherCode.set('');
@@ -612,6 +901,7 @@ export class Checkout implements OnInit {
     this.cdr.detectChanges();
   }
 
+
   openVoucherModal(forType: 'order' | 'shipping'): void {
     if (!this.canUseVouchers) return;
     this.voucherModalFor   = forType;
@@ -620,7 +910,9 @@ export class Checkout implements OnInit {
     this.bestVoucherCode.set('');
     this.cdr.detectChanges();
 
+
     const cartProductIds = this.items().map(i => i.productId).join(',');
+
 
     this.http.get<VoucherInfo[]>(
       `${this.API_BASE}/promotions/available`,
@@ -638,32 +930,16 @@ export class Checkout implements OnInit {
           forType === 'shipping' ? v.type === 'shipping' : v.type === 'order'
         );
 
-        const eligible   = filtered.filter(v => v.eligible !== false);
-        const ineligible = filtered.filter(v => v.eligible === false);
 
-        // Tìm voucher tiết kiệm nhiều nhất
-        let bestCode = '';
-        if (eligible.length > 0) {
-          const best = eligible.reduce((prev, curr) =>
-            this.calcVoucherSaving(curr) > this.calcVoucherSaving(prev) ? curr : prev
-          );
-          bestCode = best.code;
-          this.bestVoucherCode.set(bestCode);
-        }
-
-        // Sắp xếp eligible: voucher tốt nhất lên đầu, còn lại sort theo saving giảm dần
-        const sortedEligible = eligible.sort((a, b) => {
-          if (a.code === bestCode) return -1;
-          if (b.code === bestCode) return  1;
-          return this.calcVoucherSaving(b) - this.calcVoucherSaving(a);
-        });
-
-        // Ineligible sort theo minOrder tăng dần (gần đủ điều kiện lên trước)
-        const sortedIneligible = ineligible.sort((a, b) =>
-          (a.minOrder ?? 0) - (b.minOrder ?? 0)
-        );
-
-        this.availableVouchers.set([...sortedEligible, ...sortedIneligible]);
+        const withSaving = filtered.map(v => ({
+          ...v,
+          _saving:   this.calcVoucherSaving(v),
+          _eligible: this.isVoucherEligible(v),
+        }));
+        const eligible   = withSaving.filter(v => v._eligible).sort((a, b) => b._saving - a._saving);
+        const ineligible = withSaving.filter(v => !v._eligible).sort((a, b) => (a.minOrder ?? 0) - (b.minOrder ?? 0));
+        if (eligible.length > 0) this.bestVoucherCode.set(eligible[0].code);
+        this.availableVouchers.set([...eligible, ...ineligible]);
         this.isLoadingVouchers = false;
         this.cdr.detectChanges();
       },
@@ -675,10 +951,12 @@ export class Checkout implements OnInit {
     });
   }
 
+
   closeVoucherModal(): void {
     this.showVoucherModal = false;
     this.cdr.detectChanges();
   }
+
 
   selectVoucher(code: string, eligible: boolean): void {
     if (!eligible) return;
@@ -689,6 +967,7 @@ export class Checkout implements OnInit {
     this.applyVoucher(this.voucherModalFor);
   }
 
+
   voucherTypeLabel(v: VoucherInfo): string {
     if (v.discountType === 'freeship') return 'Miễn phí vận chuyển';
     if (v.discountType === 'percent')  return `Giảm ${v.discountValue}%`;
@@ -696,11 +975,13 @@ export class Checkout implements OnInit {
     return v.name;
   }
 
+
   voucherTypeIcon(v: VoucherInfo): string {
     if (v.discountType === 'freeship' || v.type === 'shipping') return 'bi-truck';
     if (v.discountType === 'percent')  return 'bi-percent';
     return 'bi-tag';
   }
+
 
   get voucherModalTitle(): string {
     return this.voucherModalFor === 'shipping'
@@ -708,9 +989,11 @@ export class Checkout implements OnInit {
       : 'Mã giảm tiền hàng';
   }
 
+
   // ══════════════════════════════════════
   // PLACE ORDER
   // ══════════════════════════════════════
+
 
   private parseAddressParts(fullAddress: string): { province: string; district: string; ward: string } {
     const parts = fullAddress.split(',').map(p => p.trim()).filter(Boolean);
@@ -726,10 +1009,12 @@ export class Checkout implements OnInit {
     return { province: fullAddress, district: fullAddress, ward: fullAddress };
   }
 
+
   placeOrder(): void {
     this.errorMsg.set('');
     if (this.isPlacing()) return;
     if (!this.items().length) { this.router.navigateByUrl('/cart'); return; }
+
 
     const addr = this.shippingAddr;
     if (!addr) {
@@ -742,14 +1027,17 @@ export class Checkout implements OnInit {
       return;
     }
 
+
     const badIds = this.items().filter(i => !/^[a-fA-F0-9]{24}$/.test(String(i.productId || '').trim()));
     if (badIds.length) {
       this.errorMsg.set('Có sản phẩm bị lỗi ID. Vui lòng thêm lại vào giỏ.');
       this.cdr.detectChanges(); return;
     }
 
+
     const note = this.checkoutForm.value.note || '';
     const { province, district, ward } = this.parseAddressParts(addr.address);
+
 
     const customer: any = {
       fullName: addr.name,
@@ -761,6 +1049,7 @@ export class Checkout implements OnInit {
       ward,
       note,
     };
+
 
     const useVoucher = this.canUseVouchers;
     const payload: any = {
@@ -778,6 +1067,7 @@ export class Checkout implements OnInit {
     };
     if (this.userId) payload.userId = this.userId;
 
+
     if (!this.token) {
       try {
         const gid = localStorage.getItem(GUEST_CART_STORAGE_KEY);
@@ -787,13 +1077,16 @@ export class Checkout implements OnInit {
       } catch { /* ignore */ }
     }
 
+
     let headers = new HttpHeaders();
     if (this.token) {
       headers = headers.set('Authorization', `Bearer ${this.token}`);
     }
 
+
     this.isPlacing.set(true);
     this.cdr.detectChanges();
+
 
     this.http.post<any>(`${this.API_BASE}/orders`, payload, { headers }).subscribe({
       next: (res) => {
@@ -804,8 +1097,8 @@ export class Checkout implements OnInit {
         this.successOrderCode.set(String(res?.orderCode || ''));
         this.showSuccess.set(true);
 
-        if (this.userId && this.token) this.loadUserRank();
 
+        if (this.userId && this.token) this.loadUserRank();
         this.api.refreshUnreadCount();
         this.api.refreshCartCount();
         this.cdr.detectChanges();
@@ -819,6 +1112,7 @@ export class Checkout implements OnInit {
     });
   }
 
+
   goToOrderDetail(): void {
     this.showSuccess.set(false);
     const id = this.successOrderId();
@@ -831,11 +1125,13 @@ export class Checkout implements OnInit {
     }
   }
 
+
   goToHome():        void { this.showSuccess.set(false); this.router.navigateByUrl('/'); }
   setShipping(m: ShippingMethod) { this.shippingMethod.set(m); }
   setPayment(m: PaymentMethod)   { this.paymentMethod.set(m); }
   goToCart() { this.router.navigateByUrl('/cart'); }
   vnd(n: number) { return n.toLocaleString('vi-VN') + '₫'; }
+
 
   private loadCheckoutItems(): void {
     try {
@@ -844,6 +1140,7 @@ export class Checkout implements OnInit {
       this.items.set(Array.isArray(parsed) ? parsed.filter((x: any) => x?.productId && x.quantity != null) : []);
     } catch { this.items.set([]); }
   }
+
 
   private clearAfterSuccess(): void {
     const boughtIds = this.items().map(i => i.productId);
@@ -856,6 +1153,7 @@ export class Checkout implements OnInit {
         Array.isArray(cart) ? cart.filter((x: any) => !bought.has(x.productId)) : []
       ));
     } catch {}
+
 
     const userId = this.userId;
     let cartHeaders: HttpHeaders | null = null;

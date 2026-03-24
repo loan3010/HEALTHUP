@@ -446,11 +446,28 @@ export class OrderDetail implements OnChanges {
   }
 
   tierLabel(tier: string): string {
+    if (String(tier || '').toLowerCase() === 'none') return 'Không hạng';
     return String(tier || '').toLowerCase() === 'vip' ? 'VIP' : 'Thành viên';
   }
 
   getTierClass(tier: string): string {
-    return String(tier || '').toLowerCase() === 'vip' ? 'tier-vip' : 'tier-member';
+    const t = String(tier || '').toLowerCase();
+    if (t === 'none') return 'tier-none';
+    return t === 'vip' ? 'tier-vip' : 'tier-member';
+  }
+
+  /** Đơn không có customerID được xem là khách vãng lai (không hạng). */
+  isGuestOrder(): boolean {
+    return !String(this.order?.customerSummary?.customerID || '').trim();
+  }
+
+  displayCustomerId(): string {
+    return this.isGuestOrder() ? 'Không có' : String(this.order?.customerSummary?.customerID || '').trim();
+  }
+
+  displayMembershipTier(): string {
+    if (this.isGuestOrder()) return 'none';
+    return String(this.order?.customerSummary?.membershipTier || 'member');
   }
 
   formatMoney(value: number): string {
