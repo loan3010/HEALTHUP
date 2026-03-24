@@ -36,6 +36,36 @@
   padding: 0 !important;
 }
 
+.hu-zalo-float-button {
+  position: fixed !important;
+  right: 35px !important;
+  bottom: 112px !important; /* Nằm trên nút chat chính */
+  width: 54px !important;
+  height: 54px !important;
+  border-radius: 50% !important;
+  background: #ffffff !important;
+  border: 1px solid #dbeafe !important;
+  box-shadow: 0 8px 24px rgba(0, 104, 255, 0.28) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-decoration: none !important;
+  z-index: 999997 !important;
+  transition: transform 0.2s ease !important;
+}
+
+.hu-zalo-float-button:hover {
+  transform: scale(1.06) !important;
+}
+
+.hu-zalo-float-button img {
+  /* Giữ icon to vừa đủ, không scale quá tay để tránh vỡ/lem. */
+  width: 34px !important;
+  height: 34px !important;
+  object-fit: contain !important;
+  display: block !important;
+}
+
 .hu-chat-button:active {
   cursor: grabbing !important;
 }
@@ -707,6 +737,11 @@
   .hu-chat-button {
     bottom: 16px !important;
     right: 16px !important;
+  }
+
+  .hu-zalo-float-button {
+    right: 16px !important;
+    bottom: 86px !important;
   }
 
   .hu-msg-content {

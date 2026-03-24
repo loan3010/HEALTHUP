@@ -59,6 +59,8 @@ export class ChatbotComponent implements OnInit {
   private conversationHistory: ConversationHistory[] = [];
 
   botName = 'HealthUp Assistant';
+  // Số điện thoại cửa hàng dùng cho nút chat Zalo nhanh.
+  readonly storePhone = '0123456789';
 
   botAvatar = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
@@ -308,5 +310,10 @@ export class ChatbotComponent implements OnInit {
       event.preventDefault();
       this.sendMessage();
     }
+  }
+
+  getZaloChatUrl(): string {
+    const phone = this.storePhone.replace(/\D/g, '');
+    return `https://zalo.me/${phone}`;
   }
 }
