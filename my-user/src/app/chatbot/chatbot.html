@@ -98,33 +98,12 @@
         <div class="hu-msg-time">{{ message.time }}</div>
 
         <div class="hu-faq-list" *ngIf="message.suggestions && message.suggestions.length > 0">
-          
           <button
-            *ngFor="let faq of message.suggestions.slice(message.suggestionIndex, message.suggestionIndex + 3)"
+            *ngFor="let faq of message.suggestions"
             class="hu-faq-item"
             (click)="handleFAQClick(faq)">
             💡 {{ faq.question }}
           </button>
-
-          <div class="hu-faq-pagination" *ngIf="message.suggestions.length > 3">
-            <button 
-              class="hu-pag-btn" 
-              [disabled]="message.suggestionIndex === 0" 
-              (click)="prevSuggestions(message)">
-              <i class="bi bi-chevron-left"></i> Trở lại
-            </button>
-            
-            <span class="hu-pag-info">
-              {{ (message.suggestionIndex / 3) + 1 }} / {{ Math.ceil(message.suggestions.length / 3) }}
-            </span>
-
-            <button 
-              class="hu-pag-btn" 
-              [disabled]="message.suggestionIndex + 3 >= message.suggestions.length" 
-              (click)="nextSuggestions(message)">
-              Gợi ý thêm <i class="bi bi-chevron-right"></i>
-            </button>
-          </div>
         </div>
       </div>
 
@@ -146,25 +125,15 @@
 
   </div>
 
-  <div class="hu-quick-replies" *ngIf="!showWelcome && categories.length > 0" [class.hu-qr-expanded]="isQuickRepliesOpen">
-    
-    <div class="hu-qr-header" (click)="toggleQuickReplies()">
-      <div class="hu-qr-header-left">
-        <i class="bi bi-grid-fill"></i>
-        <p class="hu-qr-title">Chọn chủ đề tư vấn</p>
-      </div>
-      <i class="bi" [ngClass]="isQuickRepliesOpen ? 'bi-chevron-down' : 'bi-chevron-up'"></i>
-    </div>
-
-    <div class="hu-qr-content" *ngIf="isQuickRepliesOpen">
-      <div class="hu-qr-buttons">
-        <button
-          *ngFor="let category of categories"
-          class="hu-qr-btn"
-          (click)="handleCategoryClick(category)">
-          {{ category.icon }} {{ category.name }}
-        </button>
-      </div>
+  <div class="hu-quick-replies" *ngIf="!showWelcome && categories.length > 0">
+    <p class="hu-qr-title">Chọn chủ đề:</p>
+    <div class="hu-qr-buttons">
+      <button
+        *ngFor="let category of categories"
+        class="hu-qr-btn"
+        (click)="handleCategoryClick(category)">
+        {{ category.icon }} {{ category.name }}
+      </button>
     </div>
   </div>
 

@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core'; // Đã thêm ChangeDetectorRef
 import { HttpClient } from '@angular/common/http';
 import { CommonModule, NgClass, NgIf, NgFor } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -28,7 +28,6 @@ interface Message {
   text: SafeHtml;
   time: string;
   suggestions?: FAQ[];
-  suggestionIndex: number; // Theo dõi vị trí câu hỏi đang hiển thị (phân trang)
   products?: any[]; 
 }
 
@@ -48,7 +47,6 @@ export class ChatbotComponent implements OnInit {
 
   private apiUrl = 'http://localhost:3000/api/chatbot';
   readonly serverUrl = 'http://localhost:3000';
-  protected readonly Math = Math; // Cho phép sử dụng Math trong template HTML
 
   isOpen = false;
   showWelcome = true;
@@ -57,9 +55,6 @@ export class ChatbotComponent implements OnInit {
   messages: Message[] = [];
   userInput = '';
   isTyping = false;
-
-  // ✅ Trạng thái đóng/mở danh sách chủ đề (Quick Replies)
-  isQuickRepliesOpen = false;
 
   private conversationHistory: ConversationHistory[] = [];
 
@@ -137,12 +132,6 @@ export class ChatbotComponent implements OnInit {
     this.cdr.detectChanges();
   }
 
-  // ✅ Hàm đóng/mở cụm chủ đề tư vấn
-  toggleQuickReplies(): void {
-    this.isQuickRepliesOpen = !this.isQuickRepliesOpen;
-    this.cdr.detectChanges();
-  }
-
   startChat(): void {
     this.showWelcome = false;
     this.addBotMessage(
@@ -159,8 +148,7 @@ export class ChatbotComponent implements OnInit {
       type, 
       text: safeContent, 
       time: this.getCurrentTime(), 
-      suggestions: suggestions || [],
-      suggestionIndex: 0, 
+      suggestions,
       products 
     });
 
@@ -191,22 +179,6 @@ export class ChatbotComponent implements OnInit {
     });
   }
 
-  // --- ĐIỀU HƯỚNG PHÂN TRANG FAQ (3 câu mỗi lượt) ---
-
-  nextSuggestions(message: Message): void {
-    if (message.suggestions && message.suggestionIndex + 3 < message.suggestions.length) {
-      message.suggestionIndex += 3;
-      this.cdr.detectChanges();
-    }
-  }
-
-  prevSuggestions(message: Message): void {
-    if (message.suggestionIndex >= 3) {
-      message.suggestionIndex -= 3;
-      this.cdr.detectChanges();
-    }
-  }
-
   handleCategoryClick(category: Category): void {
     this.addUserMessage(`Tôi muốn tư vấn về ${category.name}`);
     this.isTyping = true;
@@ -219,14 +191,12 @@ export class ChatbotComponent implements OnInit {
           const faqs = Array.isArray(res) ? res : (res.data || []);
           if (faqs.length > 0) {
             const botText = `Dưới đây là các câu hỏi thường gặp về **${category.name}**, bạn nhấn vào để xem câu trả lời nhé:`;
-            this.addBotMessage(botText, faqs);
+            this.addBotMessage(botText, faqs.slice(0, 5));
           } else {
             this.addBotMessage(`Hiện tại tôi đang cập nhật thêm thông tin về ${category.name}. Bạn có thể đặt câu hỏi cụ thể hơn cho tôi nhé!`);
           }
-          // Sau khi chọn, tự động đóng menu chủ đề lại cho gọn
-          this.isQuickRepliesOpen = false;
           this.cdr.detectChanges();
-        }, 1000);
+        }, 2000); // Đợi 2 giây
       },
       error: () => {
         this.isTyping = false;
@@ -248,7 +218,7 @@ export class ChatbotComponent implements OnInit {
       this.pushToHistory('assistant', faq.answer);
       this.saveConversation(faq.question, faq.answer);
       this.cdr.detectChanges();
-    }, 1000);
+    }, 2000); // Đợi 2 giây
   }
 
   sendMessage(): void {
@@ -274,14 +244,14 @@ export class ChatbotComponent implements OnInit {
             this.askClaude(query);
           }
           this.cdr.detectChanges();
-        }, 1000);
+        }, 2000); // Đợi 2 giây
       },
       error: () => {
         setTimeout(() => {
           this.isTyping = false;
           this.askClaude(query);
           this.cdr.detectChanges();
-        }, 1000);
+        }, 2000);
       }
     });
   }
@@ -297,22 +267,17 @@ export class ChatbotComponent implements OnInit {
       { role: 'user', content: userQuery }
     ];
 
-    this.isTyping = true;
-    this.cdr.detectChanges();
-
     this.http.post<any>(`${this.apiUrl}/chat/claude`, { messages: historyToSend }).subscribe({
       next: (response) => {
-        setTimeout(() => {
-          this.isTyping = false;
-          const claudeReply = response?.reply || response?.data?.reply || 
-                              'Xin lỗi, hiện tại tôi không thể phản hồi. Bạn vui lòng liên hệ hotline nhé! 🙏';
-          
-          this.addBotMessage(claudeReply);
-          this.pushToHistory('user', userQuery);
-          this.pushToHistory('assistant', claudeReply);
-          this.saveConversation(userQuery, claudeReply);
-          this.cdr.detectChanges();
-        }, 1200);
+        this.isTyping = false;
+        const claudeReply = response?.reply || response?.data?.reply || 
+                            'Xin lỗi, hiện tại tôi không thể phản hồi. Bạn vui lòng liên hệ hotline nhé! 🙏';
+        
+        this.addBotMessage(claudeReply);
+        this.pushToHistory('user', userQuery);
+        this.pushToHistory('assistant', claudeReply);
+        this.saveConversation(userQuery, claudeReply);
+        this.cdr.detectChanges();
       },
       error: () => {
         this.isTyping = false;
