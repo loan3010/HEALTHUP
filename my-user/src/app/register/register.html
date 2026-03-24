@@ -2,66 +2,62 @@
   <div class="auth-bg"></div>
 
   <div class="box">
-    <h2 class="title">ĐĂNG KÝ</h2>
+    <!-- LOGO + TITLE -->
+    <div class="title-wrap">
+      <div class="title-logo">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
+          <path d="M8 12c0-2.21 1.79-4 4-4s4 1.79 4 4-1.79 4-4 4-4-1.79-4-4z"/>
+          <path d="M12 6v2M12 16v2M6 12H4M20 12h-2"/>
+        </svg>
+      </div>
+      <h2 class="title">Tạo tài khoản mới</h2>
+      <p class="title-sub">Bắt đầu hành trình sức khoẻ của bạn</p>
+    </div>
 
-    <!-- ✅ chặn autofill -->
     <form [formGroup]="form" (ngSubmit)="openOtpPopup()" autocomplete="off">
+      <input type="text" style="display:none">
+      <input type="password" style="display:none">
 
       <!-- USERNAME -->
       <div class="field">
-        <div class="label">Tên tài khoản <span class="req">*</span></div>
+        <label class="label">Tên tài khoản <span class="req">*</span></label>
         <div class="control">
-          <input
-            class="inp"
-            formControlName="username"
-            name="reg_username"
-            autocomplete="off"
-            placeholder="Nhập tên của bạn"
-          />
+          <span class="inp-icon"><i class="bi bi-person"></i></span>
+          <input class="inp" formControlName="username" name="reg_username"
+                 autocomplete="off" placeholder="Nhập tên của bạn" />
           <button type="button" class="clear"
-                  (click)="form.controls['username'].setValue('')">×</button>
+                  (click)="form.controls['username'].setValue('')">x</button>
         </div>
-        <div class="err" *ngIf="showErr('username')">
-          {{ errText('username') }}
-        </div>
+        <div class="err" *ngIf="showErr('username')">{{ errText('username') }}</div>
       </div>
 
       <!-- PHONE -->
       <div class="field">
-        <div class="label">Số điện thoại <span class="req">*</span></div>
+        <label class="label">Số điện thoại <span class="req">*</span></label>
         <div class="control">
-          <input
-            class="inp"
-            formControlName="phone"
-            name="reg_phone"
-            autocomplete="off"
-            inputmode="numeric"
-            placeholder="Nhập số điện thoại của bạn"
-          />
+          <span class="inp-icon"><i class="bi bi-phone"></i></span>
+          <input class="inp" formControlName="phone" name="reg_phone"
+                 autocomplete="off" inputmode="numeric"
+                 placeholder="Nhập số điện thoại của bạn" />
           <button type="button" class="clear"
-                  (click)="form.controls['phone'].setValue('')">×</button>
+                  (click)="form.controls['phone'].setValue('')">x</button>
         </div>
-        <div class="err" *ngIf="showErr('phone')">
-          {{ errText('phone') }}
-        </div>
+        <div class="err" *ngIf="showErr('phone')">{{ errText('phone') }}</div>
       </div>
 
       <!-- EMAIL -->
       <div class="field">
-        <div class="label">Email (nếu có)</div>
+        <label class="label">
+          Email <span style="font-weight:400;color:#9ca3af">(không bắt buộc)</span>
+        </label>
         <div class="control">
-          <input
-            class="inp"
-            formControlName="email"
-            name="reg_email"
-            autocomplete="off"
-            placeholder="VD: ten@gmail.com (bỏ trống nếu không có)"
-          />
+          <span class="inp-icon"><i class="bi bi-envelope"></i></span>
+          <input class="inp" formControlName="email" name="reg_email"
+                 autocomplete="off" placeholder="VD: ten@gmail.com" />
           <button type="button" class="clear"
-                  (click)="form.controls['email'].setValue('')">×</button>
+                  (click)="form.controls['email'].setValue('')">x</button>
         </div>
-
-        <!-- ✅ chỉ hiện lỗi khi có nhập email -->
         <div class="err" *ngIf="showErr('email') && form.get('email')?.value">
           {{ errText('email') }}
         </div>
@@ -69,47 +65,34 @@
 
       <!-- PASSWORD -->
       <div class="field">
-        <div class="label">Mật khẩu <span class="req">*</span></div>
+        <label class="label">Mật khẩu <span class="req">*</span></label>
         <div class="control">
-          <input
-            class="inp"
-            type="password"
-            formControlName="password"
-            name="reg_password"
-            autocomplete="new-password"
-            placeholder="Mật khẩu tối thiểu 6 ký tự"
-          />
+          <span class="inp-icon"><i class="bi bi-lock"></i></span>
+          <input class="inp" type="password" formControlName="password"
+                 name="reg_password" autocomplete="new-password"
+                 placeholder="Tối thiểu 6 ký tự" />
           <button type="button" class="clear"
-                  (click)="form.controls['password'].setValue('')">×</button>
+                  (click)="form.controls['password'].setValue('')">x</button>
         </div>
-        <div class="err" *ngIf="showErr('password')">
-          {{ errText('password') }}
-        </div>
+        <div class="err" *ngIf="showErr('password')">{{ errText('password') }}</div>
       </div>
 
       <!-- CONFIRM PASSWORD -->
       <div class="field">
-        <div class="label">Nhập lại mật khẩu <span class="req">*</span></div>
+        <label class="label">Nhập lại mật khẩu <span class="req">*</span></label>
         <div class="control">
-          <input
-            class="inp"
-            type="password"
-            formControlName="confirmPassword"
-            name="reg_confirmPassword"
-            autocomplete="new-password"
-            placeholder="Nhập lại mật khẩu"
-          />
+          <span class="inp-icon"><i class="bi bi-lock-fill"></i></span>
+          <input class="inp" type="password" formControlName="confirmPassword"
+                 name="reg_confirmPassword" autocomplete="new-password"
+                 placeholder="Nhập lại mật khẩu" />
           <button type="button" class="clear"
-                  (click)="form.controls['confirmPassword'].setValue('')">×</button>
+                  (click)="form.controls['confirmPassword'].setValue('')">x</button>
         </div>
-
-        <!-- ✅ chỉ báo mismatch khi confirm đã nhập -->
         <div class="err" *ngIf="passwordMismatch && form.get('confirmPassword')?.value">
           Mật khẩu nhập lại không khớp.
         </div>
       </div>
 
-      <!-- SUBMIT -->
       <button class="submit" type="submit" [disabled]="loading">
         {{ loading ? 'Đang xử lý...' : 'Đăng ký' }}
       </button>
@@ -121,59 +104,64 @@
         <span>Bạn đã có tài khoản?</span>
         <a routerLink="/login">Đăng nhập ngay</a>
       </div>
-
     </form>
   </div>
 </div>
 
 <!-- OTP POPUP -->
-<div class="modal-backdrop"
-     *ngIf="showOtp"
-     (click)="closeOtpPopup()">
+<div class="otp-overlay" *ngIf="showOtp">
+  <div class="otp-modal">
+    <button class="otp-close" type="button" (click)="closeOtpPopup()">x</button>
 
-  <div class="otp-modal"
-       (click)="$event.stopPropagation()">
+    <h2 class="otp-title">NHẬP MÃ OTP</h2>
+    <p class="otp-sub">
+      Trên thật mã chỉ hiện trong tin nhắn điện thoại. Ở đây hiển thị giả lập — bạn phải nhập
+      <strong>đúng 6 số</strong> bên dưới.
+    </p>
 
-    <div class="otp-title">NHẬP MÃ OTP</div>
-    <div class="otp-sub">
-      Mã OTP đã được gửi đến số điện thoại của bạn.
+    <!-- SMS bubble giả lập -->
+    <div class="otp-sms-mock" *ngIf="demoOtpDisplay" role="status">
+      <div class="otp-sms-meta">
+        <span class="otp-sms-app">Tin nhắn</span>
+        <span class="otp-sms-time">vừa xong</span>
+      </div>
+      <div class="otp-sms-bubble">
+        <span class="otp-sms-sender">HEALTHUP</span>
+        <p class="otp-sms-text">
+          Mã xác thực đăng ký tài khoản của bạn là
+          <span class="otp-sms-code">{{ demoOtpDisplay }}</span>.
+          Không chia sẻ mã này. Hiệu lực {{ otpSecondsLeft }}s.
+        </p>
+      </div>
     </div>
 
-    <div class="otp-boxes" (paste)="onOtpPaste($event)">
-      <input #otpInput class="otp-input" maxlength="1" inputmode="numeric"
+    <!-- 6 ô OTP -->
+    <div class="otp-inputs" (paste)="onOtpPaste($event)">
+      <input #otpInput class="otp-input" maxlength="1" type="tel" inputmode="numeric"
              autocomplete="one-time-code"
-             (input)="onOtpInput($event, 0)"
-             (keydown)="onOtpKeydown($event, 0)" />
-      <input #otpInput class="otp-input" maxlength="1" inputmode="numeric"
+             (input)="onOtpInput($event, 0)" (keydown)="onOtpKeydown($event, 0)" />
+      <input #otpInput class="otp-input" maxlength="1" type="tel" inputmode="numeric"
              autocomplete="one-time-code"
-             (input)="onOtpInput($event, 1)"
-             (keydown)="onOtpKeydown($event, 1)" />
-      <input #otpInput class="otp-input" maxlength="1" inputmode="numeric"
+             (input)="onOtpInput($event, 1)" (keydown)="onOtpKeydown($event, 1)" />
+      <input #otpInput class="otp-input" maxlength="1" type="tel" inputmode="numeric"
              autocomplete="one-time-code"
-             (input)="onOtpInput($event, 2)"
-             (keydown)="onOtpKeydown($event, 2)" />
-      <input #otpInput class="otp-input" maxlength="1" inputmode="numeric"
+             (input)="onOtpInput($event, 2)" (keydown)="onOtpKeydown($event, 2)" />
+      <input #otpInput class="otp-input" maxlength="1" type="tel" inputmode="numeric"
              autocomplete="one-time-code"
-             (input)="onOtpInput($event, 3)"
-             (keydown)="onOtpKeydown($event, 3)" />
-      <input #otpInput class="otp-input" maxlength="1" inputmode="numeric"
+             (input)="onOtpInput($event, 3)" (keydown)="onOtpKeydown($event, 3)" />
+      <input #otpInput class="otp-input" maxlength="1" type="tel" inputmode="numeric"
              autocomplete="one-time-code"
-             (input)="onOtpInput($event, 4)"
-             (keydown)="onOtpKeydown($event, 4)" />
-      <input #otpInput class="otp-input" maxlength="1" inputmode="numeric"
+             (input)="onOtpInput($event, 4)" (keydown)="onOtpKeydown($event, 4)" />
+      <input #otpInput class="otp-input" maxlength="1" type="tel" inputmode="numeric"
              autocomplete="one-time-code"
-             (input)="onOtpInput($event, 5)"
-             (keydown)="onOtpKeydown($event, 5)" />
+             (input)="onOtpInput($event, 5)" (keydown)="onOtpKeydown($event, 5)" />
     </div>
 
-    <div class="otp-err" *ngIf="otpError">{{ otpError }}</div>
+    <div class="otp-error" *ngIf="otpError">{{ otpError }}</div>
 
-    <button class="otp-confirm"
-            type="button"
-            (click)="confirmOtpAndRegister()"
-            [disabled]="loading">
-      Xác nhận OTP ({{ otpSecondsLeft }}s)
+    <button class="otp-btn" type="button"
+            (click)="confirmOtpAndRegister()" [disabled]="loading">
+      {{ loading ? 'Đang xử lý...' : 'Xác nhận OTP (' + otpSecondsLeft + 's)' }}
     </button>
-
   </div>
 </div>

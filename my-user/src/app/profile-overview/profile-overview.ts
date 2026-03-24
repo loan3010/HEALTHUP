@@ -27,7 +27,7 @@ export class ProfileOverview implements OnInit {
   readonly VIP_THRESHOLD = 2_000_000;
 
   get memberRankLabel(): string {
-    return this.memberRank === 'vip' ? '⭐ VIP' : 'Thành viên';
+    return this.memberRank === 'vip' ? ' VIP' : 'Thành viên';
   }
 
   // FIX: progress tính từ recentSpent / 2.000.000
