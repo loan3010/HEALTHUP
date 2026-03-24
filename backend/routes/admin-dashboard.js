@@ -3,14 +3,12 @@ const Order = require('../models/Order');
 const Product = require('../models/Product');
 const Promotion = require('../models/Promotion');
 const User = require('../models/User');
-const {
-  buildCustomerListStatsMaps,
-  statsForUser,
-  membershipTierFromTotalSpent90d,
-} = require('../helpers/customerOrderStats');
+const { buildCustomerListStatsMaps, statsForUser } = require('../helpers/customerOrderStats');
+
 
 const TZ = 'Asia/Ho_Chi_Minh';
 const DAY_MS = 24 * 60 * 60 * 1000;
+
 
 function toVNDateString(date) {
   const parts = new Intl.DateTimeFormat('en-CA', {
@@ -25,20 +23,48 @@ function toVNDateString(date) {
   return `${y}-${m}-${d}`;
 }
 
+
 function startUtcFromVNDate(vnDateStr) {
   return new Date(`${vnDateStr}T00:00:00+07:00`);
 }
+
 
 function addDays(vnDateStr, delta) {
   const d = startUtcFromVNDate(vnDateStr);
   return toVNDateString(new Date(d.getTime() + delta * DAY_MS));
 }
 
+
 function diffDaysInclusive(fromStr, toStr) {
   const from = startUtcFromVNDate(fromStr);
   const to = startUtcFromVNDate(toStr);
   return Math.floor((to - from) / DAY_MS) + 1;
 }
+
+
+/**
+ * FIX: orderMatch phải loại trừ:
+ * - cancelled (đã hủy)
+ * - delivered + returnStatus: 'completed' (đã giao nhưng hoàn trả xong)
+ */
+function orderMatch(from, to) {
+  return {
+    createdAt: {
+      $gte: startUtcFromVNDate(from),
+      $lt: startUtcFromVNDate(addDays(to, 1)),
+    },
+    $and: [
+      { status: { $ne: 'cancelled' } },
+      {
+        $or: [
+          { status: { $ne: 'delivered' } },
+          { status: 'delivered', returnStatus: { $ne: 'completed' } },
+        ],
+      },
+    ],
+  };
+}
+
 
 /**
  * Chuẩn hóa giá trị status trong DB (dữ liệu cũ có thể khác hoa/thường, gạch ngang, hoặc "canceled").
@@ -52,6 +78,7 @@ function normalizeOrderStatusKey(status) {
   if (k === 'canceled') k = 'cancelled';
   return k;
 }
+
 
 /** Hiển thị trạng thái đơn bằng tiếng Việt (schema enum tiếng Anh — không echo raw tiếng Anh ra UI). */
 function orderStatusVi(status) {
@@ -69,6 +96,7 @@ function orderStatusVi(status) {
   return 'Không xác định';
 }
 
+
 /** Gộp các cung pie cùng nhãn (ví dụ pending + Pending → cùng "Chờ xử lý"). */
 function mergePiePoints(points) {
   const m = new Map();
@@ -79,6 +107,7 @@ function mergePiePoints(points) {
   }
   return [...m.entries()].map(([label, value]) => ({ label, value }));
 }
+
 
 /**
  * Cột "Khách hàng" trên dashboard: ưu tiên username tài khoản (đơn đăng nhập);
@@ -93,6 +122,7 @@ function recentOrderCustomerName(order, usernameByUserId) {
   return order.customer?.phone || order.customer?.fullName || '—';
 }
 
+
 /** Tổng tiền an toàn: một số bản ghi cũ có thể thiếu `total`. */
 function orderDisplayTotal(o) {
   if (typeof o.total === 'number' && !Number.isNaN(o.total)) return o.total;
@@ -103,22 +133,22 @@ function orderDisplayTotal(o) {
   return Number.isFinite(calc) ? calc : 0;
 }
 
+
 function buildDateKeys(fromStr, toStr) {
   const days = diffDaysInclusive(fromStr, toStr);
   return Array.from({ length: days }, (_, i) => addDays(fromStr, i));
 }
 
-function buildHourKeys() {
-  return Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
-}
 
 function getRange(req) {
   const preset = String(req.query.preset || 'today');
   const today = toVNDateString(new Date());
 
+
   if (preset === 'today') return { preset, from: today, to: today };
   if (preset === '7days') return { preset, from: addDays(today, -6), to: today };
   if (preset === 'month') return { preset, from: `${today.slice(0, 8)}01`, to: today };
+
 
   const from = String(req.query.from || '').trim();
   const to = String(req.query.to || '').trim();
@@ -130,15 +160,15 @@ function getRange(req) {
   return { preset: 'custom', from, to };
 }
 
-function orderMatch(from, to) {
-  return {
-    createdAt: {
-      $gte: startUtcFromVNDate(from),
-      $lt: startUtcFromVNDate(addDays(to, 1)),
-    },
-    status: { $ne: 'cancelled' },
-  };
+
+function getMembershipTier(totalSpent) {
+  if (!totalSpent || totalSpent <= 0) return 'Đồng';
+  if (totalSpent < 5_000_000) return 'Đồng';
+  if (totalSpent < 10_000_000) return 'Bạc';
+  if (totalSpent < 20_000_000) return 'Vàng';
+  return 'Kim Cương';
 }
+
 
 /**
  * Biểu đồ khuyến mãi: đếm số chương trình theo mốc thời gian (giống logic POST /promotions/apply).
@@ -151,6 +181,7 @@ async function buildPromotionLifecyclePie() {
   let upcoming = 0;
   let ended = 0;
 
+
   for (const p of promos) {
     const start = p.startDate ? new Date(p.startDate).getTime() : NaN;
     const end = p.endDate ? new Date(p.endDate).getTime() : NaN;
@@ -160,6 +191,7 @@ async function buildPromotionLifecyclePie() {
     else ongoing += 1;
   }
 
+
   return [
     { label: 'Đang diễn ra', value: ongoing },
     { label: 'Chưa diễn ra', value: upcoming },
@@ -167,21 +199,21 @@ async function buildPromotionLifecyclePie() {
   ];
 }
 
-async function buildRevenueSeries(from, to, byHour = false) {
-  const groupFormat = byHour ? '%H' : '%Y-%m-%d';
+
+async function buildRevenueSeries(from, to) {
   const rows = await Order.aggregate([
     { $match: orderMatch(from, to) },
     {
       $group: {
-        _id: { $dateToString: { format: groupFormat, date: '$createdAt', timezone: TZ } },
+        _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt', timezone: TZ } },
         value: { $sum: '$total' },
       },
     },
   ]);
   const map = new Map(rows.map((r) => [r._id, Number(r.value || 0)]));
-  const keys = byHour ? buildHourKeys() : buildDateKeys(from, to);
-  return keys.map((k) => map.get(k) || 0);
+  return buildDateKeys(from, to).map((k) => map.get(k) || 0);
 }
+
 
 function calcPercent(current, previous) {
   if (!previous && !current) return 0;
@@ -189,15 +221,18 @@ function calcPercent(current, previous) {
   return Number((((current - previous) / previous) * 100).toFixed(1));
 }
 
+
 async function buildDashboardData({ preset, from, to }) {
     const rangeDays = diffDaysInclusive(from, to);
     const prevTo = addDays(from, -1);
     const prevFrom = addDays(prevTo, -(rangeDays - 1));
     const today = toVNDateString(new Date());
 
+
     // KPI đơn hàng / doanh thu / KH mới: theo đúng khoảng lọc (Hôm nay / 7 ngày / Tháng / Custom).
     const rangeMatch = orderMatch(from, to);
     const prevMatch = orderMatch(prevFrom, prevTo);
+
 
     const [
       currentRangeRevenue,
@@ -228,17 +263,17 @@ async function buildDashboardData({ preset, from, to }) {
       }),
     ]);
 
-    const byHourForToday = preset === 'today';
+
     const [currentRevenue, previousRevenue] = await Promise.all([
-      buildRevenueSeries(from, to, byHourForToday),
-      buildRevenueSeries(prevFrom, prevTo, byHourForToday),
+      buildRevenueSeries(from, to),
+      buildRevenueSeries(prevFrom, prevTo),
     ]);
 
-    let revenueLabels = byHourForToday
-      ? buildHourKeys().map((h) => `${h}:00`)
-      : buildDateKeys(from, to).map((d) => d.slice(8, 10));
+
+    let revenueLabels = buildDateKeys(from, to).map((d) => d.slice(8, 10));
     let currentRevenueData = currentRevenue;
     let previousRevenueData = previousRevenue;
+
 
     // Tháng này: trục ngày cố định 1..31, tháng trước vẽ đến cuối tháng trước.
     if (preset === 'month') {
@@ -248,13 +283,16 @@ async function buildDashboardData({ preset, from, to }) {
       const prevMonthStart = addDays(`${from.slice(0, 8)}01`, -1).slice(0, 8) + '01';
       const prevMonthDays = new Date(Number(prevMonthStart.slice(0, 4)), Number(prevMonthStart.slice(5, 7)), 0).getDate();
 
+
       const currentMap = new Map(buildDateKeys(from, to).map((d, i) => [Number(d.slice(8, 10)), currentRevenue[i]]));
       const prevMap = new Map(buildDateKeys(prevFrom, prevTo).map((d, i) => [Number(d.slice(8, 10)), previousRevenue[i]]));
+
 
       revenueLabels = Array.from({ length: daysInCurrent }, (_, i) => String(i + 1));
       currentRevenueData = revenueLabels.map((_, i) => (i + 1 <= dayNow ? (currentMap.get(i + 1) || 0) : null));
       previousRevenueData = revenueLabels.map((_, i) => (i + 1 <= prevMonthDays ? (prevMap.get(i + 1) || 0) : null));
     }
+
 
     const [ordersByDay, usersByDay] = await Promise.all([
       Order.aggregate([
@@ -274,6 +312,7 @@ async function buildDashboardData({ preset, from, to }) {
     const allDayKeys = buildDateKeys(from, to);
     const orderMap = new Map(ordersByDay.map((r) => [r._id, Number(r.value || 0)]));
     const userMap = new Map(usersByDay.map((r) => [r._id, Number(r.value || 0)]));
+
 
     const [statusPie, promotionPie, recentOrdersList, topAgg, customerStatsMaps, users] = await Promise.all([
       Order.aggregate([{ $group: { _id: '$status', value: { $sum: 1 } } }]),
@@ -313,6 +352,7 @@ async function buildDashboardData({ preset, from, to }) {
       User.find({ role: 'user' }).select({ phone: 1 }).lean(),
     ]);
 
+
     const recentUserIds = [...new Set(recentOrdersList.map((o) => o.userId).filter(Boolean).map((id) => String(id)))];
     const recentUsersForOrders =
       recentUserIds.length > 0
@@ -326,6 +366,7 @@ async function buildDashboardData({ preset, from, to }) {
         .filter(([, name]) => name.length > 0),
     );
 
+
     const productIds = topAgg.map((x) => x._id).filter(Boolean);
     const products = await Product.find({ _id: { $in: productIds } }).select({ cat: 1 }).lean();
     const catMap = new Map(products.map((p) => [String(p._id), p.cat || '']));
@@ -338,13 +379,14 @@ async function buildDashboardData({ preset, from, to }) {
       revenue: Number(r.revenue || 0),
     }));
 
-    const tierMap = { 'Thành viên': 0, VIP: 0 };
+
+    const tierMap = { Đồng: 0, Bạc: 0, Vàng: 0, 'Kim Cương': 0 };
     users.forEach((u) => {
       const s = statsForUser(u, customerStatsMaps);
-      const tier = membershipTierFromTotalSpent90d(s.totalSpent90d || 0);
-      const label = tier === 'vip' ? 'VIP' : 'Thành viên';
-      tierMap[label] += 1;
+      const tier = getMembershipTier(s.totalSpent || 0);
+      tierMap[tier] += 1;
     });
+
 
     return {
       filter: { preset, from, to, previousFrom: prevFrom, previousTo: prevTo },
@@ -397,6 +439,7 @@ async function buildDashboardData({ preset, from, to }) {
     };
 }
 
+
 function toCsvRow(cells) {
   return cells
     .map((cell) => {
@@ -407,11 +450,13 @@ function toCsvRow(cells) {
     .join(',');
 }
 
+
 router.get('/export', async (req, res) => {
   try {
     const { preset, from, to } = getRange(req);
     const data = await buildDashboardData({ preset, from, to });
     const rows = [];
+
 
     rows.push(toCsvRow(['Bao cao Dashboard HealthUp']));
     rows.push(toCsvRow(['Khoang thoi gian', `${data.filter.from} -> ${data.filter.to}`]));
@@ -423,12 +468,14 @@ router.get('/export', async (req, res) => {
     rows.push(toCsvRow(['San pham', data.kpis.products, data.kpiChangeVsYesterday.products]));
     rows.push(toCsvRow(['']));
 
+
     rows.push(toCsvRow(['Don hang gan day']));
     rows.push(toCsvRow(['Ma don', 'Khach hang', 'Tong tien', 'Trang thai', 'Ngay tao']));
     data.recentOrders.forEach((o) => {
       rows.push(toCsvRow([o.orderCode || o.orderId, o.customerName, o.total, o.statusLabel, o.createdAt]));
     });
     rows.push(toCsvRow(['']));
+
 
     rows.push(toCsvRow(['Top ban chay']));
     rows.push(toCsvRow(['San pham', 'Danh muc', 'Phan loai', 'So luong', 'Doanh thu']));
@@ -437,11 +484,13 @@ router.get('/export', async (req, res) => {
     });
     rows.push(toCsvRow(['']));
 
+
     rows.push(toCsvRow(['Top ban cham']));
     rows.push(toCsvRow(['San pham', 'Danh muc', 'Phan loai', 'So luong', 'Doanh thu']));
     data.topProducts.slowSelling.forEach((p) => {
       rows.push(toCsvRow([p.name, p.category, p.variantLabel, p.quantity, p.revenue]));
     });
+
 
     const csv = rows.join('\n');
     const fileName = `dashboard-${data.filter.from}-to-${data.filter.to}.csv`;
@@ -453,6 +502,7 @@ router.get('/export', async (req, res) => {
   }
 });
 
+
 router.get('/', async (req, res) => {
   try {
     const { preset, from, to } = getRange(req);
@@ -462,5 +512,6 @@ router.get('/', async (req, res) => {
     return res.status(400).json({ message: err.message || 'Lỗi dashboard' });
   }
 });
+
 
 module.exports = router;

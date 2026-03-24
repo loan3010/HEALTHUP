@@ -27,13 +27,6 @@ interface SavedAddress {
   name: string;
   phone: string;
   address: string;
-  street?: string;
-  wardName?: string;
-  wardCode?: number;
-  districtName?: string;
-  districtCode?: number;
-  provinceName?: string;
-  provinceCode?: number;
   isDefault: boolean;
 }
 
@@ -185,11 +178,6 @@ export class Checkout implements OnInit {
   shippingFee = computed(() =>
     this.shippingMethod() === 'express' ? 30000 : (this.subTotal() > 500000 ? 0 : 20000)
   );
-
-
-  // Giá cố định từng option để hiển thị trong UI (không phụ thuộc method đang chọn)
-  standardFee = computed(() => this.subTotal() > 500000 ? 0 : 20000);
-  expressFee  = computed(() => 30000);
 
 
   discountOnItems = computed(() => {
@@ -416,185 +404,30 @@ export class Checkout implements OnInit {
   }
 
 
-  // ── Thêm mới ──
   openAddAddrModal(): void {
-    this.isAddrEditMode   = false;
-    this.editingAddrIdx   = -1;
-    this.addrModalError   = '';
-    this.addrModalSuccess = '';
-    this.districts        = [];
-    this.wards            = [];
-    this.fullAddressPreview = '';
-
-
-    this.addrForm.get('province')?.setValidators(Validators.required);
-    this.addrForm.get('district')?.setValidators(Validators.required);
-    this.addrForm.get('ward')?.setValidators(Validators.required);
-    this.addrForm.get('province')?.updateValueAndValidity();
-    this.addrForm.get('district')?.updateValueAndValidity();
-    this.addrForm.get('ward')?.updateValueAndValidity();
-
-
+    this.isAddrEditMode = false; this.editingAddrIdx = -1;
+    this.addrModalError = ''; this.addrModalSuccess = '';
+    this.districts = []; this.wards = []; this.fullAddressPreview = '';
     this.addrForm.reset({ isDefault: false });
-    this.showAddrModal = true;
-    this.cdr.detectChanges();
+    this.showAddrModal = true; this.cdr.detectChanges();
   }
 
 
-  // ✅ FIX: Parse tên từ address string, fuzzy match để lấy code
   openEditAddrModal(idx: number): void {
-    this.isAddrEditMode   = true;
-    this.editingAddrIdx   = idx;
-    this.addrModalError   = '';
-    this.addrModalSuccess = '';
-    this.districts        = [];
-    this.wards            = [];
-
-
+    this.isAddrEditMode = true; this.editingAddrIdx = idx;
+    this.addrModalError = ''; this.addrModalSuccess = '';
+    this.districts = []; this.wards = [];
     const a = this.savedAddresses()[idx];
     this.fullAddressPreview = a.address;
-
-
-    this.addrForm.get('province')?.clearValidators();
-    this.addrForm.get('district')?.clearValidators();
-    this.addrForm.get('ward')?.clearValidators();
-    this.addrForm.get('province')?.updateValueAndValidity();
-    this.addrForm.get('district')?.updateValueAndValidity();
-    this.addrForm.get('ward')?.updateValueAndValidity();
-
-
-    // ✅ Tách street: chỉ lấy phần số nhà/tên đường, bỏ phần tỉnh/huyện/xã
-    const allParts = a.address.split(',').map((p: string) => p.trim()).filter(Boolean);
-    const geoKeywords = ['tỉnh', 'thành phố', 'tp.', 'huyện', 'quận', 'thị xã', 'tx.', 'xã', 'phường', 'thị trấn', 'tt.'];
-    const isGeoPart = (p: string) => geoKeywords.some(k => p.toLowerCase().startsWith(k));
-    const streetOnly = a.street || allParts.filter(p => !isGeoPart(p)).join(', ') || a.address;
-
-
-    this.addrForm.patchValue({
-      name:      a.name,
-      phone:     a.phone,
-      province:  '',
-      district:  '',
-      ward:      '',
-      street:    streetOnly,
-      isDefault: a.isDefault,
-    });
-
-
-    this.showAddrModal = true;
-    this.cdr.detectChanges();
-
-
-    // ✅ Parse tên tỉnh/huyện/xã bằng keyword để tránh lệch index
-    const parts = allParts;
-    const provinceKeywords = ['tỉnh', 'thành phố', 'tp.'];
-    const districtKeywords = ['huyện', 'quận', 'thị xã', 'tx.'];
-    const wardKeywords     = ['xã', 'phường', 'thị trấn', 'tt.'];
-    const findPart = (keywords: string[]) =>
-      parts.find(p => keywords.some(k => p.toLowerCase().startsWith(k))) || '';
-    const provinceName = a.provinceName || findPart(provinceKeywords);
-    const districtName = a.districtName || findPart(districtKeywords);
-    const wardName     = a.wardName     || findPart(wardKeywords);
-
-
-    const fuzzy = (a: string, b: string) =>
-      a.toLowerCase().includes(b.toLowerCase()) || b.toLowerCase().includes(a.toLowerCase());
-
-
-    const doMatch = () => {
-      // Nếu có provinceCode thì dùng luôn, không thì fuzzy match theo tên
-      const province = a.provinceCode
-        ? this.provinces.find(p => p.code === a.provinceCode)
-        : this.provinces.find(p => fuzzy(p.name, provinceName));
-
-
-      if (!province) return;
-
-
-      this.loadingDistricts = true;
-      this.cdr.detectChanges();
-
-
-      this.http.get<any>(`${this.GEO_API}/p/${province.code}?depth=2`).subscribe({
-        next: (d) => {
-          this.districts = d.districts || [];
-          this.loadingDistricts = false;
-          this.addrForm.patchValue({ province: province.code }, { emitEvent: false });
-
-
-          const district = a.districtCode
-            ? this.districts.find(d => d.code === a.districtCode)
-            : this.districts.find(d => fuzzy(d.name, districtName));
-
-
-          if (!district) { this.cdr.detectChanges(); return; }
-
-
-          this.loadingWards = true;
-          this.cdr.detectChanges();
-
-
-          this.http.get<any>(`${this.GEO_API}/d/${district.code}?depth=2`).subscribe({
-            next: (dw) => {
-              this.wards = dw.wards || [];
-              this.loadingWards = false;
-
-
-              const ward = a.wardCode
-                ? this.wards.find(w => w.code === a.wardCode)
-                : this.wards.find(w => fuzzy(w.name, wardName));
-
-
-              this.addrForm.patchValue({
-                district: district.code,
-                ward:     ward?.code || '',
-              }, { emitEvent: false });
-
-
-              this.updatePreview();
-              this.cdr.detectChanges();
-            },
-            error: () => { this.loadingWards = false; this.cdr.detectChanges(); }
-          });
-        },
-        error: () => { this.loadingDistricts = false; this.cdr.detectChanges(); }
-      });
-    };
-
-
-    if (!this.provinces.length) {
-      this.loadingProvinces = true;
-      this.cdr.detectChanges();
-      this.http.get<Province[]>(`${this.GEO_API}/?depth=1`).subscribe({
-        next: (d) => {
-          this.provinces = d;
-          this.loadingProvinces = false;
-          this.cdr.detectChanges();
-          doMatch();
-        },
-        error: () => { this.loadingProvinces = false; }
-      });
-    } else {
-      doMatch();
-    }
+    this.addrForm.reset({ name: a.name, phone: a.phone, province: '', district: '', ward: '', street: a.address, isDefault: a.isDefault });
+    setTimeout(() => { this.cdr.detectChanges(); }, 0);
+    this.showAddrModal = true; this.cdr.detectChanges();
   }
 
 
-  // ── Đóng modal — restore validators ──
   closeAddrModal(): void {
-    this.addrForm.get('province')?.setValidators(Validators.required);
-    this.addrForm.get('district')?.setValidators(Validators.required);
-    this.addrForm.get('ward')?.setValidators(Validators.required);
-    this.addrForm.get('province')?.updateValueAndValidity();
-    this.addrForm.get('district')?.updateValueAndValidity();
-    this.addrForm.get('ward')?.updateValueAndValidity();
-
-
-    this.showAddrModal      = false;
-    this.fullAddressPreview = '';
-    this.addrModalError     = '';
-    this.addrModalSuccess   = '';
-    this.addrForm.reset();
+    this.showAddrModal = false; this.addrForm.reset();
+    this.fullAddressPreview = ''; this.addrModalError = ''; this.addrModalSuccess = '';
     this.cdr.detectChanges();
   }
 
@@ -615,46 +448,18 @@ export class Checkout implements OnInit {
   }
 
 
-  private getFullAddr(): string {
-    const v = this.addrForm.value;
-    if (v.province && v.district && v.ward && this.fullAddressPreview) {
-      return this.fullAddressPreview;
-    }
-    return this.fullAddressPreview || v.street || '';
-  }
+  private getFullAddr(): string { return this.fullAddressPreview || this.addrForm.value.street; }
 
 
   private addAddr(): void {
     this.isAddrSaving = true; this.addrModalError = '';
-    const v = this.addrForm.value;
-
-
-    const provinceName = this.provinces.find(p => p.code == v.province)?.name || '';
-    const districtName = this.districts.find(d => d.code == v.district)?.name || '';
-    const wardName     = this.wards.find(w => w.code == v.ward)?.name || '';
-
-
-    const body = {
-      name:         v.name,
-      phone:        v.phone,
-      address:      this.getFullAddr(),
-      street:       v.street       || '',
-      wardName,
-      wardCode:     v.ward         || null,
-      districtName,
-      districtCode: v.district     || null,
-      provinceName,
-      provinceCode: v.province     || null,
-      isDefault:    v.isDefault,
-      userId:       this.userId
-    };
-
-
+    const v    = this.addrForm.value;
+    const body = { name: v.name, phone: v.phone, address: this.getFullAddr(), isDefault: v.isDefault, userId: this.userId };
     this.http.post<any>(`${this.API_BASE}/users/${this.userId}/addresses`, body, { headers: this.headers })
       .subscribe({
         next: (res) => {
           this.isAddrSaving = false;
-          const newAddr: SavedAddress = res.address || res;
+          const newAddr: SavedAddress = res.address;
           let addrs = [...this.savedAddresses()];
           if (newAddr.isDefault) addrs = addrs.map(a => ({ ...a, isDefault: false }));
           addrs.push(newAddr);
@@ -673,37 +478,14 @@ export class Checkout implements OnInit {
 
   private updateAddr(): void {
     this.isAddrSaving = true; this.addrModalError = '';
-    const v   = this.addrForm.value;
-    const id  = this.getId(this.savedAddresses()[this.editingAddrIdx]);
-    const old = this.savedAddresses()[this.editingAddrIdx];
-
-
-    const provinceName = this.provinces.find(p => p.code == v.province)?.name || old.provinceName || '';
-    const districtName = this.districts.find(d => d.code == v.district)?.name || old.districtName || '';
-    const wardName     = this.wards.find(w => w.code == v.ward)?.name         || old.wardName     || '';
-
-
-    const body = {
-      name:         v.name,
-      phone:        v.phone,
-      address:      this.getFullAddr(),
-      street:       v.street    || old.street       || '',
-      wardName,
-      wardCode:     v.ward      || old.wardCode      || null,
-      districtName,
-      districtCode: v.district  || old.districtCode  || null,
-      provinceName,
-      provinceCode: v.province  || old.provinceCode  || null,
-      isDefault:    v.isDefault,
-      userId:       this.userId
-    };
-
-
+    const v  = this.addrForm.value;
+    const id = this.getId(this.savedAddresses()[this.editingAddrIdx]);
+    const body = { name: v.name, phone: v.phone, address: this.getFullAddr() || v.street, isDefault: v.isDefault, userId: this.userId };
     this.http.put<any>(`${this.API_BASE}/users/${this.userId}/addresses/${id}`, body, { headers: this.headers })
       .subscribe({
         next: (res) => {
           this.isAddrSaving = false;
-          const updated: SavedAddress = res.address || res;
+          const updated: SavedAddress = res.address;
           let addrs = [...this.savedAddresses()];
           if (updated.isDefault) addrs = addrs.map(a => ({ ...a, isDefault: false }));
           addrs[this.editingAddrIdx] = updated;
@@ -818,6 +600,8 @@ export class Checkout implements OnInit {
 
   applyVoucher(forType: 'order' | 'shipping'): void {
     if (!this.canUseVouchers) return;
+
+
     const code = forType === 'order' ? this.orderVoucherCode() : this.shipVoucherCode();
     if (!code) {
       forType === 'order'
@@ -860,6 +644,8 @@ export class Checkout implements OnInit {
           this.shipVoucherMsg.set('Mã này chỉ dùng cho tiền hàng, hãy nhập vào ô bên trên');
           this.cdr.detectChanges(); return;
         }
+
+
         if (forType === 'order') {
           this.isApplyingOrderVoucher = false;
           this.orderVoucherResult.set(res);
@@ -931,15 +717,36 @@ export class Checkout implements OnInit {
         );
 
 
-        const withSaving = filtered.map(v => ({
-          ...v,
-          _saving:   this.calcVoucherSaving(v),
-          _eligible: this.isVoucherEligible(v),
-        }));
-        const eligible   = withSaving.filter(v => v._eligible).sort((a, b) => b._saving - a._saving);
-        const ineligible = withSaving.filter(v => !v._eligible).sort((a, b) => (a.minOrder ?? 0) - (b.minOrder ?? 0));
-        if (eligible.length > 0) this.bestVoucherCode.set(eligible[0].code);
-        this.availableVouchers.set([...eligible, ...ineligible]);
+        const eligible   = filtered.filter(v => v.eligible !== false);
+        const ineligible = filtered.filter(v => v.eligible === false);
+
+
+        // Tìm voucher tiết kiệm nhiều nhất
+        let bestCode = '';
+        if (eligible.length > 0) {
+          const best = eligible.reduce((prev, curr) =>
+            this.calcVoucherSaving(curr) > this.calcVoucherSaving(prev) ? curr : prev
+          );
+          bestCode = best.code;
+          this.bestVoucherCode.set(bestCode);
+        }
+
+
+        // Sắp xếp eligible: voucher tốt nhất lên đầu, còn lại sort theo saving giảm dần
+        const sortedEligible = eligible.sort((a, b) => {
+          if (a.code === bestCode) return -1;
+          if (b.code === bestCode) return  1;
+          return this.calcVoucherSaving(b) - this.calcVoucherSaving(a);
+        });
+
+
+        // Ineligible sort theo minOrder tăng dần (gần đủ điều kiện lên trước)
+        const sortedIneligible = ineligible.sort((a, b) =>
+          (a.minOrder ?? 0) - (b.minOrder ?? 0)
+        );
+
+
+        this.availableVouchers.set([...sortedEligible, ...sortedIneligible]);
         this.isLoadingVouchers = false;
         this.cdr.detectChanges();
       },
@@ -987,6 +794,30 @@ export class Checkout implements OnInit {
     return this.voucherModalFor === 'shipping'
       ? 'Mã giảm phí vận chuyển'
       : 'Mã giảm tiền hàng';
+  }
+
+
+  // ══════════════════════════════════════
+  // THỜI GIAN NHẬN HÀNG DỰ KIẾN
+  // ══════════════════════════════════════
+  getEstimatedDeliveryDate(): string {
+    const now = new Date();
+    let daysToAdd = 0;
+    
+    if (this.shippingMethod() === 'express') {
+      daysToAdd = 2; // Giao nhanh: 1-2 ngày
+    } else {
+      daysToAdd = 4; // Giao tiêu chuẩn: 3-4 ngày
+    }
+    
+    const estimatedDate = new Date(now);
+    estimatedDate.setDate(now.getDate() + daysToAdd);
+    
+    return estimatedDate.toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
   }
 
 
@@ -1099,6 +930,8 @@ export class Checkout implements OnInit {
 
 
         if (this.userId && this.token) this.loadUserRank();
+
+
         this.api.refreshUnreadCount();
         this.api.refreshCartCount();
         this.cdr.detectChanges();

@@ -69,6 +69,7 @@ async function validatePromotion(promo, { subTotal, shippingFee, userId, userRan
     }
   }
 
+  // --- KIỂM TRA QUYỀN HIỂN THỊ ---
   if (promo.isActive === false) {
     return { ok: false, message: 'Voucher này hiện đang tạm ngưng sử dụng' };
   }

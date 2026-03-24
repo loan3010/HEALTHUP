@@ -6,7 +6,9 @@ import { Subscription } from 'rxjs';
 import { SidebarComponent, SidebarFilters } from '../sidebar/sidebar';
 import { ApiService } from '../services/api.service';
 
+
 export interface FilterTag { key: string; label: string; }
+
 
 @Component({
   selector: 'app-product-listing-page',
@@ -17,14 +19,17 @@ export interface FilterTag { key: string; label: string; }
 })
 export class ProductListingPageComponent implements OnInit, OnDestroy {
 
+
   viewMode: 'grid' | 'list' = 'grid';
   sortBy = 'popular';
   isLoading = false;
   currentPage = 1;
   pageSize = 9;
 
+
   wishlist: string[] = [];
   private wishlistSub!: Subscription;
+
 
   selectedFilters: string[] = [];
   priceRange: [number, number] = [0, 1000000];
@@ -32,8 +37,10 @@ export class ProductListingPageComponent implements OnInit, OnDestroy {
   skeletons = Array(6).fill(0);
   categoryCounts: Record<string, number> = {};
 
+
   // ✅ THÊM: lưu keyword tìm kiếm từ header
   searchKeyword = '';
+
 
   private currentFilters: SidebarFilters = {
     categories: [],
@@ -42,10 +49,12 @@ export class ProductListingPageComponent implements OnInit, OnDestroy {
     rating: 0,
   };
 
+
   displayedProducts: any[] = [];
   totalProducts = 0;
   totalPages = 1;
   pageNumbers: (number | string)[] = [];
+
 
   constructor(
     private router: Router,
@@ -55,16 +64,20 @@ export class ProductListingPageComponent implements OnInit, OnDestroy {
     private cdr: ChangeDetectorRef,
   ) {}
 
+
   ngOnInit(): void {
     this.loadCategoryCounts();
+
 
     // ✅ FIX: xử lý cả 'search' lẫn 'cat' từ queryParams
     this.route.queryParams.subscribe(params => {
       const keyword = params['search'] || '';
       const cat     = params['cat']    || '';
 
+
       // Reset về trạng thái sạch mỗi lần params thay đổi
       this.searchKeyword = keyword.trim();
+
 
       if (cat) {
         this.selectedFilters           = [cat];
@@ -77,9 +90,11 @@ export class ProductListingPageComponent implements OnInit, OnDestroy {
         if (!keyword) this.activeFilterTags = [];
       }
 
+
       this.currentPage = 1;
       this.loadProducts();
     });
+
 
     this.wishlistSub = this.api.wishlist$.subscribe(list => {
       this.wishlist = list;
@@ -87,9 +102,11 @@ export class ProductListingPageComponent implements OnInit, OnDestroy {
     });
   }
 
+
   ngOnDestroy(): void {
     this.wishlistSub?.unsubscribe();
   }
+
 
   loadCategoryCounts(): void {
     this.api.getCategoryCounts().subscribe({
@@ -101,9 +118,11 @@ export class ProductListingPageComponent implements OnInit, OnDestroy {
     });
   }
 
+
   loadProducts(): void {
     this.isLoading = true;
     this.cdr.detectChanges();
+
 
     const filters: any = {
       sort:  this.sortBy,
@@ -111,10 +130,12 @@ export class ProductListingPageComponent implements OnInit, OnDestroy {
       limit: this.pageSize,
     };
 
+
     // ✅ FIX: truyền search keyword lên API
     if (this.searchKeyword) {
       filters.search = this.searchKeyword;
     }
+
 
     if (this.currentFilters.categories.length > 0) {
       filters.cat = this.currentFilters.categories.join(',');
@@ -128,6 +149,7 @@ export class ProductListingPageComponent implements OnInit, OnDestroy {
     if (this.currentFilters.rating > 0) {
       filters.minRating = this.currentFilters.rating;
     }
+
 
     this.api.getProducts(filters).subscribe({
       next: (res) => {
@@ -151,6 +173,7 @@ export class ProductListingPageComponent implements OnInit, OnDestroy {
     });
   }
 
+
   buildPageNumbers(): void {
     const pages: (number | string)[] = [];
     for (let i = 1; i <= this.totalPages; i++) {
@@ -163,6 +186,7 @@ export class ProductListingPageComponent implements OnInit, OnDestroy {
     this.pageNumbers = pages;
   }
 
+
   changePage(page: number): void {
     if (page < 1 || page > this.totalPages) return;
     this.currentPage = page;
@@ -170,7 +194,9 @@ export class ProductListingPageComponent implements OnInit, OnDestroy {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+
   onSortChange(): void { this.currentPage = 1; this.loadProducts(); }
+
 
   onAllFiltersChanged(filters: SidebarFilters): void {
     this.currentFilters  = { ...filters };
@@ -179,6 +205,7 @@ export class ProductListingPageComponent implements OnInit, OnDestroy {
     this.rebuildFilterTags();
     this.loadProducts();
   }
+
 
   onResetFilters(): void {
     this.currentFilters   = { categories: [], priceMin: 0, priceMax: 1000000, rating: 0 };
@@ -196,7 +223,9 @@ export class ProductListingPageComponent implements OnInit, OnDestroy {
     this.loadProducts();
   }
 
+
   clearAllFilters(): void { this.onResetFilters(); }
+
 
   removeFilter(key: string): void {
     this.selectedFilters = this.selectedFilters.filter(f => f !== key);
@@ -205,29 +234,64 @@ export class ProductListingPageComponent implements OnInit, OnDestroy {
     this.loadProducts();
   }
 
+
   rebuildFilterTags(): void {
     this.activeFilterTags = this.selectedFilters.map(f => ({ key: f, label: f }));
   }
+
 
   getStars(rating: number): string {
     const full = Math.round(rating);
     return '★'.repeat(full) + '☆'.repeat(5 - full);
   }
 
+
   isWishlisted(id: string): boolean {
     return this.wishlist.includes(id);
   }
+
 
   toggleWishlist(event: Event, product: any): void {
     event.stopPropagation();
     this.api.toggleWishlist(product._id, product.name);
   }
 
+
+  /**
+   * FIX: Lấy variant mặc định cho sản phẩm (variant đầu tiên còn hàng)
+   * để đảm bảo cùng productId + variantId khi thêm vào giỏ từ nhiều nơi
+   */
+  private getDefaultVariant(product: any): { variantId: string | null; variantLabel: string } {
+    if (Array.isArray(product.variants) && product.variants.length > 0) {
+      // Tìm variant còn hàng đầu tiên
+      const inStockVariant = product.variants.find((v: any) => Number(v.stock || 0) > 0);
+      const defaultVariant = inStockVariant || product.variants[0];
+      return {
+        variantId: String(defaultVariant._id),
+        variantLabel: String(defaultVariant.label || '')
+      };
+    }
+    return { variantId: null, variantLabel: '' };
+  }
+
+
+  /**
+   * FIX: Thêm vào giỏ với variant mặc định để đồng bộ giỏ hàng
+   */
   addToCart(event: Event, product: any): void {
     event.stopPropagation();
     if (!product?._id) return;
 
-    this.api.addToCart(product._id, 1, product.name).subscribe({
+
+    if (product.isOutOfStock || (product.stock === 0 && !product.variants?.length)) {
+      this.api.showToast('Sản phẩm này đã hết hàng.', 'error');
+      return;
+    }
+
+
+    const { variantId, variantLabel } = this.getDefaultVariant(product);
+    
+    this.api.addToCart(product._id, 1, product.name, variantId, variantLabel).subscribe({
       error: (err) => {
         console.error('Lỗi thêm giỏ hàng:', err);
         this.api.showToast('Không thể thêm vào giỏ hàng. Vui lòng thử lại.', 'error');
@@ -235,9 +299,11 @@ export class ProductListingPageComponent implements OnInit, OnDestroy {
     });
   }
 
+
   trackByProductId(_: number, product: any): string {
     return product._id;
   }
+
 
   goToDetail(id: any): void {
     if (!id) return;

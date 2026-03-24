@@ -1,5 +1,6 @@
 <div class="return-page">
 
+
   <!-- ═══════════ HEADER ═══════════ -->
   <div class="return-header">
     <div>
@@ -12,14 +13,17 @@
     </button>
   </div>
 
+
   <!-- ═══════════ LOADING ═══════════ -->
   <div *ngIf="isLoading && view === 'list'">
     <div class="skeleton-line mb-3" style="width:100%;height:80px;border-radius:16px;"></div>
     <div class="skeleton-line" style="width:100%;height:80px;border-radius:16px;"></div>
   </div>
 
+
   <!-- ═══════════ LIST VIEW ═══════════ -->
   <ng-container *ngIf="view === 'list' && !isLoading">
+
 
     <!-- Không có đơn đã giao nào -->
     <div class="return-empty" *ngIf="returnOrders.length === 0 && deliveredOrders.length === 0">
@@ -31,6 +35,7 @@
       </button>
     </div>
 
+
     <!-- Có đơn delivered nhưng chưa có request nào -->
     <div class="return-empty" *ngIf="returnOrders.length === 0 && deliveredOrders.length > 0">
       <div class="return-empty-icon"><i class="bi bi-arrow-repeat"></i></div>
@@ -41,8 +46,10 @@
       </button>
     </div>
 
-    <!-- DANH SÁCH YÊU CẦU -->
-    <div class="return-card" *ngFor="let order of returnOrders">
+
+    <!-- DANH SÁCH YÊU CẦU (sắp xếp theo thời gian tạo yêu cầu) -->
+    <div #returnCard class="return-card" *ngFor="let order of returnOrders">
+
 
       <div class="return-card-header">
         <div class="return-card-meta">
@@ -54,18 +61,20 @@
         <span class="return-status-badge" [ngClass]="'status-' + (order.returnStatus || 'none')">
           <i class="bi"
             [class.bi-clock]="order.returnStatus === 'requested'"
-            [class.bi-check2-circle]="order.returnStatus === 'approved' || order.returnStatus === 'completed'"
+            [class.bi-check2-circle]="order.returnStatus === 'approved'"
             [class.bi-x-circle-fill]="order.returnStatus === 'rejected'"
-            ></i>
+            [class.bi-check-circle-fill]="order.returnStatus === 'completed'"></i>
           {{ getReturnStatusLabel(order.returnStatus) }}
         </span>
       </div>
+
 
       <div class="return-card-reason">
         <i class="bi bi-chat-left-text me-1"></i>
         <strong>Lý do:</strong> {{ order.returnReason }}
         <span *ngIf="order.returnNote" class="return-note"> — {{ order.returnNote }}</span>
       </div>
+
 
       <!-- Ảnh minh chứng (lọc URL rỗng; getImageUrl dùng STATIC_BASE) -->
       <div class="return-card-images" *ngIf="visibleReturnImages(order).length > 0">
@@ -77,6 +86,7 @@
             alt="Ảnh minh chứng" />
         </div>
       </div>
+
 
       <!-- Sản phẩm trả -->
       <div class="return-card-items">
@@ -107,23 +117,29 @@
         </ng-template>
       </div>
 
+
       <div class="return-card-footer">
         <span class="return-total">
           Tổng tiền đơn: <strong>{{ formatCurrency(order.total) }}</strong>
         </span>
       </div>
 
+
     </div>
   </ng-container>
 
+
   <!-- ═══════════ CREATE FORM ═══════════ -->
   <div class="return-form-wrap" *ngIf="view === 'create'">
+
 
     <button class="btn-back" (click)="cancelCreate()">
       <i class="bi bi-arrow-left me-1"></i> Quay lại
     </button>
 
+
     <h3 class="form-section-title">Tạo yêu cầu đổi trả</h3>
+
 
     <!-- CHỌN ĐƠN HÀNG -->
     <div class="form-group">
@@ -132,11 +148,13 @@
         <span class="required">*</span>
       </label>
 
+
       <div class="no-orders-warn" *ngIf="deliveredOrders.length === 0">
         <i class="bi bi-exclamation-circle me-1"></i>
         Không còn đơn hàng nào có thể đổi trả.
         <button class="btn-link ms-2" (click)="goToOrders()">Xem đơn hàng</button>
       </div>
+
 
       <select class="form-select"
         *ngIf="deliveredOrders.length > 0"
@@ -150,6 +168,7 @@
         </option>
       </select>
     </div>
+
 
     <!-- SẢN PHẨM -->
     <div class="form-group" *ngIf="selectedOrder && returnItems.length > 0">
@@ -176,11 +195,13 @@
         </div>
       </div>
 
+
       <div class="return-summary" *ngIf="returnTotal > 0">
         <span>Tổng tiền hoàn dự kiến:</span>
         <strong>{{ formatCurrency(returnTotal) }}</strong>
       </div>
     </div>
+
 
     <!-- LÝ DO -->
     <div class="form-group">
@@ -198,6 +219,7 @@
       </div>
     </div>
 
+
     <!-- GHI CHÚ -->
     <div class="form-group">
       <label class="form-label">
@@ -212,12 +234,14 @@
       <div class="char-count">{{ returnNote.length }}/500</div>
     </div>
 
-    <!-- ✅ MỚI: UPLOAD ẢNH MINH CHỨNG -->
+
+    <!-- UPLOAD ẢNH MINH CHỨNG -->
     <div class="form-group">
       <label class="form-label">
         <i class="bi bi-images me-1"></i> Ảnh minh chứng
         <span class="optional">(tuỳ chọn, tối đa {{ MAX_IMAGES }} ảnh)</span>
       </label>
+
 
       <!-- Vùng upload -->
       <div class="image-upload-area"
@@ -229,6 +253,7 @@
         <input #imgInput type="file" accept="image/*" multiple hidden
           (change)="onImagesSelected($event)" />
       </div>
+
 
       <!-- Preview ảnh đã chọn -->
       <div class="image-preview-list" *ngIf="imagePreviews.length > 0">
@@ -246,41 +271,26 @@
         </div>
       </div>
 
+
       <div class="image-count-hint" *ngIf="selectedImages.length > 0">
         {{ selectedImages.length }}/{{ MAX_IMAGES }} ảnh đã chọn
       </div>
     </div>
 
+
     <!-- ACTIONS -->
     <div class="form-actions">
       <button class="btn-cancel-form" (click)="cancelCreate()">Hủy</button>
       <button class="btn-submit"
-        [disabled]="!canSubmit || isSubmitting || showConfirmSubmit"
+        [disabled]="!canSubmit || isSubmitting"
         (click)="submitReturn()">
         <i class="bi bi-send me-1"></i>
         {{ isSubmitting ? 'Đang gửi...' : 'Gửi yêu cầu' }}
       </button>
     </div>
 
-      <!-- CONFIRM MODAL -->
-      <div class="confirm-return-overlay" *ngIf="showConfirmSubmit" (click)="cancelSubmitReturnConfirm()">
-        <div class="confirm-return-modal" (click)="$event.stopPropagation()">
-          <h3 class="confirm-return-title">Xác nhận gửi yêu cầu</h3>
-          <p class="confirm-return-sub">
-            Sau khi gửi yêu cầu hoàn hàng, bạn sẽ không thể hủy yêu cầu này. Vui lòng cân nhắc trước khi xác nhận.
-          </p>
-          <div class="confirm-return-actions">
-            <button class="confirm-return-btn confirm-return-cancel" type="button" (click)="cancelSubmitReturnConfirm()">
-              Cancel
-            </button>
-            <button class="confirm-return-btn confirm-return-ok" type="button"
-              (click)="confirmSubmitReturn()" [disabled]="isSubmitting">
-              Xác nhận
-            </button>
-          </div>
-        </div>
-      </div>
 
   </div>
+
 
 </div>

@@ -1,49 +1,68 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
-import { CommonModule, Location } from '@angular/common';  // ✅ thêm Location
+import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { ApiService, STATIC_BASE } from '../services/api.service';
+
+
+
 
 @Component({
   selector: 'app-order-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './order-details.html',
   styleUrls: ['./order-details.css']
 })
 export class OrderDetail implements OnInit {
 
-  order: any    = null;
+
+  order: any = null;
   orders: any[] = [];
-  loading       = true;
-  currentId     = '';
+  loading = true;
+  currentId = '';
+  activeTab: 'detail' | 'history' = 'detail'; // Tab hiện tại
+
+
+  // Phân trang
+  currentPage = 1;
+  pageSize = 10;
+  totalOrders = 0;
+  totalPages = 1;
+  isLoadingHistory = false;
+
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private api: ApiService,
-    private cdr: ChangeDetectorRef,
-    private location: Location  // ✅ thêm
+    private cdr: ChangeDetectorRef
   ) {}
 
+
   ngOnInit(): void {
-    this.loadOrders();
+    // Load chi tiết đơn khi route thay đổi
     this.route.paramMap.subscribe(params => {
       const id = params.get('id') || '';
       if (id && id !== this.currentId) {
         this.currentId = id;
-        this.loading   = true;
-        this.order     = null;
+        this.loading = true;
+        this.order = null;
+        this.activeTab = 'detail'; // Chuyển về tab chi tiết khi xem đơn mới
         this.cdr.detectChanges();
         this.loadOrder(id);
       }
     });
   }
 
-  // ✅ Quay lại trang trước
+
+  // Quay lại trang order-management
   goBack(): void {
-    this.location.back();
+    this.router.navigate(['/profile/order-management']);
   }
 
+
+  // Lấy userId từ localStorage
   private getUserId(): string {
     const direct = localStorage.getItem('userId');
     if (direct) return direct;
@@ -53,11 +72,14 @@ export class OrderDetail implements OnInit {
     } catch { return ''; }
   }
 
+
   loadOrder(id: string): void {
     this.api.getOrderById(id).subscribe({
       next: (res: any) => {
-        this.order   = res;
+        this.order = res;
         this.loading = false;
+        // Kiểm tra thay đổi trạng thái hoàn trả
+        this.checkReturnStatus(res);
         this.cdr.detectChanges();
       },
       error: () => {
@@ -67,26 +89,107 @@ export class OrderDetail implements OnInit {
     });
   }
 
-  loadOrders(): void {
+
+  // Load orders với phân trang
+  loadOrders(page: number = 1): void {
     const userId = this.getUserId();
-    this.api.getOrders(userId).subscribe({
+    if (!userId) {
+      this.orders = [];
+      this.totalOrders = 0;
+      this.totalPages = 1;
+      this.cdr.detectChanges();
+      return;
+    }
+
+
+    this.isLoadingHistory = true;
+    this.cdr.detectChanges();
+
+
+    this.api.getOrdersPaginated(userId, page, this.pageSize).subscribe({
       next: (res: any) => {
-        this.orders = Array.isArray(res) ? res : [];
+        this.orders = Array.isArray(res.orders) ? res.orders : [];
+        this.totalOrders = res.total || 0;
+        this.totalPages = Math.ceil(this.totalOrders / this.pageSize);
+        this.currentPage = page;
+        this.isLoadingHistory = false;
         this.cdr.detectChanges();
       },
-      error: () => { this.orders = []; }
+      error: () => {
+        this.orders = [];
+        this.totalOrders = 0;
+        this.totalPages = 1;
+        this.isLoadingHistory = false;
+        this.cdr.detectChanges();
+      }
     });
   }
+
+
+  // Khi chuyển sang tab Lịch sử, load trang đầu tiên
+  onTabChange(tab: 'detail' | 'history'): void {
+    this.activeTab = tab;
+    if (tab === 'history' && this.orders.length === 0) {
+      this.currentPage = 1;
+      this.loadOrders(1);
+    }
+  }
+
+
+  // Chuyển trang
+  goToPage(page: number): void {
+    if (page < 1 || page > this.totalPages || page === this.currentPage) return;
+    this.loadOrders(page);
+    // Cuộn lên đầu bảng
+    setTimeout(() => {
+      const table = document.querySelector('.orders-table');
+      if (table) table.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  }
+
+
+  // Tạo mảng số trang để hiển thị
+  getPageNumbers(): (number | string)[] {
+    const pages: (number | string)[] = [];
+    const maxVisible = 5;
+   
+    if (this.totalPages <= maxVisible) {
+      for (let i = 1; i <= this.totalPages; i++) pages.push(i);
+    } else {
+      if (this.currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) pages.push(i);
+        pages.push('...');
+        pages.push(this.totalPages);
+      } else if (this.currentPage >= this.totalPages - 2) {
+        pages.push(1);
+        pages.push('...');
+        for (let i = this.totalPages - 3; i <= this.totalPages; i++) pages.push(i);
+      } else {
+        pages.push(1);
+        pages.push('...');
+        for (let i = this.currentPage - 1; i <= this.currentPage + 1; i++) pages.push(i);
+        pages.push('...');
+        pages.push(this.totalPages);
+      }
+    }
+    return pages;
+  }
+
 
   goToOrder(id: string): void {
     this.router.navigate(['/profile/order-detail', id]);
   }
+
+
+  // ==================== HELPERS ====================
+
 
   getTotal(): number {
     return this.order?.total
       || this.order?.items?.reduce((s: number, i: any) => s + i.price * i.quantity, 0)
       || 0;
   }
+
 
   getFullAddress(): string {
     const c = this.order?.customer;
@@ -97,10 +200,12 @@ export class OrderDetail implements OnInit {
     return parts.join(', ');
   }
 
+
   fixImage(url: string): string {
     if (!url) return 'assets/placeholder.png';
     return url.startsWith('http') ? url : `${STATIC_BASE}${url}`;
   }
+
 
   formatDate(dateStr: string): string {
     if (!dateStr) return '';
@@ -110,44 +215,49 @@ export class OrderDetail implements OnInit {
     });
   }
 
+
+  formatDateShort(dateStr: string): string {
+    if (!dateStr) return '';
+    return new Date(dateStr).toLocaleDateString('vi-VN', {
+      day: '2-digit', month: '2-digit', year: 'numeric'
+    });
+  }
+
+
   getStatusLabel(status: string): string {
     const map: Record<string, string> = {
-      pending:         'Chờ xác nhận',
-      confirmed:       'Chờ giao hàng',
-      shipping:        'Đang giao',
+      pending: 'Chờ xác nhận',
+      confirmed: 'Chờ giao hàng',
+      shipping: 'Đang giao',
       delivery_failed: 'Giao thất bại',
-      delivered:       'Đã giao',
-      cancelled:       'Đã hủy',
+      delivered: 'Đã giao',
+      cancelled: 'Đã hủy',
       pending_payment: 'Chờ thanh toán',
-      paid:            'Đã thanh toán',
+      paid: 'Đã thanh toán',
     };
     return map[status] || status;
   }
 
-  /** Nhãn nguồn hủy để khách biết đơn do ai thực hiện hủy. */
-  getCancelActorLabel(order: any): string {
-    const by = String(order?.cancelledByType || '').toLowerCase();
-    if (by === 'customer') return 'Bạn đã hủy đơn này';
-    if (by === 'admin') return 'Shop đã hủy đơn này';
-    if (by === 'system') return 'Hệ thống đã hủy đơn này';
-    return 'Đơn đã bị hủy';
-  }
 
   getPaymentLabel(method: string): string {
     const map: Record<string, string> = {
-      cod:   'Thanh toán khi nhận hàng (COD)',
-      vnpay: 'VNPay', momo: 'MoMo', bank: 'Chuyển khoản',
+      cod: 'Thanh toán khi nhận hàng (COD)',
+      vnpay: 'VNPay',
+      momo: 'MoMo',
+      bank: 'Chuyển khoản',
     };
     return map[method] || method;
   }
+
 
   getShippingLabel(method: string): string {
     const map: Record<string, string> = {
       standard: 'Giao hàng tiêu chuẩn',
-      express:  'Giao hàng nhanh',
+      express: 'Giao hàng nhanh',
     };
     return map[method] || method;
   }
+
 
   getReturnImages(order: any): string[] {
     const arr = order?.returnImages;
@@ -155,11 +265,13 @@ export class OrderDetail implements OnInit {
     return arr.map((u: any) => String(u || '').trim()).filter(Boolean);
   }
 
+
   getReturnLines(order: any): any[] {
     const rows = order?.returnItems;
     if (!Array.isArray(rows)) return [];
     return rows.filter((r: any) => Number(r?.returnQty ?? 0) > 0);
   }
+
 
   returnRequestGoodsTotal(order: any): number {
     return this.getReturnLines(order).reduce(
@@ -168,13 +280,69 @@ export class OrderDetail implements OnInit {
     );
   }
 
+
   getReturnStatusLabel(rs: string): string {
     const map: Record<string, string> = {
       requested: 'Đang chờ shop xử lý',
-      approved:  'Shop đã chấp nhận hoàn',
-      rejected:  'Yêu cầu bị từ chối',
+      approved: 'Shop đã chấp nhận hoàn',
+      rejected: 'Yêu cầu bị từ chối',
       completed: 'Đã hoàn tiền / trả xong',
     };
     return map[rs] || rs;
   }
+
+
+  // ✅ Hiển thị thông báo khi trạng thái hoàn trả thay đổi
+  checkReturnStatusChange(oldStatus: string, newStatus: string): void {
+    if (oldStatus === newStatus) return;
+    
+    if (newStatus === 'rejected') {
+      this.api.showToast('Yêu cầu hoàn trả đã bị từ chối. Vui lòng kiểm tra lại lý do từ shop.', 'error');
+    } else if (newStatus === 'approved') {
+      this.api.showToast('Yêu cầu hoàn trả đã được chấp nhận! Shop sẽ xử lý hoàn tiền trong thời gian sớm nhất.', 'success');
+    } else if (newStatus === 'completed') {
+      this.api.showToast('Hoàn trả thành công! Số tiền đã được hoàn lại.', 'success');
+    }
+  }
+
+
+  // Theo dõi thay đổi trạng thái hoàn trả
+  private previousReturnStatus: string = '';
+
+
+  // Gọi hàm này khi load order để kiểm tra thay đổi
+  private checkReturnStatus(order: any): void {
+    if (order?.returnStatus && order.returnStatus !== this.previousReturnStatus) {
+      this.checkReturnStatusChange(this.previousReturnStatus, order.returnStatus);
+      this.previousReturnStatus = order.returnStatus;
+    }
+  }
+
+
+  // ═══════════════════════════════════════════════════════════════
+  // THỜI GIAN NHẬN HÀNG DỰ KIẾN
+  // ═══════════════════════════════════════════════════════════════
+  getEstimatedDelivery(createdAt: string, shippingMethod: string): string {
+    if (!createdAt) return '—';
+    
+    const orderDate = new Date(createdAt);
+    let daysToAdd = 0;
+    
+    if (shippingMethod === 'express') {
+      daysToAdd = 2; // Giao nhanh: 1-2 ngày
+    } else {
+      daysToAdd = 4; // Giao tiêu chuẩn: 3-4 ngày
+    }
+    
+    const estimatedDate = new Date(orderDate);
+    estimatedDate.setDate(orderDate.getDate() + daysToAdd);
+    
+    return estimatedDate.toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  }
+
+
 }

@@ -44,52 +44,39 @@
             <span class="ab-error" *ngIf="showAddrFieldError('phone')">Số điện thoại không hợp lệ</span>
           </div>
         </div>
-
-
-        <!-- ✅ FIX: Dùng [ngValue] thay [value] để so sánh đúng kiểu number -->
         <div class="ab-field">
           <label>Tỉnh / Thành phố <span class="req">*</span></label>
           <div class="ab-select-wrap">
             <select class="ab-input ab-select" formControlName="province" (change)="onProvinceChange()">
-              <option [ngValue]="''">-- Chọn Tỉnh/Thành phố --</option>
-              <option *ngFor="let p of provinces" [ngValue]="p.code">{{ p.name }}</option>
+              <option value="">-- Chọn Tỉnh/Thành phố --</option>
+              <option *ngFor="let p of provinces" [value]="p.code">{{ p.name }}</option>
             </select>
             <span class="ab-select-spinner" *ngIf="loadingProvinces"></span>
           </div>
           <span class="ab-error" *ngIf="showAddrFieldError('province')">Vui lòng chọn tỉnh/thành phố</span>
         </div>
-
-
         <div class="ab-field">
           <label>Quận / Huyện <span class="req">*</span></label>
           <div class="ab-select-wrap">
-            <!-- ✅ FIX: [ngValue] + bỏ [disabled] dùng attr.disabled để tránh lỗi reactive form -->
-            <select class="ab-input ab-select" formControlName="district" (change)="onDistrictChange()"
-                    [attr.disabled]="!districts.length ? true : null">
-              <option [ngValue]="''">-- Chọn Quận/Huyện --</option>
-              <option *ngFor="let d of districts" [ngValue]="d.code">{{ d.name }}</option>
+            <select class="ab-input ab-select" formControlName="district" (change)="onDistrictChange()" [disabled]="!districts.length">
+              <option value="">-- Chọn Quận/Huyện --</option>
+              <option *ngFor="let d of districts" [value]="d.code">{{ d.name }}</option>
             </select>
             <span class="ab-select-spinner" *ngIf="loadingDistricts"></span>
           </div>
           <span class="ab-error" *ngIf="showAddrFieldError('district')">Vui lòng chọn quận/huyện</span>
         </div>
-
-
         <div class="ab-field">
           <label>Phường / Xã <span class="req">*</span></label>
           <div class="ab-select-wrap">
-            <!-- ✅ FIX: [ngValue] + bỏ [disabled] dùng attr.disabled -->
-            <select class="ab-input ab-select" formControlName="ward" (change)="onWardChange()"
-                    [attr.disabled]="!wards.length ? true : null">
-              <option [ngValue]="''">-- Chọn Phường/Xã --</option>
-              <option *ngFor="let w of wards" [ngValue]="w.code">{{ w.name }}</option>
+            <select class="ab-input ab-select" formControlName="ward" (change)="onWardChange()" [disabled]="!wards.length">
+              <option value="">-- Chọn Phường/Xã --</option>
+              <option *ngFor="let w of wards" [value]="w.code">{{ w.name }}</option>
             </select>
             <span class="ab-select-spinner" *ngIf="loadingWards"></span>
           </div>
           <span class="ab-error" *ngIf="showAddrFieldError('ward')">Vui lòng chọn phường/xã</span>
         </div>
-
-
         <div class="ab-field">
           <label>Số nhà, tên đường <span class="req">*</span></label>
           <input type="text" class="ab-input" formControlName="street" placeholder="VD: 123 Nguyễn Huệ" />
@@ -244,6 +231,17 @@
           <i class="bi bi-info-circle"></i>
           Bạn chưa đăng nhập. <a routerLink="/login">Đăng nhập</a> để dùng sổ địa chỉ, lưu đơn trong tài khoản và <strong>dùng mã khuyến mãi</strong>.
         </div>
+        
+        <!-- HOTLINE BANNER -->
+        <div class="co-hotline-banner" *ngIf="!userId">
+          <i class="bi bi-telephone-fill"></i>
+          <div class="co-hotline-content">
+            <span class="co-hotline-label">Hỗ trợ mua hàng</span>
+            <a href="tel:0335512275" class="co-hotline-number">0335 512 275</a>
+            <span class="co-hotline-hours">(8:00 - 21:00 hàng ngày)</span>
+          </div>
+        </div>
+        
         <div class="co-guest-addr" *ngIf="!userId" [formGroup]="guestAddrForm">
           <div class="co-guest-addr-row">
             <label>Họ và tên *</label>
@@ -315,21 +313,19 @@
           <label class="co-opt" [class.selected]="shippingMethod() === 'standard'">
             <input type="radio" [checked]="shippingMethod() === 'standard'" (change)="setShipping('standard')" />
             <i class="bi bi-truck"></i>
-            <div class="co-opt-body">
-              <div class="co-opt-title">Giao tiêu chuẩn</div>
-              <div class="co-opt-sub">2–4 ngày làm việc</div>
-            </div>
-            <div class="co-opt-price">{{ vnd(standardFee()) }}</div>
+            <div class="co-opt-body"><div class="co-opt-title">Giao tiêu chuẩn</div><div class="co-opt-sub">2–4 ngày làm việc</div></div>
+            <div class="co-opt-price">{{ vnd(shippingFee()) }}</div>
           </label>
           <label class="co-opt" [class.selected]="shippingMethod() === 'express'">
             <input type="radio" [checked]="shippingMethod() === 'express'" (change)="setShipping('express')" />
             <i class="bi bi-lightning"></i>
-            <div class="co-opt-body">
-              <div class="co-opt-title">Giao nhanh <span class="co-badge">Ưu tiên</span></div>
-              <div class="co-opt-sub">1–2 ngày làm việc</div>
-            </div>
-            <div class="co-opt-price">{{ vnd(expressFee()) }}</div>
+            <div class="co-opt-body"><div class="co-opt-title">Giao nhanh <span class="co-badge">Ưu tiên</span></div><div class="co-opt-sub">1–2 ngày làm việc</div></div>
+            <div class="co-opt-price">{{ vnd(30000) }}</div>
           </label>
+        </div>
+        <div class="co-delivery-estimate">
+          <i class="bi bi-calendar-check"></i>
+          <span>Dự kiến giao hàng: <strong>{{ getEstimatedDeliveryDate() }}</strong></span>
         </div>
       </div>
 
@@ -479,11 +475,6 @@
             <span *ngIf="!isPlacing()"><i class="bi bi-check2-circle"></i> Đặt hàng</span>
             <span *ngIf="isPlacing()" class="co-btn-loading"><span class="co-spinner co-spinner-white"></span> Đang xử lý...</span>
           </button>
-        </div>
-        <div class="co-trust">
-          <span><i class="bi bi-shield-check"></i> Bảo mật</span>
-          <span><i class="bi bi-arrow-counterclockwise"></i> Đổi trả 7 ngày</span>
-          <span><i class="bi bi-truck"></i> Giao tận nơi</span>
         </div>
       </div>
     </div>
