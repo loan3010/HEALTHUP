@@ -20,13 +20,13 @@
   transform: translateX(-3px); 
 }
 
-.page-title { 
+/* .page-title { 
   color: var(--color-primary); 
   font-size: 1.8rem; 
   font-weight: 800; 
   margin-bottom: 25px; 
   text-transform: uppercase;
-}
+} */
 
 /* --- STYLE CHUNG CHO THẺ (CARD) --- */
 .info-card, .editor-card {

@@ -48,7 +48,7 @@ import { AdminChatbot } from '../admin_chatbot/admin-chatbot/admin-chatbot';
 import { AdminDashboard } from '../admin-dashboard/admin-dashboard';
 import { ProductComponent } from '../admin-product/product/product';
 import { Customer } from '../admin-customer/customer/customer';
-import { CustomerDetail } from '../admin-customer/customer-detail/customer-detail';
+// import { CustomerDetail } from '../admin-customer/customer-detail/customer-detail';
 import { Order } from '../admin-order/order/order';
 import { OrderDetail } from '../admin-order/order-detail/order-detail';
 import { AdminAlertModalComponent } from '../admin-alert-modal/admin-alert-modal.component';
@@ -69,7 +69,7 @@ import { AdminBanner } from '../admin-banner/admin-banner';
     AdminChatbot,
     AdminDashboard,
     ProductComponent,  
-    CustomerDetail,
+
     Customer,
     Order,
     OrderDetail,

@@ -14,7 +14,7 @@
 }
 .page-title {
   color: #36873A; /* --hu-primary */
-  font-size: 22px;
+  font-size: 28px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: .3px;
@@ -290,7 +290,8 @@
 }
 .cust-table { width: 100%; border-collapse: collapse; }
 .cust-table th {
-  background: #FAF6F0; /* --hu-bg-main */
+  /* background:  --hu-bg-main */
+  background: #E2EEE2;
   padding: 12px 14px;
   font-size: 11px;
   font-weight: 600;

@@ -32,12 +32,11 @@
 }
 
 .page-title {
-  color: var(--color-primary);
-  font-size: 1.8rem;
-  font-weight: 800;
-  margin-bottom: 25px;
+  color: #36873A; /* --hu-primary */
+  font-size: 28px;
+  font-weight: 700;
   text-transform: uppercase;
-  text-align: left !important;
+  letter-spacing: .3px;
 }
 
 /* --- DASHBOARD: ĐỒNG BỘ VỚI CONSULTING-DETAIL --- */

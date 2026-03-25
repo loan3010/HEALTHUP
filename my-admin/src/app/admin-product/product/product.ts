@@ -88,7 +88,10 @@ export class ProductComponent implements OnInit {
       const b = this.filterMaxPrice != null ? this.filterMaxPrice : '∞';
       parts.push(`Giá: ${a}-${b}`);
     }
-    if (this.filterMinRating != null) parts.push(`⭐ ${this.filterMinRating}+`);
+    // if (this.filterMinRating != null) parts.push(`⭐ ${this.filterMinRating}+`);
+    if (this.filterMinRating != null) {
+  parts.push(`<i class="fas fa-star text-warning"></i> ${this.filterMinRating}+`);
+}
     if (this.filterSaleStatus === 'selling') parts.push('Đang bán');
     if (this.filterSaleStatus === 'out') parts.push('Tạm hết');
     if (this.filterVisibility === 'visible') parts.push('Hiển thị');
