@@ -1,0 +1,110 @@
+<div class="faq-wrapper">
+  <section class="faq-hero">
+    <div class="hero-overlay"></div>
+    <div class="leaf-decoration ld-1">🌿</div>
+    <div class="leaf-decoration ld-2">🍃</div>
+    
+    <div class="hero-content">
+      <div class="badge-animated">Tận tâm & Lành mạnh</div>
+      <h1>Trung tâm <span>Hỗ trợ</span> HealthUp</h1>
+      <p>Chúng tôi luôn sẵn sàng giải đáp mọi thắc mắc của bạn để cùng xây dựng một lối sống khỏe mạnh và tràn đầy năng lượng.</p>
+      
+      <div class="search-container">
+        <div class="search-box">
+          <i class="bi bi-search"></i>
+          <input 
+            type="text" 
+            [(ngModel)]="searchTerm" 
+            (input)="onSearchChange()"
+            placeholder="Bạn đang tìm kiếm điều gì? (Ví dụ: Granola, Đổi trả...)"
+          >
+          <button *ngIf="searchTerm" (click)="searchTerm = ''; onSearchChange()" class="clear-btn">
+            <i class="bi bi-x-circle-fill"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="faq-container">
+    <div class="faq-grid">
+      <aside class="faq-sidebar" *ngIf="!searchTerm">
+        <div class="sidebar-inner">
+          <div class="sidebar-label">Danh mục câu hỏi</div>
+          <button 
+            *ngFor="let cat of categories" 
+            (click)="setTab(cat.id)"
+            [class.active]="activeTab === cat.id"
+            class="nav-item">
+            <div class="icon-box"><i class="bi {{cat.icon}}"></i></div>
+            <span>{{cat.name}}</span>
+          </button>
+        </div>
+      </aside>
+
+      <main class="faq-main" [class.full-width]="searchTerm">
+        <div class="result-header" *ngIf="searchTerm">
+          <p>Tìm thấy <strong>{{allFilteredItems.length}}</strong> kết quả cho từ khóa: <strong>"{{searchTerm}}"</strong></p>
+        </div>
+
+        <div class="faq-list">
+          <div *ngFor="let item of visibleFAQs" class="faq-card" [class.is-open]="item.open">
+            <div class="faq-question" (click)="toggleItem(item)">
+              <div class="q-content">
+                <span class="q-prefix">Q</span>
+                <h3>{{item.q}}</h3>
+              </div>
+              <div class="status-icon">
+                <i class="bi bi-chevron-down"></i>
+              </div>
+            </div>
+
+            <div class="faq-answer" [class.show]="item.open">
+              <div class="answer-inner">
+                <p>{{item.a}}</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-pagination" *ngIf="totalPages > 1">
+            <button class="pag-btn" (click)="prevPage()" [disabled]="currentPage === 0" aria-label="Trang trước">
+              <i class="bi bi-arrow-left-short"></i>
+            </button>
+            
+            <div class="pag-indicators">
+              <span *ngFor="let p of [].constructor(totalPages); let i = index" 
+                    [class.active]="i === currentPage"
+                    (click)="currentPage = i">
+              </span>
+            </div>
+
+            <button class="pag-btn" (click)="nextPage()" [disabled]="currentPage === totalPages - 1" aria-label="Trang tiếp theo">
+              <i class="bi bi-arrow-right-short"></i>
+            </button>
+          </div>
+
+          <div class="no-results" *ngIf="allFilteredItems.length === 0">
+            <i class="bi bi-emoji-frown"></i>
+            <p>Rất tiếc, chúng tôi chưa tìm thấy nội dung phù hợp với yêu cầu của bạn.</p>
+            <button (click)="openBot()" class="btn-ask-bot">Trò chuyện cùng Trợ lý ảo ngay</button>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <section class="faq-footer-cta">
+      <div class="cta-inner">
+        <h2>Bạn vẫn cần thêm sự trợ giúp?</h2>
+        <p>Đội ngũ chuyên gia dinh dưỡng của chúng tôi luôn sẵn lòng tư vấn 1:1 cho bạn.</p>
+        <div class="cta-btns">
+          <button class="btn-primary" (click)="openBot()">
+            <i class="bi bi-chat-dots"></i> Nhắn tin cho chúng tôi
+          </button>
+          <a [href]="getZaloUrl()" target="_blank" class="btn-outline">
+            <i class="bi bi-telephone"></i> Hotline Zalo hỗ trợ
+          </a>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
