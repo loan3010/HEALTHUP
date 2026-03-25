@@ -181,6 +181,15 @@
   object-fit: contain;
 }
 
+/* Zalo: PNG thường có nhiều viền trong suốt — phóng to trong ô 42px để nhìn cân các icon kia */
+.footer-socials a img.footer-social-img-zalo {
+  width: 105px;
+  height: 105px;
+  max-width: none;
+  max-height: none;
+  object-fit: contain;
+}
+
 .footer-socials a:hover {
   background: #D4A017;
   border-color: #D4A017;

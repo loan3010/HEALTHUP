@@ -95,6 +95,15 @@
               </select>
             </div>
             <div class="filter-row">
+              <label>Loại đơn / khách</label>
+              <select [(ngModel)]="orderSegmentFilter">
+                <option value="">Tất cả</option>
+                <option value="member">Khách có tài khoản</option>
+                <option value="guest">Khách vãng lai</option>
+                <option value="admin">Admin tạo đơn</option>
+              </select>
+            </div>
+            <div class="filter-row">
               <label>Từ ngày</label>
               <input type="date" [(ngModel)]="fromDate" />
             </div>
@@ -168,9 +177,16 @@
             <td class="mono">{{ order.orderCode || order._id.slice(-12).toUpperCase() }}</td>
             <td>{{ order.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
             <td>
-              <!-- Ưu tiên tài khoản đặt hàng; customer = người nhận (sổ địa chỉ khi checkout). -->
-              <div class="name">{{ order.buyerAccount?.username || order.customer.fullName }}</div>
-              <div class="sub">{{ order.buyerAccount?.phone || order.customer.phone }}</div>
+              <!-- Hotline: cột = người đặt. Web: tài khoản hoặc người nhận khi không có TK. -->
+              <ng-container *ngIf="order.orderSource === 'admin_hotline' && (order.orderer?.fullName || order.orderer?.phone); else colKhachDefault">
+                <div class="name">{{ order.orderer?.fullName || '—' }}</div>
+                <div class="sub">{{ order.orderer?.phone || '—' }}</div>
+              </ng-container>
+              <ng-template #colKhachDefault>
+                <div class="name">{{ order.buyerAccount?.username || order.customer.fullName }}</div>
+                <div class="sub">{{ order.buyerAccount?.phone || order.customer.phone }}</div>
+              </ng-template>
+              <div class="customer-segment-hint">{{ buyerSegmentLine(order) }}</div>
             </td>
             <td>
               <span class="status-badge" [ngClass]="'status-' + order.status">{{ statusLabel(order.status) }}</span>

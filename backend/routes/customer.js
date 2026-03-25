@@ -7,6 +7,8 @@ const {
   statsForUser,
   normalizePhone,
   membershipTierFromTotalSpent90d,
+  recentDeliveredSpendForUser,
+  recentDeliveredSpendMapForUsers,
 } = require('../helpers/customerOrderStats');
 const { emitAccountDisabled } = require('../services/userAccountRealtime');
 
@@ -113,13 +115,18 @@ router.get('/', async (req, res) => {
 
     const users = await User.find(filter).lean();
 
-    // Gộp đơn theo userId + đơn không userId theo SĐT chuẩn hóa (tránh 0 đơn khi SĐT trên đơn ≠ SĐT profile).
+    // Thống kê CRM: chỉ đơn có userId — không cộng guest theo SĐT người nhận (mua hộ / hotline).
     const statsMaps = await buildCustomerListStatsMaps(Order);
+    const recentMap = await recentDeliveredSpendMapForUsers(
+      Order,
+      users.map((u) => u._id)
+    );
 
     /** @type {Array<Record<string, unknown>>} */
     let data = users.map(u => {
       const stats = statsForUser(u, statsMaps);
-      const membershipTier = membershipTierFromTotalSpent90d(stats.totalSpent90d);
+      const recentSpent90d = recentMap.get(String(u._id)) || 0;
+      const membershipTier = membershipTierFromTotalSpent90d(recentSpent90d);
 
       const audit = deactivationAuditForDoc(u);
       return {
@@ -279,22 +286,11 @@ router.get('/:id/order-history', async (req, res) => {
     const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
     const limit = Math.max(parseInt(req.query.limit, 10) || 5, 1);
 
-    const phoneRaw = String(user.phone || '').trim();
-    const phoneNorm = normalizePhone(phoneRaw);
-    const phoneCandidates = Array.from(new Set([
-      phoneRaw,
-      phoneNorm,
-      phoneNorm && phoneNorm.startsWith('84') ? `0${phoneNorm.slice(2)}` : '',
-      phoneNorm && phoneNorm.startsWith('0') ? `84${phoneNorm.slice(1)}` : '',
-    ].filter(Boolean)));
-
-    // Gom đơn có userId + đơn guest có cùng SĐT để nhìn xuyên suốt lịch sử mua.
-    const orders = await Order.find({
-      $or: [
-        { userId: rawId },
-        { userId: null, 'customer.phone': { $in: phoneCandidates } },
-      ],
-    })
+    /**
+     * Chỉ đơn gắn `userId` = khách này — không gom theo SĐT người nhận.
+     * Tránh hiển thị đơn «mua hộ / quà» (người nhận trùng SĐT tài khoản) như đơn của khách.
+     */
+    const orders = await Order.find({ userId: rawId })
       .sort({ createdAt: -1 })
       .select('orderCode createdAt status returnStatus total items')
       .lean();
@@ -376,7 +372,12 @@ router.get('/:id', async (req, res) => {
 
     const statsMaps = await buildCustomerListStatsMaps(Order);
     const stats = statsForUser(user, statsMaps);
-    const membershipTier = membershipTierFromTotalSpent90d(stats.totalSpent90d);
+    const oid = new mongoose.Types.ObjectId(String(user._id));
+    const [orderCountAll, recentSpent90d] = await Promise.all([
+      Order.countDocuments({ userId: oid }),
+      recentDeliveredSpendForUser(Order, oid, 3),
+    ]);
+    const membershipTier = membershipTierFromTotalSpent90d(recentSpent90d);
 
     const audit = deactivationAuditForDoc(user);
     res.json({
@@ -392,9 +393,15 @@ router.get('/:id', async (req, res) => {
       deactivatedBy:    audit.deactivatedBy,
       deactivatedAt:    audit.deactivatedAt,
       createdAt:    user.createdAt,
+      /** Đơn chưa hủy (theo rule groupCustomerStatsFields) — dùng cho hạng / tổng quan CRM. */
       totalOrders:  stats.totalOrders,
+      /** Đơn đã giao (trừ hoàn xong) cộng dồn — toàn thời gian, khớp totalSpent trên /api/users/:id. */
       totalSpent:   stats.totalSpent,
       hasProvisionalSpend: !!stats.hasProvisionalSpend,
+      /** Mọi đơn có userId (kể cả đã hủy) — khớp tab «Tất cả» trên app khách. */
+      orderCountAll,
+      /** Chi tiêu đã giao trong 3 tháng gần — khớp thanh VIP / tổng đơn đã giao hiển thị trên profile khách. */
+      recentSpent90d,
     });
   } catch (err) {
     console.error('GET /api/admin/customers/:id error:', err);
@@ -432,7 +439,12 @@ router.put('/:id', async (req, res) => {
 
     const statsMaps = await buildCustomerListStatsMaps(Order);
     const stats = statsForUser(user, statsMaps);
-    const membershipTier = membershipTierFromTotalSpent90d(stats.totalSpent90d);
+    const oidPut = new mongoose.Types.ObjectId(String(user._id));
+    const [orderCountAllPut, recentSpent90dPut] = await Promise.all([
+      Order.countDocuments({ userId: oidPut }),
+      recentDeliveredSpendForUser(Order, oidPut, 3),
+    ]);
+    const membershipTier = membershipTierFromTotalSpent90d(recentSpent90dPut);
     const audit = deactivationAuditForDoc(user);
 
     res.json({
@@ -453,6 +465,8 @@ router.put('/:id', async (req, res) => {
         totalOrders:  stats.totalOrders,
         totalSpent:   stats.totalSpent,
         hasProvisionalSpend: !!stats.hasProvisionalSpend,
+        orderCountAll: orderCountAllPut,
+        recentSpent90d: recentSpent90dPut,
       }
     });
   } catch (err) {

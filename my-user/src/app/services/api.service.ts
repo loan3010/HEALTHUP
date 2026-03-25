@@ -151,8 +151,13 @@ export class ApiService {
 
 
   private fixImages(p: any): any {
-    const fixUrl = (img: string) =>
-      img && img.startsWith('http') ? img : `${STATIC_BASE}${img}`;
+    const fixUrl = (img: string) => {
+      const raw = String(img || '').trim();
+      if (!raw) return '';
+      if (raw.startsWith('http')) return raw;
+      const normalizedPath = raw.startsWith('/') ? raw : `/${raw}`;
+      return `${STATIC_BASE}${normalizedPath}`;
+    };
     const fixedImages = (p.images || []).map(fixUrl);
     const id = p._id ? (typeof p._id === 'object' ? p._id.toString() : String(p._id)) : '';
     return { ...p, _id: id, images: fixedImages, image: fixedImages[0] || '' };
@@ -581,11 +586,20 @@ export class ApiService {
   }
 
 
-  /** Tra cứu đơn không cần đăng nhập (SĐT + mã đơn ORD...). */
-  guestLookupOrder(phone: string, orderCode: string): Observable<{ order: any }> {
+  /**
+   * Tra cứu khách không đăng nhập.
+   * - Ưu tiên guestLookupCode (HU-XXXXXX trong SMS).
+   * - Hoặc đơn cũ: phone + orderCode (ORD...).
+   */
+  guestLookupOrder(payload: {
+    guestLookupCode?: string;
+    phone?: string;
+    orderCode?: string;
+  }): Observable<{ order: any }> {
     return this.http.post<{ order: any }>(`${API_BASE}/orders/guest-lookup`, {
-      phone: String(phone || '').trim(),
-      orderCode: String(orderCode || '').trim(),
+      guestLookupCode: String(payload.guestLookupCode || '').trim(),
+      phone: String(payload.phone || '').trim(),
+      orderCode: String(payload.orderCode || '').trim(),
     });
   }
 
@@ -594,8 +608,9 @@ export class ApiService {
   guestRequestReturn(
     orderId: string,
     data: {
-      phone: string;
-      orderCode: string;
+      phone?: string;
+      orderCode?: string;
+      guestLookupCode?: string;
       reason: string;
       note?: string;
       items?: any[];
@@ -603,8 +618,11 @@ export class ApiService {
     }
   ): Observable<any> {
     const formData = new FormData();
-    formData.append('phone', data.phone);
-    formData.append('orderCode', data.orderCode);
+    formData.append('phone', data.phone ?? '');
+    formData.append('orderCode', data.orderCode ?? '');
+    if (data.guestLookupCode) {
+      formData.append('guestLookupCode', data.guestLookupCode);
+    }
     formData.append('reason', data.reason);
     if (data.note) formData.append('note', data.note);
     if (data.items?.length) {
@@ -623,8 +641,14 @@ export class ApiService {
   }
 
 
-  cancelOrder(id: string): Observable<any> {
-    return this.http.patch(`${API_BASE}/orders/${id}/status`, { status: 'cancelled' });
+  cancelOrder(
+    id: string,
+    opts?: { guestLookupCode?: string; cancelReason?: string }
+  ): Observable<any> {
+    const body: Record<string, unknown> = { status: 'cancelled' };
+    if (opts?.guestLookupCode) body['guestLookupCode'] = opts.guestLookupCode;
+    if (opts?.cancelReason) body['cancelReason'] = opts.cancelReason;
+    return this.http.patch(`${API_BASE}/orders/${id}/status`, body);
   }
 
 

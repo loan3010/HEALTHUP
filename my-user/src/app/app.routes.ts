@@ -28,6 +28,7 @@ import { OrderDetail } from './order-details/order-details';
 import { ReturnManagement } from './return-management/return-management';
 import { GuestOrderLookup } from './guest-order-lookup/guest-order-lookup';
 import { Notification } from './notifications/notifications';
+import { NotFoundComponent } from './not-found/not-found';
 
 export const routes: Routes = [
 
@@ -60,6 +61,8 @@ export const routes: Routes = [
 
   // ===== CHATBOT =====
   { path: 'chatbot', component: ChatbotComponent },
+  // Footer / header dùng /faqs — trỏ tới chatbot (hỏi đáp tại đây)
+  { path: 'faqs', redirectTo: 'chatbot', pathMatch: 'full' },
 
   // ===== USER PROFILE =====
   {
@@ -78,7 +81,6 @@ export const routes: Routes = [
     ]
   },
 
-  // ===== NOT FOUND =====
-  { path: '**', redirectTo: '' }
-
+  // ===== NOT FOUND (luôn cuối) — cùng phong cách admin, CTA về trang chủ =====
+  { path: '**', component: NotFoundComponent },
 ];

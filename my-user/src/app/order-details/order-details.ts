@@ -238,6 +238,36 @@ export class OrderDetail implements OnInit {
     return map[status] || status;
   }
 
+  /** Ai đã hủy đơn — đồng bộ field backend cancelledByType. */
+  getCancelActorLabel(): string {
+    const by = String(this.order?.cancelledByType || '').toLowerCase();
+    if (by === 'customer') return 'Bạn (khách hàng)';
+    if (by === 'admin') return 'Cửa hàng / Admin';
+    if (by === 'system') return 'Hệ thống';
+    if (this.order?.status === 'cancelled') return 'Chưa ghi nhận (đơn tạo trước khi cập nhật hệ thống)';
+    return '';
+  }
+
+  /**
+   * Thời điểm hủy: ưu tiên cancelledAt.
+   * Đơn cũ chưa có field → dùng updatedAt (thường trùng lúc hủy nếu không chỉnh sau đó).
+   */
+  getCancelledAtDisplay(): string {
+    if (this.order?.status !== 'cancelled') return '';
+    const raw = this.order?.cancelledAt || this.order?.updatedAt;
+    if (!raw) return '';
+    return this.formatDate(String(raw));
+  }
+
+  /** true = thời gian hiển thị là ước lượng (đơn cũ không có cancelledAt). */
+  isCancelledTimeEstimated(): boolean {
+    return (
+      this.order?.status === 'cancelled' &&
+      !this.order?.cancelledAt &&
+      !!this.order?.updatedAt
+    );
+  }
+
 
   getPaymentLabel(method: string): string {
     const map: Record<string, string> = {
@@ -322,6 +352,38 @@ export class OrderDetail implements OnInit {
   // ═══════════════════════════════════════════════════════════════
   // THỜI GIAN NHẬN HÀNG DỰ KIẾN
   // ═══════════════════════════════════════════════════════════════
+  /**
+   * Link tới trang chi tiết SP khi order item có productId hợp lệ (ObjectId 24 ký tự).
+   * Populate từ API có thể là string hoặc object { _id }.
+   */
+  productLinkSegments(item: any): string[] | null {
+    const id = this.normalizeProductId(item?.productId);
+    if (!id) return null;
+    return ['/product-detail-page', id];
+  }
+
+  private normalizeProductId(value: unknown): string {
+    if (value == null) return '';
+    if (typeof value === 'string') {
+      const s = value.trim();
+      return /^[a-f0-9]{24}$/i.test(s) ? s : '';
+    }
+    if (typeof value === 'object') {
+      const o = value as Record<string, unknown>;
+      const nested = o['_id'] ?? o['$oid'] ?? o['id'];
+      if (nested !== undefined && nested !== value) {
+        const inner = this.normalizeProductId(nested);
+        if (inner) return inner;
+      }
+      if (typeof (value as { toString?: () => string }).toString === 'function') {
+        const raw = String((value as { toString: () => string }).toString()).trim();
+        if (/^[a-f0-9]{24}$/i.test(raw)) return raw;
+      }
+    }
+    return '';
+  }
+
+
   getEstimatedDelivery(createdAt: string, shippingMethod: string): string {
     if (!createdAt) return '—';
     

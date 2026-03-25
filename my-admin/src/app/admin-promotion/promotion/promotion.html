@@ -1,10 +1,17 @@
-<div class="breadcrumb">
+<!-- <div class="breadcrumb">
     <span>Quản trị viên</span>
     <span class="separator">/</span>
     <span>Quản lý khuyến mãi</span>
     <span class="separator">/</span>
-    <span class="active">Danh sách khuyến mãi</span>
-  </div>
+    <span class="active"></span>
+  </div> -->
+<nav class="promo-breadcrumb-box">
+    <span class="p-crumb">Quản trị viên</span>
+    <span class="p-sep">/</span>
+    <span class="p-crumb">Quản lý khuyến mãi</span>
+    <span class="p-sep">/</span>
+    <span class="p-active">Danh sách khuyến mãi</span>
+  </nav>
 
 <app-promotion-list #listComp (goEdit)="handleGoEdit($event)" (goAdd)="handleGoAdd()">
 </app-promotion-list>

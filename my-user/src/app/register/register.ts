@@ -137,7 +137,7 @@ export class Register implements OnInit, OnDestroy {
             REGISTER_OTP_TTL
           );
           this.startCountdown(sec);
-          setTimeout(() => this.otpInputs?.first?.nativeElement?.focus(), 0);
+          setTimeout(() => this.focusOtp(0), 0);
           this.cdr.detectChanges();
         },
         error: (err: HttpErrorResponse) => {
@@ -147,7 +147,7 @@ export class Register implements OnInit, OnDestroy {
       });
   }
 
-  // ── ĐẾM NGƯỢC ──
+  // ── ĐẾM NGƯỢC (giống quên MK: hết 60s → gọi API cấp mã mới trong modal) ──
   private startCountdown(seconds: number): void {
     this.otpSecondsLeft = seconds;
     this.clearCountdown();
@@ -158,13 +158,62 @@ export class Register implements OnInit, OnDestroy {
 
       if (this.otpSecondsLeft <= 0) {
         this.clearCountdown();
-        this.showOtp = false;
-        this.demoOtpDisplay = '';
-        this.otpError = '';
-        this.message = 'Mã OTP đã hết hạn. Vui lòng bấm Đăng ký lại để nhận mã mới.';
-        this.cdr.detectChanges();
+        this.rotateOtpInModal();
       }
     });
+  }
+
+  /** Hết TTL: xin mã mới từ server, xóa ô nhập — đồng bộ luồng với forgotpw */
+  private rotateOtpInModal(): void {
+    if (!this.showOtp) return;
+
+    const phoneVal = String(this.form.get('phone')?.value || '').trim();
+    if (!phoneVal) {
+      this.closeOtpPopup();
+      return;
+    }
+
+    this.http
+      .post<{ demoOtp?: string; expiresInSeconds?: number }>(
+        `${this.API}/auth/register/request-otp`,
+        { phone: phoneVal }
+      )
+      .subscribe({
+        next: (res) => {
+          if (!this.showOtp) return;
+
+          const code = String(res?.demoOtp || '').replace(/\D/g, '');
+          if (!/^\d{6}$/.test(code)) {
+            this.otpError = 'Không nhận được mã mới. Đóng và bấm Đăng ký lại.';
+            this.cdr.detectChanges();
+            return;
+          }
+
+          this.demoOtpDisplay = code;
+          this.otpSecondsLeft = Math.min(
+            Math.max(1, Number(res?.expiresInSeconds) || REGISTER_OTP_TTL),
+            REGISTER_OTP_TTL
+          );
+          this.resetOtpAfterRotate();
+          this.otpError =
+            'Mã cũ đã hết hiệu lực. Đã có mã mới — xem trong khung tin nhắn bên trên.';
+          this.startCountdown(this.otpSecondsLeft);
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          if (!this.showOtp) return;
+          this.showOtp = false;
+          this.demoOtpDisplay = '';
+          this.message = 'Không làm mới mã OTP. Bấm Đăng ký lại để thử.';
+          this.cdr.detectChanges();
+        },
+      });
+  }
+
+  /** Sau khi xoay mã: chỉ xóa ô OTP, giữ popup (không gọi resetOtpUI để mất bubble) */
+  private resetOtpAfterRotate(): void {
+    this.otpValues = ['', '', '', '', '', ''];
+    setTimeout(() => this.flushOtpDom(), 0);
   }
 
   private clearCountdown(): void {
@@ -177,6 +226,8 @@ export class Register implements OnInit, OnDestroy {
     inputs.forEach((ref, i) => (ref.nativeElement.value = this.otpValues[i] ?? ''));
   }
 
+  trackByIndex = (i: number) => i;
+
   private fillOtpFrom(startIndex: number, digits: string): void {
     let i = startIndex;
     for (const ch of digits.replace(/\D/g, '')) {
@@ -187,24 +238,59 @@ export class Register implements OnInit, OnDestroy {
     this.otpError = '';
     this.flushOtpDom();
     if (i <= 5) this.otpInputs.toArray()[i]?.nativeElement?.focus();
+    else this.tryAutoSubmitOtp();
+  }
+
+  private focusOtp(index: number): void {
+    const inputs = this.otpInputs?.toArray() ?? [];
+    const el = inputs[index]?.nativeElement;
+    if (!el) return;
+    el.focus();
+    try {
+      el.setSelectionRange(0, el.value.length);
+    } catch {
+      /* ignore */
+    }
   }
 
   onOtpInput(event: Event, index: number): void {
-    const el  = event.target as HTMLInputElement;
+    const el = event.target as HTMLInputElement;
     const raw = (el.value || '').replace(/\D/g, '');
 
-    if (raw.length > 1) { this.fillOtpFrom(index, raw); return; }
+    if (raw.length > 1) {
+      this.fillOtpFrom(index, raw);
+      return;
+    }
 
     const ch = raw.length === 1 ? raw : '';
     this.otpValues[index] = ch;
     el.value = ch;
     this.otpError = '';
-    if (ch && index < 5) this.otpInputs.toArray()[index + 1]?.nativeElement?.focus();
+
+    if (ch) {
+      if (index < 5) this.focusOtp(index + 1);
+      else this.tryAutoSubmitOtp();
+    }
   }
 
   onOtpKeydown(event: KeyboardEvent, index: number): void {
     const key = event.key;
-    if (key.length === 1 && !/^\d$/.test(key)) { event.preventDefault(); return; }
+    if (key.length === 1 && !/^\d$/.test(key)) {
+      event.preventDefault();
+      return;
+    }
+
+    if (key === 'ArrowLeft' && index > 0) {
+      event.preventDefault();
+      this.focusOtp(index - 1);
+      return;
+    }
+
+    if (key === 'ArrowRight' && index < 5) {
+      event.preventDefault();
+      this.focusOtp(index + 1);
+      return;
+    }
 
     if (key === 'Backspace') {
       event.preventDefault();
@@ -216,37 +302,56 @@ export class Register implements OnInit, OnDestroy {
         this.otpValues[index - 1] = '';
         const prev = inputs[index - 1]?.nativeElement;
         if (prev) prev.value = '';
-        inputs[index - 1]?.nativeElement?.focus();
+        this.focusOtp(index - 1);
       }
     }
   }
 
-  onOtpPaste(event: ClipboardEvent): void {
+  onOtpPaste(event: ClipboardEvent, index: number): void {
     event.preventDefault();
     const digits = (event.clipboardData?.getData('text') || '').replace(/\D/g, '');
     if (!digits) return;
-    this.fillOtpFrom(0, digits);
+    this.fillOtpFrom(index, digits);
+  }
+
+  /** Đủ 6 số → gửi xác nhận (giống forgotpw) */
+  private tryAutoSubmitOtp(): void {
+    const otp = this.otpValues.join('');
+    if (otp.length === 6) this.confirmOtpAndRegister();
   }
 
   // ── XÁC NHẬN OTP + ĐĂNG KÝ ──
   confirmOtpAndRegister(): void {
-    this.error   = '';
+    this.error = '';
     this.message = '';
     this.otpError = '';
 
     const enteredOtp = this.otpValues.join('');
-    if (enteredOtp.length !== 6) { this.otpError = 'Vui lòng nhập đủ 6 số OTP.'; return; }
-    if (this.passwordMismatch)   { this.error = 'Mật khẩu xác nhận không khớp.'; return; }
-    if (this.form.invalid)       { this.form.markAllAsTouched(); return; }
-
-    this.clearCountdown();
+    if (enteredOtp.length !== 6) {
+      this.otpError = 'Vui lòng nhập đủ 6 số OTP.';
+      return;
+    }
+    if (this.passwordMismatch) {
+      this.error = 'Mật khẩu xác nhận không khớp.';
+      return;
+    }
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
 
     const usernameVal = String(this.form.get('username')?.value || '').trim();
-    const phoneVal    = String(this.form.get('phone')?.value    || '').trim();
+    const phoneVal = String(this.form.get('phone')?.value || '').trim();
     const passwordVal = String(this.form.get('password')?.value || '');
-    const emailVal    = String(this.form.get('email')?.value    || '').trim();
+    const emailVal = String(this.form.get('email')?.value || '').trim();
 
-    const payload: any = { username: usernameVal, phone: phoneVal, password: passwordVal, role: 'user', otp: enteredOtp };
+    const payload: any = {
+      username: usernameVal,
+      phone: phoneVal,
+      password: passwordVal,
+      role: 'user',
+      otp: enteredOtp,
+    };
     if (emailVal) payload.email = emailVal;
 
     this.loading = true;
@@ -255,9 +360,11 @@ export class Register implements OnInit, OnDestroy {
       .pipe(finalize(() => (this.loading = false)))
       .subscribe({
         next: (res) => {
+          this.clearCountdown();
           this.showOtp = false;
+          this.demoOtpDisplay = '';
           this.message = res?.message || 'Đăng ký thành công!';
-          this.error   = '';
+          this.error = '';
 
           sessionStorage.setItem(
             'prefill_login',
@@ -268,9 +375,26 @@ export class Register implements OnInit, OnDestroy {
           setTimeout(() => this.router.navigate(['/login']), 300);
         },
         error: (err: HttpErrorResponse) => {
-          this.showOtp  = false;
-          this.error    = err?.error?.message || 'Đăng ký thất bại!';
-        }
+          const msg = err?.error?.message || 'Đăng ký thất bại!';
+          const st = err.status;
+
+          // Sai OTP: giữ modal (giống quên mật khẩu)
+          if (st === 400 && /OTP|mã/i.test(String(msg))) {
+            this.otpError = msg;
+            return;
+          }
+
+          this.clearCountdown();
+          this.showOtp = false;
+          this.demoOtpDisplay = '';
+
+          if (st === 401) {
+            this.message = msg;
+            return;
+          }
+
+          this.error = msg;
+        },
       });
   }
 

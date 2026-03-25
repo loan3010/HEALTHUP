@@ -87,7 +87,7 @@
             <span class="cart-badge" *ngIf="cartCount > 0">{{ cartCount > 99 ? '99+' : cartCount }}</span>
           </div>
           <!-- Trên mobile ẩn nút này (đã có Tra cứu đơn trong menu hamburger) để chừa chỗ cho giỏ + đăng nhập -->
-          <button type="button" class="btn-track-order guest-track-in-header" (click)="openTrackOrder()" title="Tra cứu đơn hàng">
+          <button type="button" class="btn-track-order guest-track-in-header" routerLink="/tra-cuu-don" title="Tra cứu đơn hàng">
             <i class="bi bi-search btn-icon-only"></i>
             <span class="btn-text">Tra cứu đơn hàng</span>
           </button>
@@ -171,17 +171,11 @@
     <a routerLink="/about-the-brand" routerLinkActive="active" (click)="closeMenu()">Giới thiệu</a>
     <a routerLink="/products" routerLinkActive="active" (click)="closeMenu()">Sản phẩm</a>
     <a routerLink="/blog" routerLinkActive="active" (click)="closeMenu()">Blogs</a>
-    <a href="#" [class.active]="isTrackOrderPage" (click)="openTrackOrderFromNav($event, true)">Tra cứu đơn</a>
+    <a routerLink="/tra-cuu-don" routerLinkActive="active" (click)="closeMenu()">Tra cứu đơn</a>
     <a routerLink="/cart" routerLinkActive="active" (click)="closeMenu()">Giỏ hàng</a>
     <a routerLink="/faqs" routerLinkActive="active" (click)="closeMenu()">FAQs</a>
   </div>
 </header>
-
-<!-- Track Order Modal -->
-<app-track-order-modal
-  [isOpen]="showTrackOrderModal"
-  (closeModal)="closeTrackOrderModal()">
-</app-track-order-modal>
 
 <!-- ✅ POPUP XÁC NHẬN ĐĂNG XUẤT -->
 <div class="logout-confirm-backdrop" *ngIf="showLogoutConfirm" (click)="cancelLogout()">

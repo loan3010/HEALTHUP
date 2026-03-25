@@ -11,7 +11,7 @@
 .main-workspace-scroll {
   flex: 1 1 auto; 
   height: 100%;
-  padding: 25px 50px 50px 50px;
+  /* padding: 5px 50px 50px 50px; */
   overflow-y: auto; 
   background: transparent !important;
   
@@ -53,14 +53,31 @@
 }
 
 /* --- BREADCRUMB & TITLE (BỎ MỌI KHUNG BAO) --- */
-.breadcrumb {
-  font-size: 0.85rem; color: #666; margin-bottom: 25px;
-  display: flex; align-items: center; gap: 10px;
+/* ── BREADCRUMB ── */
+.promo-breadcrumb-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
 }
-.breadcrumb span { cursor: pointer; transition: 0.2s; }
-.breadcrumb span:hover { color: var(--color-accent); }
-.breadcrumb .separator { color: #ccc; }
-.breadcrumb .active { color: #333; font-weight: 700; cursor: default; }
+.p-crumb {
+  font-size: 0.8rem;
+  color: #7E9E80;
+  cursor: pointer;
+  transition: color 150ms;
+  font-weight: 500;
+}
+.p-crumb:hover { color: #36873A; }
+.p-sep {
+  color: #E2EEE2;
+  font-size: 0.85rem;
+  user-select: none;
+}
+.p-active {
+  font-size: 0.8rem;
+  color: #36873A;
+  font-weight: 600;
+}
 
 .header-action-clean {
   display: flex; justify-content: space-between; align-items: flex-end;

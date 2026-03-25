@@ -41,6 +41,8 @@ export interface AdminReturnLine {
 export interface AdminOrder {
   _id: string;
   orderCode?: string;
+  /** Mã tra cứu khách HU-… */
+  guestLookupCode?: string | null;
   userId?: string | null;
   customer: {
     fullName: string;
@@ -82,11 +84,19 @@ export interface AdminOrder {
   discountOnShipping: number;
   total: number;
   createdAt: string;
+  /** Mongoose timestamps — dùng fallback khi đơn cũ không có cancelledAt. */
+  updatedAt?: string;
+  cancelledAt?: string | null;
   /**
    * Tài khoản User đặt đơn (username + SĐT đăng ký). Khác `customer` (người nhận / địa chỉ giao).
    * null nếu guest hoặc không gắn userId / user đã xóa — khi đó UI fallback sang customer.
    */
-  buyerAccount?: { username: string; phone: string; email: string } | null;
+  /** role: guest | user — hỗ trợ hiển thị / suy luận đơn cũ khi thiếu buyerLinkType. */
+  buyerAccount?: { username: string; phone: string; email: string; role?: string } | null;
+  /** Nguồn tạo: website vs admin hotline. Đơn cũ có thể undefined → UI coi là web. */
+  orderSource?: 'web' | 'admin_hotline';
+  /** none | guest | user — đơn cũ có thể undefined. */
+  buyerLinkType?: 'none' | 'guest' | 'user';
   customerSummary?: {
     customerID?: string;
     membershipTier?: string;
@@ -94,6 +104,8 @@ export interface AdminOrder {
     totalSpent?: number;
     hasProvisionalSpend?: boolean;
   };
+  /** Người gọi đặt (hotline). Đơn cũ có thể không có. */
+  orderer?: { fullName?: string; phone?: string; email?: string };
 }
 
 export interface AdminOrderListResponse {
@@ -130,6 +142,12 @@ export interface HotlineOrderPreview {
 }
 
 export interface HotlineOrderPayload {
+  /** Người đặt — người gọi hotline; SMS mã HU / link theo dõi gửi vào SĐT này. */
+  orderer: {
+    fullName: string;
+    phone: string;
+    email?: string;
+  };
   customer: {
     fullName: string;
     phone: string;
@@ -162,6 +180,8 @@ export class AdminOrderService {
     status?: string;
     paymentMethod?: string;
     returnStatus?: string;
+    /** Gộp: member | guest | admin — backend query.orderSegment */
+    orderSegment?: string;
     from?: string;
     to?: string;
     sortBy?: string;
@@ -177,6 +197,7 @@ export class AdminOrderService {
     if (params.status) p = p.set('status', params.status);
     if (params.paymentMethod) p = p.set('paymentMethod', params.paymentMethod);
     if (params.returnStatus) p = p.set('returnStatus', params.returnStatus);
+    if (params.orderSegment) p = p.set('orderSegment', params.orderSegment);
     if (params.from) p = p.set('from', params.from);
     if (params.to) p = p.set('to', params.to);
 
@@ -242,10 +263,16 @@ export class AdminOrderService {
   }
 
   /** Tạo đơn hotline — cần JWT admin. */
-  createAdminHotlineOrder(payload: HotlineOrderPayload): Observable<{ orderId: string; orderCode?: string }> {
-    return this.http.post<{ orderId: string; orderCode?: string }>(`${this.ORDERS}/admin/hotline`, payload, {
-      headers: this.authHeader(),
-    });
+  createAdminHotlineOrder(payload: HotlineOrderPayload): Observable<{
+    orderId: string;
+    orderCode?: string;
+    guestLookupCode?: string | null;
+  }> {
+    return this.http.post<{ orderId: string; orderCode?: string; guestLookupCode?: string | null }>(
+      `${this.ORDERS}/admin/hotline`,
+      payload,
+      { headers: this.authHeader() }
+    );
   }
 
   private authHeader() {

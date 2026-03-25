@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { ApiService } from '../services/api.service';
+import { STORE_ZALO_PHONE, buildZaloMeUrl } from '../constants/store-contact.constants';
 
 
 @Component({
@@ -13,6 +14,7 @@ import { ApiService } from '../services/api.service';
   styleUrls: ['./order-management.css']
 })
 export class OrderManagement implements OnInit {
+  private readonly shippingStatuses = ['confirmed', 'shipping', 'delivery_failed'];
 
   // Dữ liệu gốc
   allOrders: any[] = [];
@@ -36,12 +38,17 @@ export class OrderManagement implements OnInit {
   // Cho phép sử dụng Math trong template
   Math = Math;
 
+  /** Link Zalo cửa hàng — cùng số với nút chat nổi (store-contact.constants). */
+  readonly zaloSellerUrl = buildZaloMeUrl(STORE_ZALO_PHONE);
+
+  /** Modal xác nhận hủy đơn (thay window.confirm). */
+  cancelConfirmOrderId: string | null = null;
+  cancelActionLoading = false;
+
   tabs = [
     { id: 'all',       label: 'Tất cả',        count: 0 },
     { id: 'pending',   label: 'Chờ xác nhận',  count: 0 },
-    { id: 'confirmed', label: 'Chờ giao hàng', count: 0 },
-    { id: 'shipping',  label: 'Đang giao',      count: 0 },
-    { id: 'delivery_failed', label: 'Giao thất bại', count: 0 },
+    { id: 'waiting_shipping', label: 'Chờ vận chuyển', count: 0 },
     { id: 'delivered', label: 'Đã giao',        count: 0 },
     { id: 'cancelled', label: 'Đã hủy',         count: 0 },
   ];
@@ -98,9 +105,15 @@ export class OrderManagement implements OnInit {
 
   updateTabCounts(): void {
     this.tabs.forEach(tab => {
-      tab.count = tab.id === 'all'
-        ? this.allOrders.length
-        : this.allOrders.filter(o => o.status === tab.id).length;
+      if (tab.id === 'all') {
+        tab.count = this.allOrders.length;
+        return;
+      }
+      if (tab.id === 'waiting_shipping') {
+        tab.count = this.allOrders.filter(o => this.shippingStatuses.includes(o.status)).length;
+        return;
+      }
+      tab.count = this.allOrders.filter(o => o.status === tab.id).length;
     });
   }
 
@@ -120,7 +133,11 @@ export class OrderManagement implements OnInit {
     
     // Lọc theo tab
     if (this.activeTab !== 'all') {
-      data = data.filter(o => o.status === this.activeTab);
+      if (this.activeTab === 'waiting_shipping') {
+        data = data.filter(o => this.shippingStatuses.includes(o.status));
+      } else {
+        data = data.filter(o => o.status === this.activeTab);
+      }
     }
     
     // Lọc theo từ khóa tìm kiếm
@@ -217,9 +234,24 @@ export class OrderManagement implements OnInit {
   reorder(order: any): void {
     if (!order?.items?.length) return;
     let done = 0, fail = 0;
+    let firstFailReason = '';
     const total = order.items.length;
     order.items.forEach((item: any) => {
-      this.api.addToCart(item.productId, item.quantity, item.name).subscribe({
+      const productId = this.normalizeObjectId(item?.productId || item?.product || item?._id);
+      const variantId = this.normalizeObjectId(item?.variantId);
+      const variantLabel = String(item?.variantLabel || '').trim();
+      if (!productId) {
+        fail++;
+        if (!firstFailReason) firstFailReason = 'Không đọc được mã sản phẩm từ đơn hàng.';
+        if (done + fail === total) {
+          this.api.showToast(
+            firstFailReason ? `Thêm được ${done}/${total} sản phẩm. ${firstFailReason}` : `Thêm được ${done}/${total} sản phẩm.`,
+            'info'
+          );
+        }
+        return;
+      }
+      this.api.addToCart(productId, item.quantity, item.name, variantId || undefined, variantLabel).subscribe({
         next: () => {
           done++;
           if (done + fail === total)
@@ -228,20 +260,68 @@ export class OrderManagement implements OnInit {
               fail === 0 ? 'success' : 'info'
             );
         },
-        error: () => {
+        error: (err: any) => {
           fail++;
+          const backendMessage = String(err?.error?.message || '').trim();
+          if (!firstFailReason) firstFailReason = backendMessage || 'Một số sản phẩm không còn khả dụng.';
           if (done + fail === total)
-            this.api.showToast(`Thêm được ${done}/${total} sản phẩm.`, 'info');
+            this.api.showToast(
+              firstFailReason ? `Thêm được ${done}/${total} sản phẩm. ${firstFailReason}` : `Thêm được ${done}/${total} sản phẩm.`,
+              'info'
+            );
         }
       });
     });
   }
 
-  cancelOrder(orderId: string): void {
-    if (!confirm('Bạn có chắc muốn hủy đơn này?')) return;
-    this.api.cancelOrder(orderId).subscribe({
-      next: () => { this.loadOrders(); this.api.showToast('Đơn hàng đã được hủy.', 'info'); },
-      error: () => { this.api.showToast('Không thể hủy đơn hàng. Vui lòng thử lại.', 'error'); }
+  private normalizeObjectId(value: any): string {
+    if (!value) return '';
+    if (typeof value === 'string') return value.trim();
+    if (typeof value === 'object') {
+      const nested = this.normalizeObjectId(value._id || value.id || value.$oid);
+      if (nested) return nested;
+      if (typeof value.toHexString === 'function') {
+        const hex = String(value.toHexString() || '').trim();
+        if (/^[a-f0-9]{24}$/i.test(hex)) return hex;
+      }
+      // Trường hợp mongoose ObjectId (không có _id/id) thì toString() trả về chuỗi 24 ký tự.
+      const raw = String(value).trim();
+      if (/^[a-f0-9]{24}$/i.test(raw)) return raw;
+    }
+    return '';
+  }
+
+  /** Mở modal xác nhận — không dùng confirm() của trình duyệt. */
+  openCancelConfirm(orderId: string, ev?: Event): void {
+    ev?.stopPropagation();
+    this.cancelConfirmOrderId = orderId;
+    this.cdr.detectChanges();
+  }
+
+  closeCancelConfirm(): void {
+    if (this.cancelActionLoading) return;
+    this.cancelConfirmOrderId = null;
+    this.cdr.detectChanges();
+  }
+
+  /** Gọi API sau khi user bấm «Hủy đơn» trên modal. */
+  confirmCancelOrder(): void {
+    const id = this.cancelConfirmOrderId;
+    if (!id || this.cancelActionLoading) return;
+    this.cancelActionLoading = true;
+    this.api.cancelOrder(id).subscribe({
+      next: () => {
+        this.cancelActionLoading = false;
+        this.cancelConfirmOrderId = null;
+        this.loadOrders();
+        this.api.showToast('Đơn hàng đã được hủy.', 'info');
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.cancelActionLoading = false;
+        this.api.showToast('Không thể hủy đơn hàng. Vui lòng thử lại.', 'error');
+        this.cdr.detectChanges();
+      },
     });
   }
 }

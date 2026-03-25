@@ -5,7 +5,13 @@
   rel="noopener noreferrer"
   aria-label="Mở Zalo chat với cửa hàng"
   title="Chat Zalo">
-  <img src="/assets/icons/zalo.png" alt="Zalo">
+  <!-- Hai vòng sóng lệch pha — sóng tỏa liên tục (tông xanh Zalo) -->
+  <span class="hu-zalo-pulse-ring" aria-hidden="true"></span>
+  <span class="hu-zalo-pulse-ring hu-zalo-pulse-ring--delay" aria-hidden="true"></span>
+  <!-- Wrapper để rung icon: transform trên nút vẫn dùng cho hover scale, không đè animation -->
+  <span class="hu-zalo-float-icon-wrap" aria-hidden="true">
+    <img src="/assets/icons/zalo.png" alt="" />
+  </span>
 </a>
 
 <button

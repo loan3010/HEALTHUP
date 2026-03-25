@@ -51,6 +51,36 @@ function newGuestUsername() {
 }
 
 /**
+ * Kiểm tra SĐT có được đặt hàng kiểu khách (OTP) hay không.
+ * Member (role user) → chặn ngay, không gửi SMS / không mở modal OTP.
+ */
+async function assertPhoneEligibleForGuestCheckout(phoneRaw) {
+  const phone = normalizePhoneVN(phoneRaw);
+  if (!isValidPhoneVN(phone)) {
+    return {
+      ok: false,
+      message: 'Số điện thoại không hợp lệ (10 số, bắt đầu 0).',
+    };
+  }
+
+  const existing = await findUserByPhoneFlexible(phone);
+  if (!existing) {
+    return { ok: true };
+  }
+  if (existing.role === 'guest') {
+    return { ok: true };
+  }
+  if (existing.role === 'user') {
+    return {
+      ok: false,
+      message:
+        'Số điện thoại đã có tài khoản. Vui lòng đăng nhập để đặt hàng và dùng mã khuyến mãi.',
+    };
+  }
+  return { ok: false, message: 'Không thể đặt hàng với số điện thoại này.' };
+}
+
+/**
  * Tìm guest theo SĐT hoặc tạo mới. Từ chối nếu SĐT đã thuộc tài khoản user thật.
  */
 async function findOrCreateGuestUser(phoneRaw, _fullName, emailRaw) {
@@ -138,6 +168,7 @@ async function findOrCreateGuestUser(phoneRaw, _fullName, emailRaw) {
 
 module.exports = {
   findOrCreateGuestUser,
+  assertPhoneEligibleForGuestCheckout,
   isValidPhoneVN,
   normalizePhoneVN,
   findUserByPhoneFlexible,

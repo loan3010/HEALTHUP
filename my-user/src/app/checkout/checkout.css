@@ -64,13 +64,89 @@
 }
 
 .co-guest-notice {
-  display: flex; align-items: center; gap: 8px;
-  padding: 12px 16px; background: #fff8e1;
-  border: 1px solid #ffe082; border-radius: 12px;
-  font-size: 14px; color: #856404; margin-bottom: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  background: #fff9e6;
+  border: 1px solid #ffe082;
+  border-radius: 12px;
+  color: #715505;
+  font-size: 14.5px;
+  line-height: 1.55;
 }
-.co-guest-notice a { color: #36873A; font-weight: 700; text-decoration: none; }
-.co-guest-notice a:hover { text-decoration: underline; }
+.co-guest-notice-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  font-size: 18px;
+  color: #f59e0b;
+}
+.co-guest-notice-text {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+}
+.co-guest-notice a {
+  color: #36873a;
+  font-weight: 700;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(54, 135, 58, 0.35);
+}
+.co-guest-notice a:hover {
+  border-bottom-color: #36873a;
+}
+
+/* Hotline — một cột: nhãn / số / giờ (như mockup ảnh 1) */
+.co-hotline-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  margin-bottom: 20px;
+  background: #f0f7f0;
+  border: 1px solid #d4e6d4;
+  border-radius: 12px;
+}
+.co-hotline-banner > i {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #36873a;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+.co-hotline-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.co-hotline-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.co-hotline-number {
+  font-size: 17px;
+  font-weight: 800;
+  color: #36873a;
+  text-decoration: none;
+  line-height: 1.2;
+}
+.co-hotline-number:hover {
+  text-decoration: underline;
+}
+.co-hotline-hours {
+  font-size: 12px;
+  color: #888;
+}
 
 .co-guest-addr {
   margin-bottom: 18px; padding: 14px 16px;
@@ -83,15 +159,120 @@
   color: #374151; margin-bottom: 6px;
 }
 
+.co-guest-addr-hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+/* ── Modal OTP sau Đặt hàng (mockup SMS — z-index trên success) ── */
+.co-guest-otp-backdrop {
+  z-index: 10050;
+  align-items: center;
+  justify-content: center;
+}
+.co-guest-otp-modal .co-guest-otp-title { margin-bottom: 8px; }
+.co-guest-otp-sms { margin-top: 12px; }
+
+.co-guest-otp-mock-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 10px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: #166534;
+  text-align: left;
+}
+.co-guest-otp-mock-hint i {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: #36873a;
+}
+.co-guest-otp-mock-hint--prod {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #475569;
+}
+.co-guest-otp-mock-hint--prod i {
+  color: #64748b;
+}
+.co-guest-otp-input-block {
+  margin-top: 16px;
+  text-align: left;
+}
+.co-guest-otp-error {
+  margin: 10px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #b91c1c;
+  text-align: left;
+  line-height: 1.4;
+}
+.co-guest-otp-resend {
+  width: 100%;
+  margin-top: 12px;
+  height: 44px;
+  border-radius: 11px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1.5px solid #e0e0e0;
+  background: #fafafa;
+  color: #555;
+  transition: border-color 0.2s, background 0.2s;
+}
+.co-guest-otp-resend:hover:not(:disabled) {
+  border-color: #36873A;
+  color: #36873A;
+  background: #f8fdf8;
+}
+.co-guest-otp-resend:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.co-guest-otp-footer {
+  margin-top: 18px;
+}
+.co-otp-input {
+  letter-spacing: 0.35em;
+  font-weight: 700;
+  text-align: center;
+  font-size: 1.05rem;
+}
+
 .co-voucher-guest-hint {
   display: flex; align-items: flex-start; gap: 10px;
   margin: 16px 0 12px; padding: 12px 14px;
   background: #f0f7f0; border: 1px dashed #A2C37F;
   border-radius: 12px; font-size: 13.5px; line-height: 1.45; color: #2d4a2f;
 }
-.co-voucher-guest-hint i { color: #36873A; font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+.co-voucher-guest-hint-icon {
+  color: #36873A; font-size: 18px; flex-shrink: 0; margin-top: 1px;
+}
+.co-voucher-guest-hint-text {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+}
 .co-voucher-guest-hint a { color: #36873A; font-weight: 700; text-decoration: none; }
 .co-voucher-guest-hint a:hover { text-decoration: underline; }
+
+.co-select {
+  cursor: pointer;
+  appearance: auto;
+}
+.co-field-err {
+  display: block;
+  margin-top: 4px;
+  font-size: 12.5px;
+  color: #c62828;
+}
 
 .co-note-wrap { margin-top: 20px; }
 .co-label { font-size: 13px; font-weight: 700; color: #374151; display: block; margin-bottom: 6px; }
@@ -701,25 +882,256 @@
 .co-voucher-select-btn.btn-best:hover { opacity: 0.9; }
 
 /* ══════════════════════════════════════════
-   SUCCESS MODAL
+   SUCCESS MODAL — layout giống mockup (card rộng, SMS, bảo mật)
    ══════════════════════════════════════════ */
+.co-success-backdrop {
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.co-success-modal.co-modal {
+  max-width: min(480px, 96vw);
+  width: 100%;
+  border-radius: 28px;
+  padding: 36px 32px 28px;
+  text-align: center;
+}
+
+.co-modal-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #1a1a1a;
+  margin: 0 0 12px;
+  letter-spacing: -0.02em;
+}
+
+.co-modal-sub {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.65;
+  margin: 0 0 8px;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.co-modal-phone {
+  font-weight: 800;
+  color: #1a1a1a;
+  white-space: nowrap;
+}
+
+/* Animation checkmark trong vòng tròn xanh */
+.success-checkmark {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 18px;
+}
+
+.check-icon {
+  width: 80px;
+  height: 80px;
+  position: relative;
+  margin: 0 auto;
+  border-radius: 50%;
+  border: 4px solid #36873A;
+  box-sizing: content-box;
+}
+
+.icon-line {
+  height: 5px;
+  background-color: #36873A;
+  display: block;
+  border-radius: 2px;
+  position: absolute;
+  z-index: 10;
+}
+
+.line-tip {
+  top: 46px;
+  left: 14px;
+  width: 25px;
+  transform: rotate(45deg);
+  animation: icon-line-tip 0.75s ease forwards;
+}
+
+.line-long {
+  top: 38px;
+  right: 8px;
+  width: 47px;
+  transform: rotate(-45deg);
+  animation: icon-line-long 0.75s ease forwards;
+}
+
+.icon-circle {
+  top: -4px;
+  left: -4px;
+  z-index: 5;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 4px solid rgba(54, 135, 58, 0.2);
+  position: absolute;
+  box-sizing: content-box;
+}
+
+@keyframes icon-line-tip {
+  0% { width: 0; left: 1px; top: 19px; }
+  54% { width: 0; left: 1px; top: 19px; }
+  70% { width: 50px; left: -8px; top: 37px; }
+  100% { width: 25px; left: 14px; top: 46px; }
+}
+
+@keyframes icon-line-long {
+  0% { width: 0; right: 46px; top: 54px; }
+  65% { width: 0; right: 46px; top: 54px; }
+  100% { width: 47px; right: 8px; top: 38px; }
+}
+
+/* Mockup iOS-style SMS */
+.sms-mockup-container {
+  background: #f2f2f7;
+  border-radius: 20px;
+  padding: 14px;
+  margin: 18px 0 0;
+  border: 1px solid #d1d1d6;
+  text-align: left;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.sms-header {
+  font-size: 10px;
+  color: #8e8e93;
+  text-align: center;
+  margin-bottom: 8px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sms-bubble {
+  background: #e5e5ea;
+  padding: 12px 16px;
+  border-radius: 18px;
+  border-bottom-left-radius: 4px;
+  position: relative;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: #000;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.sms-bubble p {
+  margin: 0;
+  word-break: break-word;
+}
+
+.sms-bubble strong {
+  font-weight: 800;
+  color: #36873A;
+}
+
+.sms-link {
+  color: #007aff;
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+.sms-time {
+  display: block;
+  font-size: 10px;
+  color: #a1a1a6;
+  margin-top: 6px;
+  text-align: right;
+}
+
+/* Ô cảnh báo bảo mật (vàng nhạt) */
+.security-note {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  background: #fff9e6;
+  border: 1px solid #ffeeba;
+  border-radius: 14px;
+  font-size: 13px;
+  color: #856404;
+  text-align: left;
+  margin-top: 18px;
+  line-height: 1.5;
+}
+
+.security-note i {
+  color: #d4a017;
+  font-size: 18px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.security-note strong {
+  font-weight: 700;
+  color: #664d03;
+}
+
+.security-note p {
+  margin: 0;
+}
+
 .co-modal {
-  background: #fff; border-radius: 24px; padding: 40px 36px 32px;
-  max-width: 420px; width: 90vw; text-align: center;
-  box-shadow: 0 24px 60px rgba(0,0,0,0.2);
-  animation: slideUp 0.3s cubic-bezier(0.22,1,0.36,1);
+  background: #fff;
+  border-radius: 24px;
+  padding: 40px 36px 32px;
+  max-width: 420px;
+  width: 90vw;
+  text-align: center;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.2);
+  animation: slideUp 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
-.co-modal-icon { width: 72px; height: 72px; margin: 0 auto 20px; }
-.co-modal-icon svg { width: 100%; height: 100%; }
-.co-modal-title { font-size: 22px; font-weight: 800; color: #1a1a1a; margin: 0 0 10px; }
-.co-modal-sub { font-size: 14px; color: #666; line-height: 1.7; margin: 0 0 16px; }
+
 .co-modal-id {
-  display: inline-block; background: #f0f7f0; border: 1px solid #A2C37F;
-  border-radius: 10px; padding: 8px 18px; font-size: 13.5px; color: #36873A; margin-bottom: 16px;
+  display: inline-block;
+  background: #f0f7f0;
+  border: 1px solid #A2C37F;
+  border-radius: 10px;
+  padding: 8px 18px;
+  font-size: 13.5px;
+  color: #36873A;
+  margin-bottom: 10px;
 }
-.co-modal-hint { font-size: 12.5px; color: #888; margin-bottom: 20px; }
-.co-modal-hint a { color: #36873A; font-weight: 600; }
-.co-modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.co-modal-id-secondary {
+  background: #fafafa;
+  border-color: #e0e0e0;
+  color: #555;
+  font-size: 12.5px;
+  margin-top: 12px;
+  margin-bottom: 0;
+}
+
+.co-modal-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.co-success-actions .co-btn-home {
+  background: #fff;
+  border: 1.5px solid #e0e0e0;
+  color: #1a1a1a;
+  font-weight: 700;
+}
+
+.co-success-actions .co-btn-home:hover {
+  border-color: #36873A;
+  color: #36873A;
+  background: #f8fdf8;
+}
+
+.co-success-actions .co-btn-track {
+  border-radius: 13px;
+}
 
 /* Spinner */
 .co-spinner {
@@ -817,6 +1229,8 @@
 }
 @media (max-width: 480px) {
   .co-modal { padding: 28px 20px 24px; }
+  /* Success modal dùng 2 class — cần rule riêng để bo padding trên mobile */
+  .co-success-modal.co-modal { padding: 28px 18px 22px; }
   .co-modal-actions { grid-template-columns: 1fr; }
   .ab-card-footer { gap: 6px; }
   .ab-btn-delete { margin-left: 0; }

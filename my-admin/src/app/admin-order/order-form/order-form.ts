@@ -23,6 +23,8 @@ export interface OrderFormLine {
   sku: string;
   basePrice: number;
   baseStock: number;
+  /** SP bị admin đánh dấu tạm ngừng bán — không cho tạo đơn. */
+  productPaused: boolean;
   variants: Array<{ _id: string; label: string; price: number; stock: number }>;
   variantId: string;
   quantity: number;
@@ -38,11 +40,15 @@ function emptyLine(): OrderFormLine {
     sku: '',
     basePrice: 0,
     baseStock: 0,
+    productPaused: false,
     variants: [],
     variantId: '',
     quantity: 1,
   };
 }
+
+/** Gốc website khách (SMS + mockup). Đổi nếu chạy my-user cổng khác. */
+const USER_SHOP_ORIGIN = 'http://localhost:4200';
 
 @Component({
   selector: 'app-order-form',
@@ -67,6 +73,11 @@ export class OrderFormComponent implements OnInit, OnDestroy {
   customerHits: CustomerItem[] = [];
   showCustomerHits = false;
   linkedUserId = '';
+
+  /** Người gọi đặt — SMS gửi về SĐT này. */
+  ordererFullName = '';
+  ordererPhone = '';
+  ordererEmail = '';
 
   /** Địa chỉ đã lưu trên tài khoản (chỉ khi đã liên kết user). */
   linkedAddresses: CustomerSavedAddress[] = [];
@@ -99,6 +110,17 @@ export class OrderFormComponent implements OnInit, OnDestroy {
   previewError = '';
   submitError = '';
   submitting = false;
+
+  /** Modal xác nhận trước khi POST tạo đơn. */
+  showConfirmCreate = false;
+  /** Sau tạo thành công: mockup tin nhắn cho admin (SMS tùy có/không TK). */
+  showSuccessMockup = false;
+  successOrderCode = '';
+  successGuestLookupCode = '';
+  /** true = đã gắn userId — mockup hướng dẫn vào Đơn hàng của tôi, không nhấn mã HU. */
+  successLinkedMember = false;
+  /** ID Mongo đơn vừa tạo — emit khi đóng mockup. */
+  private successLastOrderId = '';
 
   private previewTimer: ReturnType<typeof setTimeout> | null = null;
   private productSearchTimer: ReturnType<typeof setTimeout> | null = null;
@@ -192,20 +214,28 @@ export class OrderFormComponent implements OnInit, OnDestroy {
 
   pickCustomer(c: CustomerItem): void {
     this.linkedUserId = c.id;
-    this.phone = (c.phone || '').trim();
-    this.email = (c.email || '').trim();
-    this.customerPhoneSearch = this.phone;
+    this.ordererFullName = ((c.username || '') as string).trim() || 'Khách hàng';
+    this.ordererPhone = (c.phone || '').trim();
+    this.ordererEmail = (c.email || '').trim();
+    this.customerPhoneSearch = this.ordererPhone;
     this.showCustomerHits = false;
     this.customerHits = [];
     this.linkedAddresses = [];
     this.useFullLineFromSavedBook = false;
     this.linkedAddressesError = '';
+    this.fullName = '';
+    this.phone = '';
+    this.email = '';
+    this.streetAddress = '';
+    this.provinceCode = '';
+    this.districtCode = '';
+    this.wardCode = '';
+    this.districts = [];
+    this.wards = [];
 
     const uid = String(c.id || '').trim();
     if (!uid) {
       this.linkedAddressesError = 'Thiếu ID khách — chọn lại từ danh sách gợi ý.';
-      this.fullName = (c.username || '').trim() || 'Khách hàng';
-      this.streetAddress = (c.address || '').trim();
       return;
     }
 
@@ -223,8 +253,6 @@ export class OrderFormComponent implements OnInit, OnDestroy {
           this.pickSavedAddress(this.linkedAddresses[0]);
         } else {
           this.selectedSavedAddressId = '';
-          this.fullName = (c.username || '').trim() || 'Khách hàng';
-          this.streetAddress = (c.address || '').trim();
         }
         this.schedulePreview();
       },
@@ -234,8 +262,6 @@ export class OrderFormComponent implements OnInit, OnDestroy {
         this.selectedSavedAddressId = '';
         this.linkedAddressesError =
           err?.error?.message || err?.message || 'Không tải được sổ địa chỉ — kiểm tra backend / mạng.';
-        this.fullName = (c.username || '').trim() || 'Khách hàng';
-        this.streetAddress = (c.address || '').trim();
         this.schedulePreview();
       },
     });
@@ -243,6 +269,9 @@ export class OrderFormComponent implements OnInit, OnDestroy {
 
   clearLinkedCustomer(): void {
     this.linkedUserId = '';
+    this.ordererFullName = '';
+    this.ordererPhone = '';
+    this.ordererEmail = '';
     this.linkedAddresses = [];
     this.useFullLineFromSavedBook = false;
     this.linkedAddressesLoading = false;
@@ -315,6 +344,7 @@ export class OrderFormComponent implements OnInit, OnDestroy {
     line.sku = String(p.sku || '');
     line.basePrice = Number(p.price || 0);
     line.baseStock = Number(p.stock ?? 0);
+    line.productPaused = !!p.isOutOfStock;
     line.variants = (Array.isArray(p.variants) ? p.variants : []).map((v: any) => ({
       _id: String(v._id),
       label: String(v.label || ''),
@@ -389,6 +419,11 @@ export class OrderFormComponent implements OnInit, OnDestroy {
     if (!items.length) return null;
 
     return {
+      orderer: {
+        fullName: this.ordererFullName.trim(),
+        phone: this.ordererPhone.trim(),
+        email: this.ordererEmail.trim(),
+      },
       customer: {
         fullName: this.fullName.trim(),
         phone: this.phone.trim(),
@@ -432,12 +467,20 @@ export class OrderFormComponent implements OnInit, OnDestroy {
 
   submit(): void {
     this.submitError = '';
+    if (!this.ordererFullName.trim() || !this.ordererPhone.trim()) {
+      this.submitError = 'Nhập họ tên và SĐT người đặt hàng.';
+      return;
+    }
+    if (!/^0\d{9}$/.test(this.ordererPhone.trim())) {
+      this.submitError = 'SĐT người đặt phải 10 số, bắt đầu bằng 0.';
+      return;
+    }
     if (!this.fullName.trim() || !this.phone.trim() || !this.streetAddress.trim()) {
-      this.submitError = 'Nhập đủ họ tên, SĐT, địa chỉ (số nhà/đường).';
+      this.submitError = 'Nhập đủ họ tên người nhận, SĐT nhận, và địa chỉ giao.';
       return;
     }
     if (!/^0\d{9}$/.test(this.phone.trim())) {
-      this.submitError = 'SĐT phải 10 số, bắt đầu bằng 0.';
+      this.submitError = 'SĐT người nhận phải 10 số, bắt đầu bằng 0.';
       return;
     }
     // Địa chỉ từ sổ: một dòng đầy đủ — backend cho phép ward/province/district rỗng (giống checkout).
@@ -450,6 +493,10 @@ export class OrderFormComponent implements OnInit, OnDestroy {
     for (let i = 0; i < this.lines.length; i++) {
       const l = this.lines[i];
       if (!l.productId) continue;
+      if (l.productPaused) {
+        this.submitError = `Dòng ${i + 1}: sản phẩm tạm ngừng bán — chọn SP khác.`;
+        return;
+      }
       if (l.variants.length > 0 && !l.variantId) {
         this.submitError = `Dòng ${i + 1}: chọn phân loại (biến thể).`;
         return;
@@ -462,19 +509,59 @@ export class OrderFormComponent implements OnInit, OnDestroy {
       return;
     }
 
+    this.showConfirmCreate = true;
+  }
+
+  /** Đóng modal xác nhận không gọi API. */
+  closeConfirmCreate(): void {
+    this.showConfirmCreate = false;
+  }
+
+  /** User xác nhận trong modal — POST tạo đơn. */
+  confirmCreateSubmit(): void {
+    const payload = this.buildPayload();
+    if (!payload) {
+      this.submitError = 'Thiếu dữ liệu — kiểm tra lại form.';
+      this.showConfirmCreate = false;
+      return;
+    }
+    this.showConfirmCreate = false;
     this.submitting = true;
+    this.submitError = '';
     this.orderService.createAdminHotlineOrder(payload).subscribe({
       next: (res) => {
         this.submitting = false;
-        const id = String(res.orderId || '');
-        if (id) this.created.emit(id);
-        else this.submitError = 'Tạo đơn thành công nhưng thiếu mã đơn.';
+        this.successLastOrderId = String(res.orderId || '');
+        this.successOrderCode = String(res.orderCode || '').trim();
+        this.successGuestLookupCode = String(res.guestLookupCode || '').trim();
+        this.successLinkedMember = !!this.linkedUserId?.trim();
+        this.showSuccessMockup = true;
+        if (!this.successLastOrderId) {
+          this.submitError = 'Tạo đơn thành công nhưng thiếu ID đơn.';
+        }
       },
       error: (err) => {
         this.submitting = false;
         this.submitError = err?.error?.message || err?.message || 'Không tạo được đơn';
       },
     });
+  }
+
+  /** Sau khi admin đọc mockup — đóng và mở chi tiết đơn. */
+  closeSuccessMockupAndContinue(): void {
+    this.showSuccessMockup = false;
+    const id = this.successLastOrderId;
+    if (id) this.created.emit(id);
+  }
+
+  userTrackOrdersAbsUrl(): string {
+    const o = String(USER_SHOP_ORIGIN || 'http://localhost:4200').replace(/\/$/, '');
+    return `${o}/order-management`;
+  }
+
+  userGuestLookupAbsUrl(): string {
+    const o = String(USER_SHOP_ORIGIN || 'http://localhost:4200').replace(/\/$/, '');
+    return `${o}/tra-cuu-don`;
   }
 
   back(): void {

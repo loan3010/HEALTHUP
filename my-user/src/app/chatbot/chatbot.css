@@ -36,34 +36,111 @@
   padding: 0 !important;
 }
 
+/* Nút Zalo: góc TRÁI, cùng đáy với nút chat (bottom giống nhau → không “cao hơn” chatbot trên màn hình) */
 .hu-zalo-float-button {
   position: fixed !important;
-  right: 35px !important;
-  bottom: 112px !important; /* Nằm trên nút chat chính */
-  width: 54px !important;
-  height: 54px !important;
-  border-radius: 50% !important;
-  background: #ffffff !important;
-  border: 1px solid #dbeafe !important;
-  box-shadow: 0 8px 24px rgba(0, 104, 255, 0.28) !important;
+  left: 35px !important;
+  right: auto !important;
+  bottom: 35px !important;
+  width: 65px !important;
+  height: 65px !important;
+  /* border-radius: 14px !important; */
+  /* background: #ffffff !important; */
+  /* border: 1px solid #dbeafe !important; */
+  /* box-shadow: 0 8px 24px rgba(0, 104, 255, 0.22) !important; */
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
   text-decoration: none !important;
   z-index: 999997 !important;
   transition: transform 0.2s ease !important;
+  box-sizing: border-box !important;
+  /* Cho logo scale to hơn không bị cắt mép bo góc */
+  overflow: visible !important;
+  /* Stacking riêng: sóng z-index 0, icon z-index 1 — tránh vòng sóng chìm xuống dưới trang */
+  isolation: isolate !important;
 }
 
 .hu-zalo-float-button:hover {
   transform: scale(1.06) !important;
 }
 
+/* Sóng tỏa: chỉ viền scale + mờ dần — không thay đổi kích thước ảnh logo */
+@keyframes hu-zaloRipple {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+
+.hu-zalo-pulse-ring {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 50% !important;
+  border: 3px solid rgba(0, 120, 255, 0.55) !important;
+  /* Không !important — keyframes mới điều khiển opacity khi chạy */
+  opacity: 0;
+  z-index: 0 !important;
+  pointer-events: none !important;
+  box-sizing: border-box !important;
+  animation: hu-zaloRipple 2s ease-out infinite !important;
+}
+
+.hu-zalo-pulse-ring--delay {
+  animation-delay: 1s !important;
+}
+
+/* Rung lắc nhẹ liên tục — nhìn rõ; đặt trên span, không đụng transform của thẻ <a> khi hover */
+@keyframes hu-zalo-wiggle {
+  from {
+    transform: rotate(-6deg) translate3d(-3px, 0, 0);
+  }
+  to {
+    transform: rotate(6deg) translate3d(3px, 0, 0);
+  }
+}
+
+.hu-zalo-float-icon-wrap {
+  position: relative !important;
+  z-index: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  pointer-events: none !important;
+  /* alternate + infinite = dao động qua lại, ~0.55s mỗi nửa nhịp → thấy rõ “rung” */
+  animation: hu-zalo-wiggle 0.55s ease-in-out infinite alternate !important;
+  will-change: transform !important;
+}
+
 .hu-zalo-float-button img {
-  /* Giữ icon to vừa đủ, không scale quá tay để tránh vỡ/lem. */
-  width: 34px !important;
-  height: 34px !important;
+  /* Khung nút 65px — không dùng 390px (rung vài px sẽ không thấy trên ảnh khổng lồ). */
+  width: 350px !important;
+  height: 350px !important;
+  max-width: none !important;
+  max-height: none !important;
   object-fit: contain !important;
   display: block !important;
+  flex-shrink: 0 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hu-zalo-float-icon-wrap {
+    animation: none !important;
+    will-change: auto !important;
+  }
+
+  .hu-zalo-pulse-ring {
+    animation: none !important;
+  }
 }
 
 .hu-chat-button:active {
@@ -143,7 +220,7 @@
   max-width: calc(100vw - 32px) !important;
   height: 580px !important;
   max-height: calc(100vh - 150px) !important;
-  background: #FFFFFF !important;
+  /* background: #FFFFFF !important; */
   border-radius: 20px !important;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2) !important;
   display: none !important;
@@ -739,9 +816,11 @@
     right: 16px !important;
   }
 
+  /* Mobile: Zalo trái, cùng đáy với nút chat */
   .hu-zalo-float-button {
-    right: 16px !important;
-    bottom: 86px !important;
+    left: 16px !important;
+    right: auto !important;
+    bottom: 16px !important;
   }
 
   .hu-msg-content {

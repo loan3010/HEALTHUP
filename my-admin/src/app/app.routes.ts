@@ -3,6 +3,7 @@ import { AdminLogin } from './admin-login/admin-login';
 import { AdminLayout } from './admin-layout/admin-layout';
 import { AdminGuard } from './admin.guard';
 import { AdminForgotPassword } from './admin-forgot-password/admin-forgot-password';
+import { NotFoundComponent } from './not-found/not-found';
 
 export const routes: Routes = [
   // 1. Mặc định vào là Login
@@ -21,6 +22,6 @@ export const routes: Routes = [
     canActivate: [AdminGuard] 
   },
 
-  // 5. CÁI NÀY PHẢI LUÔN NẰM CUỐI CÙNG: Nếu gõ bậy bạ thì về Login
-  { path: '**', redirectTo: 'login' }
+  // 5. Luôn cuối: URL không tồn tại → trang 404 thân thiện (có nút về đăng nhập)
+  { path: '**', component: NotFoundComponent },
 ];

@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core'; // Đã thêm ChangeDetectorRef
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { STORE_ZALO_PHONE, buildZaloMeUrl } from '../constants/store-contact.constants'; // Đã thêm ChangeDetectorRef
 import { HttpClient } from '@angular/common/http';
 import { CommonModule, NgClass, NgIf, NgFor } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -59,8 +60,6 @@ export class ChatbotComponent implements OnInit {
   private conversationHistory: ConversationHistory[] = [];
 
   botName = 'HealthUp Assistant';
-  // Số điện thoại cửa hàng dùng cho nút chat Zalo nhanh.
-  readonly storePhone = '0123456789';
 
   botAvatar = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
@@ -313,7 +312,6 @@ export class ChatbotComponent implements OnInit {
   }
 
   getZaloChatUrl(): string {
-    const phone = this.storePhone.replace(/\D/g, '');
-    return `https://zalo.me/${phone}`;
+    return buildZaloMeUrl(STORE_ZALO_PHONE);
   }
 }

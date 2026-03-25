@@ -1,4 +1,11 @@
-import { Component, computed, signal, OnInit, ChangeDetectorRef } from '@angular/core';
+import {
+  Component,
+  computed,
+  signal,
+  OnInit,
+  OnDestroy,
+  ChangeDetectorRef,
+} from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { HttpClient, HttpClientModule, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
@@ -72,7 +79,7 @@ interface ApplyVoucherResult {
   templateUrl: './checkout.html',
   styleUrls: ['./checkout.css'],
 })
-export class Checkout implements OnInit {
+export class Checkout implements OnInit, OnDestroy {
   private readonly API_BASE     = 'http://localhost:3000/api';
   private readonly GEO_API      = 'https://provinces.open-api.vn/api';
   private readonly CART_KEY     = 'cart_v1';
@@ -91,6 +98,31 @@ export class Checkout implements OnInit {
   showSuccess      = signal(false);
   successOrderId   = signal('');
   successOrderCode = signal('');
+  /** Mã SMS ngắn HU-… để tra cứu không cần đăng nhập */
+  successGuestLookupCode = signal('');
+
+  /** SĐT người nhận — hiển thị trên modal “đã gửi SMS đến số …” */
+  successOrderPhone = signal('');
+
+  /** Hotline hiển thị trong mockup SMS (cùng số banner checkout khách) */
+  readonly supportHotlineDisplay = '0335 512 275';
+
+
+  /**
+   * Khách không đăng nhập: bấm Đặt hàng → gửi SMS OTP → modal mockup tin nhắn → nhập mã → tạo đơn.
+   */
+  showGuestOtpModal = signal(false);
+  /** Mã 6 số nhập trong modal (không còn nhập OTP trên form địa chỉ). */
+  guestOtpModalCode = signal('');
+  /** Khi backend bật SMS_DEBUG_RETURN_OTP — hiện mã trong mockup (chỉ dev). */
+  guestOtpModalDevCode = signal('');
+  guestOtpModalError   = signal('');
+  /** Đang gửi OTP lần đầu sau khi bấm Đặt hàng (nút chính). */
+  isSendingCheckoutOtp = signal(false);
+  /** Gửi lại mã trong modal */
+  isSendingOtp         = signal(false);
+  otpCooldownSec       = signal(0);
+  private otpCooldownTimer: ReturnType<typeof setInterval> | null = null;
 
 
   guestAddrForm!: FormGroup;
@@ -159,9 +191,14 @@ export class Checkout implements OnInit {
   provinces: Province[] = [];
   districts: District[] = [];
   wards:     Ward[]     = [];
+  /** Tách riêng khỏi modal sổ địa chỉ (member) — tránh ghi đè danh sách khi cùng trang */
+  guestDistricts: District[] = [];
+  guestWards:     Ward[]     = [];
   loadingProvinces = false;
   loadingDistricts = false;
   loadingWards     = false;
+  loadingGuestDistricts = false;
+  loadingGuestWards     = false;
   fullAddressPreview = '';
 
 
@@ -174,9 +211,24 @@ export class Checkout implements OnInit {
     this.items().reduce((s, i) => s + (Number(i.price) || 0) * (Number(i.quantity) || 0), 0)
   );
 
+  /**
+   * Giao nhanh — một mức cố định (khớp backend calcShipping / orders.js).
+   * Dùng cho template đỡ hard-code magic number rải rác.
+   */
+  readonly expressShippingFee = 30000;
+
+  /**
+   * Phí hiển thị **trên thẻ** «Giao tiêu chuẩn» — chỉ phụ thuộc tạm tính, không phụ thuộc radio đang chọn.
+   * Trước đây dùng nhầm shippingFee() nên khi chọn giao nhanh, thẻ tiêu chuẩn cũng nhảy lên 30k.
+   */
+  standardOptionDisplayFee = computed(() =>
+    this.subTotal() > 500000 ? 0 : 20000
+  );
 
   shippingFee = computed(() =>
-    this.shippingMethod() === 'express' ? 30000 : (this.subTotal() > 500000 ? 0 : 20000)
+    this.shippingMethod() === 'express'
+      ? this.expressShippingFee
+      : this.standardOptionDisplayFee()
   );
 
 
@@ -219,10 +271,16 @@ export class Checkout implements OnInit {
     }
     const v = this.guestAddrForm?.value;
     if (!v) return null;
-    const name    = String(v.name    || '').trim();
-    const phone   = String(v.phone   || '').trim();
-    const address = String(v.address || '').trim();
-    if (!name || !phone || !address) return null;
+    const name  = String(v.name || '').trim();
+    const phone = String(v.phone || '').trim();
+    const street = String(v.street || '').trim();
+    if (!name || !phone || !street) return null;
+    if (v.province === '' || v.province == null || v.district === '' || v.district == null) {
+      return null;
+    }
+    if (v.ward === '' || v.ward == null) return null;
+    const address = this.buildGuestAddressLine();
+    if (!address || address.length < 8) return null;
     return { name, phone, address, isDefault: false };
   }
 
@@ -281,10 +339,14 @@ export class Checkout implements OnInit {
 
   ngOnInit(): void {
     this.checkoutForm  = this.fb.group({ note: [''] });
+    // Khách: bắt buộc chọn tỉnh / quận / phường + đường (không còn một textarea tự do).
     this.guestAddrForm = this.fb.group({
-      name:    ['', [Validators.required, Validators.minLength(2)]],
-      phone:   ['', [Validators.required, Validators.pattern(/^0\d{9}$/)]],
-      address: ['', [Validators.required, Validators.minLength(8)]],
+      name:     ['', [Validators.required, Validators.minLength(2)]],
+      phone:    ['', [Validators.required, Validators.pattern(/^0\d{9}$/)]],
+      province: ['', Validators.required],
+      district: ['', Validators.required],
+      ward:     ['', Validators.required],
+      street:   ['', [Validators.required, Validators.minLength(2)]],
     });
     this.buildAddrForm();
     this.loadCheckoutItems();
@@ -308,6 +370,149 @@ export class Checkout implements OnInit {
     if (this.userId && this.token) {
       this.loadSavedAddresses();
       this.loadUserRank();
+    }
+  }
+
+
+  ngOnDestroy(): void {
+    this.clearOtpCooldownTimer();
+  }
+
+
+  /** Hiển thị SĐT dạng 076***564 trong modal mockup SMS */
+  maskPhoneDisplay(phone: string): string {
+    const s = String(phone || '').trim();
+    if (s.length < 7) {
+      return s || '—';
+    }
+    return `${s.slice(0, 3)}***${s.slice(-3)}`;
+  }
+
+
+  /** Nhập OTP trong modal — chỉ số, tối đa 6 */
+  onGuestOtpModalInput(ev: Event): void {
+    const el = ev.target as HTMLInputElement;
+    const v  = el.value.replace(/\D/g, '').slice(0, 6);
+    el.value = v;
+    this.guestOtpModalCode.set(v);
+    this.guestOtpModalError.set('');
+    this.cdr.detectChanges();
+  }
+
+
+  closeGuestOtpModal(): void {
+    this.showGuestOtpModal.set(false);
+    this.clearGuestOtpModalUi();
+  }
+
+
+  private clearGuestOtpModalUi(): void {
+    this.guestOtpModalCode.set('');
+    this.guestOtpModalDevCode.set('');
+    this.guestOtpModalError.set('');
+    this.clearOtpCooldownTimer();
+    this.otpCooldownSec.set(0);
+  }
+
+
+  /**
+   * Gửi lại OTP từ trong modal (cùng API, có cooldown).
+   */
+  resendGuestOtpFromModal(): void {
+    const addr = this.shippingAddr;
+    if (!addr || this.userId) {
+      return;
+    }
+    const phone = String(addr.phone || '').trim();
+    if (!/^0\d{9}$/.test(phone)) {
+      return;
+    }
+    if (this.isSendingOtp() || this.otpCooldownSec() > 0) {
+      return;
+    }
+
+
+    this.isSendingOtp.set(true);
+    this.guestOtpModalError.set('');
+    this.cdr.detectChanges();
+
+
+    this.http
+      .post<{ message?: string; devPlainOtp?: string }>(
+        `${this.API_BASE}/orders/guest-checkout-otp/send`,
+        { phone }
+      )
+      .subscribe({
+        next: (res) => {
+          this.isSendingOtp.set(false);
+          this.guestOtpModalDevCode.set(String(res?.devPlainOtp || '').trim());
+          this.startOtpCooldown(55);
+          this.cdr.detectChanges();
+        },
+        error: (err: HttpErrorResponse) => {
+          this.isSendingOtp.set(false);
+          this.guestOtpModalError.set(
+            err?.error?.message || 'Không gửi lại được mã. Thử sau.'
+          );
+          this.cdr.detectChanges();
+        },
+      });
+  }
+
+
+  /**
+   * Sau khi bấm Đặt hàng (khách): gọi API gửi OTP rồi mở modal mockup tin nhắn.
+   */
+  private beginGuestCheckoutOtpFlow(phone: string): void {
+    this.isSendingCheckoutOtp.set(true);
+    this.errorMsg.set('');
+    this.cdr.detectChanges();
+
+
+    this.http
+      .post<{ message?: string; devPlainOtp?: string }>(
+        `${this.API_BASE}/orders/guest-checkout-otp/send`,
+        { phone }
+      )
+      .subscribe({
+        next: (res) => {
+          this.isSendingCheckoutOtp.set(false);
+          this.guestOtpModalDevCode.set(String(res?.devPlainOtp || '').trim());
+          this.guestOtpModalCode.set('');
+          this.guestOtpModalError.set('');
+          this.showGuestOtpModal.set(true);
+          this.startOtpCooldown(55);
+          this.cdr.detectChanges();
+        },
+        error: (err: HttpErrorResponse) => {
+          this.isSendingCheckoutOtp.set(false);
+          this.errorMsg.set(
+            err?.error?.message || 'Không gửi được mã xác nhận. Thử lại.'
+          );
+          this.cdr.detectChanges();
+        },
+      });
+  }
+
+
+  private startOtpCooldown(sec: number): void {
+    this.clearOtpCooldownTimer();
+    this.otpCooldownSec.set(sec);
+    this.otpCooldownTimer = setInterval(() => {
+      const next = this.otpCooldownSec() - 1;
+      this.otpCooldownSec.set(Math.max(0, next));
+      if (next <= 0) {
+        this.clearOtpCooldownTimer();
+      }
+      this.cdr.detectChanges();
+    }, 1000);
+  }
+
+
+  private clearOtpCooldownTimer(): void {
+    if (this.otpCooldownTimer) {
+      clearInterval(this.otpCooldownTimer);
+      this.otpCooldownTimer = null;
     }
   }
 
@@ -510,6 +715,71 @@ export class Checkout implements OnInit {
     });
   }
 
+  /** Lỗi từng ô form địa chỉ khách — chỉ hiện sau touched / submit. */
+  showGuestAddrError(field: string): boolean {
+    const f = this.guestAddrForm.get(field);
+    return !!(f && f.invalid && (f.dirty || f.touched));
+  }
+
+  /** Ghép một dòng địa chỉ đầy đủ gửi lên API (giống logic sổ địa chỉ). */
+  private buildGuestAddressLine(): string {
+    const v = this.guestAddrForm?.value;
+    if (!v) return '';
+    const pName = this.provinces.find((p) => p.code == v.province)?.name || '';
+    const dName = this.guestDistricts.find((d) => d.code == v.district)?.name || '';
+    const wName = this.guestWards.find((w) => w.code == v.ward)?.name || '';
+    const street = String(v.street || '').trim();
+    return [street, wName, dName, pName].filter(Boolean).join(', ');
+  }
+
+  onGuestProvinceChange(): void {
+    const code = this.guestAddrForm.get('province')?.value;
+    this.guestDistricts = [];
+    this.guestWards = [];
+    this.guestAddrForm.patchValue({ district: '', ward: '' }, { emitEvent: false });
+    if (!code) {
+      this.cdr.detectChanges();
+      return;
+    }
+    this.loadingGuestDistricts = true;
+    this.http.get<any>(`${this.GEO_API}/p/${code}?depth=2`).subscribe({
+      next: (d) => {
+        this.guestDistricts = d.districts || [];
+        this.loadingGuestDistricts = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.loadingGuestDistricts = false;
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  onGuestDistrictChange(): void {
+    const code = this.guestAddrForm.get('district')?.value;
+    this.guestWards = [];
+    this.guestAddrForm.patchValue({ ward: '' }, { emitEvent: false });
+    if (!code) {
+      this.cdr.detectChanges();
+      return;
+    }
+    this.loadingGuestWards = true;
+    this.http.get<any>(`${this.GEO_API}/d/${code}?depth=2`).subscribe({
+      next: (d) => {
+        this.guestWards = d.wards || [];
+        this.loadingGuestWards = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.loadingGuestWards = false;
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  onGuestWardChange(): void {
+    this.cdr.detectChanges();
+  }
 
   onProvinceChange(): void {
     const code = this.addrForm.get('province')?.value;
@@ -841,36 +1111,35 @@ export class Checkout implements OnInit {
   }
 
 
-  placeOrder(): void {
-    this.errorMsg.set('');
-    if (this.isPlacing()) return;
-    if (!this.items().length) { this.router.navigateByUrl('/cart'); return; }
-
-
+  /**
+   * Ghép payload đặt hàng (chưa kèm OTP — OTP chỉ thêm khi khách xác nhận trong modal).
+   */
+  private buildOrderPayloadForSubmit():
+    | { payload: Record<string, unknown>; headers: HttpHeaders }
+    | null {
     const addr = this.shippingAddr;
     if (!addr) {
-      this.errorMsg.set(
-        this.userId
-          ? 'Vui lòng chọn hoặc thêm địa chỉ nhận hàng'
-          : 'Vui lòng nhập đầy đủ họ tên, SĐT (10 số bắt đầu 0) và địa chỉ nhận hàng'
-      );
-      this.cdr.detectChanges();
-      return;
-    }
-
-
-    const badIds = this.items().filter(i => !/^[a-fA-F0-9]{24}$/.test(String(i.productId || '').trim()));
-    if (badIds.length) {
-      this.errorMsg.set('Có sản phẩm bị lỗi ID. Vui lòng thêm lại vào giỏ.');
-      this.cdr.detectChanges(); return;
+      return null;
     }
 
 
     const note = this.checkoutForm.value.note || '';
-    const { province, district, ward } = this.parseAddressParts(addr.address);
+    let province = '';
+    let district = '';
+    let ward = '';
+    if (this.userId) {
+      const parsed = this.parseAddressParts(addr.address);
+      province = parsed.province;
+      district = parsed.district;
+      ward = parsed.ward;
+    } else {
+      const v = this.guestAddrForm.value;
+      province = this.provinces.find((p) => p.code == v.province)?.name || '';
+      district = this.guestDistricts.find((d) => d.code == v.district)?.name || '';
+      ward = this.guestWards.find((w) => w.code == v.ward)?.name || '';
+    }
 
-
-    const customer: any = {
+    const customer: Record<string, string> = {
       fullName: addr.name,
       phone:    addr.phone,
       email:    '',
@@ -883,9 +1152,9 @@ export class Checkout implements OnInit {
 
 
     const useVoucher = this.canUseVouchers;
-    const payload: any = {
+    const payload: Record<string, unknown> = {
       customer,
-      items: this.items().map(i => ({
+      items: this.items().map((i) => ({
         productId:    i.productId,
         variantId:    i.variantId    || null,
         variantLabel: i.variantLabel || '',
@@ -896,14 +1165,16 @@ export class Checkout implements OnInit {
       voucherCode:     useVoucher && this.isOrderVoucherApplied ? this.orderVoucherCode() : null,
       shipVoucherCode: useVoucher && this.isShipVoucherApplied  ? this.shipVoucherCode()  : null,
     };
-    if (this.userId) payload.userId = this.userId;
+    if (this.userId) {
+      payload['userId'] = this.userId;
+    }
 
 
     if (!this.token) {
       try {
         const gid = localStorage.getItem(GUEST_CART_STORAGE_KEY);
         if (gid && /^[0-9a-f-]{36}$/i.test(gid)) {
-          payload.guestCartSessionId = gid;
+          payload['guestCartSessionId'] = gid;
         }
       } catch { /* ignore */ }
     }
@@ -915,7 +1186,26 @@ export class Checkout implements OnInit {
     }
 
 
+    return { payload, headers };
+  }
+
+
+
+
+  /**
+   * POST tạo đơn — dùng chung member & khách (khách kèm guestCheckoutOtp trong payload).
+   */
+  private executeOrderSubmit(
+    payload: Record<string, unknown>,
+    headers: HttpHeaders,
+    addr: { phone: string },
+    opts: { closeOtpModalOnSuccess: boolean; otpErrorInModal: boolean }
+  ): void {
     this.isPlacing.set(true);
+    this.errorMsg.set('');
+    if (opts.otpErrorInModal) {
+      this.guestOtpModalError.set('');
+    }
     this.cdr.detectChanges();
 
 
@@ -924,24 +1214,146 @@ export class Checkout implements OnInit {
         const orderId = res?.orderId ?? res?.id ?? res?._id ?? '';
         this.clearAfterSuccess();
         this.isPlacing.set(false);
+        if (opts.closeOtpModalOnSuccess) {
+          this.showGuestOtpModal.set(false);
+          this.clearGuestOtpModalUi();
+        }
         this.successOrderId.set(String(orderId));
         this.successOrderCode.set(String(res?.orderCode || ''));
+        this.successGuestLookupCode.set(String(res?.guestLookupCode || '').trim());
+        this.successOrderPhone.set(String(addr.phone || '').trim());
         this.showSuccess.set(true);
 
 
-        if (this.userId && this.token) this.loadUserRank();
+        if (this.userId && this.token) {
+          this.loadUserRank();
+        }
 
 
         this.api.refreshUnreadCount();
         this.api.refreshCartCount();
         this.cdr.detectChanges();
       },
-      error: (err) => {
-        const msg = err?.error?.message || err?.error?.error || err?.message || 'Đặt hàng thất bại. Thử lại nhé!';
-        this.errorMsg.set(msg);
+      error: (err: HttpErrorResponse) => {
+        const msg =
+          err?.error?.message ||
+          err?.error?.error ||
+          err?.message ||
+          'Đặt hàng thất bại. Thử lại nhé!';
         this.isPlacing.set(false);
+        if (opts.otpErrorInModal) {
+          this.guestOtpModalError.set(msg);
+        } else {
+          this.errorMsg.set(msg);
+        }
         this.cdr.detectChanges();
+      },
+    });
+  }
+
+
+
+
+  /** Khách: đã có modal OTP — bấm xác nhận để tạo đơn */
+  confirmGuestOrderFromModal(): void {
+    if (this.isPlacing()) {
+      return;
+    }
+    const otp = this.guestOtpModalCode().replace(/\D/g, '');
+    if (!/^\d{6}$/.test(otp)) {
+      this.guestOtpModalError.set('Nhập đủ 6 số mã trong tin nhắn HEALTHUP.');
+      this.cdr.detectChanges();
+      return;
+    }
+
+
+    const built = this.buildOrderPayloadForSubmit();
+    if (!built) {
+      this.closeGuestOtpModal();
+      this.errorMsg.set('Thiếu thông tin giao hàng. Kiểm tra lại form.');
+      this.cdr.detectChanges();
+      return;
+    }
+
+
+    const addr = this.shippingAddr;
+    if (!addr) {
+      this.closeGuestOtpModal();
+      return;
+    }
+
+
+    const payload = { ...built.payload, guestCheckoutOtp: otp };
+    this.executeOrderSubmit(payload, built.headers, addr, {
+      closeOtpModalOnSuccess: true,
+      otpErrorInModal:        true,
+    });
+  }
+
+
+
+
+  placeOrder(): void {
+    this.errorMsg.set('');
+    if (this.isPlacing() || this.isSendingCheckoutOtp()) {
+      return;
+    }
+    if (!this.items().length) {
+      this.router.navigateByUrl('/cart');
+      return;
+    }
+
+
+    const addr = this.shippingAddr;
+    if (!addr) {
+      this.errorMsg.set(
+        this.userId
+          ? 'Vui lòng chọn hoặc thêm địa chỉ nhận hàng'
+          : 'Vui lòng nhập họ tên, SĐT (10 số bắt đầu 0), chọn tỉnh/thành → quận/huyện → phường/xã và địa chỉ chi tiết'
+      );
+      this.cdr.detectChanges();
+      return;
+    }
+
+
+    const badIds = this.items().filter((i) =>
+      !/^[a-fA-F0-9]{24}$/.test(String(i.productId || '').trim())
+    );
+    if (badIds.length) {
+      this.errorMsg.set('Có sản phẩm bị lỗi ID. Vui lòng thêm lại vào giỏ.');
+      this.cdr.detectChanges();
+      return;
+    }
+
+
+    /** Khách: không tạo đơn ngay — gửi SMS rồi mở modal mockup tin nhắn */
+    if (!this.userId) {
+      if (this.guestAddrForm.invalid) {
+        this.guestAddrForm.markAllAsTouched();
+        this.errorMsg.set(
+          'Vui lòng kiểm tra họ tên, SĐT và địa chỉ (tỉnh / quận / phường + số nhà, đường).'
+        );
+        this.cdr.detectChanges();
+        return;
       }
+      const phone = String(addr.phone || '').trim();
+      if (!/^0\d{9}$/.test(phone)) {
+        this.errorMsg.set('Số điện thoại không hợp lệ.');
+        this.cdr.detectChanges();
+        return;
+      }
+      this.beginGuestCheckoutOtpFlow(phone);
+      return;
+    }
+
+
+    const built = this.buildOrderPayloadForSubmit();
+    if (!built) {
+      return;
+    }
+    this.executeOrderSubmit(built.payload, built.headers, addr, {
+      closeOtpModalOnSuccess: false,
+      otpErrorInModal:        false,
     });
   }
 
@@ -953,7 +1365,9 @@ export class Checkout implements OnInit {
       this.router.navigate(['/profile/order-detail', id]);
     } else {
       this.router.navigate(['/tra-cuu-don'], {
-        queryParams: { code: this.successOrderCode() || undefined },
+        queryParams: {
+          code: this.successGuestLookupCode() || this.successOrderCode() || undefined,
+        },
       });
     }
   }
@@ -963,6 +1377,19 @@ export class Checkout implements OnInit {
   setShipping(m: ShippingMethod) { this.shippingMethod.set(m); }
   setPayment(m: PaymentMethod)   { this.paymentMethod.set(m); }
   goToCart() { this.router.navigateByUrl('/cart'); }
+
+
+  /**
+   * Link đầy đủ tới trang tra cứu — dùng trong mockup SMS cho khách thấy giống tin nhắn thật.
+   */
+  guestOrderLookupAbsUrl(): string {
+    if (typeof window === 'undefined') {
+      return '/tra-cuu-don';
+    }
+    return `${window.location.origin}/tra-cuu-don`;
+  }
+
+
   vnd(n: number) { return n.toLocaleString('vi-VN') + '₫'; }
 
 

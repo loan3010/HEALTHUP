@@ -26,10 +26,14 @@
           <i class="bi bi-envelope"></i> healthup@gmail.com
         </a>
         <a href="tel:0123456789">
-          <i class="bi bi-telephone"></i> 0123 456 789
+          <i class="bi bi-telephone"></i> 0335 512 275
         </a>
-        <a>
-          <i class="bi bi-geo-alt"></i> Nha Trang, Khánh Hòa
+        <a
+          href="https://www.google.com/maps/search/?api=1&query=Nha%20Trang%2C%20Kh%C3%A1nh%20H%C3%B2a"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Mở bản đồ">
+          <i class="bi bi-geo-alt"></i> 663 Quốc Lộ 1K, Thủ Đức, TP HCMHCM
         </a>
       </div>
     </div>
@@ -39,38 +43,39 @@
       <div class="footer-nav-col">
         <h5>Về HealthUp</h5>
         <a routerLink="/about-the-brand">Giới thiệu</a>
-        <a>Thực đơn</a>
-        <a>Cam kết chất lượng</a>
+        <a routerLink="/products">Sản phẩm </a>
+        <a routerLink="/policies">Cam kết chất lượng</a>
         <a routerLink="/faqs">Liên hệ</a>
       </div>
       <div class="footer-nav-col">
         <h5>Hỗ trợ</h5>
         <a routerLink="/faqs">Câu hỏi thường gặp</a>
-        <a>Hướng dẫn đặt hàng</a>
-        <a>Theo dõi đơn</a>
-        <a>Chính sách đổi trả</a>
+        <a routerLink="/policies">Hướng dẫn đặt hàng</a>
+        <a routerLink="/tra-cuu-don">Theo dõi đơn</a>
+        <a routerLink="/policies">Chính sách đổi trả</a>
       </div>
       <div class="footer-nav-col">
         <h5>Chính sách</h5>
-        <a>Giao hàng</a>
-        <a>Thanh toán</a>
-        <a>Bảo mật</a>
-        <a>Điều khoản</a>
+        <a routerLink="/policies">Giao hàng</a>
+        <a routerLink="/policies">Thanh toán</a>
+        <a routerLink="/policies">Bảo mật</a>
+        <a routerLink="/policies">Điều khoản</a>
       </div>
       <div class="footer-nav-col">
         <h5>Kết nối</h5>
         <div class="footer-socials">
-          <a href="#" target="_blank" title="Facebook">
+          <a [href]="facebookHref" target="_blank" rel="noopener noreferrer" title="Facebook">
             <img src="/assets/icons/facebook.png" alt="Facebook" />
           </a>
-          <a href="#" target="_blank" title="Instagram">
+          <a [href]="instagramHref" target="_blank" rel="noopener noreferrer" title="Instagram">
             <img src="/assets/icons/insta.png" alt="Instagram" />
           </a>
-          <a href="#" target="_blank" title="TikTok">
+          <a [href]="tiktokHref" target="_blank" rel="noopener noreferrer" title="TikTok">
             <img src="/assets/icons/tiktok.png" alt="TikTok" />
           </a>
-          <a href="#" target="_blank" title="Zalo">
-            <img src="/assets/icons/zalo.png" alt="Zalo" />
+          <a [href]="zaloHref" target="_blank" rel="noopener noreferrer" title="Zalo">
+            <!-- Class riêng: file zalo.png có canvas rộng / logo lệch giữa → cùng 22px với FB/IG thì trông bé hẳn -->
+            <img class="footer-social-img-zalo" src="/assets/icons/zalo.png" alt="Zalo" />
           </a>
         </div>
       </div>

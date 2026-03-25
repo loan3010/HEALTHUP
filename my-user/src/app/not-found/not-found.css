@@ -1,0 +1,99 @@
+/* Đồng bộ với admin: nền kem #f5f3ee, accent #2d7a2d */
+.not-found {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: #f5f3ee;
+  box-sizing: border-box;
+}
+
+.not-found__card {
+  max-width: 26rem;
+  text-align: center;
+}
+
+.not-found__logo {
+  display: block;
+  margin: 0 auto 1.25rem;
+  object-fit: contain;
+}
+
+.not-found__code {
+  margin: 0 0 0.35rem;
+  font-size: clamp(2.75rem, 11vw, 4.5rem);
+  font-weight: 700;
+  line-height: 1;
+  color: #2d7a2d;
+  letter-spacing: -0.03em;
+  opacity: 0.92;
+}
+
+.not-found__title {
+  margin: 0 0 0.85rem;
+  font-size: 1.28rem;
+  font-weight: 600;
+  color: #222;
+  line-height: 1.35;
+}
+
+.not-found__desc {
+  margin: 0 0 1.65rem;
+  font-size: 0.98rem;
+  line-height: 1.6;
+  color: #4f4d49;
+}
+
+.not-found__desc-break {
+  display: block;
+  margin-top: 0.45rem;
+}
+
+.not-found__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  justify-content: center;
+}
+
+.not-found__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.65rem;
+  padding: 0 1.2rem;
+  border-radius: 0.5rem;
+  font-size: 0.94rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  border: 2px solid transparent;
+  font-family: inherit;
+  transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.15s;
+}
+
+.not-found__btn:active {
+  transform: scale(0.98);
+}
+
+.not-found__btn--primary {
+  background: #2d7a2d;
+  color: #fff;
+  border-color: #2d7a2d;
+}
+
+.not-found__btn--primary:hover {
+  background: #256b25;
+  border-color: #256b25;
+}
+
+.not-found__btn--ghost {
+  background: transparent;
+  color: #2d7a2d;
+  border-color: #2d7a2d;
+}
+
+.not-found__btn--ghost:hover {
+  background: rgba(45, 122, 45, 0.09);
+}

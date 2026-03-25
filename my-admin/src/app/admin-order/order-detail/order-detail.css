@@ -1,335 +1,183 @@
-.detail-page { padding: 6px; }
+/* ============================================================
+   HEALTHUP ADMIN — order-detail.css
+   Design System v1.0 · Be Vietnam Pro · #36873A
+============================================================ */
+
+.detail-page { padding: 6px; font-family: 'Be Vietnam Pro', sans-serif; }
+
 .back-btn {
-  border: none;
-  background: transparent;
-  color: #2f8f33;
-  font-weight: 700;
-  margin-bottom: 8px;
+  border: none; background: transparent; color: #36873A; font-weight: 600;
+  font-size: 13px; font-family: 'Be Vietnam Pro', sans-serif; margin-bottom: 10px;
+  cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+  padding: 0; transition: color 150ms;
 }
+.back-btn:hover { color: #2A6B2E; }
 
-.grid {
-  display: grid;
-  grid-template-columns: 1.5fr 1fr;
-  gap: 12px;
-}
+.grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 14px; }
+
 .card {
-  background: #fff;
-  border: 1px solid #ececec;
-  border-radius: 10px;
-  padding: 14px;
-  margin-bottom: 12px;
+  background: #FFFFFF; border: 1px solid #E2EEE2; border-radius: 12px;
+  padding: 16px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(54,135,58,.08);
 }
-.order-code { font-size: 1.9rem; font-weight: 900; color: #2e2e2e; }
-.date { color: #848484; font-size: 0.82rem; margin-bottom: 10px; }
-.status-wrap { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
-.label { font-size: 0.78rem; color: #7b7b7b; margin-bottom: 4px; }
-.badge {
-  display: inline-flex;
-  background: #fff4d6;
-  color: #a16a00;
-  font-size: 0.78rem;
-  border-radius: 999px;
-  padding: 4px 10px;
-  font-weight: 700;
-}
-.badge.gray { background: #f2f2f2; color: #555; }
-.badge.warn { background: #fff0e6; color: #c2410c; }
-.sub-hint { font-size: 0.75rem; color: #666; margin-top: 6px; max-width: 280px; line-height: 1.35; }
 
-/* Ảnh minh chứng đổi trả từ khách */
+.order-code { font-size: 22px; font-weight: 800; color: #1A2E1B; font-family: ui-monospace, monospace; }
+.date { color: #7E9E80; font-size: 12px; margin-bottom: 10px; }
+
+.source-row { border-top: 1px solid #E2EEE2; padding-top: 10px; margin-bottom: 10px; }
+.source-row.compact { padding-bottom: 0; }
+.source-hint { font-size: 12px; color: #4B6B4D; line-height: 1.4; max-width: 320px; }
+.status-wrap { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+
+.label {
+  font-size: 11px; color: #7E9E80; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .4px; margin-bottom: 4px;
+}
+
+.badge {
+  display: inline-flex; background: #FFFBEA; color: #B8860B;
+  font-size: 11px; border-radius: 9999px; padding: 3px 10px; font-weight: 700; border: 1px solid #F0D080;
+}
+.badge.gray { background: #F4F4F4; color: #7E9E80; border-color: #E2EEE2; }
+.badge.warn { background: #FFFBEA; color: #B8860B; border-color: #F0D080; }
+
+.sub-hint { font-size: 12px; color: #4B6B4D; margin-top: 6px; max-width: 280px; line-height: 1.4; }
+.sub-hint.warn { color: #B8860B; }
+
 .return-proof-block { margin-top: 10px; max-width: 100%; }
 .return-proof-label { margin-bottom: 6px !important; }
-.return-proof-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-}
-.return-proof-link {
-  display: block;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid #ececec;
-  flex: 0 0 auto;
-}
-.return-proof-link img {
-  width: 72px;
-  height: 72px;
-  object-fit: cover;
-  display: block;
-  vertical-align: middle;
-}
-.return-proof-link:hover { border-color: #2f8f33; }
+.return-proof-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.return-proof-link { display: block; border-radius: 8px; overflow: hidden; border: 1px solid #E2EEE2; flex: 0 0 auto; transition: border-color 150ms; }
+.return-proof-link img { width: 72px; height: 72px; object-fit: cover; display: block; }
+.return-proof-link:hover { border-color: #36873A; }
 
-/* Bảng dòng trả (mua vs trả) */
-.return-lines-card h3 { color: #b45309; }
-.return-lines-table .return-qty-em { color: #c2410c; }
-.return-lines-foot {
-  margin-top: 12px;
-  font-size: 0.88rem;
-  color: #444;
-}
-.return-lines-foot strong { color: #1a1a1a; }
-.return-lines-note {
-  display: block;
-  margin-top: 4px;
-  font-size: 0.75rem;
-  color: #888;
-  font-weight: 500;
-}
-.return-lines-missing {
-  margin: 0;
-  font-size: 0.85rem;
-  color: #666;
-  line-height: 1.45;
-}
-.tier-provisional { font-size: 0.72rem; color: #b45309; font-weight: 600; margin-left: 6px; }
-.btn-danger.outline {
-  background: #fff;
-  color: #c62828;
-  border: 1px solid #e57373;
-}
+.return-lines-card h3 { color: #B8860B; }
+.return-lines-table .return-qty-em { color: #C62828; font-weight: 700; }
+.return-lines-foot { margin-top: 12px; font-size: 13px; color: #4B6B4D; }
+.return-lines-foot strong { color: #1A2E1B; }
+.return-lines-note { display: block; margin-top: 4px; font-size: 11px; color: #7E9E80; font-weight: 500; }
+.return-lines-missing { margin: 0; font-size: 13px; color: #7E9E80; line-height: 1.45; }
+.tier-provisional { font-size: 11px; color: #B8860B; font-weight: 600; margin-left: 6px; }
 
-h3, h4 { margin: 0 0 10px; }
+h3, h4 { margin: 0 0 10px; color: #1A2E1B; }
+
 .items-table { width: 100%; border-collapse: collapse; }
 .items-table th {
-  text-align: left;
-  font-size: 0.78rem;
-  color: #7a7a7a;
-  border-bottom: 1px solid #efefef;
-  padding: 9px 8px;
+  text-align: left; font-size: 11px; font-weight: 600; color: #7E9E80;
+  text-transform: uppercase; letter-spacing: .5px;
+  border-bottom: 1px solid #E2EEE2; padding: 8px; background: #F0F7F0;
 }
-.items-table td {
-  padding: 10px 8px;
-  border-bottom: 1px solid #f5f5f5;
-  font-size: 0.9rem;
-}
+.items-table td { padding: 10px 8px; border-bottom: 1px solid #E2EEE2; font-size: 13px; color: #4B6B4D; }
+.items-table tbody tr:last-child td { border-bottom: none; }
+
 .product { display: flex; align-items: center; gap: 10px; }
-.product img {
-  width: 34px;
-  height: 34px;
-  border-radius: 6px;
-  object-fit: cover;
-  border: 1px solid #ececec;
-}
-.name { font-weight: 600; }
-.sku { color: #888; font-size: 0.75rem; }
-.money { font-weight: 700; }
+.product img { width: 34px; height: 34px; border-radius: 6px; object-fit: cover; border: 1px solid #E2EEE2; flex-shrink: 0; }
+.name  { font-weight: 600; color: #1A2E1B; }
+.sku   { color: #7E9E80; font-size: 11px; font-family: ui-monospace, monospace; }
+.money { font-weight: 700; color: #1A2E1B; }
 
 .line {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  border-bottom: 1px solid #f6f6f6;
-  padding: 7px 0;
-  font-size: 0.9rem;
+  display: flex; justify-content: space-between; gap: 10px;
+  border-bottom: 1px solid #E2EEE2; padding: 7px 0; font-size: 13px;
 }
 .line.total { border-bottom: none; padding-top: 10px; }
-.line label { color: #777; }
-.tier-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 10px;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 700;
-}
-.tier-member { background: #e8f5e9; color: #2e7d32; }
-.tier-vip { background: #fff3e0; color: #ef6c00; }
-.tier-none { background: #f3f4f6; color: #4b5563; }
+.line label { color: #7E9E80; font-weight: 500; }
 
-.actions {
-  display: grid;
-  gap: 8px;
-}
+.tier-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 9999px; font-size: 11px; font-weight: 700; }
+.tier-member { background: #F0F7F0; color: #36873A; border: 1px solid #C4DBC5; }
+.tier-vip    { background: #FFFBEA; color: #B8860B; border: 1px solid #F0D080; }
+.tier-none   { background: #F4F4F4; color: #7E9E80; border: 1px solid #E2EEE2; }
+
+.actions { display: grid; gap: 8px; }
+
 .btn-main, .btn-danger, .btn-sub {
-  border: none;
-  border-radius: 8px;
-  padding: 10px 12px;
-  font-weight: 700;
+  border: none; border-radius: 8px; padding: 10px 14px; font-weight: 700; font-size: 13px;
+  font-family: 'Be Vietnam Pro', sans-serif; cursor: pointer; transition: background 150ms;
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;
 }
-.btn-main { background: #2fa333; color: #fff; }
-.btn-danger { background: #e14a4a; color: #fff; }
-.btn-sub { background: #edf7ed; color: #226c26; border: 1px solid #d4e9d5; }
-.btn-danger.outline {
-  background: #fff;
-  color: #c2410c;
-  border: 2px solid #fdba74;
-}
+.btn-main         { background: #36873A; color: #FFFFFF; }
+.btn-main:hover   { background: #2A6B2E; }
+.btn-danger       { background: #C62828; color: #FFFFFF; }
+.btn-danger:hover { background: #8E1C1C; }
+.btn-sub          { background: #F0F7F0; color: #36873A; border: 1px solid #E2EEE2; }
+.btn-sub:hover    { background: #E2EEE2; }
+.btn-danger.outline { background: #FFFFFF; color: #C62828; border: 1.5px solid #EF5350; }
+.btn-danger.outline:hover { background: #FFEBEE; }
 
 .delivery-fail-box {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 10px;
-  border: 1px dashed #fdba74;
-  border-radius: 8px;
-  background: #fffbeb;
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 10px 12px; border: 1px dashed #F0D080; border-radius: 8px; background: #FFFBEA;
 }
-.delivery-fail-box label { font-size: 0.78rem; font-weight: 700; color: #92400e; }
+.delivery-fail-box label { font-size: 11px; font-weight: 700; color: #B8860B; text-transform: uppercase; letter-spacing: .4px; }
 .df-select, .df-textarea {
-  width: 100%;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  padding: 8px;
-  font-size: 0.88rem;
+  width: 100%; border-radius: 8px; border: 1px solid #E2EEE2; padding: 8px 10px;
+  font-size: 13px; font-family: 'Be Vietnam Pro', sans-serif; color: #1A2E1B; background: #FFFFFF;
+  outline: none; transition: border-color 150ms, box-shadow 150ms;
 }
-.actions-hint.danger {
-  margin: 0;
-  font-size: 0.8rem;
-  color: #b91c1c;
-  font-weight: 600;
-}
-.actions-hint.warn {
-  margin: 0;
-  font-size: 0.8rem;
-  color: #b45309;
-  font-weight: 600;
-}
+.df-select:focus, .df-textarea:focus { border-color: #36873A; box-shadow: 0 0 0 3px rgba(54,135,58,.10); }
+.delivery-fail-box .df-hint { margin: 0; font-size: 11px; line-height: 1.35; color: #B8860B; font-weight: 600; }
 
-.cancel-reason-admin {
-  margin-top: 10px;
-  padding-top: 8px;
-  border-top: 1px dashed #e5e5e5;
-}
-.cancel-reason-admin .label {
-  display: block;
-  margin-bottom: 4px;
-}
-.cancel-reason-text {
-  display: block;
-  font-size: 0.82rem;
-  line-height: 1.4;
-  color: #991b1b;
-  font-weight: 600;
-}
+.actions-hint.danger { margin: 0; font-size: 12px; color: #C62828; font-weight: 600; }
+.actions-hint.warn   { margin: 0; font-size: 12px; color: #B8860B; font-weight: 600; }
+
+.cancel-reason-admin { margin-top: 10px; padding-top: 8px; border-top: 1px dashed #E2EEE2; }
+.cancel-reason-admin .label { display: block; margin-bottom: 4px; }
+.cancel-reason-text { display: block; font-size: 12px; line-height: 1.4; color: #C62828; font-weight: 600; }
+
 .cancel-actor-chip {
-  display: inline-block;
-  margin-bottom: 6px;
-  padding: 3px 9px;
-  border-radius: 999px;
-  background: #fee2e2;
-  color: #9f1239;
-  border: 1px solid #fecaca;
-  font-size: 0.72rem;
-  font-weight: 700;
+  display: inline-block; margin-bottom: 6px; padding: 3px 9px; border-radius: 9999px;
+  background: #FFEBEE; color: #C62828; border: 1px solid #EF5350; font-size: 11px; font-weight: 700;
 }
 
-.delivery-fail-box .df-hint {
-  margin: 0;
-  font-size: 0.74rem;
-  line-height: 1.35;
-  color: #9a3412;
-  font-weight: 600;
-}
+.cancel-meta-admin { margin-top: 8px; font-size: 12px; line-height: 1.45; color: #4B6B4D; }
+.cancel-meta-admin .label { display: inline; font-weight: 600; margin-right: 6px; color: #7E9E80; }
+.cancel-meta-admin .mono  { font-family: ui-monospace, monospace; font-size: 11px; word-break: break-all; }
+.cancel-meta-admin .hint  { color: #7E9E80; font-size: 11px; }
 
-.status-confirm-field-hint {
-  margin: 0 0 4px;
-  font-size: 0.75rem;
-  color: #6b7280;
-}
+.status-confirm-field-hint { margin: 0 0 4px; font-size: 11px; color: #7E9E80; }
 
-.cancel-quick-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-.cancel-quick-label {
-  font-size: 0.76rem;
-  font-weight: 700;
-  color: #4b5563;
-  width: 100%;
-}
+.cancel-quick-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
+.cancel-quick-label { font-size: 11px; font-weight: 700; color: #4B6B4D; width: 100%; }
 .cancel-quick-chip {
-  border: 1px solid #d4e9d5;
-  background: #f4faf4;
-  color: #226c26;
-  font-size: 0.78rem;
-  font-weight: 600;
-  padding: 6px 10px;
-  border-radius: 999px;
-  cursor: pointer;
+  border: 1px solid #E2EEE2; background: #F0F7F0; color: #36873A;
+  font-size: 12px; font-weight: 600; font-family: 'Be Vietnam Pro', sans-serif;
+  padding: 5px 10px; border-radius: 9999px; cursor: pointer; transition: all 150ms;
 }
-.cancel-quick-chip:hover {
-  background: #e8f5e9;
-  border-color: #2fa333;
-}
+.cancel-quick-chip:hover { background: #E2EEE2; border-color: #36873A; }
 
 .status-confirm-inline-error {
-  margin: 0 0 12px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #b91c1c;
-  font-size: 0.85rem;
-  font-weight: 600;
-  line-height: 1.35;
+  margin: 0 0 12px; padding: 10px 12px; border-radius: 8px;
+  background: #FFEBEE; border: 1px solid #EF5350; color: #C62828; font-size: 13px; font-weight: 600; line-height: 1.35;
 }
 
-.state-box { text-align: center; padding: 24px; color: #666; }
-.state-box.error { color: #d62828; }
+.state-box { text-align: center; padding: 28px; color: #7E9E80; font-size: 13px; }
+.state-box.error { color: #C62828; }
 .spin { display: inline-block; animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* Modal xác nhận đổi trạng thái */
-.status-confirm-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  z-index: 1040;
-}
+.status-confirm-backdrop { position: fixed; inset: 0; background: rgba(26,46,27,.45); z-index: 200; }
+
 .status-confirm-dialog {
-  position: fixed;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: min(420px, calc(100vw - 32px));
-  max-height: calc(100vh - 48px);
-  overflow: auto;
-  background: #fff;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
-  border: 1px solid #e8e8e8;
-  z-index: 1050;
+  position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: min(420px, calc(100vw - 32px)); max-height: calc(100vh - 48px); overflow: auto;
+  background: #FFFFFF; border-radius: 12px; border: 1px solid #E2EEE2; padding: 20px;
+  box-shadow: 0 8px 24px rgba(54,135,58,.12); z-index: 200;
 }
-.status-confirm-title {
-  margin: 0 0 10px;
-  font-size: 1.1rem;
-  font-weight: 800;
-  color: #1a1a1a;
-}
-.status-confirm-text {
-  margin: 0 0 16px;
-  font-size: 0.92rem;
-  line-height: 1.45;
-  color: #444;
-}
+
+.status-confirm-title { margin: 0 0 10px; font-size: 15px; font-weight: 700; color: #1A2E1B; }
+.status-confirm-text  { margin: 0 0 16px; font-size: 13px; line-height: 1.5; color: #4B6B4D; }
+
 .status-confirm-reject label {
-  display: block;
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: #92400e;
-  margin-bottom: 6px;
+  display: block; font-size: 11px; font-weight: 700; color: #B8860B;
+  text-transform: uppercase; letter-spacing: .4px; margin-bottom: 6px;
 }
+
 .status-confirm-textarea {
-  width: 100%;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  padding: 10px;
-  font-size: 0.88rem;
-  margin-bottom: 12px;
-  resize: vertical;
-  min-height: 72px;
+  width: 100%; border-radius: 8px; border: 1px solid #E2EEE2; padding: 10px;
+  font-size: 13px; font-family: 'Be Vietnam Pro', sans-serif; color: #1A2E1B;
+  margin-bottom: 12px; resize: vertical; min-height: 72px; outline: none;
+  transition: border-color 150ms, box-shadow 150ms;
 }
-.status-confirm-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  flex-wrap: wrap;
-}
+.status-confirm-textarea:focus { border-color: #36873A; box-shadow: 0 0 0 3px rgba(54,135,58,.10); }
+
+.status-confirm-actions { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
 .status-confirm-cancel { min-width: 88px; }
