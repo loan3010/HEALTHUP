@@ -1,6 +1,7 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
+
 @Component({
   selector: 'app-admin-sidebar',
   standalone: true,
@@ -12,12 +13,15 @@ export class AdminSidebar {
   @Input() isOpen: boolean = true;
   @Output() tabChange = new EventEmitter<string>();
 
+
   activeTab: string = 'tong-quan';
+
 
   setActiveTab(tabName: string) {
     this.activeTab = tabName;
     this.tabChange.emit(tabName);
   }
+
 
   /**
    * Đồng bộ highlight sidebar khi đổi tab từ code (vd. thông báo mở đơn hàng).

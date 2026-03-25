@@ -1,115 +1,109 @@
-// import { Component } from '@angular/core';
-// import { CommonModule } from '@angular/common'; // QUAN TRỌNG: Sửa lỗi NG8002
-// import { AdminSidebar } from '../admin-sidebar/admin-sidebar';
-// import { AdminHeader } from '../admin-header/admin-header';
-// import { AdminBlog } from '../adminblog/admin-blog/admin-blog'; // Import component Blog bạn vừa tạo
-// import { Promotion } from '../admin-promotion/promotion/promotion';
-// import {Consulting } from '../admin-consulting/consulting/consulting';
-// import { AdminChatbot } from '../admin_chatbot/admin-chatbot/admin-chatbot';
-
-// @Component({
-//   selector: 'app-admin-layout',
-//   standalone: true,
-//   imports: [CommonModule, AdminSidebar, AdminHeader, AdminBlog, Promotion, Consulting, AdminChatbot ], // Thêm CommonModule và Blog vào đây
-//   templateUrl: './admin-layout.html',
-//   styleUrls: ['./admin-layout.css']
-// })
-// export class AdminLayout {
-//   isSidebarOpen = true;
-//   currentTab: string = 'tong-quan'; // Biến lưu trữ tab hiện tại để sửa lỗi TS2339
-
-//   toggleSidebar() {
-//     this.isSidebarOpen = !this.isSidebarOpen; 
-//   }
-
-//   // Hàm nhận dữ liệu tab từ Sidebar truyền lên
-//   onTabChange(tabName: string) {
-//     this.currentTab = tabName;
-//   }
-// }
-import {
-  Component,
-  ViewChild,
-  AfterViewInit,
-  inject,
-  DestroyRef,
-} from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Component, ViewChild, ViewContainerRef, ComponentRef, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { AdminNavBridgeService } from '../admin-nav-bridge.service';
-import { AdminSidebar } from '../admin-sidebar/admin-sidebar';
+import { Router, NavigationEnd } from '@angular/router';
+import { Subscription, filter } from 'rxjs';
 import { AdminHeader } from '../admin-header/admin-header';
-import { AdminBlog } from '../adminblog/admin-blog/admin-blog';
-import { Promotion } from '../admin-promotion/promotion/promotion';
-import { Consulting } from '../admin-consulting/consulting/consulting';
-import { AdminChatbot } from '../admin_chatbot/admin-chatbot/admin-chatbot';
-
-// --- IMPORT CÁC COMPONENT QUẢN LÝ ---
+import { AdminSidebar } from '../admin-sidebar/admin-sidebar';
 import { AdminDashboard } from '../admin-dashboard/admin-dashboard';
 import { ProductComponent } from '../admin-product/product/product';
 import { Customer } from '../admin-customer/customer/customer';
-import { CustomerDetail } from '../admin-customer/customer-detail/customer-detail';
 import { Order } from '../admin-order/order/order';
-import { OrderDetail } from '../admin-order/order-detail/order-detail';
-import { AdminAlertModalComponent } from '../admin-alert-modal/admin-alert-modal.component';
-
-// --- IMPORT COMPONENT BANNER MỚI ---
+import { Promotion } from '../admin-promotion/promotion/promotion';
 import { AdminBanner } from '../admin-banner/admin-banner';
+import { AdminBlog } from '../adminblog/admin-blog/admin-blog';
+import { Consulting } from '../admin-consulting/consulting/consulting';
+import { AdminChatbot } from '../admin_chatbot/admin-chatbot/admin-chatbot';
+import { AdminReviewComponent } from '../admin-review/admin-review';
+import { AdminAlertModalComponent } from '../admin-alert-modal/admin-alert-modal.component';
 
 @Component({
   selector: 'app-admin-layout',
   standalone: true,
-  imports: [
-    CommonModule, 
-    AdminSidebar, 
-    AdminHeader, 
-    AdminBlog, 
-    Promotion, 
-    Consulting, 
-    AdminChatbot,
-    AdminDashboard,
-    ProductComponent,  
-    CustomerDetail,
-    Customer,
-    Order,
-    OrderDetail,
-    AdminBanner, 
-    AdminAlertModalComponent
-  ],
+  imports: [CommonModule, AdminHeader, AdminSidebar, AdminAlertModalComponent],
   templateUrl: './admin-layout.html',
   styleUrls: ['./admin-layout.css']
 })
-export class AdminLayout implements AfterViewInit {
-  @ViewChild('sideNav') private sideNav?: AdminSidebar;
-
-  private readonly navBridge = inject(AdminNavBridgeService);
-  private readonly destroyRef = inject(DestroyRef);
-
+export class AdminLayout implements OnInit, OnDestroy {
+  @ViewChild('contentContainer', { read: ViewContainerRef, static: true }) contentContainer!: ViewContainerRef;
+  
   isSidebarOpen = true;
-  currentTab: string = 'tong-quan'; // Mặc định hiển thị Dashboard (Tổng quan)
+  currentTab = 'tong-quan';
+  private routerSubscription!: Subscription;
+  private currentComponentRef: ComponentRef<any> | null = null;
 
-  /**
-   * Đóng/Mở thanh menu bên trái
-   */
-  ngAfterViewInit(): void {
-    // Thông báo / deep link: đổi tab + đồng bộ viền active trên sidebar.
-    this.navBridge.switchTab$
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((tab: string) => {
-        this.currentTab = tab;
-        this.sideNav?.setActiveTabSilent(tab);
-      });
+  constructor(private router: Router) {}
+
+  ngOnInit(): void {
+    // Lắng nghe sự kiện navigation để đồng bộ activeTab từ URL nếu cần
+    this.routerSubscription = this.router.events.pipe(
+      filter(event => event instanceof NavigationEnd)
+    ).subscribe(() => {
+      // Có thể parse URL để set activeTab nếu muốn
+    });
+    
+    // Mặc định load dashboard
+    this.loadComponent('tong-quan');
   }
 
-  toggleSidebar() {
+  ngOnDestroy(): void {
+    this.routerSubscription?.unsubscribe();
+  }
+
+  onTabChange(tabName: string): void {
+    this.currentTab = tabName;
+    this.loadComponent(tabName);
+  }
+
+  toggleSidebar(): void {
     this.isSidebarOpen = !this.isSidebarOpen;
   }
 
-  /**
-   * Xử lý khi người dùng chuyển tab trên Sidebar
-   * @param tabName Tên tab nhận từ component Sidebar
-   */
-  onTabChange(tabName: string) {
-    this.currentTab = tabName;
+  private loadComponent(tabName: string): void {
+    // Xóa component hiện tại
+    if (this.currentComponentRef) {
+      this.currentComponentRef.destroy();
+      this.currentComponentRef = null;
+    }
+
+    this.contentContainer.clear();
+
+    let component: any;
+
+    switch (tabName) {
+      case 'tong-quan':
+        component = AdminDashboard;
+        break;
+      case 'san-pham':
+        component = ProductComponent;
+        break;
+      case 'khach-hang':
+        component = Customer;
+        break;
+      case 'don-hang':
+        component = Order;
+        break;
+      case 'khuyen-mai':
+        component = Promotion;
+        break;
+      case 'banner':
+        component = AdminBanner;
+        break;
+      case 'blog':
+        component = AdminBlog;
+        break;
+      case 'danh-gia':
+        component = AdminReviewComponent;
+        break;
+      case 'tu-van':
+        component = Consulting;
+        break;
+      case 'chatbot':
+        component = AdminChatbot;
+        break;
+      default:
+        component = AdminDashboard;
+    }
+
+    this.currentComponentRef = this.contentContainer.createComponent(component);
   }
 }

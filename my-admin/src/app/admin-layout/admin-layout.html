@@ -11,52 +11,7 @@
     </app-admin-sidebar>
 
     <main class="content-area">
-      <div [ngSwitch]="currentTab">
-        
-        <div *ngSwitchCase="'tong-quan'">
-          <app-admin-dashboard></app-admin-dashboard>
-        </div>
-
-        <div *ngSwitchCase="'san-pham'">
-          <app-product></app-product>
-        </div>
-
-        <div *ngSwitchCase="'khach-hang'">
-          <app-customer></app-customer>
-        </div>
-
-        <div *ngSwitchCase="'don-hang'">
-          <app-order></app-order>
-        </div>
-
-        <div *ngSwitchCase="'banner'">
-          <app-admin-banner></app-admin-banner>
-        </div>
-
-        <div *ngSwitchCase="'khuyen-mai'">
-          <app-promotion></app-promotion>
-        </div>
-
-        <div *ngSwitchCase="'blog'">
-          <app-admin-blog></app-admin-blog>
-        </div>
-
-        <div *ngSwitchCase="'tu-van'">
-          <app-consulting></app-consulting>
-        </div>
-
-        <div *ngSwitchCase="'chatbot'">
-          <app-admin-chatbot></app-admin-chatbot>
-        </div>
-
-        <div *ngSwitchDefault>
-          <div style="text-align: center; margin-top: 50px;">
-            <i class="bi bi-cone-striped" style="font-size: 3rem; color: #ccc;"></i>
-            <p>Tính năng quản lý <strong>{{currentTab}}</strong> đang được phát triển.</p>
-          </div>
-        </div>
-
-      </div>
+      <div #contentContainer></div>
     </main>
 
   </div>

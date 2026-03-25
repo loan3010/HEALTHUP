@@ -8,6 +8,7 @@ const Product   = require('../models/Product');
 const Order     = require('../models/Order');
 const { notifyAdminReviewNew } = require('../services/adminNotificationService');
 
+
 // ── Multer: lưu ảnh review vào public/images/reviews ──
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -27,6 +28,7 @@ const upload = multer({
   }
 });
 
+
 // ── Helper: cập nhật rating + reviewCount trên Product ──
 async function syncProductStats(productId) {
   try {
@@ -42,6 +44,7 @@ async function syncProductStats(productId) {
   } catch (e) { console.error('syncProductStats error:', e.message); }
 }
 
+
 // ─────────────────────────────────────────────────────────────────
 // POST /api/reviews/upload-images — upload tối đa 5 ảnh
 // ─────────────────────────────────────────────────────────────────
@@ -56,6 +59,7 @@ router.post('/upload-images', upload.array('images', 5), (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 // ─────────────────────────────────────────────────────────────────
 // GET /api/reviews/product/:productId
@@ -139,6 +143,7 @@ router.get('/product/:productId', async (req, res) => {
   }
 });
 
+
 // ─────────────────────────────────────────────────────────────────
 // POST /api/reviews — tạo đánh giá mới
 // ✅ Chỉ cho phép nếu userId có đơn hàng delivered chứa productId
@@ -191,6 +196,7 @@ router.post('/', async (req, res) => {
   }
 });
 
+
 // ─────────────────────────────────────────────────────────────────
 // PUT /api/reviews/:id — sửa đánh giá
 // ─────────────────────────────────────────────────────────────────
@@ -213,6 +219,7 @@ router.put('/:id', async (req, res) => {
   }
 });
 
+
 // ─────────────────────────────────────────────────────────────────
 // DELETE /api/reviews/:id — xóa đánh giá
 // ─────────────────────────────────────────────────────────────────
@@ -227,6 +234,7 @@ router.delete('/:id', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 // ─────────────────────────────────────────────────────────────────
 // PATCH /api/reviews/:id/helpful — đánh dấu hữu ích
@@ -244,5 +252,156 @@ router.patch('/:id/helpful', async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 });
+
+
+// ================================================================
+// === ADMIN REVIEW MANAGEMENT APIs ===
+// ================================================================
+
+// ─────────────────────────────────────────────────────────────────
+// PUT /api/reviews/:id/admin-reply — Admin trả lời đánh giá
+// ─────────────────────────────────────────────────────────────────
+router.put('/:id/admin-reply', async (req, res) => {
+  try {
+    const { replyText } = req.body;
+    const reviewId = req.params.id;
+
+    if (!replyText || replyText.trim() === '') {
+      return res.status(400).json({ error: 'Nội dung phản hồi không được để trống' });
+    }
+
+    const review = await Review.findByIdAndUpdate(
+      reviewId,
+      {
+        adminReply: replyText.trim(),
+        adminReplyDate: new Date().toLocaleDateString('vi-VN')
+      },
+      { new: true, runValidators: true }
+    ).lean();
+
+    if (!review) {
+      return res.status(404).json({ error: 'Không tìm thấy đánh giá' });
+    }
+
+    await syncProductStats(review.productId);
+
+    res.json({ 
+      success: true, 
+      message: 'Đã phản hồi đánh giá thành công',
+      review 
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+// ─────────────────────────────────────────────────────────────────
+// GET /api/reviews/admin/all — Lấy tất cả đánh giá cho admin
+// ─────────────────────────────────────────────────────────────────
+router.get('/admin/all', async (req, res) => {
+  try {
+    const { page = 1, limit = 20, search = '', hasReply = 'all' } = req.query;
+
+    let query = {};
+
+    // Xử lý tìm kiếm
+    if (search && search.trim()) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { text: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Xử lý lọc theo trạng thái phản hồi
+    if (hasReply === 'replied') {
+      // Đã phản hồi: adminReply có nội dung (không null và không rỗng)
+      query.adminReply = { $nin: [null, ''] };
+    } else if (hasReply === 'unreplied') {
+      // Chưa phản hồi: adminReply là null hoặc rỗng (bao gồm cả chuỗi rỗng)
+      if (search && search.trim()) {
+        query = {
+          $and: [
+            { adminReply: { $in: [null, ''] } },
+            { $or: [
+              { name: { $regex: search, $options: 'i' } },
+              { text: { $regex: search, $options: 'i' } }
+            ]}
+          ]
+        };
+      } else {
+        query.adminReply = { $in: [null, ''] };
+      }
+    }
+
+    const total = await Review.countDocuments(query);
+
+    const reviews = await Review.find(query)
+      .populate('productId', 'name images')
+      .sort({ createdAt: -1 })
+      .skip((Number(page) - 1) * Number(limit))
+      .limit(Number(limit))
+      .lean();
+
+    res.json({
+      reviews,
+      total,
+      page: Number(page),
+      totalPages: Math.ceil(total / Number(limit))
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+// ─────────────────────────────────────────────────────────────────
+// DELETE /api/reviews/:id/admin-delete — Admin xóa đánh giá
+// ─────────────────────────────────────────────────────────────────
+router.delete('/:id/admin-delete', async (req, res) => {
+  try {
+    const review = await Review.findByIdAndDelete(req.params.id).lean();
+    if (!review) {
+      return res.status(404).json({ error: 'Không tìm thấy đánh giá' });
+    }
+
+    await syncProductStats(review.productId);
+    res.json({ message: 'Đã xóa đánh giá thành công', id: req.params.id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+// ─────────────────────────────────────────────────────────────────
+// DELETE /api/reviews/:id/admin-reply — Admin xóa phản hồi
+// ─────────────────────────────────────────────────────────────────
+router.delete('/:id/admin-reply', async (req, res) => {
+  try {
+    const reviewId = req.params.id;
+
+    const review = await Review.findByIdAndUpdate(
+      reviewId,
+      {
+        adminReply: null,
+        adminReplyDate: null
+      },
+      { new: true, runValidators: true }
+    ).lean();
+
+    if (!review) {
+      return res.status(404).json({ error: 'Không tìm thấy đánh giá' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Đã xóa phản hồi thành công',
+      review
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 module.exports = router;
