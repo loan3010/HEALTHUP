@@ -5,10 +5,8 @@
   rel="noopener noreferrer"
   aria-label="Mở Zalo chat với cửa hàng"
   title="Chat Zalo">
-  <!-- Hai vòng sóng lệch pha — sóng tỏa liên tục (tông xanh Zalo) -->
   <span class="hu-zalo-pulse-ring" aria-hidden="true"></span>
   <span class="hu-zalo-pulse-ring hu-zalo-pulse-ring--delay" aria-hidden="true"></span>
-  <!-- Wrapper để rung icon: transform trên nút vẫn dùng cho hover scale, không đè animation -->
   <span class="hu-zalo-float-icon-wrap" aria-hidden="true">
     <img src="/assets/icons/zalo.png" alt="" />
   </span>
@@ -19,11 +17,8 @@
   [class.active]="isOpen"
   (click)="toggleChat()"
   aria-label="Mở chat">
-  
   <div class="hu-pulse-ring"></div>
-
   <i class="bi bi-chat-dots-fill hu-chat-icon" style="font-size: 1.8rem; line-height: 1;"></i>
-  
   <i class="bi bi-x-lg hu-close-icon" style="font-size: 1.8rem; line-height: 1;"></i>
 </button>
 
@@ -131,15 +126,25 @@
 
   </div>
 
-  <div class="hu-quick-replies" *ngIf="!showWelcome && categories.length > 0">
-    <p class="hu-qr-title">Chọn chủ đề:</p>
-    <div class="hu-qr-buttons">
-      <button
-        *ngFor="let category of categories"
-        class="hu-qr-btn"
-        (click)="handleCategoryClick(category)">
-        {{ category.icon }} {{ category.name }}
-      </button>
+  <div class="hu-quick-replies" *ngIf="!showWelcome && categories.length > 0" [class.hu-qr-expanded]="isQrExpanded">
+    
+    <div class="hu-qr-header" (click)="toggleQr()">
+      <div class="hu-qr-header-left">
+        <i class="bi bi-grid-fill"></i>
+        <p class="hu-qr-title">Chọn chủ đề</p>
+      </div>
+      <i class="bi" [class.bi-chevron-up]="isQrExpanded" [class.bi-chevron-down]="!isQrExpanded"></i>
+    </div>
+
+    <div class="hu-qr-content" *ngIf="isQrExpanded">
+      <div class="hu-qr-buttons">
+        <button
+          *ngFor="let category of categories"
+          class="hu-qr-btn"
+          (click)="handleCategoryClick(category)">
+          {{ category.icon }} {{ category.name }}
+        </button>
+      </div>
     </div>
   </div>
 
