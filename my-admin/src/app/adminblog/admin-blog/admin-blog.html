@@ -1,10 +1,18 @@
-<div class="blog-section-wrapper">
+<!-- <div class="blog-section-wrapper">
   <nav class="breadcrumb">
     <span>Quản trị viên</span> 
     <span class="separator">/</span>
     <span>Quản lý Blogs</span> 
     <span class="separator">/</span>
     <span class="active">{{ breadcrumbActiveText }}</span>
+  </nav> -->
+  <div class="blog-section-wrapper">
+  <nav class="promo-breadcrumb-box">
+    <span class="p-crumb">Quản trị viên</span>
+    <span class="p-sep">/</span>
+    <span class="p-crumb">Quản lý Blogs</span>
+    <span class="p-sep">/</span>
+    <span class="p-active">{{ breadcrumbActiveText }}</span>
   </nav>
 
   <div [ngSwitch]="viewMode">

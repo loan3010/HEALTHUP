@@ -1,5 +1,5 @@
 <div class="consulting-wrapper">
-  <nav class="pro-breadcrumb">
+  <!-- <nav class="pro-breadcrumb">
     <span class="pro-crumb-link">Quản trị viên</span> 
     <span class="pro-crumb-separator">/</span>
     <span class="pro-crumb-link">Quản lý tư vấn</span> 
@@ -7,6 +7,16 @@
     <span class="pro-crumb-active">
       {{ viewMode === 'list' ? 'Danh sách tư vấn' : selectedProduct?.name }}
     </span>
+  </nav> -->
+  <nav class="promo-breadcrumb-box">
+    <span class="p-crumb">Quản trị viên</span>
+    <span class="p-sep">/</span>
+    <span class="p-crumb">Quản lý tư vấn</span>
+    <span class="p-sep">/</span>
+    <span class="p-active">
+      {{ viewMode === 'list' ? 'Danh sách tư vấn' : selectedProduct?.name }}
+    </span>
+   
   </nav>
 
   <div class="consulting-main-content">

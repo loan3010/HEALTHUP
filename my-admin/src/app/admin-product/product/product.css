@@ -10,7 +10,7 @@
 * { box-sizing: border-box; }
 
 .promotion-wrapper {
-  padding: 24px 32px;
+  /* padding: 24px 32px; */
   background: #FAF6F0;
   min-height: 100vh;
   font-family: 'Be Vietnam Pro', sans-serif;
@@ -51,12 +51,11 @@
   margin-bottom: 24px;
 }
 .page-title {
-  font-size: 1.45rem;
+  color: #36873A; /* --hu-primary */
+  font-size: 22px;
   font-weight: 700;
-  color: #1A2E1B;
-  margin: 0 0 4px 0;
-  letter-spacing: -0.01em;
-  font-family: 'Be Vietnam Pro', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: .3px;
 }
 .total-count {
   font-size: 0.82rem;

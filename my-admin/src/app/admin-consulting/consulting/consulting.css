@@ -1,11 +1,30 @@
 /* --- TỔNG THỂ & BREADCRUMB --- */
-.consulting-wrapper { padding: 10px; }
-.pro-breadcrumb { display: flex; align-items: center; gap: 12px; font-size: 0.85rem; margin-bottom: 30px; }
-.pro-crumb-link { color: #666; cursor: pointer; text-decoration: none; }
-.pro-crumb-link:hover { color: var(--color-accent) }
-.pro-crumb-separator { color: #ccc; }
-.pro-crumb-active { color: #333; font-weight: 700; }
-.pro-crumb-active:hover { color: var(--color-accent) }
+/* ── BREADCRUMB ── */
+.promo-breadcrumb-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.p-crumb {
+  font-size: 0.8rem;
+  color: #7E9E80;
+  cursor: pointer;
+  transition: color 150ms;
+  font-weight: 500;
+}
+.p-crumb:hover { color: #36873A; }
+.p-sep {
+  color: #E2EEE2;
+  font-size: 0.85rem;
+  user-select: none;
+}
+.p-active {
+  font-size: 0.8rem;
+  color: #36873A;
+  font-weight: 600;
+}
+
 
 
 /* --- PRODUCT CARDS --- */
