@@ -16,18 +16,11 @@ function jwtSecretSocket() {
 const app = express();
 
 // Middleware
-// Cho phép header giỏ hàng (preflight OPTIONS) — thiếu mục này trình duyệt có thể không gửi x-guest-cart-id / x-user-id.
+// CẬP NHẬT: Đã mở CORS (callback(null, true)) để các link Vercel của Frontend sau này gọi được API mà không bị chặn.
 app.use(cors({
   origin(origin, callback) {
-    if (
-      !origin ||
-      origin.startsWith('http://localhost') ||
-      origin.startsWith('http://127.0.0.1')
-    ) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
+    // Cho phép TẤT CẢ các domain (kể cả localhost và Vercel)
+    callback(null, true);
   },
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id', 'x-guest-cart-id'],
@@ -106,15 +99,8 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin(origin, callback) {
-      if (
-        !origin ||
-        origin.startsWith('http://localhost') ||
-        origin.startsWith('http://127.0.0.1')
-      ) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
+      // CẬP NHẬT: Mở luôn CORS cho Socket.io
+      callback(null, true);
     },
     credentials: true,
   },
@@ -147,4 +133,7 @@ server.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
 
-module.exports = { app, server, io };
+// CẬP NHẬT: Export app ra cho Vercel Serverless Function đọc, đồng thời giữ nguyên server, io cho các file khác nếu cần
+module.exports = app;
+module.exports.server = server;
+module.exports.io = io;
