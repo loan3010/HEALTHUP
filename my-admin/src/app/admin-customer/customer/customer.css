@@ -3,7 +3,8 @@
 
 /* --- TỔNG THỂ --- */
 .customer-list-container {
-  padding: 8px;
+  padding: 24px 24px;
+  /* padding: 8px; */
   animation: fadeIn 0.3s cubic-bezier(.4,0,.2,1);
 }
 .header-row {

@@ -1,5 +1,6 @@
 /* --- LAYOUT CHA: KHÓA KHUNG CỐ ĐỊNH --- */
 .chatbot-layout-fixed {
+  padding: 24px 24px;
   display: flex; 
   width: 100%;
   height: calc(100vh - 100px); /* Bám sát Header chính */

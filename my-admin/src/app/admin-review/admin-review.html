@@ -1,0 +1,220 @@
+<div class="review-page">
+  <!-- BREADCRUMB -->
+  <nav class="promo-breadcrumb-box">
+    <span class="p-crumb">Quản trị viên</span>
+    <span class="p-sep">/</span>
+    <span class="p-crumb">Quản lý đánh giá</span>
+    <span class="p-sep">/</span>
+    <span class="p-active">Danh sách đánh giá</span>
+  </nav>
+
+  <div class="page-header">
+    <h2 class="page-title">Quản lý đánh giá</h2>
+    <p class="page-subtitle">Quản lý và phản hồi đánh giá từ khách hàng</p>
+  </div>
+
+  <!-- Toolbar - chỉ còn ô tìm kiếm -->
+  <div class="review-toolbar">
+    <div class="search-box">
+      <i class="bi bi-search"></i>
+      <input
+        type="text"
+        placeholder="Tên khách hàng hoặc tên sản phẩm"
+        [(ngModel)]="searchKeyword"
+        (keyup.enter)="onSearch()"
+      >
+      <button class="btn-search" (click)="onSearch()">Tìm kiếm</button>
+    </div>
+  </div>
+
+  <!-- KPI Cards - bộ lọc duy nhất -->
+  <div class="kpi-grid">
+    <div class="kpi-card" [class.active]="filterHasReply === 'all'" (click)="setFilter('all')">
+      <div class="kpi-value">{{ getTotalCount() }}</div>
+      <div class="kpi-label">Tổng đánh giá</div>
+    </div>
+    <div class="kpi-card" [class.active]="filterHasReply === 'replied'" (click)="setFilter('replied')">
+      <div class="kpi-value">{{ getRepliedCount() }}</div>
+      <div class="kpi-label">Đã phản hồi</div>
+    </div>
+    <div class="kpi-card" [class.active]="filterHasReply === 'unreplied'" (click)="setFilter('unreplied')">
+      <div class="kpi-value">{{ getUnrepliedCount() }}</div>
+      <div class="kpi-label">Chưa phản hồi</div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-state" *ngIf="isLoading">
+    <div class="spinner-border" role="status">
+      <span class="visually-hidden">Đang tải...</span>
+    </div>
+    <p>Đang tải danh sách đánh giá...</p>
+  </div>
+
+  <!-- Reviews List -->
+  <div class="reviews-list" *ngIf="!isLoading">
+    <div class="review-card" *ngFor="let review of reviews">
+      <div class="review-header">
+        <div class="reviewer-info">
+          <div class="reviewer-avatar">
+            {{ (review.name || 'K').charAt(0).toUpperCase() }}
+          </div>
+          <div>
+            <div class="reviewer-name">{{ review.name || 'Khách hàng' }}</div>
+            <div class="review-date">{{ formatDate(review.createdAt) }}</div>
+          </div>
+        </div>
+        <div class="review-rating">
+          <span class="stars">{{ getStarRating(review.rating) }}</span>
+          <span class="rating-value">{{ review.rating }}/5</span>
+        </div>
+      </div>
+
+      <div class="product-info">
+        <img
+          [src]="getProductImage(review.productId)"
+          [alt]="getProductName(review.productId)"
+          class="product-thumb"
+        >
+        <div class="product-name">
+          <span class="product-link" (click)="goToProduct(getProductId(review.productId))">
+            {{ getProductName(review.productId) }}
+          </span>
+        </div>
+      </div>
+
+      <div class="review-content">
+        <p class="review-text">{{ review.text }}</p>
+        <div class="review-tags" *ngIf="review.tags?.length">
+          <span class="tag" *ngFor="let tag of review.tags">
+            <i class="bi bi-check-circle-fill me-1"></i>{{ tag }}
+          </span>
+        </div>
+        <div class="review-images" *ngIf="review.imgs?.length">
+          <img *ngFor="let img of review.imgs" [src]="img" class="review-img">
+        </div>
+        <div class="review-meta">
+          <span class="helpful-count">
+            <i class="bi bi-hand-thumbs-up"></i> {{ review.helpful || 0 }} hữu ích
+          </span>
+          <span class="verified-badge" *ngIf="review.verified">
+            <i class="bi bi-patch-check-fill"></i> Đã mua hàng
+          </span>
+        </div>
+      </div>
+
+      <!-- Admin Reply -->
+      <div class="admin-reply" *ngIf="review.adminReply">
+        <div class="reply-header">
+          <i class="bi bi-reply-fill"></i>
+          <span>HealthUp phản hồi</span>
+          <span class="reply-date" *ngIf="review.adminReplyDate">{{ review.adminReplyDate }}</span>
+          <button class="btn-delete-reply" (click)="deleteReply(review, $event)" title="Xóa phản hồi">
+            <i class="bi bi-trash3"></i>
+          </button>
+        </div>
+        <p class="reply-text">{{ review.adminReply }}</p>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="review-actions">
+        <button
+          class="btn-reply"
+          [class.replied]="review.adminReply"
+          (click)="openReplyModal(review)"
+        >
+          <i class="bi" [class.bi-chat-text]="!review.adminReply" [class.bi-pencil-square]="review.adminReply"></i>
+          {{ review.adminReply ? 'Sửa phản hồi' : 'Phản hồi' }}
+        </button>
+        <button
+          class="btn-delete"
+          (click)="openDeleteModal(review)"
+        >
+          <i class="bi bi-trash3"></i>
+          Xóa đánh giá
+        </button>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state" *ngIf="reviews.length === 0">
+      <i class="bi bi-star"></i>
+      <p>Không có đánh giá nào</p>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination" *ngIf="totalPages > 1">
+      <button class="page-btn" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+      <span class="page-info">Trang {{ currentPage }} / {{ totalPages }}</span>
+      <button class="page-btn" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Reply Modal -->
+<div class="modal-overlay" *ngIf="showReplyModal" (click)="closeReplyModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>
+        <i class="bi bi-chat-text me-2"></i>
+        {{ selectedReview?.adminReply ? 'Sửa phản hồi' : 'Phản hồi đánh giá' }}
+      </h3>
+      <button class="btn-close" (click)="closeReplyModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="review-preview" *ngIf="selectedReview">
+        <div class="preview-header">
+          <strong>{{ selectedReview.name }}</strong>
+          <span class="stars-sm">{{ getStarRating(selectedReview.rating) }}</span>
+        </div>
+        <p class="preview-text">{{ selectedReview.text }}</p>
+      </div>
+      <div class="reply-input">
+        <label>Nội dung phản hồi</label>
+        <textarea
+          rows="4"
+          placeholder="Nhập phản hồi của bạn..."
+          [(ngModel)]="replyText"
+        ></textarea>
+        <small>Phản hồi sẽ hiển thị công khai cùng với đánh giá của khách hàng</small>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" (click)="closeReplyModal()" [disabled]="isSubmitting">Hủy</button>
+      <button class="btn-submit" (click)="submitReply()" [disabled]="isSubmitting">
+        <i class="bi bi-send me-1" *ngIf="!isSubmitting"></i>
+        <div class="spinner-border spinner-border-sm me-1" *ngIf="isSubmitting"></div>
+        {{ isSubmitting ? 'Đang gửi...' : (selectedReview?.adminReply ? 'Cập nhật' : 'Gửi phản hồi') }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Review Modal -->
+<div class="modal-overlay" *ngIf="showDeleteModal" (click)="closeDeleteModal()">
+  <div class="modal-content modal-sm" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3><i class="bi bi-exclamation-triangle-fill me-2 text-warning"></i>Xác nhận xóa đánh giá</h3>
+      <button class="btn-close" (click)="closeDeleteModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p>Bạn có chắc chắn muốn xóa đánh giá này?</p>
+      <p class="text-muted small">Hành động này không thể hoàn tác.</p>
+      <div class="review-preview-sm" *ngIf="reviewToDelete">
+        <strong>{{ reviewToDelete.name }}</strong>
+        <p class="mb-0 text-truncate">{{ reviewToDelete.text }}</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" (click)="closeDeleteModal()" [disabled]="isDeleting">Hủy</button>
+      <button class="btn-delete-confirm" (click)="confirmDelete()" [disabled]="isDeleting">
+        <div class="spinner-border spinner-border-sm me-1" *ngIf="isDeleting"></div>
+        {{ isDeleting ? 'Đang xóa...' : 'Xóa đánh giá' }}
+      </button>
+    </div>
+  </div>
+</div>

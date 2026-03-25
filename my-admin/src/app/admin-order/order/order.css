@@ -1,7 +1,8 @@
 /* HealthUp Admin – order.css */
 /* Restyled theo HealthUp Design System v1.0 */
 
-.order-page { padding: 8px; }
+.order-page { 
+  padding: 24px 24px; }
 
 .header-row {
   margin-bottom: 16px;
