@@ -11,38 +11,33 @@
   animation: fadeIn 0.4s ease-out;
 }
 
-/* --- BREADCRUMB (ĐỒNG NHẤT VỚI BLOG) --- */
-.breadcrumb {
-  font-size: 0.85rem;
-  color: #666;
-  margin-bottom: 20px;
+
+/* ── BREADCRUMB ── */
+.promo-breadcrumb-box {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-family: inherit; /* Đảm bảo dùng chung font với hệ thống */
+  gap: 8px;
+  margin-bottom: 20px;
 }
-
-.breadcrumb span {
+.p-crumb {
+  font-size: 0.8rem;
+  color: #7E9E80;
   cursor: pointer;
-  transition: 0.2s;
-  text-decoration: none !important; /* Tuyệt đối không gạch chân */
+  transition: color 150ms;
+  font-weight: 500;
+}
+.p-crumb:hover { color: #36873A; }
+.p-sep {
+  color: #E2EEE2;
+  font-size: 0.85rem;
+  user-select: none;
+}
+.p-active {
+  font-size: 0.8rem;
+  color: #36873A;
+  font-weight: 600;
 }
 
-.breadcrumb span:hover {
-  color: var(--color-accent);
-  text-decoration: none !important;
-}
-
-.breadcrumb .separator {
-  color: #ccc;
-  cursor: default; /* Dấu xuyệt thì không bấm được */
-}
-
-.breadcrumb .active {
-  color: #333;
-  font-weight: 700;
-  cursor: default;
-}
 
 /* Hover mục active vẫn đổi màu theo ý bà nhưng không gạch chân */
 .breadcrumb .active:hover {

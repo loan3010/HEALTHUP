@@ -41,7 +41,7 @@ export class PoliciesComponent {
         <h4>Quy trình đổi trả</h4>
         <ol>
           <li>Chụp ảnh / quay video sản phẩm cần đổi trả</li>
-          <li>Liên hệ hotline <strong>0123 456 789</strong> hoặc email vgreenshopro@gmail.com</li>
+          <li>Liên hệ hotline <strong>0335 512 275</strong> hoặc email healthup@gmail.com</li>
           <li>Đóng gói sản phẩm và chờ nhân viên đến lấy hàng</li>
           <li>Nhận sản phẩm mới hoặc hoàn tiền trong vòng <strong>3–5 ngày làm việc</strong></li>
         </ol>
@@ -64,7 +64,7 @@ export class PoliciesComponent {
         <ul>
           <li><strong>Thanh toán khi nhận hàng (COD)</strong> — áp dụng toàn quốc</li>
           <li><strong>Chuyển khoản ngân hàng</strong> — xác nhận trong 30 phút</li>
-          <li><strong>Ví điện tử</strong> — MoMo, ZaloPay, VNPay</li>
+          <li><strong>Ví điện tử</strong> — MoMo, VNPay</li>
           <li><strong>Thẻ tín dụng / ghi nợ</strong> — Visa, Mastercard</li>
         </ul>
 
@@ -96,7 +96,7 @@ export class PoliciesComponent {
 
         <div class="content-note">
           <i class="bi bi-info-circle"></i>
-          Mọi thắc mắc về bảo mật, vui lòng liên hệ privacy@healthup.vn
+          Mọi thắc mắc về bảo mật, vui lòng liên hệ healthup@gmail.com
         </div>
       `
     },
