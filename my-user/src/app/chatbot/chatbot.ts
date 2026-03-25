@@ -1,10 +1,11 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
-import { STORE_ZALO_PHONE, buildZaloMeUrl } from '../constants/store-contact.constants'; // Đã thêm ChangeDetectorRef
+import { STORE_ZALO_PHONE, buildZaloMeUrl } from '../constants/store-contact.constants';
 import { HttpClient } from '@angular/common/http';
 import { CommonModule, NgClass, NgIf, NgFor } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Router, RouterModule } from '@angular/router';
+import { ChatbotToggleService } from '../services/chatbot-toggle.service'; // ✅ Import service điều khiển chung
 
 // --- INTERFACES ---
 
@@ -49,13 +50,21 @@ export class ChatbotComponent implements OnInit {
   private apiUrl = 'http://localhost:3000/api/chatbot';
   readonly serverUrl = 'http://localhost:3000';
 
-  isOpen = false;
-  showWelcome = true;
+  // ✅ Sử dụng Signal từ Service để đồng bộ trạng thái với trang FAQs
+  get isOpen() { return this.chatToggleService.isOpen(); }
+  set isOpen(val: boolean) { this.chatToggleService.isOpen.set(val); }
+
+  get showWelcome() { return this.chatToggleService.showWelcome(); }
+  set showWelcome(val: boolean) { this.chatToggleService.showWelcome.set(val); }
+
   sessionId: string;
   categories: Category[] = [];
   messages: Message[] = [];
   userInput = '';
   isTyping = false;
+
+  // Trạng thái đóng/mở của danh mục chủ đề (Quick Replies)
+  isQrExpanded = true; 
 
   private conversationHistory: ConversationHistory[] = [];
 
@@ -87,7 +96,8 @@ export class ChatbotComponent implements OnInit {
     private http: HttpClient, 
     private sanitizer: DomSanitizer,
     private router: Router,
-    private cdr: ChangeDetectorRef // Inject thuốc đặc trị lỗi click 2 lần
+    private cdr: ChangeDetectorRef,
+    private chatToggleService: ChatbotToggleService // ✅ Inject service đặc trị
   ) {
     this.sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
   }
@@ -131,6 +141,12 @@ export class ChatbotComponent implements OnInit {
     this.cdr.detectChanges();
   }
 
+  // Hàm xử lý đóng/mở danh mục chủ đề
+  toggleQr(): void {
+    this.isQrExpanded = !this.isQrExpanded;
+    this.cdr.detectChanges();
+  }
+
   startChat(): void {
     this.showWelcome = false;
     this.addBotMessage(
@@ -151,7 +167,7 @@ export class ChatbotComponent implements OnInit {
       products 
     });
 
-    this.cdr.detectChanges(); // Cập nhật UI ngay khi thêm tin nhắn
+    this.cdr.detectChanges(); 
     setTimeout(() => {
       this.scrollToBottom();
       this.cdr.detectChanges();
@@ -185,17 +201,18 @@ export class ChatbotComponent implements OnInit {
 
     this.http.get<any>(`${this.apiUrl}/faqs?category=${category.name}`).subscribe({
       next: (res) => {
+        // ✅ ĐÃ CẬP NHẬT: Load 1 giây và hiện ngay
         setTimeout(() => {
           this.isTyping = false;
           const faqs = Array.isArray(res) ? res : (res.data || []);
           if (faqs.length > 0) {
-            const botText = `Dưới đây là các câu hỏi thường gặp về **${category.name}**, bạn nhấn vào để xem câu trả lời nhé:`;
+            const botText = `Dưới đây là các câu hỏi thường gặp về ${category.name}, bạn nhấn vào để xem câu trả lời nhé:`;
             this.addBotMessage(botText, faqs.slice(0, 5));
           } else {
             this.addBotMessage(`Hiện tại tôi đang cập nhật thêm thông tin về ${category.name}. Bạn có thể đặt câu hỏi cụ thể hơn cho tôi nhé!`);
           }
           this.cdr.detectChanges();
-        }, 2000); // Đợi 2 giây
+        }, 1000); 
       },
       error: () => {
         this.isTyping = false;
@@ -210,6 +227,7 @@ export class ChatbotComponent implements OnInit {
     this.isTyping = true;
     this.cdr.detectChanges();
     
+    // ✅ ĐÃ CẬP NHẬT: Load 1 giây và hiện ngay
     setTimeout(() => {
       this.isTyping = false;
       this.addBotMessage(faq.answer, undefined, faq.relatedProducts);
@@ -217,7 +235,7 @@ export class ChatbotComponent implements OnInit {
       this.pushToHistory('assistant', faq.answer);
       this.saveConversation(faq.question, faq.answer);
       this.cdr.detectChanges();
-    }, 2000); // Đợi 2 giây
+    }, 1000);
   }
 
   sendMessage(): void {
@@ -231,6 +249,7 @@ export class ChatbotComponent implements OnInit {
 
     this.http.post<any>(`${this.apiUrl}/ask`, { message: query }).subscribe({
       next: (response) => {
+        // ✅ ĐÃ CẬP NHẬT: Load 1 giây và hiện ngay
         setTimeout(() => {
           this.isTyping = false;
           if (response.success || (response.score && response.score > 0)) {
@@ -243,14 +262,15 @@ export class ChatbotComponent implements OnInit {
             this.askClaude(query);
           }
           this.cdr.detectChanges();
-        }, 2000); // Đợi 2 giây
+        }, 1000);
       },
       error: () => {
+        // ✅ ĐÃ CẬP NHẬT: Load 1 giây
         setTimeout(() => {
           this.isTyping = false;
           this.askClaude(query);
           this.cdr.detectChanges();
-        }, 2000);
+        }, 1000);
       }
     });
   }

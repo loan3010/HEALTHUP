@@ -9,6 +9,7 @@ import { AboutTheBrand } from './about-the-brand/about-the-brand';
 import { BlogComponent } from './blog/blog';
 import { BlogDetailComponent } from './blog-detail/blog-detail';
 import { PoliciesComponent } from './policies/policies';
+import { Faqs } from './faqs/faqs'; 
 
 import { Login } from './login/login';
 import { Forgotpw } from './forgotpw/forgotpw';
@@ -53,6 +54,7 @@ export const routes: Routes = [
   { path: 'blog',     component: BlogComponent },
   { path: 'blog/:id', component: BlogDetailComponent },
   { path: 'policies', component: PoliciesComponent },
+  { path: 'faqs',     component: Faqs }, // ✅ Đã cập nhật: Trỏ trực tiếp tới trang FAQs xịn
 
   // ===== SHOPPING =====
   { path: 'checkout', component: Checkout },
@@ -61,8 +63,6 @@ export const routes: Routes = [
 
   // ===== CHATBOT =====
   { path: 'chatbot', component: ChatbotComponent },
-  // Footer / header dùng /faqs — trỏ tới chatbot (hỏi đáp tại đây)
-  { path: 'faqs', redirectTo: 'chatbot', pathMatch: 'full' },
 
   // ===== USER PROFILE =====
   {
@@ -81,6 +81,6 @@ export const routes: Routes = [
     ]
   },
 
-  // ===== NOT FOUND (luôn cuối) — cùng phong cách admin, CTA về trang chủ =====
+  // ===== NOT FOUND (luôn cuối) =====
   { path: '**', component: NotFoundComponent },
 ];
