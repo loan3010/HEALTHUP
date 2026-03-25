@@ -10,7 +10,7 @@
   <div class="of-header">
     <h1 class="page-title">TẠO ĐƠN HOTLINE</h1>
     <div class="of-header-actions">
-      <button type="button" class="hu-toolbar-btn" (click)="back()">
+      <button type="button" class="hu-btn-primary" (click)="back()">
         <i class="bi bi-arrow-left"></i> Quay lại danh sách
       </button>
     </div>
@@ -269,7 +269,7 @@
 
       <div class="of-submit-error" *ngIf="submitError">{{ submitError }}</div>
       <div class="of-actions">
-        <button type="button" class="hu-toolbar-btn" (click)="back()">Hủy</button>
+        <button type="button" class="hu-btn-primary-2" (click)="back()">Hủy</button>
         <button type="button" class="hu-btn-primary" [disabled]="submitting" (click)="submit()">
           {{ submitting ? 'Đang tạo...' : 'Tạo đơn hàng' }}
         </button>
