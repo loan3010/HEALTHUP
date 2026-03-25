@@ -111,21 +111,12 @@ function calcShipping(subTotal, shippingMethod) {
 async function calcDiscountFromDB(voucherCode, subTotal, shippingFee, userId, cartProductIds) {
   if (!voucherCode) return { discountAmount: 0, discountOnType: null };
 
-
-
-
   const now   = new Date();
   const promo = await Promotion.findOne({
     code: voucherCode.trim().toUpperCase()
   });
 
-
-
-
   if (!promo) return { discountAmount: 0, discountOnType: null };
-
-
-
 
   // Thời gian
   const start = promo.startDate ? new Date(promo.startDate) : null;
@@ -133,22 +124,13 @@ async function calcDiscountFromDB(voucherCode, subTotal, shippingFee, userId, ca
   if (start && now < start) return { discountAmount: 0, discountOnType: null };
   if (end   && now > end)   return { discountAmount: 0, discountOnType: null };
 
-
-
-
   // Tổng lượt toàn hệ thống
   if (promo.totalLimit > 0 && promo.usedCount >= promo.totalLimit) {
     return { discountAmount: 0, discountOnType: null };
   }
 
-
-
-
   // Đơn tối thiểu
   if (subTotal < promo.minOrder) return { discountAmount: 0, discountOnType: null };
-
-
-
 
   // ── FIX 1: firstOrderOnly ──
   if (promo.firstOrderOnly && userId) {
@@ -158,9 +140,6 @@ async function calcDiscountFromDB(voucherCode, subTotal, shippingFee, userId, ca
     });
     if (prevCount > 0) return { discountAmount: 0, discountOnType: null };
   }
-
-
-
 
   // ── FIX 2: userLimit ──
   if (promo.userLimit > 0 && userId) {
@@ -177,29 +156,32 @@ async function calcDiscountFromDB(voucherCode, subTotal, shippingFee, userId, ca
     }
   }
 
+  // ================ THÊM 2 ĐOẠN NÀY VÀO ĐÂY ================
+  // ── FIX 5: allowedMemberRanks (VIP) ──
+  if (promo.allowedMemberRanks && promo.allowedMemberRanks.length > 0 && userId) {
+    const user = await User.findById(userId).select('memberRank');
+    if (!user || !promo.allowedMemberRanks.includes(user.memberRank)) {
+      return { discountAmount: 0, discountOnType: null };
+    }
+  }
 
-
+  // ── FIX 6: status check ──
+  if (promo.status !== 'ongoing') {
+    return { discountAmount: 0, discountOnType: null };
+  }
+  // ================ KẾT THÚC PHẦN THÊM ================
 
   // ── FIX 3: applyScope category ──
   if (promo.applyScope === 'category' && promo.appliedCategoryIds?.length > 0) {
     const ids = cartProductIds || [];
     if (ids.length === 0) return { discountAmount: 0, discountOnType: null };
 
-
-
-
     const cats = await Category.find({
       _id: { $in: promo.appliedCategoryIds }
     }).select('name').lean();
     const allowedCatNames = cats.map(c => c.name);
 
-
-
-
     if (allowedCatNames.length === 0) return { discountAmount: 0, discountOnType: null };
-
-
-
 
     const match = await Product.findOne({
       _id: { $in: ids.map(id => {
@@ -208,14 +190,8 @@ async function calcDiscountFromDB(voucherCode, subTotal, shippingFee, userId, ca
       cat: { $in: allowedCatNames }
     }).lean();
 
-
-
-
     if (!match) return { discountAmount: 0, discountOnType: null };
   }
-
-
-
 
   // ── FIX 4: applyScope product ──
   if (promo.applyScope === 'product' && promo.appliedProductIds?.length > 0) {
@@ -225,15 +201,9 @@ async function calcDiscountFromDB(voucherCode, subTotal, shippingFee, userId, ca
     if (!hasMatch) return { discountAmount: 0, discountOnType: null };
   }
 
-
-
-
   // Tính tiền giảm
   let discountAmount   = 0;
   const discountOnType = (promo.type === 'shipping') ? 'shipping' : 'items';
-
-
-
 
   if (promo.type === 'shipping') {
     if (promo.discountType === 'percent') {
@@ -260,9 +230,6 @@ async function calcDiscountFromDB(voucherCode, subTotal, shippingFee, userId, ca
       discountAmount = promo.discountValue;
     }
   }
-
-
-
 
   return { discountAmount, discountOnType };
 }
