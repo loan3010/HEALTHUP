@@ -1,20 +1,23 @@
+/* HealthUp Admin – admin-layout.css */
+/* Restyled theo HealthUp Design System v1.0 */
+
 .layout-wrapper {
   display: flex;
-  flex-direction: column; /* Đổi hướng Flex thành cột (trên-dưới) */
+  flex-direction: column;
   height: 100vh;
   overflow: hidden;
-  background-color: #f8f9fa; 
+  background-color: #FAF6F0; /* --hu-bg-main */
 }
 
 .main-body {
-  display: flex; 
-  flex: 1; /* Chiếm hết chiều cao còn lại bên dưới Header */
+  display: flex;
+  flex: 1;
   overflow: hidden;
 }
 
 .content-area {
   flex: 1;
-  padding: 30px;
-  overflow-y: auto; /* Chỉ scroll ở phần nội dung */
-  transition: all 0.3s ease-in-out; /* Mượt mà khi sidebar mở ra thụt vào */
+  padding: 24px; /* --sp-6 */
+  overflow-y: auto;
+  transition: all 150ms cubic-bezier(.4,0,.2,1); /* --duration --ease */
 }
