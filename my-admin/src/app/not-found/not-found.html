@@ -1,0 +1,35 @@
+<!-- Trang 404: tông kem + xanh HEALTHUP, copy thân thiện -->
+<main class="not-found" role="main">
+  <div class="not-found__card">
+    <!-- Logo cùng nguồn với favicon (thư mục public khi build) -->
+    <img
+      src="logo-brand.png"
+      alt="HEALTHUP"
+      class="not-found__logo"
+      width="168"
+      height="auto"
+    />
+
+    <p class="not-found__code" aria-hidden="true">404</p>
+
+    <h1 class="not-found__title">Trang này… có vẻ đi lạc rồi</h1>
+
+    <p class="not-found__desc">
+      <!-- Đôi khi chỉ là gõ nhầm một ký tự, đôi khi đường dẫn đã đổi chỗ. -->
+      <span class="not-found__desc-break">Không sao cả — mình đưa bạn về chỗ quen thuộc nhé.</span>
+    </p>
+
+    <div class="not-found__actions">
+      <a routerLink="/login" class="not-found__btn not-found__btn--primary">
+        Về trang đăng nhập
+      </a>
+      <button
+        type="button"
+        class="not-found__btn not-found__btn--ghost"
+        (click)="goBack()"
+      >
+        Quay lại trang trước
+      </button>
+    </div>
+  </div>
+</main>

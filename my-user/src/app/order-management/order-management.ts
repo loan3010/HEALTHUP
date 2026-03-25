@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { ApiService } from '../services/api.service';
+import { STORE_ZALO_PHONE, buildZaloMeUrl } from '../constants/store-contact.constants';
 
 
 @Component({
@@ -36,6 +37,13 @@ export class OrderManagement implements OnInit {
   
   // Cho phép sử dụng Math trong template
   Math = Math;
+
+  /** Link Zalo cửa hàng — cùng số với nút chat nổi (store-contact.constants). */
+  readonly zaloSellerUrl = buildZaloMeUrl(STORE_ZALO_PHONE);
+
+  /** Modal xác nhận hủy đơn (thay window.confirm). */
+  cancelConfirmOrderId: string | null = null;
+  cancelActionLoading = false;
 
   tabs = [
     { id: 'all',       label: 'Tất cả',        count: 0 },
@@ -283,11 +291,37 @@ export class OrderManagement implements OnInit {
     return '';
   }
 
-  cancelOrder(orderId: string): void {
-    if (!confirm('Bạn có chắc muốn hủy đơn này?')) return;
-    this.api.cancelOrder(orderId).subscribe({
-      next: () => { this.loadOrders(); this.api.showToast('Đơn hàng đã được hủy.', 'info'); },
-      error: () => { this.api.showToast('Không thể hủy đơn hàng. Vui lòng thử lại.', 'error'); }
+  /** Mở modal xác nhận — không dùng confirm() của trình duyệt. */
+  openCancelConfirm(orderId: string, ev?: Event): void {
+    ev?.stopPropagation();
+    this.cancelConfirmOrderId = orderId;
+    this.cdr.detectChanges();
+  }
+
+  closeCancelConfirm(): void {
+    if (this.cancelActionLoading) return;
+    this.cancelConfirmOrderId = null;
+    this.cdr.detectChanges();
+  }
+
+  /** Gọi API sau khi user bấm «Hủy đơn» trên modal. */
+  confirmCancelOrder(): void {
+    const id = this.cancelConfirmOrderId;
+    if (!id || this.cancelActionLoading) return;
+    this.cancelActionLoading = true;
+    this.api.cancelOrder(id).subscribe({
+      next: () => {
+        this.cancelActionLoading = false;
+        this.cancelConfirmOrderId = null;
+        this.loadOrders();
+        this.api.showToast('Đơn hàng đã được hủy.', 'info');
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.cancelActionLoading = false;
+        this.api.showToast('Không thể hủy đơn hàng. Vui lòng thử lại.', 'error');
+        this.cdr.detectChanges();
+      },
     });
   }
 }

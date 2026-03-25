@@ -18,16 +18,19 @@
 
   <div class="of-grid">
     <div class="of-main">
-      <!-- Khách hàng -->
+      <!-- Người đặt (hotline): SMS mã HU / link theo dõi gửi về SĐT này. -->
       <section class="of-card">
-        <h3>Khách hàng</h3>
-        <p class="of-hint">Gõ SĐT để tìm tài khoản đã có (không bắt buộc).</p>
+        <h3>Người đặt hàng</h3>
+        <p class="of-hint">
+          Người gọi đặt — hệ thống gửi tin nhắn (mã tra cứu nếu khách vãng lai, hoặc link theo dõi đơn nếu có tài
+          khoản) vào SĐT người đặt.
+        </p>
         <div class="of-cust-suggest of-field-full">
-          <label>Số điện thoại / tìm khách</label>
+          <label>Tìm khách đã đăng ký (tùy chọn)</label>
           <input
             [(ngModel)]="customerPhoneSearch"
             (ngModelChange)="onCustomerPhoneInput()"
-            placeholder="Ví dụ: 0912345678"
+            placeholder="Gõ SĐT để tìm — chọn khách để gắn tài khoản + sổ địa chỉ"
             autocomplete="off"
           />
           <ul class="of-suggest-list" *ngIf="showCustomerHits">
@@ -38,28 +41,43 @@
           </ul>
         </div>
         <div class="of-chip-row" *ngIf="linkedUserId">
-          <span class="of-chip">Đã liên kết userId</span>
+          <span class="of-chip">Đã liên kết tài khoản (userId)</span>
           <button type="button" class="hu-toolbar-btn small" (click)="clearLinkedCustomer()">Bỏ liên kết</button>
         </div>
         <div class="of-row">
           <div class="of-field">
-            <label>Họ tên nhận hàng *</label>
-            <input [(ngModel)]="fullName" (ngModelChange)="schedulePreview()" />
+            <label>Họ tên người đặt *</label>
+            <input [(ngModel)]="ordererFullName" (ngModelChange)="schedulePreview()" placeholder="Người đang gọi đặt" />
           </div>
           <div class="of-field">
-            <label>SĐT *</label>
-            <input [(ngModel)]="phone" (ngModelChange)="schedulePreview()" maxlength="10" />
+            <label>SĐT người đặt *</label>
+            <input [(ngModel)]="ordererPhone" (ngModelChange)="schedulePreview()" maxlength="10" placeholder="0xxxxxxxxx" />
           </div>
           <div class="of-field">
-            <label>Email</label>
-            <input [(ngModel)]="email" (ngModelChange)="schedulePreview()" />
+            <label>Email người đặt</label>
+            <input [(ngModel)]="ordererEmail" (ngModelChange)="schedulePreview()" />
           </div>
         </div>
       </section>
 
-      <!-- Địa chỉ -->
+      <!-- Người nhận + địa chỉ -->
       <section class="of-card">
-        <h3>Địa chỉ giao hàng</h3>
+        <h3>Người nhận &amp; địa chỉ giao hàng</h3>
+        <p class="of-hint">Có thể khác người đặt (mua hộ, gửi quà). Shipper liên hệ theo SĐT người nhận.</p>
+        <div class="of-row">
+          <div class="of-field">
+            <label>Họ tên người nhận *</label>
+            <input [(ngModel)]="fullName" (ngModelChange)="schedulePreview()" />
+          </div>
+          <div class="of-field">
+            <label>SĐT người nhận *</label>
+            <input [(ngModel)]="phone" (ngModelChange)="schedulePreview()" maxlength="10" />
+          </div>
+          <div class="of-field">
+            <label>Email người nhận</label>
+            <input [(ngModel)]="email" (ngModelChange)="schedulePreview()" />
+          </div>
+        </div>
 
         <!-- Khi đã liên kết tài khoản: hiện sổ địa chỉ (API /admin/customers/:id/addresses). -->
         <div class="of-addr-book" *ngIf="linkedUserId">
@@ -204,6 +222,7 @@
               <li *ngFor="let p of line.suggestions" (click)="pickProduct(i, p)">
                 {{ p.name }}
                 <span class="of-sub" *ngIf="p.sku">SKU: {{ p.sku }}</span>
+                <span class="of-warn-tag" *ngIf="p.isOutOfStock"> · Tạm ngừng bán</span>
               </li>
             </ul>
           </div>
@@ -212,6 +231,9 @@
             <span>Đã chọn: <strong>{{ line.productName }}</strong></span>
             <span *ngIf="line.sku" class="of-sub">SKU SP: {{ line.sku }}</span>
           </div>
+          <p class="of-preview-err" *ngIf="line.productId && line.productPaused">
+            Sản phẩm đang tạm ngừng bán — chọn sản phẩm khác.
+          </p>
 
           <div class="of-row" *ngIf="line.productId && line.variants.length">
             <div class="of-field">
@@ -251,6 +273,56 @@
         <button type="button" class="hu-btn-primary" [disabled]="submitting" (click)="submit()">
           {{ submitting ? 'Đang tạo...' : 'Tạo đơn hàng' }}
         </button>
+      </div>
+    </div>
+
+    <!-- Xác nhận trước khi tạo đơn -->
+    <div class="of-modal-backdrop" *ngIf="showConfirmCreate" (click)="closeConfirmCreate()">
+      <div class="of-modal" (click)="$event.stopPropagation()">
+        <h3>Xác nhận tạo đơn hotline</h3>
+        <p class="of-hint">Vui lòng kiểm tra: người đặt <strong>{{ ordererFullName }}</strong> · {{ ordererPhone }} — người nhận
+          <strong>{{ fullName }}</strong> · {{ phone }}.</p>
+        <p class="of-hint">Tổng tạm tính sau voucher: <strong>{{ preview ? formatMoney(preview.total) : '—' }}</strong></p>
+        <div class="of-modal-actions">
+          <button type="button" class="hu-toolbar-btn" (click)="closeConfirmCreate()">Quay lại</button>
+          <button type="button" class="hu-btn-primary" (click)="confirmCreateSubmit()">Xác nhận tạo đơn</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mockup tin nhắn (giống SMS) sau khi tạo đơn — admin đối chiếu nội dung gửi khách -->
+    <div class="of-modal-backdrop of-success-backdrop" *ngIf="showSuccessMockup" (click)="closeSuccessMockupAndContinue()">
+      <div class="of-modal of-success-modal" (click)="$event.stopPropagation()">
+        <h3>Đã tạo đơn — nội dung tin nhắn mẫu</h3>
+        <p class="of-hint">Gửi tới SĐT người đặt: <strong>{{ ordererPhone }}</strong></p>
+
+        <!-- Khách không TK: mã HU + tra cứu -->
+        <div class="of-sms-mock" *ngIf="!successLinkedMember && successGuestLookupCode">
+          <div class="of-sms-head">Tin nhắn (khách vãng lai)</div>
+          <div class="of-sms-bubble">
+            <p>
+              HEALTHUP: Đơn hàng <strong>{{ successGuestLookupCode }}</strong> đã tạo. Tra cứu tại:
+              <a [href]="userGuestLookupAbsUrl()" target="_blank" rel="noopener noreferrer">{{ userGuestLookupAbsUrl() }}</a>.
+            </p>
+            <p class="of-sub">Mã đơn: {{ successOrderCode }}</p>
+          </div>
+        </div>
+
+        <!-- Có TK: theo dõi trong tài khoản — không nhấn mã HU -->
+        <div class="of-sms-mock" *ngIf="successLinkedMember">
+          <div class="of-sms-head">Tin nhắn (có tài khoản)</div>
+          <div class="of-sms-bubble">
+            <p>
+              Đăng nhập website và mở mục <strong>Đơn hàng / Theo dõi đơn</strong> để xem trạng thái:
+              <a [href]="userTrackOrdersAbsUrl()" target="_blank" rel="noopener noreferrer">{{ userTrackOrdersAbsUrl() }}</a>.
+            </p>
+            <p class="of-sub">Mã đơn: {{ successOrderCode }}</p>
+          </div>
+        </div>
+
+        <div class="of-modal-actions">
+          <button type="button" class="hu-btn-primary" (click)="closeSuccessMockupAndContinue()">Đóng và mở chi tiết đơn</button>
+        </div>
       </div>
     </div>
 

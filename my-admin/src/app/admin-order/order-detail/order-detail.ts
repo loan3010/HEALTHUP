@@ -471,18 +471,60 @@ export class OrderDetail implements OnChanges {
     return t === 'vip' ? 'tier-vip' : 'tier-member';
   }
 
-  /** Đơn không có customerID được xem là khách vãng lai (không hạng). */
+  /** Chỉ khi đơn có userId mới hiện ID / hạng (tránh nhầm thống kê trùng SĐT). */
+  isLinkedToRegisteredUser(): boolean {
+    const id = this.order?.userId;
+    return !!id && String(id).trim().length > 0;
+  }
+
+  /** Đơn không có customerID trên snapshot enrich. */
   isGuestOrder(): boolean {
     return !String(this.order?.customerSummary?.customerID || '').trim();
   }
 
   displayCustomerId(): string {
-    return this.isGuestOrder() ? 'Không có' : String(this.order?.customerSummary?.customerID || '').trim();
+    if (!this.isLinkedToRegisteredUser()) return '—';
+    return this.isGuestOrder() ? '—' : String(this.order?.customerSummary?.customerID || '').trim();
   }
 
   displayMembershipTier(): string {
-    if (this.isGuestOrder()) return 'none';
+    if (!this.isLinkedToRegisteredUser() || this.isGuestOrder()) return 'none';
     return String(this.order?.customerSummary?.membershipTier || 'member');
+  }
+
+  /** Đơn admin hotline: luôn có khối «người đặt» (kể cả đơn cũ thiếu field `orderer` trong DB). */
+  isAdminHotlineOrder(): boolean {
+    return this.order?.orderSource === 'admin_hotline';
+  }
+
+  /** Có dữ liệu người đặt đã lưu (đơn mới). */
+  hotlineOrdererHasData(): boolean {
+    const o = this.order?.orderer;
+    return !!(o && (String(o.fullName || '').trim() || String(o.phone || '').trim()));
+  }
+
+  /**
+   * Card «Tài khoản» (không TK đăng ký) chỉ còn mã HU + hạng — dễ trùng cảm giác với người nhận.
+   * Với hotline không userId đã gộp mã tra cứu vào card người đặt → ẩn card này.
+   */
+  showGuestAccountCard(): boolean {
+    const o = this.order;
+    if (!o || this.isLinkedToRegisteredUser()) return false;
+    if (this.isAdminHotlineOrder()) return false;
+    return true;
+  }
+
+  /** Người đặt và người nhận cùng SĐT (và tên nếu có) — gợi ý admin không nhầm hai khối. */
+  hotlineSameOrdererAndRecipient(): boolean {
+    const o = this.order;
+    if (!o || !this.isAdminHotlineOrder()) return false;
+    const op = String(o.orderer?.phone || '').replace(/\D/g, '');
+    const cp = String(o.customer?.phone || '').replace(/\D/g, '');
+    if (!op || op !== cp) return false;
+    const on = String(o.orderer?.fullName || '').trim().toLowerCase();
+    const cn = String(o.customer?.fullName || '').trim().toLowerCase();
+    if (!on || !cn) return true;
+    return on === cn;
   }
 
   formatMoney(value: number): string {

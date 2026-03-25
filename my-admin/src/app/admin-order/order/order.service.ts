@@ -41,6 +41,8 @@ export interface AdminReturnLine {
 export interface AdminOrder {
   _id: string;
   orderCode?: string;
+  /** Mã tra cứu khách HU-… */
+  guestLookupCode?: string | null;
   userId?: string | null;
   customer: {
     fullName: string;
@@ -102,6 +104,8 @@ export interface AdminOrder {
     totalSpent?: number;
     hasProvisionalSpend?: boolean;
   };
+  /** Người gọi đặt (hotline). Đơn cũ có thể không có. */
+  orderer?: { fullName?: string; phone?: string; email?: string };
 }
 
 export interface AdminOrderListResponse {
@@ -138,6 +142,12 @@ export interface HotlineOrderPreview {
 }
 
 export interface HotlineOrderPayload {
+  /** Người đặt — người gọi hotline; SMS mã HU / link theo dõi gửi vào SĐT này. */
+  orderer: {
+    fullName: string;
+    phone: string;
+    email?: string;
+  };
   customer: {
     fullName: string;
     phone: string;
@@ -253,10 +263,16 @@ export class AdminOrderService {
   }
 
   /** Tạo đơn hotline — cần JWT admin. */
-  createAdminHotlineOrder(payload: HotlineOrderPayload): Observable<{ orderId: string; orderCode?: string }> {
-    return this.http.post<{ orderId: string; orderCode?: string }>(`${this.ORDERS}/admin/hotline`, payload, {
-      headers: this.authHeader(),
-    });
+  createAdminHotlineOrder(payload: HotlineOrderPayload): Observable<{
+    orderId: string;
+    orderCode?: string;
+    guestLookupCode?: string | null;
+  }> {
+    return this.http.post<{ orderId: string; orderCode?: string; guestLookupCode?: string | null }>(
+      `${this.ORDERS}/admin/hotline`,
+      payload,
+      { headers: this.authHeader() }
+    );
   }
 
   private authHeader() {

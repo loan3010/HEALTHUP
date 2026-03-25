@@ -34,11 +34,32 @@ function vietnamPhoneLookupVariants(raw) {
 // ===== OTP quên mật khẩu (demo, RAM) — key = user.phone đúng trong DB =====
 const forgotPwOtpStore = new Map();
 
+// ===== OTP đăng ký (demo, RAM) — key = SĐT chuẩn hoá (cùng logic với request-otp) =====
+const registerOtpStore = new Map();
+
 function sweepForgotPwOtps() {
   const now = Date.now();
   for (const [k, v] of forgotPwOtpStore) {
     if (now > v.expiresAt) forgotPwOtpStore.delete(k);
   }
+}
+
+function sweepRegisterOtps() {
+  const now = Date.now();
+  for (const [k, v] of registerOtpStore) {
+    if (now > v.expiresAt) registerOtpStore.delete(k);
+  }
+}
+
+/**
+ * Một khóa duy nhất cho Map OTP đăng ký — cùng SĐT nhập 09… / 9 số / +84… vẫn trùng key.
+ */
+function registerOtpStoreKey(raw) {
+  const d = String(raw || '').replace(/\D/g, '');
+  if (!d) return '';
+  if (d.startsWith('84') && d.length >= 10) return '0' + d.slice(2);
+  if (d.length === 9) return '0' + d;
+  return d;
 }
 
 /** 6 chữ số, luôn đủ 6 ký tự (100000–999999) */
@@ -107,9 +128,46 @@ const transporter = nodemailer.createTransport({
 // ======================================================
 // ================= REGISTER (USER) ====================
 // ======================================================
+
+// Cấp OTP 6 số trước khi POST /register (demo: trả demoOtp trong JSON như quên MK)
+router.post('/register/request-otp', async (req, res) => {
+  try {
+    sweepRegisterOtps();
+    const phoneRaw = String(req.body.phone || '').trim();
+    if (!phoneRaw) {
+      return res.status(400).json({ message: 'Thiếu số điện thoại' });
+    }
+
+    const phoneCandidates = vietnamPhoneLookupVariants(phoneRaw);
+    const orClause = phoneCandidates.map((p) => ({ phone: p }));
+    const existsPhone = orClause.length ? await User.findOne({ $or: orClause }) : null;
+
+    if (existsPhone && existsPhone.role !== 'guest') {
+      return res.status(409).json({ message: 'Số điện thoại đã được đăng ký.' });
+    }
+
+    const code = randomSixDigitOtp();
+    const ttlMs = 60 * 1000;
+    const key = registerOtpStoreKey(phoneRaw);
+    if (!key) {
+      return res.status(400).json({ message: 'Số điện thoại không hợp lệ.' });
+    }
+    registerOtpStore.set(key, { code, expiresAt: Date.now() + ttlMs });
+
+    return res.json({
+      message: 'otp_issued_demo',
+      demoOtp: code,
+      expiresInSeconds: Math.floor(ttlMs / 1000),
+    });
+  } catch (err) {
+    console.error('REGISTER REQUEST OTP ERROR:', err);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 router.post('/register', async (req, res) => {
   try {
-    const { username, phone, email, password, role } = req.body;
+    const { username, phone, email, password, role, otp } = req.body;
 
     if (!username || !phone || !password) {
       return res.status(400).json({
@@ -120,6 +178,11 @@ router.post('/register', async (req, res) => {
     const usernameVal = String(username).trim();
     const phoneVal = String(phone).trim();
     const emailVal = (email || '').trim().toLowerCase();
+
+    const otpRaw = String(otp || '').replace(/\D/g, '');
+    if (!/^\d{6}$/.test(otpRaw)) {
+      return res.status(400).json({ message: 'Mã OTP phải gồm đúng 6 chữ số.' });
+    }
 
     // SĐT đã có tài khoản thật → không cho đăng ký trùng
     const existsPhone = await User.findOne({ phone: phoneVal });
@@ -145,6 +208,21 @@ router.post('/register', async (req, res) => {
         return res.status(409).json({ message: 'Email đã tồn tại' });
       }
     }
+
+    // Khớp OTP đã cấp cho SĐT này (chỉ xoá store khi đúng — trùng username/email đã chặn ở trên)
+    sweepRegisterOtps();
+    const regOtpKey = registerOtpStoreKey(phoneVal);
+    const otpEntry = registerOtpStore.get(regOtpKey);
+    if (!otpEntry || Date.now() > otpEntry.expiresAt) {
+      return res.status(401).json({
+        message:
+          'Mã OTP đã hết hạn hoặc chưa được gửi. Vui lòng đóng và bấm Đăng ký lại để nhận mã mới.',
+      });
+    }
+    if (otpEntry.code !== otpRaw) {
+      return res.status(400).json({ message: 'Mã OTP không đúng. Vui lòng nhập lại.' });
+    }
+    registerOtpStore.delete(regOtpKey);
 
     // hash password
     const passwordHash = await bcrypt.hash(password, 10);

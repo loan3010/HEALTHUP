@@ -242,10 +242,10 @@
   <div class="cust-detail-card">
 
         <div class="cust-detail-header">
-      <div>
+      <!-- <div>
         <div class="cust-detail-name">{{ selectedCustomer?.username }}</div>
         <div class="cust-detail-id">{{ selectedCustomer?.customerID || '—' }}</div>
-      </div>
+      </div> -->
       <button class="btn-tool" (click)="closeModal()">
         <i class="bi bi-arrow-left"></i> Quay lại danh sách
       </button>
@@ -321,19 +321,26 @@
       <div class="cust-detail-section-label">Thống kê mua hàng</div>
       <div class="cust-detail-metrics two-col">
         <div class="cust-metric-box">
-          <div class="cust-metric-value">{{ selectedCustomer?.totalOrders }}</div>
+          <div class="cust-metric-value">
+            {{ selectedCustomer?.orderCountAll != null ? selectedCustomer?.orderCountAll : selectedCustomer?.totalOrders }}
+          </div>
           <div class="cust-metric-label">Tổng đơn hàng</div>
+          <!-- <div class="cust-metric-hint">Gồm cả đã hủy — khớp «Theo dõi đơn» trên app khách (chỉ đơn gắn tài khoản).</div> -->
+          <div class="cust-metric-sublabel" *ngIf="selectedCustomer?.orderCountAll != null">
+            Đơn chưa hủy : <strong>{{ selectedCustomer?.totalOrders }}</strong>
+          </div>
         </div>
         <div class="cust-metric-box">
           <div class="cust-metric-value cust-metric-money">
-            {{ selectedCustomer?.totalSpent ? ((selectedCustomer?.totalSpent || 0) / 1000000 | number:'1.1-1') + 'M' : '0đ' }}
+            {{ (selectedCustomer?.recentSpent90d || 0) | number }}đ
             <i
               *ngIf="selectedCustomer?.hasProvisionalSpend && (selectedCustomer?.totalSpent || 0) > 0"
               class="provisional-warn-inline bi bi-exclamation-triangle-fill"
               [attr.title]="'Có đơn đang chờ xử lý hoàn — số tiền có thể thay đổi'"
             ></i>
           </div>
-          <div class="cust-metric-label">Tổng chi tiêu</div>
+          <div class="cust-metric-label">Chi tiêu đã giao (3 tháng)</div>
+          <!-- <div class="cust-metric-hint">Khớp thanh VIP trên tài khoản khách. Tổng đã giao cả kỳ: <strong>{{ (selectedCustomer?.totalSpent || 0) | number }}đ</strong></div> -->
         </div>
       </div>
 

@@ -119,15 +119,29 @@
 
 
         <div class="od-item" *ngFor="let item of order.items">
-          <img
-            [src]="fixImage(item.imageUrl)"
-            alt="{{ item.name }}"
-            onerror="this.src='assets/placeholder.png'"
-          />
-          <div class="item-info">
-            <p class="name">{{ item.name }}</p>
-            <p>Số lượng: <strong>{{ item.quantity }}</strong> &nbsp;|&nbsp; Đơn giá: <strong>{{ item.price | number }} đ</strong></p>
-          </div>
+          <!-- Có productId → ảnh + tên dẫn tới trang sản phẩm -->
+          <a *ngIf="productLinkSegments(item) as segs" [routerLink]="segs" class="od-item-link">
+            <img
+              [src]="fixImage(item.imageUrl)"
+              alt="{{ item.name }}"
+              onerror="this.src='assets/placeholder.png'"
+            />
+            <div class="item-info">
+              <p class="name">{{ item.name }}</p>
+              <p>Số lượng: <strong>{{ item.quantity }}</strong> &nbsp;|&nbsp; Đơn giá: <strong>{{ item.price | number }} đ</strong></p>
+            </div>
+          </a>
+          <ng-container *ngIf="!productLinkSegments(item)">
+            <img
+              [src]="fixImage(item.imageUrl)"
+              alt="{{ item.name }}"
+              onerror="this.src='assets/placeholder.png'"
+            />
+            <div class="item-info">
+              <p class="name">{{ item.name }}</p>
+              <p>Số lượng: <strong>{{ item.quantity }}</strong> &nbsp;|&nbsp; Đơn giá: <strong>{{ item.price | number }} đ</strong></p>
+            </div>
+          </ng-container>
           <div class="item-total">{{ item.price * item.quantity | number }} đ</div>
         </div>
       </div>

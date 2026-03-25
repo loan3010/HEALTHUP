@@ -109,8 +109,18 @@ async function sendOrderLookupSms(phone, guestLookupCode, lookupPageUrl) {
   return sendSms(phone, msg);
 }
 
+/**
+ * Hotline + đơn đã gắn tài khoản — hướng khách vào trang đơn hàng (đăng nhập), không dùng mã HU làm kênh chính.
+ */
+async function sendMemberOrderTrackSms(phone, orderCode, ordersPageUrl) {
+  const hotline = String(process.env.SMS_HOTLINE || '0335 512 275').trim();
+  const msg = `${brandPrefix()}: Đơn ${orderCode} đã tạo. Đăng nhập vào website và mở «Đơn hàng của tôi» để theo dõi: ${ordersPageUrl}. Hỗ trợ: ${hotline}`;
+  return sendSms(phone, msg);
+}
+
 module.exports = {
   sendSms,
   sendGuestOtpSms,
   sendOrderLookupSms,
+  sendMemberOrderTrackSms,
 };

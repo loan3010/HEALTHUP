@@ -1,0 +1,36 @@
+<!-- 404 user: cùng tông admin; CTA về trang chủ shop -->
+<main class="not-found" role="main">
+  <div class="not-found__card">
+    <img
+      src="logo-brand.png"
+      alt="HEALTHUP"
+      class="not-found__logo"
+      width="168"
+      height="auto"
+    />
+
+    <p class="not-found__code" aria-hidden="true">404</p>
+
+    <h1 class="not-found__title">Trang này… có vẻ đi lạc rồi</h1>
+
+    <p class="not-found__desc">
+      <!-- Đôi khi chỉ là gõ nhầm một ký tự, đôi khi đường dẫn đã đổi chỗ. -->
+      <span class="not-found__desc-break">
+        Không sao cả — về trang chủ và tiếp tục dạo HEALTHUP nhé.
+      </span>
+    </p>
+
+    <div class="not-found__actions">
+      <a routerLink="/" class="not-found__btn not-found__btn--primary">
+        Về trang chủ
+      </a>
+      <button
+        type="button"
+        class="not-found__btn not-found__btn--ghost"
+        (click)="goBack()"
+      >
+        Quay lại trang trước
+      </button>
+    </div>
+  </div>
+</main>

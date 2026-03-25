@@ -31,7 +31,7 @@ const {
   requestGuestCheckoutOtp,
   consumeGuestCheckoutOtp,
 } = require('../helpers/guestCheckoutOtp');
-const { sendOrderLookupSms } = require('../services/smsService');
+const { sendOrderLookupSms, sendMemberOrderTrackSms } = require('../services/smsService');
 
 
 
@@ -560,7 +560,9 @@ async function buildAdminOrderFilter(query) {
         { _id: mongoose.Types.ObjectId.isValid(keyword) ? new mongoose.Types.ObjectId(keyword) : null },
         { 'customer.fullName': rx },
         { 'customer.phone':    rx },
-        { 'customer.email':    rx }
+        { 'customer.email':    rx },
+        { 'orderer.fullName':  rx },
+        { 'orderer.phone':     rx }
       ].filter(Boolean)
     });
   }
@@ -996,6 +998,30 @@ async function prepareOrderFromRequestBody(body, opts = {}) {
     orderData.userId = new mongoose.Types.ObjectId(String(lockedUserId));
   } else if (userId && mongoose.Types.ObjectId.isValid(String(userId))) {
     orderData.userId = new mongoose.Types.ObjectId(String(userId));
+  }
+
+
+
+
+  /**
+   * Admin hotline: người đặt (người gọi) — SMS mã HU / link theo dõi gửi về SĐT này.
+   * `customer` trên đơn = người nhận / giao hàng.
+   */
+  if (opts.orderSource === 'admin_hotline') {
+    const oraw = body.orderer || {};
+    const ofn = String(oraw.fullName || '').trim();
+    const oph = String(oraw.phone || '').trim();
+    if (!ofn || !oph) {
+      return { ok: false, status: 400, payload: { message: 'Hotline: nhập đủ họ tên và SĐT người đặt hàng.' } };
+    }
+    if (!isValidPhoneVN(oph)) {
+      return { ok: false, status: 400, payload: { message: 'Số điện thoại người đặt không hợp lệ' } };
+    }
+    orderData.orderer = {
+      fullName: ofn,
+      phone: oph,
+      email: String(oraw.email || '').trim(),
+    };
   }
 
 
@@ -1539,6 +1565,32 @@ router.post('/admin/hotline', authenticateToken, requireAdmin, async (req, res) 
       prep.voucherCodeRaw,
       prep.shipVoucherCodeRaw
     );
+
+    /**
+     * SMS cho người đặt: khách vãng lai → mã HU + tra cứu; có tài khoản → link theo dõi đơn (không nhấn mã HU).
+     */
+    try {
+      const origin = String(
+        process.env.FRONTEND_PUBLIC_URL || process.env.APP_PUBLIC_URL || 'http://localhost:4200'
+      ).replace(/\/$/, '');
+      const ordererPhone = String(order.orderer?.phone || order.customer?.phone || '').trim();
+      if (ordererPhone && isValidPhoneVN(ordererPhone)) {
+        if (order.userId) {
+          const trackUrl = `${origin}/order-management`;
+          sendMemberOrderTrackSms(ordererPhone, order.orderCode, trackUrl).catch((e) =>
+            console.error('SMS hotline (member):', e)
+          );
+        } else if (order.guestLookupCode) {
+          const lookupUrl = `${origin}/tra-cuu-don`;
+          sendOrderLookupSms(ordererPhone, order.guestLookupCode, lookupUrl).catch((e) =>
+            console.error('SMS hotline (guest HU):', e)
+          );
+        }
+      }
+    } catch (e) {
+      console.error('SMS hotline sau tạo đơn:', e);
+    }
+
     return res.status(201).json({
       orderId: order._id,
       orderCode: order.orderCode,
@@ -1572,12 +1624,16 @@ router.get('/admin/:id', authenticateToken, requireAdmin, async (req, res) => {
 
 
 
+    /**
+     * Hotline: không suy User từ SĐT người nhận (`customer.phone`) — dễ trùng TK người khác (mua hộ).
+     * Chỉ load User khi đơn có `userId`. Web / đơn cũ vẫn giữ ghép SĐT nhận để tương thích.
+     */
     let user = null;
     if (order.userId && mongoose.Types.ObjectId.isValid(String(order.userId))) {
       user = await User.findById(order.userId)
         .select('customerID username phone email role')
         .lean();
-    } else if (order.customer?.phone) {
+    } else if (order.orderSource !== 'admin_hotline' && order.customer?.phone) {
       const digits     = normalizePhone(order.customer.phone);
       const candidates = await User.find({ role: 'user' })
         .select('customerID username phone email role')
@@ -1592,6 +1648,9 @@ router.get('/admin/:id', authenticateToken, requireAdmin, async (req, res) => {
     let stats;
     if (user) {
       stats = statsForUser(user, statsMaps);
+    } else if (order.orderSource === 'admin_hotline' && !order.userId) {
+      // Không gắn TK: không hiển thị thống kê CRM theo SĐT nhận (tránh nhầm với chủ số khác).
+      stats = { totalOrders: 0, totalSpent: 0, hasProvisionalSpend: false };
     } else {
       const k = normalizePhone(order.customer?.phone);
       stats = k

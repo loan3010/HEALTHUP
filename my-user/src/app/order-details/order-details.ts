@@ -352,6 +352,38 @@ export class OrderDetail implements OnInit {
   // ═══════════════════════════════════════════════════════════════
   // THỜI GIAN NHẬN HÀNG DỰ KIẾN
   // ═══════════════════════════════════════════════════════════════
+  /**
+   * Link tới trang chi tiết SP khi order item có productId hợp lệ (ObjectId 24 ký tự).
+   * Populate từ API có thể là string hoặc object { _id }.
+   */
+  productLinkSegments(item: any): string[] | null {
+    const id = this.normalizeProductId(item?.productId);
+    if (!id) return null;
+    return ['/product-detail-page', id];
+  }
+
+  private normalizeProductId(value: unknown): string {
+    if (value == null) return '';
+    if (typeof value === 'string') {
+      const s = value.trim();
+      return /^[a-f0-9]{24}$/i.test(s) ? s : '';
+    }
+    if (typeof value === 'object') {
+      const o = value as Record<string, unknown>;
+      const nested = o['_id'] ?? o['$oid'] ?? o['id'];
+      if (nested !== undefined && nested !== value) {
+        const inner = this.normalizeProductId(nested);
+        if (inner) return inner;
+      }
+      if (typeof (value as { toString?: () => string }).toString === 'function') {
+        const raw = String((value as { toString: () => string }).toString()).trim();
+        if (/^[a-f0-9]{24}$/i.test(raw)) return raw;
+      }
+    }
+    return '';
+  }
+
+
   getEstimatedDelivery(createdAt: string, shippingMethod: string): string {
     if (!createdAt) return '—';
     

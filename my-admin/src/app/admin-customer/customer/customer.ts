@@ -273,6 +273,24 @@ export class Customer implements OnInit {
     this.detailHistoryTab = 'all';
     this.detailHistoryPage = 1;
     this.detailShowAllHistory = false;
+    // Làm mới số liệu CRM từ API chi tiết (đồng bộ sau khi đổi rule chỉ tính theo userId).
+    this.customerService.getById(c.id).subscribe({
+      next: (fresh) => {
+        if (!this.selectedCustomer || this.selectedCustomer.id !== fresh.id) return;
+        this.selectedCustomer = {
+          ...this.selectedCustomer,
+          totalOrders: fresh.totalOrders,
+          totalSpent: fresh.totalSpent,
+          membershipTier: fresh.membershipTier,
+          hasProvisionalSpend: fresh.hasProvisionalSpend,
+          orderCountAll: fresh.orderCountAll,
+          recentSpent90d: fresh.recentSpent90d,
+        };
+      },
+      error: () => {
+        /* giữ số từ danh sách nếu GET lỗi */
+      },
+    });
     this.loadDetailAddresses();
     this.loadDetailOrderHistory(true);
   }

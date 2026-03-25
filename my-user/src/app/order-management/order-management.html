@@ -82,8 +82,15 @@
 
           <!-- CHỜ XÁC NHẬN -->
           <ng-container *ngIf="order.status === 'pending'">
-            <button class="btn-outline">Liên hệ người bán</button>
-            <button class="btn-danger" (click)="cancelOrder(order._id)">Hủy đơn hàng</button>
+            <a
+              class="btn-outline"
+              [href]="zaloSellerUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              (click)="$event.stopPropagation()">
+              Liên hệ người bán
+            </a>
+            <button type="button" class="btn-danger" (click)="openCancelConfirm(order._id, $event)">Hủy đơn hàng</button>
           </ng-container>
 
 
@@ -167,5 +174,20 @@
     trong tổng số {{ totalFiltered }} đơn hàng
   </div>
 
+  <!-- Xác nhận hủy đơn — style giống modal trên các trang user (order-review / checkout). -->
+  <div class="om-modal-backdrop" *ngIf="cancelConfirmOrderId" (click)="closeCancelConfirm()">
+    <div class="om-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="om-cancel-title">
+      <div class="om-modal-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+      <h2 id="om-cancel-title" class="om-modal-title">Hủy đơn hàng?</h2>
+      <p class="om-modal-sub">Đơn ở trạng thái chờ xác nhận sẽ bị hủy. Bạn có chắc muốn tiếp tục?</p>
+      <div class="om-modal-actions">
+        <button type="button" class="om-btn om-btn-outline" (click)="closeCancelConfirm()" [disabled]="cancelActionLoading">Đóng</button>
+        <button type="button" class="om-btn om-btn-danger" (click)="confirmCancelOrder()" [disabled]="cancelActionLoading">
+          <span *ngIf="!cancelActionLoading">Hủy đơn</span>
+          <span *ngIf="cancelActionLoading">Đang xử lý…</span>
+        </button>
+      </div>
+    </div>
+  </div>
 
 </div>

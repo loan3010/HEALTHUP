@@ -62,6 +62,16 @@ const OrderSchema = new mongoose.Schema(
       index: true,
     },
 
+    /**
+     * Người đặt (hotline: người gọi điện). Khác `customer` = người nhận / địa chỉ giao.
+     * Đơn web có thể không có — UI/tra cứu SMS dùng customer nếu thiếu.
+     */
+    orderer: {
+      fullName: { type: String, default: '', trim: true },
+      phone:    { type: String, default: '', trim: true },
+      email:    { type: String, default: '', trim: true },
+    },
+
     customer: {
       fullName: { type: String, required: true, trim: true },
       phone:    { type: String, required: true, trim: true },

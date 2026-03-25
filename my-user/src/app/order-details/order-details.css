@@ -261,6 +261,31 @@
   border: 1px solid #eef2ff;
 }
 
+/* Một khối link: ảnh + tên/mô tả → trang chi tiết sản phẩm */
+.od-item-link {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex: 1;
+  min-width: 0;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 12px;
+  padding: 4px;
+  margin: -4px;
+  transition: background 0.15s ease;
+}
+.od-item-link:hover {
+  background: #f0fdf4;
+}
+.od-item-link:hover .item-info .name {
+  color: #2e7d32;
+  text-decoration: underline;
+}
+.od-item-link img {
+  flex-shrink: 0;
+}
+
 .item-info {
   flex: 1;
 }

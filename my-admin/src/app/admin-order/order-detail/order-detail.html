@@ -28,7 +28,7 @@
               <div class="cancel-reason-admin" *ngIf="order.status === 'cancelled'">
                 <span class="cancel-actor-chip">{{ cancelActorLabel }}</span>
                 <ng-container *ngIf="order.cancelReason">
-                  <span class="label">Lý do hủy (hiển thị cho khách)</span>
+                  <span class="label">Lý do hủy đơn</span>
                   <span class="cancel-reason-text">{{ order.cancelReason }}</span>
                 </ng-container>
                 <div class="cancel-meta-admin" *ngIf="order.cancelledAt || order.updatedAt">
@@ -168,12 +168,28 @@
       </section>
 
       <section class="right">
-        <div class="card">
-          <h4>Thông tin người mua (tài khoản)</h4>
-          <!-- buyerAccount = User đăng nhập đặt đơn; không có thì guest → hiện customer như trước. -->
-          <div class="line"><label>Họ tên</label><strong>{{ order.buyerAccount?.username || order.customer.fullName }}</strong></div>
-          <div class="line"><label>Số điện thoại</label><strong>{{ order.buyerAccount?.phone || order.customer.phone }}</strong></div>
-          <div class="line"><label>Email</label><strong>{{ order.buyerAccount?.email || order.customer.email || '—' }}</strong></div>
+        <!-- Hotline: người đặt ≠ người nhận trên `customer` — luôn hiện khối này để không nhầm với giao hàng. -->
+        <div class="card" *ngIf="isAdminHotlineOrder()">
+          <h4>Người đặt hàng</h4>
+          <!-- <p class="sub-hint">đặt. Khác ô «Người nhận» bên dưới khi mua hộ / tặng.</p> -->
+          <p class="sub-hint warn" *ngIf="!hotlineOrdererHasData()">
+            Đơn cũ chưa lưu riêng người đặt trong CSDL — chỉ tin cậy khối «Người nhận» hoặc tra lại phiếu/SMS lúc tạo đơn.
+          </p>
+          <p class="sub-hint" *ngIf="hotlineSameOrdererAndRecipient()">Trùng người nhận: cùng người đặt và nhận hàng.</p>
+          <div class="line"><label>Họ tên người đặt</label><strong>{{ order.orderer?.fullName || '—' }}</strong></div>
+          <div class="line"><label>SĐT người đặt</label><strong>{{ order.orderer?.phone || '—' }}</strong></div>
+          <div class="line"><label>Email người đặt</label><strong>{{ order.orderer?.email || '—' }}</strong></div>
+          <!-- Khách không TK: mã HU nằm cùng card người đặt — tránh hai ô giống nhau -->
+          <div class="line" *ngIf="!isLinkedToRegisteredUser() && order.guestLookupCode">
+            <label>Mã tra cứu (SMS)</label><strong>{{ order.guestLookupCode }}</strong>
+          </div>
+        </div>
+
+        <div class="card" *ngIf="isLinkedToRegisteredUser() && order.buyerAccount">
+          <h4>Tài khoản liên kết</h4>
+          <div class="line"><label>Tên đăng nhập</label><strong>{{ order.buyerAccount.username }}</strong></div>
+          <div class="line"><label>SĐT đăng ký</label><strong>{{ order.buyerAccount.phone }}</strong></div>
+          <div class="line"><label>Email</label><strong>{{ order.buyerAccount.email || '—' }}</strong></div>
           <div class="line"><label>ID khách hàng</label><strong>{{ displayCustomerId() }}</strong></div>
           <div class="line">
             <label>Hạng thành viên</label>
@@ -183,11 +199,24 @@
             <span class="tier-provisional" *ngIf="order.customerSummary?.hasProvisionalSpend">(tạm — đang có đơn chờ hoàn)</span>
           </div>
         </div>
+        <div class="card" *ngIf="isLinkedToRegisteredUser() && !order.buyerAccount">
+          <h4>Tài khoản liên kết</h4>
+          <p class="sub-hint">Đơn có userId nhưng không tải được hồ sơ User. <strong>userId:</strong> {{ order.userId }}</p>
+        </div>
+        <!-- Đơn web (không hotline) vãng lai: mã HU + gợi ý. Hotline đã gộp mã HU vào card người đặt. -->
+        <div class="card" *ngIf="showGuestAccountCard()">
+          <h4>Tài khoản</h4>
+          <p class="sub-hint">Không liên kết tài khoản đăng ký — khách vãng lai (tra cứu bằng mã HU nếu có).</p>
+          <div class="line" *ngIf="order.guestLookupCode"><label>Mã tra cứu</label><strong>{{ order.guestLookupCode }}</strong></div>
+          <div class="line"><label>ID khách hàng</label><strong>—</strong></div>
+          <div class="line"><label>Hạng</label><strong>Không hạng</strong></div>
+        </div>
 
         <div class="card">
-          <h4>Thông tin giao hàng</h4>
+          <h4>Thông tin nhận hàng &amp; giao hàng</h4>
           <div class="line"><label>Người nhận</label><strong>{{ order.customer.fullName }}</strong></div>
           <div class="line"><label>SĐT nhận hàng</label><strong>{{ order.customer.phone }}</strong></div>
+          <div class="line"><label>Email</label><strong>{{ order.customer.email || '—' }}</strong></div>
           <div class="line"><label>Phương thức giao</label><strong>{{ order.shippingMethod === 'express' ? 'Giao nhanh' : 'Giao tiêu chuẩn' }}</strong></div>
           <div class="line"><label>Địa chỉ giao</label><strong>{{ formatShipmentAddress(order.customer) }}</strong></div>
           <div class="line" *ngIf="order.customer.note"><label>Ghi chú giao hàng</label><strong>{{ order.customer.note }}</strong></div>

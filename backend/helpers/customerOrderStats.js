@@ -93,8 +93,10 @@ function groupCustomerStatsFields() {
 
 /**
  * Hai map gộp cho danh sách User:
- * - byUserId: đơn có userId (ObjectId) — tránh lệch khi SĐT trên đơn ≠ SĐT tài khoản.
- * - byPhoneNorm: đơn không gắn userId, gom theo SĐT đã chuẩn hóa (khách vãng lai / đơn cũ).
+ * - byUserId: đơn có userId (ObjectId) — nguồn duy nhất để gắn với tài khoản khách.
+ * - byPhoneNorm: đơn không gắn userId, gom theo SĐT **người nhận** trên đơn — chỉ dùng cho
+ *   màn chi tiết đơn guest (web) trên admin, **không** cộng vào CRM khách đăng ký (tránh đơn mua hộ / hotline).
+ *   Loại `orderSource: admin_hotline` vì SĐT đó là người nhận, không phải người mua.
  *
  * @param {import('mongoose').Model} Order
  * @returns {Promise<{ byUserId: Map<string, object>, byPhoneNorm: Map<string, object> }>}
@@ -106,7 +108,12 @@ async function buildCustomerListStatsMaps(Order) {
       { $group: { _id: '$userId', ...groupCustomerStatsFields() } },
     ]),
     Order.aggregate([
-      { $match: { $nor: [{ userId: { $type: 'objectId' } }] } },
+      {
+        $match: {
+          $nor: [{ userId: { $type: 'objectId' } }],
+          orderSource: { $nin: ['admin_hotline'] },
+        },
+      },
       { $group: { _id: '$customer.phone', ...groupCustomerStatsFields() } },
     ]),
   ]);
@@ -134,13 +141,12 @@ async function buildCustomerListStatsMaps(Order) {
 
 
 /**
- * Gộp thống kê cho một user (đơn theo tài khoản + đơn chỉ khớp SĐT).
+ * Thống kê CRM cho một tài khoản khách đăng ký — **chỉ** đơn có `userId` trùng khách.
+ * Không cộng đơn guest theo SĐT người nhận: có thể là quà / mua hộ / hotline giao cho SĐT của người khác.
  */
 function statsForUser(user, maps) {
-  const { byUserId, byPhoneNorm } = maps;
-  const fromId = byUserId.get(String(user._id));
-  const fromPhone = byPhoneNorm.get(normalizePhone(user.phone));
-  return mergeStats(fromId, fromPhone);
+  const fromId = maps.byUserId.get(String(user._id));
+  return fromId || ZERO_STATS;
 }
 
 
@@ -175,6 +181,58 @@ async function aggregateStatsForMatch(Order, matchFilter) {
 }
 
 
+/**
+ * Tổng tiền đơn đã giao (trừ hoàn xong) trong `months` tháng gần nhất — khớp logic VIP /api/users/:id (recentSpent).
+ * @param {import('mongoose').Model} Order
+ * @param {import('mongoose').Types.ObjectId} userId
+ */
+async function recentDeliveredSpendForUser(Order, userId, months = 3) {
+  const since = new Date();
+  since.setMonth(since.getMonth() - months);
+  const [row] = await Order.aggregate([
+    {
+      $match: {
+        userId,
+        status: 'delivered',
+        returnStatus: { $ne: 'completed' },
+        createdAt: { $gte: since },
+      },
+    },
+    { $group: { _id: null, total: { $sum: '$total' } } },
+  ]);
+  return Number(row?.total || 0);
+}
+
+
+/**
+ * Map userId → chi tiêu đã giao trong 3 tháng (một query) — dùng cho danh sách khách admin.
+ * @param {import('mongoose').Model} Order
+ * @param {import('mongoose').Types.ObjectId[]} userIds
+ * @returns {Promise<Map<string, number>>}
+ */
+async function recentDeliveredSpendMapForUsers(Order, userIds) {
+  const m = new Map();
+  if (!Array.isArray(userIds) || !userIds.length) return m;
+  const since = new Date();
+  since.setMonth(since.getMonth() - 3);
+  const rows = await Order.aggregate([
+    {
+      $match: {
+        userId: { $in: userIds },
+        status: 'delivered',
+        returnStatus: { $ne: 'completed' },
+        createdAt: { $gte: since },
+      },
+    },
+    { $group: { _id: '$userId', total: { $sum: '$total' } } },
+  ]);
+  for (const r of rows) {
+    if (r._id) m.set(String(r._id), Number(r.total || 0));
+  }
+  return m;
+}
+
+
 module.exports = {
   groupCustomerStatsFields,
   normalizePhone,
@@ -182,4 +240,6 @@ module.exports = {
   statsForUser,
   membershipTierFromTotalSpent90d,
   aggregateStatsForMatch,
+  recentDeliveredSpendForUser,
+  recentDeliveredSpendMapForUsers,
 };

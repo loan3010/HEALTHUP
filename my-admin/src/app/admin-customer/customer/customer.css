@@ -325,6 +325,7 @@
 .cust-metric-avg   { font-size: 0.9rem; }
 .cust-metric-label { font-size: 0.7rem; color: var(--text-gray); margin-top: 3px; font-weight: 600; }
 .cust-metric-hint { font-size: 0.65rem; color: #b45309; margin-top: 6px; line-height: 1.3; }
+.cust-metric-sublabel { font-size: 0.65rem; color: var(--text-gray); margin-top: 4px; line-height: 1.35; }
 
 /* --- FAV PRODUCTS TAGS --- */
 .fav-tags-wrap {

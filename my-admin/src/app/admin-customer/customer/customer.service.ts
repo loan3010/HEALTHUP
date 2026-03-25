@@ -22,6 +22,10 @@ export interface CustomerItem {
   totalSpent: number;
   /** true: có đơn đã giao đang yêu cầu/chấp nhận hoàn — tổng tiền & hạng đang tính tạm. */
   hasProvisionalSpend?: boolean;
+  /** Mọi đơn gắn userId (kể cả hủy) — khớp tab «Tất cả» trên app khách. Chỉ có khi gọi GET /:id. */
+  orderCountAll?: number;
+  /** Đơn đã giao (trừ hoàn xong) trong 3 tháng — khớp thanh VIP trên profile khách. */
+  recentSpent90d?: number;
 }
 
 export interface CustomerListResponse {

@@ -12,16 +12,23 @@
 
     <h2 class="co-modal-title">Đặt hàng thành công!</h2>
 
-    <p class="co-modal-sub" *ngIf="successGuestLookupCode() && successOrderPhone()">
+    <!-- Khách vãng lai: có mã HU- → nhắc SMS tra cứu -->
+    <p class="co-modal-sub" *ngIf="!canUseVouchers && successGuestLookupCode() && successOrderPhone()">
       Mã tra cứu đã được gửi qua tin nhắn đến số
       <span class="co-modal-phone">{{ successOrderPhone() }}</span>
     </p>
-    <p class="co-modal-sub" *ngIf="!(successGuestLookupCode() && successOrderPhone())">
+    <!-- Đã đăng nhập: không gửi SMS tra cứu HU — xem đơn trong profile -->
+    <p class="co-modal-sub" *ngIf="canUseVouchers">
+      Cảm ơn bạn đã tin tưởng HealthUp. Đơn hàng đã được ghi nhận — theo dõi trạng thái và chi tiết trong mục
+      <strong>Theo dõi đơn hàng</strong> trên tài khoản của bạn.
+    </p>
+    <!-- Khách không có đủ dữ liệu mockup SMS (hiếm) -->
+    <p class="co-modal-sub" *ngIf="!canUseVouchers && !(successGuestLookupCode() && successOrderPhone())">
       Cảm ơn bạn đã tin tưởng HealthUp. Đơn hàng đang được xử lý.
     </p>
 
-    <!-- Khối giả lập tin nhắn (chỉ khi có mã HU-) -->
-    <div class="sms-mockup-container" *ngIf="successGuestLookupCode()">
+    <!-- Khối giả lập tin nhắn — chỉ khách vãng lai có mã HU- (không hiện cho tài khoản đăng nhập) -->
+    <div class="sms-mockup-container" *ngIf="!canUseVouchers && successGuestLookupCode()">
       <div class="sms-header">Tin nhắn từ HealthUp</div>
       <div class="sms-bubble">
         <p>
@@ -36,7 +43,7 @@
       </div>
     </div>
 
-    <div class="security-note" *ngIf="successGuestLookupCode()">
+    <div class="security-note" *ngIf="!canUseVouchers && successGuestLookupCode()">
       <i class="bi bi-shield-lock" aria-hidden="true"></i>
       <p>
         <strong>Lưu ý bảo mật:</strong>
@@ -44,8 +51,8 @@
       </p>
     </div>
 
-    <!-- Không có mã HU- (đơn cũ / lỗi) — vẫn hiện mã đơn ORD -->
-    <div class="co-modal-id co-modal-id-secondary" *ngIf="!successGuestLookupCode() && successOrderCode()">
+    <!-- Mã ORD: luôn hiện cho tài khoản; khách chỉ khi không dùng khối HU (đơn cũ / lỗi) -->
+    <div class="co-modal-id co-modal-id-secondary" *ngIf="successOrderCode() && (canUseVouchers || !successGuestLookupCode())">
       Mã đơn: <strong>{{ successOrderCode() }}</strong>
     </div>
 

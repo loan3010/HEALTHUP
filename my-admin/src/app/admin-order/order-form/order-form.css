@@ -370,3 +370,64 @@
   font: inherit;
   resize: vertical;
 }
+
+.of-warn-tag {
+  color: #c2410c;
+  font-weight: 600;
+}
+
+/* Modal xác nhận + mockup SMS sau tạo đơn */
+.of-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.of-modal {
+  background: #fff;
+  border-radius: 12px;
+  max-width: 440px;
+  width: 100%;
+  padding: 1.25rem 1.35rem;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+.of-modal h3 {
+  margin: 0 0 0.75rem;
+  font-size: 1.05rem;
+}
+.of-modal-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+.of-success-modal {
+  max-width: 480px;
+}
+.of-sms-mock {
+  margin-top: 0.75rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.of-sms-head {
+  background: #f5f5f5;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.75rem;
+  color: #555;
+}
+.of-sms-bubble {
+  padding: 0.75rem 0.85rem;
+  background: #e8f5e9;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+.of-sms-bubble a {
+  color: #1b5e20;
+  word-break: break-all;
+}
