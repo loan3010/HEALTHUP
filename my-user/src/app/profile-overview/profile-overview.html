@@ -79,7 +79,7 @@
   </div>
   <form [formGroup]="profileForm" (ngSubmit)="onSubmit()">
     <div class="po-form-group">
-      <label>Họ tên</label>
+      <label>Tên người dùng</label>
       <input type="text" class="po-input" formControlName="username" placeholder="Nhập họ tên">
     </div>
     <div class="po-form-row">
@@ -106,10 +106,10 @@
         <input type="email" class="po-input" formControlName="email" placeholder="Nhập email">
       </div>
     </div>
-    <div class="po-form-group">
+    <!-- <div class="po-form-group">
       <label>Địa chỉ</label>
       <input type="text" class="po-input" formControlName="address" placeholder="Nhập địa chỉ">
-    </div>
+    </div> -->
     <div class="po-form-submit">
       <button type="submit" class="po-btn-submit" [disabled]="isLoading">
         {{ isLoading ? 'Đang lưu...' : 'Lưu những thay đổi' }}

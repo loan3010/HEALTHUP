@@ -2,6 +2,66 @@
    HEALTHUP ADMIN — order-form.css
    Design System v1.0 · Be Vietnam Pro · #36873A
 ============================================================ */
+/* ── BREADCRUMB ── */
+.promo-breadcrumb-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.p-crumb {
+  font-size: 0.8rem;
+  color: #7E9E80;
+  cursor: pointer;
+  transition: color 150ms;
+  font-weight: 500;
+}
+.p-crumb:hover { color: #36873A; }
+.p-sep {
+  color: #E2EEE2;
+  font-size: 0.85rem;
+  user-select: none;
+}
+.p-active {
+  font-size: 0.8rem;
+  color: #36873A;
+  font-weight: 600;
+}
+.page-title {
+  color: #36873A; /* --hu-primary */
+  font-size: 28px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .3px;
+}
+.hu-btn-primary {
+  background: #36873A;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  transition: background 150ms;
+}
+.hu-btn-primary:hover { background: #2A6B2E; }
+.hu-btn-primary.small { padding: 6px 12px; font-size: 12px; }
+.hu-btn-primary-2 {
+  background: #c00f3e;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  transition: background 150ms;
+}
+.hu-btn-primary-2:hover { background: #6d0909; }
+.hu-btn-primary-2.small { padding: 6px 12px; font-size: 12px; }
 
 .order-form-page {
   max-width: 1200px; margin: 0 auto; padding-bottom: 2rem;
@@ -118,7 +178,20 @@
 @keyframes of-spin { to { transform: rotate(360deg); } }
 
 .hu-toolbar-btn.small { padding: .2rem .5rem; font-size: 12px; }
-
+.hu-toolbar-btn {
+  background: #ffffff;
+  color: #36873A;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  transition: background 150ms;
+}
+.hu-toolbar-btn:hover { background: #2A6B2E; color: #ffffff;}
+.hu-toolbar-btn.small { padding: 6px 12px; font-size: 12px; }
 .of-addr-book {
   margin-bottom: 1rem; padding-bottom: .75rem; border-bottom: 1px dashed #E2EEE2;
 }
