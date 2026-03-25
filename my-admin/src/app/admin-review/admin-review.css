@@ -17,11 +17,11 @@
 }
 
 .page-title {
-  font-size: 1.45rem;
+  color: #36873A; /* --hu-primary */
+  font-size: 28px;
   font-weight: 700;
-  color: #1A2E1B;
-  margin: 0 0 4px 0;
-  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  letter-spacing: .3px;
 }
 
 .page-title i {
