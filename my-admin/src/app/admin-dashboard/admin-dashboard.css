@@ -2,9 +2,11 @@
 /* Restyled theo HealthUp Design System v1.0 */
 
 .dashboard-page {
+  padding: 24px 24px;
   display: flex;
   flex-direction: column;
   gap: 16px; /* --sp-4 */
+  animation: fadeIn 0.4s ease-out;
   font-family: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
 }
 
@@ -45,7 +47,7 @@
 
 .title {
   color: #36873A; /* --hu-primary */
-  font-size: 22px;
+  font-size: 28px;
   font-weight: 700;
   text-transform: uppercase;
 }

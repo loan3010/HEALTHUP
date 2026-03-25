@@ -7,6 +7,7 @@ import { AdminSidebar } from '../admin-sidebar/admin-sidebar';
 import { AdminDashboard } from '../admin-dashboard/admin-dashboard';
 import { ProductComponent } from '../admin-product/product/product';
 import { Customer } from '../admin-customer/customer/customer';
+// import { CustomerDetail } from '../admin-customer/customer-detail/customer-detail';
 import { Order } from '../admin-order/order/order';
 import { Promotion } from '../admin-promotion/promotion/promotion';
 import { AdminBanner } from '../admin-banner/admin-banner';

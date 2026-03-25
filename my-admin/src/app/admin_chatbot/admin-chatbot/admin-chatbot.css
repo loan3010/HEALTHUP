@@ -1,5 +1,6 @@
 /* --- LAYOUT CHA: KHÓA KHUNG CỐ ĐỊNH --- */
 .chatbot-layout-fixed {
+  padding: 24px 24px;
   display: flex; 
   width: 100%;
   height: calc(100vh - 100px); /* Bám sát Header chính */
@@ -84,11 +85,18 @@
   margin-bottom: 35px; border: none; padding: 0; background: transparent;
 }
 
-.page-title.primary-text {
-  color: var(--color-primary) !important; /* Xanh lá rực rỡ */
+/* .page-title.primary-text {
+  color: var(--color-primary) !important; 
   font-weight: 900 !important;
   text-transform: uppercase;
   margin: 0; font-size: 1.85rem; letter-spacing: -1px;
+} */
+.page-title.primary-text {
+  color: #36873A; /* --hu-primary */
+  font-size: 30px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .3px;
 }
 
 /* --- NÚT BẤM TOÀN CỤC --- */

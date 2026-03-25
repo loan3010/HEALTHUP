@@ -3,7 +3,8 @@
 
 /* --- TỔNG THỂ --- */
 .customer-list-container {
-  padding: 8px;
+  padding: 24px 24px;
+  /* padding: 8px; */
   animation: fadeIn 0.3s cubic-bezier(.4,0,.2,1);
 }
 .header-row {
@@ -14,7 +15,7 @@
 }
 .page-title {
   color: #36873A; /* --hu-primary */
-  font-size: 22px;
+  font-size: 28px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: .3px;
@@ -290,7 +291,8 @@
 }
 .cust-table { width: 100%; border-collapse: collapse; }
 .cust-table th {
-  background: #FAF6F0; /* --hu-bg-main */
+  /* background:  --hu-bg-main */
+  background: #E2EEE2;
   padding: 12px 14px;
   font-size: 11px;
   font-weight: 600;

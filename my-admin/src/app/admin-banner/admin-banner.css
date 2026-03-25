@@ -40,7 +40,14 @@
   margin-bottom: 20px;
 }
 
-.title-main { color: #36873A; font-weight: 800; font-size: 1.6rem; margin: 0; }
+/* .title-main { color: #36873A; font-weight: 800; font-size: 1.6rem; margin: 0; } */
+.title-main {
+  color: #36873A; /* --hu-primary */
+  font-size: 28px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .3px;
+}
 .sub-text { color: #888; font-size: 0.9rem; margin: 5px 0 0; }
 
 .btn-add-banner {

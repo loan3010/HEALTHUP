@@ -2,7 +2,7 @@
 :host {
   --color-primary: #36873a;
   --color-accent: #4caf50;
-  --color-bg: #f8f9fa;
+  /* --color-bg: #f8f9fa; */
   --color-danger: #d9534f;
   --color-warning: #f39c12;
   --transition: all 0.3s ease;
@@ -16,7 +16,14 @@
 }
 
 .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
-.page-title { color: var(--color-primary); font-size: 1.8rem; font-weight: 800; text-transform: uppercase; }
+/* .page-title { color: var(--color-primary); font-size: 1.8rem; font-weight: 800; text-transform: uppercase; } */
+.page-title {
+  color: #36873A; /* --hu-primary */
+  font-size: 28px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .3px;
+}
 
 .btn-add-main {
   background-color: var(--color-primary); color: white; border: none; padding: 10px 22px; border-radius: 8px; 

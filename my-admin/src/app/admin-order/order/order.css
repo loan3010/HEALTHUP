@@ -1,7 +1,8 @@
 /* HealthUp Admin – order.css */
 /* Restyled theo HealthUp Design System v1.0 */
 
-.order-page { padding: 8px; }
+.order-page { 
+  padding: 24px 24px; }
 
 .header-row {
   margin-bottom: 16px;
@@ -12,7 +13,7 @@
 }
 .page-title {
   color: #36873A; /* --hu-primary */
-  font-size: 22px;
+  font-size: 28px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: .3px;
@@ -305,7 +306,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: .07em;
-  background: #FAF6F0; /* --hu-bg-main */
+  background: #E2EEE2; /* --hu-bg-main */
   border-bottom: 1px solid #E2EEE2;
 }
 .col-check { width: 44px; }

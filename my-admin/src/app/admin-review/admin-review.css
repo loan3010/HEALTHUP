@@ -5,10 +5,12 @@
 
 /* ── BASE CONTAINER ── */
 .review-page {
-  padding: 24px 32px;
-  background: #FAF6F0;
+  
+  padding: 24px 24px;
+  /* background: #FAF6F0; */
   min-height: 100vh;
   font-family: 'Be Vietnam Pro', sans-serif;
+  animation: fadeIn 0.4s ease-out;
 }
 
 /* ── PAGE HEADER ── */
@@ -33,7 +35,31 @@
   color: #7E9E80;
   margin: 0;
 }
-
+/* ── BREADCRUMB ── */
+.promo-breadcrumb-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.p-crumb {
+  font-size: 0.8rem;
+  color: #7E9E80;
+  cursor: pointer;
+  transition: color 150ms;
+  font-weight: 500;
+}
+.p-crumb:hover { color: #36873A; }
+.p-sep {
+  color: #E2EEE2;
+  font-size: 0.85rem;
+  user-select: none;
+}
+.p-active {
+  font-size: 0.8rem;
+  color: #36873A;
+  font-weight: 600;
+}
 /* ── TOOLBAR (giống product) ── */
 .review-toolbar {
   display: flex;
