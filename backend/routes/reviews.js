@@ -6,7 +6,10 @@ const multer    = require('multer');
 const Review    = require('../models/Review');
 const Product   = require('../models/Product');
 const Order     = require('../models/Order');
+const Notification = require('../models/Notification');
 const { notifyAdminReviewNew } = require('../services/adminNotificationService');
+
+
 
 
 // ── Multer: lưu ảnh review vào public/images/reviews ──
@@ -29,6 +32,8 @@ const upload = multer({
 });
 
 
+
+
 // ── Helper: cập nhật rating + reviewCount trên Product ──
 async function syncProductStats(productId) {
   try {
@@ -43,6 +48,8 @@ async function syncProductStats(productId) {
     });
   } catch (e) { console.error('syncProductStats error:', e.message); }
 }
+
+
 
 
 // ─────────────────────────────────────────────────────────────────
@@ -61,6 +68,8 @@ router.post('/upload-images', upload.array('images', 5), (req, res) => {
 });
 
 
+
+
 // ─────────────────────────────────────────────────────────────────
 // GET /api/reviews/product/:productId
 // ─────────────────────────────────────────────────────────────────
@@ -69,7 +78,9 @@ router.get('/product/:productId', async (req, res) => {
     const { filter, sort = 'newest', page = 1, limit = 10 } = req.query;
     const productObjectId = new mongoose.Types.ObjectId(req.params.productId);
 
+
     let query = { productId: productObjectId };
+
 
     if (filter && filter !== 'all') {
       if (filter === 'photo') {
@@ -80,6 +91,7 @@ router.get('/product/:productId', async (req, res) => {
       }
     }
 
+
     let sortObj = {};
     switch (sort) {
       case 'highest': sortObj = { rating: -1 };  break;
@@ -88,7 +100,9 @@ router.get('/product/:productId', async (req, res) => {
       default:        sortObj = { createdAt: -1 };
     }
 
+
     const total = await Review.countDocuments({ productId: productObjectId });
+
 
     const reviews = await Review.find(query)
       .sort(sortObj)
@@ -96,7 +110,9 @@ router.get('/product/:productId', async (req, res) => {
       .limit(Number(limit))
       .lean();
 
+
     const allReviews = await Review.find({ productId: productObjectId }).lean();
+
 
     const counts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
     let totalRating = 0;
@@ -108,7 +124,9 @@ router.get('/product/:productId', async (req, res) => {
       ? Number((totalRating / allReviews.length).toFixed(1))
       : 0;
 
+
     const photoCount = allReviews.filter(r => r.imgs && r.imgs.length > 0).length;
+
 
     const tagMap = {};
     allReviews.forEach(r => {
@@ -121,9 +139,11 @@ router.get('/product/:productId', async (req, res) => {
       .slice(0, 5)
       .map(([tag]) => tag);
 
+
     const product = await Product.findById(req.params.productId)
       .select('name sold weights packagingTypes')
       .lean();
+
 
     res.json({
       reviews,
@@ -144,6 +164,8 @@ router.get('/product/:productId', async (req, res) => {
 });
 
 
+
+
 // ─────────────────────────────────────────────────────────────────
 // POST /api/reviews — tạo đánh giá mới
 // ✅ Chỉ cho phép nếu userId có đơn hàng delivered chứa productId
@@ -152,24 +174,25 @@ router.post('/', async (req, res) => {
   try {
     const { userId, productId } = req.body;
 
-    // ── Validate bắt buộc ──
+
     if (!productId) {
       return res.status(400).json({ error: 'Thiếu productId' });
     }
 
-    // ── Kiểm tra userId hợp lệ ──
+
     if (!userId || !mongoose.Types.ObjectId.isValid(String(userId))) {
       return res.status(403).json({
         error: 'Bạn cần đăng nhập để đánh giá sản phẩm'
       });
     }
 
-    // ── Kiểm tra có đơn delivered chứa sản phẩm này không ──
+
     const deliveredOrder = await Order.findOne({
       userId:  new mongoose.Types.ObjectId(String(userId)),
       status:  'delivered',
       'items.productId': new mongoose.Types.ObjectId(String(productId)),
     }).lean();
+
 
     if (!deliveredOrder) {
       return res.status(403).json({
@@ -177,12 +200,12 @@ router.post('/', async (req, res) => {
       });
     }
 
-    // ✅ FIX: Set verified = true vì đã xác nhận có đơn delivered
+
     const review = new Review({ ...req.body, verified: true });
     await review.save();
     await syncProductStats(productId);
 
-    // Thông báo admin (Socket.io + collection AdminNotification).
+
     try {
       const p = await Product.findById(productId).select('name').lean();
       await notifyAdminReviewNew(review, p?.name || '');
@@ -190,11 +213,14 @@ router.post('/', async (req, res) => {
       console.error('Admin notify review_new:', e);
     }
 
+
     res.status(201).json(review);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
+
+
 
 
 // ─────────────────────────────────────────────────────────────────
@@ -204,13 +230,16 @@ router.put('/:id', async (req, res) => {
   try {
     const { rating, text, tags, variant, imgs } = req.body;
 
+
     const review = await Review.findByIdAndUpdate(
       req.params.id,
       { rating, text, tags, variant, imgs },
       { new: true, runValidators: true }
     ).lean();
 
+
     if (!review) return res.status(404).json({ error: 'Review not found' });
+
 
     await syncProductStats(review.productId);
     res.json(review);
@@ -218,6 +247,8 @@ router.put('/:id', async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 });
+
+
 
 
 // ─────────────────────────────────────────────────────────────────
@@ -228,12 +259,15 @@ router.delete('/:id', async (req, res) => {
     const review = await Review.findByIdAndDelete(req.params.id).lean();
     if (!review) return res.status(404).json({ error: 'Review not found' });
 
+
     await syncProductStats(review.productId);
     res.json({ message: 'Đã xóa đánh giá', id: req.params.id });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
+
+
 
 
 // ─────────────────────────────────────────────────────────────────
@@ -254,21 +288,27 @@ router.patch('/:id/helpful', async (req, res) => {
 });
 
 
+
+
 // ================================================================
 // === ADMIN REVIEW MANAGEMENT APIs ===
 // ================================================================
 
+
 // ─────────────────────────────────────────────────────────────────
 // PUT /api/reviews/:id/admin-reply — Admin trả lời đánh giá
+// ✅ FIX: Gửi notification cho khách sau khi admin phản hồi
 // ─────────────────────────────────────────────────────────────────
 router.put('/:id/admin-reply', async (req, res) => {
   try {
     const { replyText } = req.body;
     const reviewId = req.params.id;
 
+
     if (!replyText || replyText.trim() === '') {
       return res.status(400).json({ error: 'Nội dung phản hồi không được để trống' });
     }
+
 
     const review = await Review.findByIdAndUpdate(
       reviewId,
@@ -279,21 +319,44 @@ router.put('/:id/admin-reply', async (req, res) => {
       { new: true, runValidators: true }
     ).lean();
 
+
     if (!review) {
       return res.status(404).json({ error: 'Không tìm thấy đánh giá' });
     }
 
+
     await syncProductStats(review.productId);
 
-    res.json({ 
-      success: true, 
+
+    // ✅ FIX: Gửi notification cho khách khi admin phản hồi đánh giá
+    if (review.userId && mongoose.Types.ObjectId.isValid(String(review.userId))) {
+      try {
+        const product = await Product.findById(review.productId).select('name').lean();
+        const productName = product?.name || 'sản phẩm';
+        await Notification.create({
+          userId:  review.userId,
+          title:   'Shop đã phản hồi đánh giá của bạn 💬',
+          message: `Đánh giá của bạn về "${productName}" vừa được shop phản hồi. Nhấn để xem chi tiết.`,
+          type:    'order',
+          isRead:  false,
+        });
+      } catch (e) {
+        console.error('Tạo notification review reply thất bại:', e);
+      }
+    }
+
+
+    res.json({
+      success: true,
       message: 'Đã phản hồi đánh giá thành công',
-      review 
+      review
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
+
+
 
 
 // ─────────────────────────────────────────────────────────────────
@@ -303,9 +366,10 @@ router.get('/admin/all', async (req, res) => {
   try {
     const { page = 1, limit = 20, search = '', hasReply = 'all' } = req.query;
 
+
     let query = {};
 
-    // Xử lý tìm kiếm
+
     if (search && search.trim()) {
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
@@ -313,12 +377,10 @@ router.get('/admin/all', async (req, res) => {
       ];
     }
 
-    // Xử lý lọc theo trạng thái phản hồi
+
     if (hasReply === 'replied') {
-      // Đã phản hồi: adminReply có nội dung (không null và không rỗng)
       query.adminReply = { $nin: [null, ''] };
     } else if (hasReply === 'unreplied') {
-      // Chưa phản hồi: adminReply là null hoặc rỗng (bao gồm cả chuỗi rỗng)
       if (search && search.trim()) {
         query = {
           $and: [
@@ -334,7 +396,9 @@ router.get('/admin/all', async (req, res) => {
       }
     }
 
+
     const total = await Review.countDocuments(query);
+
 
     const reviews = await Review.find(query)
       .populate('productId', 'name images')
@@ -342,6 +406,7 @@ router.get('/admin/all', async (req, res) => {
       .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit))
       .lean();
+
 
     res.json({
       reviews,
@@ -355,6 +420,8 @@ router.get('/admin/all', async (req, res) => {
 });
 
 
+
+
 // ─────────────────────────────────────────────────────────────────
 // DELETE /api/reviews/:id/admin-delete — Admin xóa đánh giá
 // ─────────────────────────────────────────────────────────────────
@@ -365,6 +432,7 @@ router.delete('/:id/admin-delete', async (req, res) => {
       return res.status(404).json({ error: 'Không tìm thấy đánh giá' });
     }
 
+
     await syncProductStats(review.productId);
     res.json({ message: 'Đã xóa đánh giá thành công', id: req.params.id });
   } catch (err) {
@@ -373,12 +441,15 @@ router.delete('/:id/admin-delete', async (req, res) => {
 });
 
 
+
+
 // ─────────────────────────────────────────────────────────────────
 // DELETE /api/reviews/:id/admin-reply — Admin xóa phản hồi
 // ─────────────────────────────────────────────────────────────────
 router.delete('/:id/admin-reply', async (req, res) => {
   try {
     const reviewId = req.params.id;
+
 
     const review = await Review.findByIdAndUpdate(
       reviewId,
@@ -389,9 +460,11 @@ router.delete('/:id/admin-reply', async (req, res) => {
       { new: true, runValidators: true }
     ).lean();
 
+
     if (!review) {
       return res.status(404).json({ error: 'Không tìm thấy đánh giá' });
     }
+
 
     res.json({
       success: true,
@@ -402,6 +475,8 @@ router.delete('/:id/admin-reply', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+
 
 
 module.exports = router;

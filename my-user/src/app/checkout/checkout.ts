@@ -13,8 +13,12 @@ import { CommonModule } from '@angular/common';
 import { ApiService, GUEST_CART_STORAGE_KEY } from '../services/api.service';
 
 
+
+
 type ShippingMethod = 'standard' | 'express';
 type PaymentMethod  = 'cod' | 'momo' | 'vnpay';
+
+
 
 
 type CheckoutItem = {
@@ -28,6 +32,8 @@ type CheckoutItem = {
 };
 
 
+
+
 interface SavedAddress {
   _id?: string;
   id?: string;
@@ -38,9 +44,13 @@ interface SavedAddress {
 }
 
 
+
+
 interface Province { code: number; name: string; }
 interface District { code: number; name: string; }
 interface Ward     { code: number; name: string; }
+
+
 
 
 export interface VoucherInfo {
@@ -58,6 +68,8 @@ export interface VoucherInfo {
 }
 
 
+
+
 interface ApplyVoucherResult {
   valid: boolean;
   code?: string;
@@ -68,8 +80,11 @@ interface ApplyVoucherResult {
   discountValue?: number;
   discountOnType?: 'items' | 'shipping';
   discountAmount?: number;
+  maxDiscount?: number; // ✅ THÊM để tính lại discount khi đổi loại ship
   message: string;
 }
+
+
 
 
 @Component({
@@ -86,13 +101,19 @@ export class Checkout implements OnInit, OnDestroy {
   private readonly CHECKOUT_KEY = 'checkout_v1';
 
 
+
+
   userId = '';
   private token = '';
+
+
 
 
   items     = signal<CheckoutItem[]>([]);
   errorMsg  = signal('');
   isPlacing = signal(false);
+
+
 
 
   showSuccess      = signal(false);
@@ -101,11 +122,15 @@ export class Checkout implements OnInit, OnDestroy {
   /** Mã SMS ngắn HU-… để tra cứu không cần đăng nhập */
   successGuestLookupCode = signal('');
 
-  /** SĐT người nhận — hiển thị trên modal “đã gửi SMS đến số …” */
+
+  /** SĐT người nhận — hiển thị trên modal "đã gửi SMS đến số …" */
   successOrderPhone = signal('');
+
 
   /** Hotline hiển thị trong mockup SMS (cùng số banner checkout khách) */
   readonly supportHotlineDisplay = '0335 512 275';
+
+
 
 
   /**
@@ -125,11 +150,17 @@ export class Checkout implements OnInit, OnDestroy {
   private otpCooldownTimer: ReturnType<typeof setInterval> | null = null;
 
 
+
+
   guestAddrForm!: FormGroup;
+
+
 
 
   shippingMethod = signal<ShippingMethod>('standard');
   paymentMethod  = signal<PaymentMethod>('cod');
+
+
 
 
   // ── Voucher tiền hàng ──
@@ -139,11 +170,15 @@ export class Checkout implements OnInit, OnDestroy {
   isApplyingOrderVoucher = false;
 
 
+
+
   // ── Voucher phí vận chuyển ──
   shipVoucherCode       = signal('');
   shipVoucherMsg        = signal('');
   shipVoucherResult     = signal<ApplyVoucherResult | null>(null);
   isApplyingShipVoucher = false;
+
+
 
 
   // ── Modal voucher ──
@@ -153,7 +188,11 @@ export class Checkout implements OnInit, OnDestroy {
   isLoadingVouchers    = false;
 
 
+
+
   bestVoucherCode = signal<string>('');
+
+
 
 
   // ── Hạng thành viên ──
@@ -163,9 +202,13 @@ export class Checkout implements OnInit, OnDestroy {
   showRankTooltip = false;
 
 
+
+
   rankProgressPercent = computed(() =>
     Math.min(100, Math.round((this.recentSpent() / 2_000_000) * 100))
   );
+
+
 
 
   rankProgressRemain = computed(() =>
@@ -173,10 +216,14 @@ export class Checkout implements OnInit, OnDestroy {
   );
 
 
+
+
   // ── Address ──
   savedAddresses = signal<SavedAddress[]>([]);
   selectedAddrId = signal<string>('');
   isLoadingAddr  = signal(false);
+
+
 
 
   showAddrModal    = false;
@@ -186,6 +233,8 @@ export class Checkout implements OnInit, OnDestroy {
   isAddrSaving     = false;
   addrModalError   = '';
   addrModalSuccess = '';
+
+
 
 
   provinces: Province[] = [];
@@ -202,8 +251,12 @@ export class Checkout implements OnInit, OnDestroy {
   fullAddressPreview = '';
 
 
+
+
   addrForm!: FormGroup;
   checkoutForm!: FormGroup;
+
+
 
 
   // ── Computed ──
@@ -211,25 +264,28 @@ export class Checkout implements OnInit, OnDestroy {
     this.items().reduce((s, i) => s + (Number(i.price) || 0) * (Number(i.quantity) || 0), 0)
   );
 
+
   /**
    * Giao nhanh — một mức cố định (khớp backend calcShipping / orders.js).
-   * Dùng cho template đỡ hard-code magic number rải rác.
    */
   readonly expressShippingFee = 30000;
 
+
   /**
-   * Phí hiển thị **trên thẻ** «Giao tiêu chuẩn» — chỉ phụ thuộc tạm tính, không phụ thuộc radio đang chọn.
-   * Trước đây dùng nhầm shippingFee() nên khi chọn giao nhanh, thẻ tiêu chuẩn cũng nhảy lên 30k.
+   * Phí hiển thị trên thẻ «Giao tiêu chuẩn» — chỉ phụ thuộc tạm tính, không phụ thuộc radio đang chọn.
    */
   standardOptionDisplayFee = computed(() =>
     this.subTotal() > 500000 ? 0 : 20000
   );
+
 
   shippingFee = computed(() =>
     this.shippingMethod() === 'express'
       ? this.expressShippingFee
       : this.standardOptionDisplayFee()
   );
+
+
 
 
   discountOnItems = computed(() => {
@@ -239,14 +295,36 @@ export class Checkout implements OnInit, OnDestroy {
   });
 
 
+
+
+  // ✅ FIX: Tính lại động theo shippingFee() hiện tại thay vì dùng discountAmount đã cache
   discountOnShipping = computed(() => {
     const r = this.shipVoucherResult();
     if (!r?.valid || r.discountOnType !== 'shipping') return 0;
-    return r.discountAmount ?? 0;
+
+    const fee  = this.shippingFee();
+    const maxD = r.maxDiscount ?? 0;
+
+    if (r.discountType === 'freeship') {
+      // freeship: giảm toàn bộ phí ship, nhưng không vượt maxDiscount nếu có
+      return maxD > 0 ? Math.min(fee, maxD) : fee;
+    }
+    if (r.discountType === 'percent') {
+      const raw = Math.round(fee * (r.discountValue ?? 0) / 100);
+      return maxD > 0 ? Math.min(raw, maxD) : raw;
+    }
+    if (r.discountType === 'fixed') {
+      return Math.min(r.discountValue ?? 0, fee);
+    }
+    return 0;
   });
 
 
+
+
   discount = computed(() => this.discountOnItems() + this.discountOnShipping());
+
+
 
 
   total = computed(() =>
@@ -254,14 +332,20 @@ export class Checkout implements OnInit, OnDestroy {
   );
 
 
+
+
   get selectedAddr(): SavedAddress | undefined {
     return this.savedAddresses().find(a => this.getId(a) === this.selectedAddrId());
   }
 
 
+
+
   get canUseVouchers(): boolean {
     return !!(this.token && this.userId);
   }
+
+
 
 
   get shippingAddr(): SavedAddress | null {
@@ -285,14 +369,20 @@ export class Checkout implements OnInit, OnDestroy {
   }
 
 
+
+
   get isOrderVoucherApplied(): boolean {
     return this.orderVoucherResult()?.valid === true;
   }
 
 
+
+
   get isShipVoucherApplied(): boolean {
     return this.shipVoucherResult()?.valid === true;
   }
+
+
 
 
   get appliedOrderVoucherInfo(): VoucherInfo | undefined {
@@ -309,6 +399,8 @@ export class Checkout implements OnInit, OnDestroy {
   }
 
 
+
+
   get appliedShipVoucherInfo(): VoucherInfo | undefined {
     const r = this.shipVoucherResult();
     if (!r?.valid || !r.code) return undefined;
@@ -323,9 +415,13 @@ export class Checkout implements OnInit, OnDestroy {
   }
 
 
+
+
   get memberRankLabel(): string {
     return this.userRank() === 'vip' ? '⭐ VIP' : 'Thành viên';
   }
+
+
 
 
   constructor(
@@ -337,9 +433,10 @@ export class Checkout implements OnInit, OnDestroy {
   ) {}
 
 
+
+
   ngOnInit(): void {
     this.checkoutForm  = this.fb.group({ note: [''] });
-    // Khách: bắt buộc chọn tỉnh / quận / phường + đường (không còn một textarea tự do).
     this.guestAddrForm = this.fb.group({
       name:     ['', [Validators.required, Validators.minLength(2)]],
       phone:    ['', [Validators.required, Validators.pattern(/^0\d{9}$/)]],
@@ -353,6 +450,8 @@ export class Checkout implements OnInit, OnDestroy {
     if (!this.items().length) { this.router.navigateByUrl('/cart'); return; }
 
 
+
+
     try {
       const u     = JSON.parse(localStorage.getItem('user') || '{}');
       this.token  = localStorage.getItem('token') || '';
@@ -360,10 +459,14 @@ export class Checkout implements OnInit, OnDestroy {
     } catch {}
 
 
+
+
     if (!this.canUseVouchers) {
       this.removeVoucher('order');
       this.removeVoucher('shipping');
     }
+
+
 
 
     this.loadProvinces();
@@ -374,9 +477,13 @@ export class Checkout implements OnInit, OnDestroy {
   }
 
 
+
+
   ngOnDestroy(): void {
     this.clearOtpCooldownTimer();
   }
+
+
 
 
   /** Hiển thị SĐT dạng 076***564 trong modal mockup SMS */
@@ -387,6 +494,8 @@ export class Checkout implements OnInit, OnDestroy {
     }
     return `${s.slice(0, 3)}***${s.slice(-3)}`;
   }
+
+
 
 
   /** Nhập OTP trong modal — chỉ số, tối đa 6 */
@@ -400,10 +509,14 @@ export class Checkout implements OnInit, OnDestroy {
   }
 
 
+
+
   closeGuestOtpModal(): void {
     this.showGuestOtpModal.set(false);
     this.clearGuestOtpModalUi();
   }
+
+
 
 
   private clearGuestOtpModalUi(): void {
@@ -413,6 +526,8 @@ export class Checkout implements OnInit, OnDestroy {
     this.clearOtpCooldownTimer();
     this.otpCooldownSec.set(0);
   }
+
+
 
 
   /**
@@ -432,9 +547,13 @@ export class Checkout implements OnInit, OnDestroy {
     }
 
 
+
+
     this.isSendingOtp.set(true);
     this.guestOtpModalError.set('');
     this.cdr.detectChanges();
+
+
 
 
     this.http
@@ -460,6 +579,8 @@ export class Checkout implements OnInit, OnDestroy {
   }
 
 
+
+
   /**
    * Sau khi bấm Đặt hàng (khách): gọi API gửi OTP rồi mở modal mockup tin nhắn.
    */
@@ -467,6 +588,8 @@ export class Checkout implements OnInit, OnDestroy {
     this.isSendingCheckoutOtp.set(true);
     this.errorMsg.set('');
     this.cdr.detectChanges();
+
+
 
 
     this.http
@@ -495,6 +618,8 @@ export class Checkout implements OnInit, OnDestroy {
   }
 
 
+
+
   private startOtpCooldown(sec: number): void {
     this.clearOtpCooldownTimer();
     this.otpCooldownSec.set(sec);
@@ -509,6 +634,8 @@ export class Checkout implements OnInit, OnDestroy {
   }
 
 
+
+
   private clearOtpCooldownTimer(): void {
     if (this.otpCooldownTimer) {
       clearInterval(this.otpCooldownTimer);
@@ -517,9 +644,13 @@ export class Checkout implements OnInit, OnDestroy {
   }
 
 
+
+
   private get headers() {
     return new HttpHeaders({ Authorization: `Bearer ${this.token}` });
   }
+
+
 
 
   private loadUserRank(): void {
@@ -536,8 +667,12 @@ export class Checkout implements OnInit, OnDestroy {
   }
 
 
+
+
   getId(a: SavedAddress): string { return (a._id || a.id || '') as string; }
   getInitial(name: string): string { return (name || 'U').charAt(0).toUpperCase(); }
+
+
 
 
   // ── Address ──
@@ -562,7 +697,11 @@ export class Checkout implements OnInit, OnDestroy {
   }
 
 
+
+
   selectAddress(id: string): void { this.selectedAddrId.set(id); this.cdr.detectChanges(); }
+
+
 
 
   setDefaultAddr(idx: number): void {
@@ -576,6 +715,8 @@ export class Checkout implements OnInit, OnDestroy {
         }
       });
   }
+
+
 
 
   deleteAddr(idx: number): void {
@@ -595,6 +736,8 @@ export class Checkout implements OnInit, OnDestroy {
   }
 
 
+
+
   private buildAddrForm(): void {
     this.addrForm = this.fb.group({
       name:      ['', [Validators.required, Validators.minLength(2)]],
@@ -609,6 +752,8 @@ export class Checkout implements OnInit, OnDestroy {
   }
 
 
+
+
   openAddAddrModal(): void {
     this.isAddrEditMode = false; this.editingAddrIdx = -1;
     this.addrModalError = ''; this.addrModalSuccess = '';
@@ -616,6 +761,8 @@ export class Checkout implements OnInit, OnDestroy {
     this.addrForm.reset({ isDefault: false });
     this.showAddrModal = true; this.cdr.detectChanges();
   }
+
+
 
 
   openEditAddrModal(idx: number): void {
@@ -630,6 +777,8 @@ export class Checkout implements OnInit, OnDestroy {
   }
 
 
+
+
   closeAddrModal(): void {
     this.showAddrModal = false; this.addrForm.reset();
     this.fullAddressPreview = ''; this.addrModalError = ''; this.addrModalSuccess = '';
@@ -637,10 +786,14 @@ export class Checkout implements OnInit, OnDestroy {
   }
 
 
+
+
   showAddrFieldError(field: string): boolean {
     const f = this.addrForm.get(field);
     return !!(f && f.invalid && (f.dirty || f.touched));
   }
+
+
 
 
   submitAddrForm(): void {
@@ -653,7 +806,11 @@ export class Checkout implements OnInit, OnDestroy {
   }
 
 
+
+
   private getFullAddr(): string { return this.fullAddressPreview || this.addrForm.value.street; }
+
+
 
 
   private addAddr(): void {
@@ -681,6 +838,8 @@ export class Checkout implements OnInit, OnDestroy {
   }
 
 
+
+
   private updateAddr(): void {
     this.isAddrSaving = true; this.addrModalError = '';
     const v  = this.addrForm.value;
@@ -706,6 +865,8 @@ export class Checkout implements OnInit, OnDestroy {
   }
 
 
+
+
   loadProvinces(): void {
     if (this.provinces.length) return;
     this.loadingProvinces = true;
@@ -715,11 +876,13 @@ export class Checkout implements OnInit, OnDestroy {
     });
   }
 
+
   /** Lỗi từng ô form địa chỉ khách — chỉ hiện sau touched / submit. */
   showGuestAddrError(field: string): boolean {
     const f = this.guestAddrForm.get(field);
     return !!(f && f.invalid && (f.dirty || f.touched));
   }
+
 
   /** Ghép một dòng địa chỉ đầy đủ gửi lên API (giống logic sổ địa chỉ). */
   private buildGuestAddressLine(): string {
@@ -731,6 +894,7 @@ export class Checkout implements OnInit, OnDestroy {
     const street = String(v.street || '').trim();
     return [street, wName, dName, pName].filter(Boolean).join(', ');
   }
+
 
   onGuestProvinceChange(): void {
     const code = this.guestAddrForm.get('province')?.value;
@@ -755,6 +919,7 @@ export class Checkout implements OnInit, OnDestroy {
     });
   }
 
+
   onGuestDistrictChange(): void {
     const code = this.guestAddrForm.get('district')?.value;
     this.guestWards = [];
@@ -777,9 +942,11 @@ export class Checkout implements OnInit, OnDestroy {
     });
   }
 
+
   onGuestWardChange(): void {
     this.cdr.detectChanges();
   }
+
 
   onProvinceChange(): void {
     const code = this.addrForm.get('province')?.value;
@@ -792,6 +959,8 @@ export class Checkout implements OnInit, OnDestroy {
       error: () => { this.loadingDistricts = false; }
     });
   }
+
+
 
 
   onDistrictChange(): void {
@@ -807,7 +976,11 @@ export class Checkout implements OnInit, OnDestroy {
   }
 
 
+
+
   onWardChange(): void { this.updatePreview(); }
+
+
 
 
   updatePreview(): void {
@@ -819,15 +992,21 @@ export class Checkout implements OnInit, OnDestroy {
   }
 
 
+
+
   // ══════════════════════════════════════
   // VOUCHER
   // ══════════════════════════════════════
+
+
 
 
   isVoucherEligible(v: VoucherInfo): boolean {
     if (v.eligible === false) return false;
     return this.subTotal() >= (v.minOrder ?? 0);
   }
+
+
 
 
   voucherDisabledReason(v: VoucherInfo): string {
@@ -838,6 +1017,8 @@ export class Checkout implements OnInit, OnDestroy {
     }
     return '';
   }
+
+
 
 
   calcVoucherSaving(v: VoucherInfo): number {
@@ -851,6 +1032,8 @@ export class Checkout implements OnInit, OnDestroy {
     if (v.discountType === 'fixed') return Math.min(v.discountValue, base);
     return 0;
   }
+
+
 
 
   onVoucherInput(v: string, forType: 'order' | 'shipping'): void {
@@ -868,8 +1051,12 @@ export class Checkout implements OnInit, OnDestroy {
   }
 
 
+
+
   applyVoucher(forType: 'order' | 'shipping'): void {
     if (!this.canUseVouchers) return;
+
+
 
 
     const code = forType === 'order' ? this.orderVoucherCode() : this.shipVoucherCode();
@@ -883,6 +1070,8 @@ export class Checkout implements OnInit, OnDestroy {
     if (forType === 'shipping' && this.isApplyingShipVoucher)  return;
 
 
+
+
     if (forType === 'order') {
       this.isApplyingOrderVoucher = true;
       this.orderVoucherMsg.set('');
@@ -893,7 +1082,11 @@ export class Checkout implements OnInit, OnDestroy {
     this.cdr.detectChanges();
 
 
+
+
     const cartProductIds = this.items().map(i => i.productId);
+
+
 
 
     this.http.post<ApplyVoucherResult>(
@@ -916,13 +1109,19 @@ export class Checkout implements OnInit, OnDestroy {
         }
 
 
+
+
         if (forType === 'order') {
           this.isApplyingOrderVoucher = false;
           this.orderVoucherResult.set(res);
           this.orderVoucherMsg.set(res.message);
         } else {
           this.isApplyingShipVoucher = false;
-          this.shipVoucherResult.set(res);
+          // ✅ Lưu thêm maxDiscount từ backend để computed discountOnShipping dùng lại
+          this.shipVoucherResult.set({
+            ...res,
+            maxDiscount: (res as any).maxDiscount ?? 0,
+          });
           this.shipVoucherMsg.set(res.message);
         }
         this.cdr.detectChanges();
@@ -944,6 +1143,8 @@ export class Checkout implements OnInit, OnDestroy {
   }
 
 
+
+
   removeVoucher(forType: 'order' | 'shipping'): void {
     if (forType === 'order') {
       this.orderVoucherCode.set('');
@@ -958,6 +1159,8 @@ export class Checkout implements OnInit, OnDestroy {
   }
 
 
+
+
   openVoucherModal(forType: 'order' | 'shipping'): void {
     if (!this.canUseVouchers) return;
     this.voucherModalFor   = forType;
@@ -967,7 +1170,11 @@ export class Checkout implements OnInit, OnDestroy {
     this.cdr.detectChanges();
 
 
+
+
     const cartProductIds = this.items().map(i => i.productId).join(',');
+
+
 
 
     this.http.get<VoucherInfo[]>(
@@ -987,11 +1194,14 @@ export class Checkout implements OnInit, OnDestroy {
         );
 
 
+
+
         const eligible   = filtered.filter(v => v.eligible !== false);
         const ineligible = filtered.filter(v => v.eligible === false);
 
 
-        // Tìm voucher tiết kiệm nhiều nhất
+
+
         let bestCode = '';
         if (eligible.length > 0) {
           const best = eligible.reduce((prev, curr) =>
@@ -1002,7 +1212,8 @@ export class Checkout implements OnInit, OnDestroy {
         }
 
 
-        // Sắp xếp eligible: voucher tốt nhất lên đầu, còn lại sort theo saving giảm dần
+
+
         const sortedEligible = eligible.sort((a, b) => {
           if (a.code === bestCode) return -1;
           if (b.code === bestCode) return  1;
@@ -1010,10 +1221,13 @@ export class Checkout implements OnInit, OnDestroy {
         });
 
 
-        // Ineligible sort theo minOrder tăng dần (gần đủ điều kiện lên trước)
+
+
         const sortedIneligible = ineligible.sort((a, b) =>
           (a.minOrder ?? 0) - (b.minOrder ?? 0)
         );
+
+
 
 
         this.availableVouchers.set([...sortedEligible, ...sortedIneligible]);
@@ -1029,10 +1243,14 @@ export class Checkout implements OnInit, OnDestroy {
   }
 
 
+
+
   closeVoucherModal(): void {
     this.showVoucherModal = false;
     this.cdr.detectChanges();
   }
+
+
 
 
   selectVoucher(code: string, eligible: boolean): void {
@@ -1045,12 +1263,16 @@ export class Checkout implements OnInit, OnDestroy {
   }
 
 
+
+
   voucherTypeLabel(v: VoucherInfo): string {
     if (v.discountType === 'freeship') return 'Miễn phí vận chuyển';
     if (v.discountType === 'percent')  return `Giảm ${v.discountValue}%`;
     if (v.discountType === 'fixed')    return `Giảm ${v.discountValue.toLocaleString('vi-VN')}₫`;
     return v.name;
   }
+
+
 
 
   voucherTypeIcon(v: VoucherInfo): string {
@@ -1060,11 +1282,15 @@ export class Checkout implements OnInit, OnDestroy {
   }
 
 
+
+
   get voucherModalTitle(): string {
     return this.voucherModalFor === 'shipping'
       ? 'Mã giảm phí vận chuyển'
       : 'Mã giảm tiền hàng';
   }
+
+
 
 
   // ══════════════════════════════════════
@@ -1073,16 +1299,16 @@ export class Checkout implements OnInit, OnDestroy {
   getEstimatedDeliveryDate(): string {
     const now = new Date();
     let daysToAdd = 0;
-    
+
     if (this.shippingMethod() === 'express') {
-      daysToAdd = 2; // Giao nhanh: 1-2 ngày
+      daysToAdd = 2;
     } else {
-      daysToAdd = 4; // Giao tiêu chuẩn: 3-4 ngày
+      daysToAdd = 4;
     }
-    
+
     const estimatedDate = new Date(now);
     estimatedDate.setDate(now.getDate() + daysToAdd);
-    
+
     return estimatedDate.toLocaleDateString('vi-VN', {
       day: '2-digit',
       month: '2-digit',
@@ -1091,9 +1317,13 @@ export class Checkout implements OnInit, OnDestroy {
   }
 
 
+
+
   // ══════════════════════════════════════
   // PLACE ORDER
   // ══════════════════════════════════════
+
+
 
 
   private parseAddressParts(fullAddress: string): { province: string; district: string; ward: string } {
@@ -1111,9 +1341,8 @@ export class Checkout implements OnInit, OnDestroy {
   }
 
 
-  /**
-   * Ghép payload đặt hàng (chưa kèm OTP — OTP chỉ thêm khi khách xác nhận trong modal).
-   */
+
+
   private buildOrderPayloadForSubmit():
     | { payload: Record<string, unknown>; headers: HttpHeaders }
     | null {
@@ -1121,6 +1350,8 @@ export class Checkout implements OnInit, OnDestroy {
     if (!addr) {
       return null;
     }
+
+
 
 
     const note = this.checkoutForm.value.note || '';
@@ -1139,6 +1370,7 @@ export class Checkout implements OnInit, OnDestroy {
       ward = this.guestWards.find((w) => w.code == v.ward)?.name || '';
     }
 
+
     const customer: Record<string, string> = {
       fullName: addr.name,
       phone:    addr.phone,
@@ -1149,6 +1381,8 @@ export class Checkout implements OnInit, OnDestroy {
       ward,
       note,
     };
+
+
 
 
     const useVoucher = this.canUseVouchers;
@@ -1170,6 +1404,8 @@ export class Checkout implements OnInit, OnDestroy {
     }
 
 
+
+
     if (!this.token) {
       try {
         const gid = localStorage.getItem(GUEST_CART_STORAGE_KEY);
@@ -1180,10 +1416,14 @@ export class Checkout implements OnInit, OnDestroy {
     }
 
 
+
+
     let headers = new HttpHeaders();
     if (this.token) {
       headers = headers.set('Authorization', `Bearer ${this.token}`);
     }
+
+
 
 
     return { payload, headers };
@@ -1192,9 +1432,6 @@ export class Checkout implements OnInit, OnDestroy {
 
 
 
-  /**
-   * POST tạo đơn — dùng chung member & khách (khách kèm guestCheckoutOtp trong payload).
-   */
   private executeOrderSubmit(
     payload: Record<string, unknown>,
     headers: HttpHeaders,
@@ -1207,6 +1444,8 @@ export class Checkout implements OnInit, OnDestroy {
       this.guestOtpModalError.set('');
     }
     this.cdr.detectChanges();
+
+
 
 
     this.http.post<any>(`${this.API_BASE}/orders`, payload, { headers }).subscribe({
@@ -1225,9 +1464,13 @@ export class Checkout implements OnInit, OnDestroy {
         this.showSuccess.set(true);
 
 
+
+
         if (this.userId && this.token) {
           this.loadUserRank();
         }
+
+
 
 
         this.api.refreshUnreadCount();
@@ -1267,6 +1510,8 @@ export class Checkout implements OnInit, OnDestroy {
     }
 
 
+
+
     const built = this.buildOrderPayloadForSubmit();
     if (!built) {
       this.closeGuestOtpModal();
@@ -1276,11 +1521,15 @@ export class Checkout implements OnInit, OnDestroy {
     }
 
 
+
+
     const addr = this.shippingAddr;
     if (!addr) {
       this.closeGuestOtpModal();
       return;
     }
+
+
 
 
     const payload = { ...built.payload, guestCheckoutOtp: otp };
@@ -1304,6 +1553,8 @@ export class Checkout implements OnInit, OnDestroy {
     }
 
 
+
+
     const addr = this.shippingAddr;
     if (!addr) {
       this.errorMsg.set(
@@ -1316,6 +1567,8 @@ export class Checkout implements OnInit, OnDestroy {
     }
 
 
+
+
     const badIds = this.items().filter((i) =>
       !/^[a-fA-F0-9]{24}$/.test(String(i.productId || '').trim())
     );
@@ -1326,7 +1579,8 @@ export class Checkout implements OnInit, OnDestroy {
     }
 
 
-    /** Khách: không tạo đơn ngay — gửi SMS rồi mở modal mockup tin nhắn */
+
+
     if (!this.userId) {
       if (this.guestAddrForm.invalid) {
         this.guestAddrForm.markAllAsTouched();
@@ -1347,6 +1601,8 @@ export class Checkout implements OnInit, OnDestroy {
     }
 
 
+
+
     const built = this.buildOrderPayloadForSubmit();
     if (!built) {
       return;
@@ -1356,6 +1612,8 @@ export class Checkout implements OnInit, OnDestroy {
       otpErrorInModal:        false,
     });
   }
+
+
 
 
   goToOrderDetail(): void {
@@ -1373,15 +1631,16 @@ export class Checkout implements OnInit, OnDestroy {
   }
 
 
+
+
   goToHome():        void { this.showSuccess.set(false); this.router.navigateByUrl('/'); }
   setShipping(m: ShippingMethod) { this.shippingMethod.set(m); }
   setPayment(m: PaymentMethod)   { this.paymentMethod.set(m); }
   goToCart() { this.router.navigateByUrl('/cart'); }
 
 
-  /**
-   * Link đầy đủ tới trang tra cứu — dùng trong mockup SMS cho khách thấy giống tin nhắn thật.
-   */
+
+
   guestOrderLookupAbsUrl(): string {
     if (typeof window === 'undefined') {
       return '/tra-cuu-don';
@@ -1390,7 +1649,11 @@ export class Checkout implements OnInit, OnDestroy {
   }
 
 
+
+
   vnd(n: number) { return n.toLocaleString('vi-VN') + '₫'; }
+
+
 
 
   private loadCheckoutItems(): void {
@@ -1400,6 +1663,8 @@ export class Checkout implements OnInit, OnDestroy {
       this.items.set(Array.isArray(parsed) ? parsed.filter((x: any) => x?.productId && x.quantity != null) : []);
     } catch { this.items.set([]); }
   }
+
+
 
 
   private clearAfterSuccess(): void {
@@ -1413,6 +1678,8 @@ export class Checkout implements OnInit, OnDestroy {
         Array.isArray(cart) ? cart.filter((x: any) => !bought.has(x.productId)) : []
       ));
     } catch {}
+
+
 
 
     const userId = this.userId;

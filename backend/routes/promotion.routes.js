@@ -69,7 +69,6 @@ async function validatePromotion(promo, { subTotal, shippingFee, userId, userRan
     }
   }
 
-  // --- KIỂM TRA QUYỀN HIỂN THỊ ---
   if (promo.isActive === false) {
     return { ok: false, message: 'Voucher này hiện đang tạm ngưng sử dụng' };
   }
@@ -111,8 +110,6 @@ async function validatePromotion(promo, { subTotal, shippingFee, userId, userRan
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPER: check voucher có phải loại giảm ship không
-// DB lưu type = 'shipping' | 'freeship' — cả 2 đều là giảm ship
-// discountType = 'freeship' cũng là dấu hiệu voucher ship
 // ─────────────────────────────────────────────────────────────────────────────
 function isShippingType(promo) {
   return promo.type === 'shipping'
@@ -213,6 +210,8 @@ router.post('/apply', optionalAuth, async (req, res) => {
       type:          isShippingType(promo) ? 'shipping' : 'order',
       discountType:  promo.discountType,
       discountValue: promo.discountValue,
+      // ✅ FIX: trả về maxDiscount để frontend recalc đúng khi đổi loại giao hàng
+      maxDiscount:   promo.maxDiscount || 0,
       discountOnType,
       discountAmount,
       message:       '✓ Áp dụng thành công!',
