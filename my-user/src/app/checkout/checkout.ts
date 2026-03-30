@@ -41,6 +41,14 @@ interface SavedAddress {
   phone: string;
   address: string;
   isDefault: boolean;
+  /** Các field cấu trúc — backend có thể chưa lưu hết; khi có thì ưu tiên dùng khi sửa */
+  street?: string;
+  provinceCode?: number;
+  districtCode?: number;
+  wardCode?: number;
+  provinceName?: string;
+  districtName?: string;
+  wardName?: string;
 }
 
 
@@ -762,18 +770,202 @@ export class Checkout implements OnInit, OnDestroy {
     this.showAddrModal = true; this.cdr.detectChanges();
   }
 
+  /** Chuẩn hóa nhãn địa giới để so khớp với dữ liệu open-api (ví dụ "Tỉnh X" ↔ "X"). */
+  private normalizeAdminLabel(s: string): string {
+    return (s || '')
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .replace(/^(tỉnh|thành phố|tp\.|huyện|quận|thị xã|tx\.|xã|phường|thị trấn|tt\.)\s+/i, '')
+      .trim();
+  }
 
-
+  private adminNameMatches(apiName: string, fromAddress: string): boolean {
+    const A = this.normalizeAdminLabel(apiName);
+    const B = this.normalizeAdminLabel(fromAddress);
+    if (!A || !B) return false;
+    return A.includes(B) || B.includes(A);
+  }
 
   openEditAddrModal(idx: number): void {
-    this.isAddrEditMode = true; this.editingAddrIdx = idx;
-    this.addrModalError = ''; this.addrModalSuccess = '';
-    this.districts = []; this.wards = [];
+    this.isAddrEditMode = true;
+    this.editingAddrIdx = idx;
+    this.addrModalError = '';
+    this.addrModalSuccess = '';
+    this.districts = [];
+    this.wards = [];
+
     const a = this.savedAddresses()[idx];
+    const allParts = a.address.split(',').map((p: string) => p.trim()).filter(Boolean);
+    const geoKeywords = ['tỉnh', 'thành phố', 'tp.', 'huyện', 'quận', 'thị xã', 'tx.', 'xã', 'phường', 'thị trấn', 'tt.'];
+    const isGeoPart = (p: string) => geoKeywords.some((k) => p.toLowerCase().startsWith(k));
+    const streetOnly = a.street || allParts.filter((p) => !isGeoPart(p)).join(', ') || a.address;
+
+    this.addrForm.reset({
+      name: a.name,
+      phone: a.phone,
+      province: '',
+      district: '',
+      ward: '',
+      street: streetOnly,
+      isDefault: a.isDefault,
+    });
+    // reset kích hoạt valueChanges → updatePreview chỉ còn street; khôi phục bản đầy đủ cho đến khi cascade xong
     this.fullAddressPreview = a.address;
-    this.addrForm.reset({ name: a.name, phone: a.phone, province: '', district: '', ward: '', street: a.address, isDefault: a.isDefault });
-    setTimeout(() => { this.cdr.detectChanges(); }, 0);
-    this.showAddrModal = true; this.cdr.detectChanges();
+
+    this.showAddrModal = true;
+    this.cdr.detectChanges();
+
+    const parts = allParts;
+    const provinceKeywords = ['tỉnh', 'thành phố', 'tp.'];
+    const districtKeywords = ['huyện', 'quận', 'thị xã', 'tx.'];
+    const wardKeywords = ['xã', 'phường', 'thị trấn', 'tt.'];
+
+    const findFirstPart = (keywords: string[]) =>
+      parts.find((p) => keywords.some((k) => p.toLowerCase().startsWith(k))) || '';
+    const findLastPart = (keywords: string[]) => {
+      for (let i = parts.length - 1; i >= 0; i--) {
+        const p = parts[i];
+        if (keywords.some((k) => p.toLowerCase().startsWith(k))) return p;
+      }
+      return '';
+    };
+
+    const hasStoredCodes =
+      [a.provinceCode, a.districtCode, a.wardCode].some(
+        (c) => c !== undefined && c !== null && String(c) !== ''
+      );
+    const hasGeoInText = parts.some((p) => {
+      const low = p.toLowerCase();
+      return (
+        provinceKeywords.some((k) => low.startsWith(k)) ||
+        districtKeywords.some((k) => low.startsWith(k)) ||
+        wardKeywords.some((k) => low.startsWith(k))
+      );
+    });
+    const hasGeoHint = hasStoredCodes || hasGeoInText;
+
+    const resolveProvince = (): Province | undefined => {
+      if (a.provinceCode != null && String(a.provinceCode) !== '') {
+        const byCode = this.provinces.find((p) => p.code == a.provinceCode);
+        if (byCode) return byCode;
+      }
+      const meta = (a.provinceName || '').trim();
+      const fromAddr = findLastPart(provinceKeywords) || findFirstPart(provinceKeywords);
+      for (const name of [meta, fromAddr]) {
+        if (name.length < 2) continue;
+        const hit = this.provinces.find((p) => this.adminNameMatches(p.name, name));
+        if (hit) return hit;
+      }
+      for (let i = parts.length - 1; i >= 0; i--) {
+        const seg = parts[i];
+        if (!provinceKeywords.some((k) => seg.toLowerCase().startsWith(k))) continue;
+        const hit = this.provinces.find((p) => this.adminNameMatches(p.name, seg));
+        if (hit) return hit;
+      }
+      return undefined;
+    };
+
+    const doMatch = () => {
+      if (!hasGeoHint) {
+        this.updatePreview();
+        this.cdr.detectChanges();
+        return;
+      }
+
+      const province = resolveProvince();
+      if (!province) {
+        this.updatePreview();
+        this.cdr.detectChanges();
+        return;
+      }
+
+      this.loadingDistricts = true;
+      this.cdr.detectChanges();
+
+      this.http.get<any>(`${this.GEO_API}/p/${province.code}?depth=2`).subscribe({
+        next: (d) => {
+          this.districts = d.districts || [];
+          this.loadingDistricts = false;
+          this.addrForm.patchValue({ province: province.code }, { emitEvent: false });
+
+          const districtLabel =
+            (a.districtName || '').trim() ||
+            findLastPart(districtKeywords) ||
+            findFirstPart(districtKeywords);
+
+          let district: District | undefined;
+          if (a.districtCode != null && String(a.districtCode) !== '') {
+            district = this.districts.find((di) => di.code == a.districtCode);
+          }
+          if (!district && districtLabel.length > 1) {
+            district = this.districts.find((di) => this.adminNameMatches(di.name, districtLabel));
+          }
+
+          if (!district) {
+            this.updatePreview();
+            this.cdr.detectChanges();
+            return;
+          }
+
+          this.loadingWards = true;
+          this.cdr.detectChanges();
+
+          this.http.get<any>(`${this.GEO_API}/d/${district.code}?depth=2`).subscribe({
+            next: (dw) => {
+              this.wards = dw.wards || [];
+              this.loadingWards = false;
+
+              const wardLabel =
+                (a.wardName || '').trim() ||
+                findFirstPart(wardKeywords) ||
+                findLastPart(wardKeywords);
+
+              let ward: Ward | undefined;
+              if (a.wardCode != null && String(a.wardCode) !== '') {
+                ward = this.wards.find((w) => w.code == a.wardCode);
+              }
+              if (!ward && wardLabel.length > 1) {
+                ward = this.wards.find((w) => this.adminNameMatches(w.name, wardLabel));
+              }
+
+              this.addrForm.patchValue(
+                { district: district.code, ward: ward ? ward.code : '' },
+                { emitEvent: false }
+              );
+              this.updatePreview();
+              this.cdr.detectChanges();
+            },
+            error: () => {
+              this.loadingWards = false;
+              this.cdr.detectChanges();
+            },
+          });
+        },
+        error: () => {
+          this.loadingDistricts = false;
+          this.cdr.detectChanges();
+        },
+      });
+    };
+
+    if (!this.provinces.length) {
+      this.loadingProvinces = true;
+      this.cdr.detectChanges();
+      this.http.get<Province[]>(`${this.GEO_API}/?depth=1`).subscribe({
+        next: (d) => {
+          this.provinces = d;
+          this.loadingProvinces = false;
+          this.cdr.detectChanges();
+          doMatch();
+        },
+        error: () => {
+          this.loadingProvinces = false;
+          this.cdr.detectChanges();
+        },
+      });
+    } else {
+      doMatch();
+    }
   }
 
 
