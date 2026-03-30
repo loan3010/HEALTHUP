@@ -3,7 +3,7 @@ const router    = express.Router();
 const mongoose  = require('mongoose');
 const path      = require('path');
 const multer    = require('multer');
-const Review    = require('../models/Review');
+const Review = require('../models/Review');
 const Product   = require('../models/Product');
 const Order     = require('../models/Order');
 const Notification = require('../models/Notification');
@@ -37,12 +37,12 @@ const upload = multer({
 // ── Helper: cập nhật rating + reviewCount trên Product ──
 async function syncProductStats(productId) {
   try {
-    const pid = new mongoose.Types.ObjectId(String(productId));
-    const all = await Review.find({ productId: pid }).lean();
+    const pidStr = String(productId || '').trim();
+    const all = await Review.find({ productId: pidStr }).lean();
     const avg = all.length
       ? Number((all.reduce((s, r) => s + r.rating, 0) / all.length).toFixed(1))
       : 0;
-    await Product.findByIdAndUpdate(productId, {
+    await Product.findByIdAndUpdate(pidStr, {
       rating:      avg,
       reviewCount: all.length,
     });
@@ -76,10 +76,13 @@ router.post('/upload-images', upload.array('images', 5), (req, res) => {
 router.get('/product/:productId', async (req, res) => {
   try {
     const { filter, sort = 'newest', page = 1, limit = 10 } = req.query;
-    const productObjectId = new mongoose.Types.ObjectId(req.params.productId);
-
-
-    let query = { productId: productObjectId };
+    const rawPid = String(req.params.productId || '').trim();
+    if (!mongoose.Types.ObjectId.isValid(rawPid)) {
+      return res.status(400).json({ error: 'productId không hợp lệ' });
+    }
+    /** Schema Review lưu productId kiểu String — khớp DB, tránh query ObjectId vs string. */
+    const productIdStr = rawPid;
+    let query = { productId: productIdStr };
 
 
     if (filter && filter !== 'all') {
@@ -101,7 +104,7 @@ router.get('/product/:productId', async (req, res) => {
     }
 
 
-    const total = await Review.countDocuments({ productId: productObjectId });
+    const total = await Review.countDocuments({ productId: productIdStr });
 
 
     const reviews = await Review.find(query)
@@ -111,7 +114,7 @@ router.get('/product/:productId', async (req, res) => {
       .lean();
 
 
-    const allReviews = await Review.find({ productId: productObjectId }).lean();
+    const allReviews = await Review.find({ productId: productIdStr }).lean();
 
 
     const counts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
@@ -140,7 +143,7 @@ router.get('/product/:productId', async (req, res) => {
       .map(([tag]) => tag);
 
 
-    const product = await Product.findById(req.params.productId)
+    const product = await Product.findById(productIdStr)
       .select('name sold weights packagingTypes')
       .lean();
 
@@ -364,38 +367,62 @@ router.put('/:id/admin-reply', async (req, res) => {
 // ─────────────────────────────────────────────────────────────────
 router.get('/admin/all', async (req, res) => {
   try {
-    const { page = 1, limit = 20, search = '', hasReply = 'all' } = req.query;
+    const {
+      page = 1,
+      limit = 20,
+      search = '',
+      hasReply: hasReplyRaw = 'all',
+      reviewId = '',
+      productId: productIdFilter = '',
+    } = req.query;
 
+    const hasReply = Array.isArray(hasReplyRaw)
+      ? String(hasReplyRaw[0] || 'all')
+      : String(hasReplyRaw || 'all');
+
+    const applyProductId = (q) => {
+      const pid = String(productIdFilter || '').trim();
+      if (!pid) return q;
+      if (!q || Object.keys(q).length === 0) return { productId: pid };
+      return { $and: [{ productId: pid }, q] };
+    };
+
+    /** Độ dài adminReply — tránh $in/$nin chứa null trên path String (Mongoose 8 CastError). */
+    const replyLen = { $strLenCP: { $ifNull: ['$adminReply', ''] } };
+    const repliedExpr = { $gt: [replyLen, 0] };
+    const unrepliedExpr = { $lte: [replyLen, 0] };
 
     let query = {};
+    const focusReview =
+      reviewId && mongoose.Types.ObjectId.isValid(String(reviewId));
 
+    if (focusReview) {
+      query._id = new mongoose.Types.ObjectId(String(reviewId));
+    } else {
+      const searchTrim = String(search || '').trim();
+      const hasSearch = !!searchTrim;
 
-    if (search && search.trim()) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { text: { $regex: search, $options: 'i' } }
-      ];
-    }
-
-
-    if (hasReply === 'replied') {
-      query.adminReply = { $nin: [null, ''] };
-    } else if (hasReply === 'unreplied') {
-      if (search && search.trim()) {
-        query = {
-          $and: [
-            { adminReply: { $in: [null, ''] } },
-            { $or: [
-              { name: { $regex: search, $options: 'i' } },
-              { text: { $regex: search, $options: 'i' } }
-            ]}
-          ]
-        };
-      } else {
-        query.adminReply = { $in: [null, ''] };
+      const clauses = [];
+      if (hasReply === 'replied') {
+        clauses.push({ $expr: repliedExpr });
+      } else if (hasReply === 'unreplied') {
+        clauses.push({ $expr: unrepliedExpr });
       }
-    }
+      if (hasSearch) {
+        clauses.push({
+          $or: [
+            { name: { $regex: searchTrim, $options: 'i' } },
+            { text: { $regex: searchTrim, $options: 'i' } },
+          ],
+        });
+      }
 
+      if (clauses.length === 1) query = clauses[0];
+      else if (clauses.length > 1) query = { $and: clauses };
+      else query = {};
+
+      query = applyProductId(query);
+    }
 
     const total = await Review.countDocuments(query);
 

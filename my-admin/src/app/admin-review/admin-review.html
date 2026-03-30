@@ -91,7 +91,7 @@
           </span>
         </div>
         <div class="review-images" *ngIf="review.imgs?.length">
-          <img *ngFor="let img of review.imgs" [src]="img" class="review-img">
+          <img *ngFor="let img of review.imgs" [src]="reviewImgUrl(img)" class="review-img" alt="Ảnh đánh giá" />
         </div>
         <div class="review-meta">
           <span class="helpful-count">
