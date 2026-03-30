@@ -20,6 +20,9 @@
           <div class="source-row compact">
             <div class="label">Loại đơn</div>
             <div class="source-hint">{{ orderSegmentLabelDetail(order) }}</div>
+            <p class="source-legacy-hint" *ngIf="orderSegmentNeedsLegacyBuyerHint(order)">
+              Đơn cũ không lưu loại tài khoản lúc đặt đơn; nhãn trên suy từ <strong>tài khoản liên kết hiện tại</strong>, có thể khác thời điểm tạo đơn.
+            </p>
           </div>
           <div class="status-wrap">
             <div>

@@ -8,6 +8,8 @@ const userSchema = new mongoose.Schema(
     email:        { type: String, unique: true, sparse: true, lowercase: true, trim: true },
     passwordHash: { type: String, required: true },
     role:         { type: String, enum: ['user', 'admin', 'guest'], default: 'user' },
+    /** Mốc tài khoản trở thành user/admin thực sự (không tính lúc tạo guest tạm). */
+    registeredAt: { type: Date, default: null },
 
     isActive: { type: Boolean, default: true },
     deactivationReason: {

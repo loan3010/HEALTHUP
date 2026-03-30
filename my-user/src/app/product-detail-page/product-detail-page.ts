@@ -782,6 +782,18 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
     }
   }
 
+  private getDefaultVariantForProduct(product: any): { variantId: string | null; variantLabel: string } {
+    if (Array.isArray(product.variants) && product.variants.length > 0) {
+      const inStockVariant = product.variants.find((v: any) => Number(v.stock || 0) > 0);
+      const defaultVariant = inStockVariant || product.variants[0];
+      return {
+        variantId: String(defaultVariant._id),
+        variantLabel: String(defaultVariant.label || ''),
+      };
+    }
+    return { variantId: null, variantLabel: '' };
+  }
+
   addRelated(event: Event, product: any): void {
     event.stopPropagation();
     if (!product?._id) return;
@@ -792,7 +804,8 @@ export class ProductDetailPageComponent implements OnInit, OnDestroy {
       );
       return;
     }
-    this.api.addToCart(product._id, 1, product.name).subscribe({
+    const { variantId, variantLabel } = this.getDefaultVariantForProduct(product);
+    this.api.addToCart(product._id, 1, product.name, variantId, variantLabel).subscribe({
       next: () => {
         // Success toast đã được handle trong Service
       },

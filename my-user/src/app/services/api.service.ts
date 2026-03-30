@@ -535,17 +535,34 @@ export class ApiService {
   }
 
 
-  updateCartItem(productId: string, quantity: number, variantId?: string | null): Observable<any> {
+  updateCartItem(
+    productId: string,
+    quantity: number,
+    variantId?: string | null,
+    variantLabel?: string
+  ): Observable<any> {
     return this.http.put<any>(
       `${API_BASE}/carts/update`,
-      { productId, quantity, variantId: variantId || null },
+      {
+        productId,
+        quantity,
+        variantId: variantId || null,
+        variantLabel: variantLabel || '',
+      },
       { headers: this.cartHeaders() }
     ).pipe(tap(() => this.refreshCartCount()));
   }
 
 
-  removeCartItem(productId: string, variantId?: string | null): Observable<any> {
-    const query = variantId ? `?variantId=${encodeURIComponent(variantId)}` : '';
+  removeCartItem(
+    productId: string,
+    variantId?: string | null,
+    variantLabel?: string
+  ): Observable<any> {
+    const params = new URLSearchParams();
+    if (variantId) params.set('variantId', variantId);
+    if (variantLabel) params.set('variantLabel', variantLabel);
+    const query = params.toString() ? `?${params.toString()}` : '';
     return this.http.delete<any>(
       `${API_BASE}/carts/remove/${productId}${query}`,
       { headers: this.cartHeaders() }

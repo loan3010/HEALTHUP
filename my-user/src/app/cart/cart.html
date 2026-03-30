@@ -44,7 +44,8 @@
       <div class="item"
            *ngFor="let it of items; trackBy: trackById"
            [class.selected]="it.selected"
-           [class.item-oos]="isItemOutOfStock(it)">
+           [class.item-oos]="isItemOutOfStock(it)"
+           (click)="onItemRowClick($event, it)">
 
         <input type="checkbox"
                [(ngModel)]="it.selected"

@@ -12,6 +12,7 @@ interface WishlistItem {
   cat: string;
   images: string[];
   badge?: string;
+  variants?: any[];
 }
 
 @Component({
@@ -101,8 +102,21 @@ export class Wishlist implements OnInit {
     this.api.toggleWishlist(productId);
   }
 
+  private getDefaultVariant(product: WishlistItem): { variantId: string | null; variantLabel: string } {
+    if (Array.isArray(product.variants) && product.variants.length > 0) {
+      const inStockVariant = product.variants.find((v: any) => Number(v.stock || 0) > 0);
+      const defaultVariant = inStockVariant || product.variants[0];
+      return {
+        variantId: String(defaultVariant._id),
+        variantLabel: String(defaultVariant.label || ''),
+      };
+    }
+    return { variantId: null, variantLabel: '' };
+  }
+
   addToCart(product: WishlistItem): void {
-    this.api.addToCart(product._id, 1, product.name).subscribe({
+    const { variantId, variantLabel } = this.getDefaultVariant(product);
+    this.api.addToCart(product._id, 1, product.name, variantId, variantLabel).subscribe({
       error: () => this.api.showToast('Thêm vào giỏ thất bại!', 'error')
     });
   }

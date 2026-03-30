@@ -26,6 +26,14 @@
 .source-row { border-top: 1px solid #E2EEE2; padding-top: 10px; margin-bottom: 10px; }
 .source-row.compact { padding-bottom: 0; }
 .source-hint { font-size: 12px; color: #4B6B4D; line-height: 1.4; max-width: 320px; }
+.source-legacy-hint {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: #7E9E80;
+  line-height: 1.45;
+  max-width: 420px;
+}
+.source-legacy-hint strong { color: #4B6B4D; font-weight: 600; }
 .status-wrap { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
 
 .label {
