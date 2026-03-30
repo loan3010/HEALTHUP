@@ -13,7 +13,16 @@ import { Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { finalize } from 'rxjs/operators';
-import { interval, Subscription } from 'rxjs';
+import {
+  catchError,
+  debounceTime,
+  distinctUntilChanged,
+  interval,
+  of,
+  Subscription,
+  switchMap,
+  tap,
+} from 'rxjs';
 
 const REGISTER_OTP_TTL = 60;
 
@@ -44,7 +53,12 @@ export class Register implements OnInit, OnDestroy {
   demoOtpDisplay = '';       // mã hiện như SMS bubble
 
   private countdownSub: Subscription | null = null;
+  private usernameAvailSub: Subscription | null = null;
   otpValues: string[] = ['', '', '', '', '', ''];
+
+  /** Trùng tên tài khoản — kiểm tra qua API (debounce). */
+  usernameChecking = false;
+  usernameTakenMsg = '';
 
   @ViewChildren('otpInput')
   otpInputs!: QueryList<ElementRef<HTMLInputElement>>;
@@ -64,9 +78,53 @@ export class Register implements OnInit, OnDestroy {
     });
   }
 
-  ngOnInit(): void { setTimeout(() => this.resetRegisterForm(), 0); }
+  ngOnInit(): void {
+    setTimeout(() => this.resetRegisterForm(), 0);
 
-  ngOnDestroy(): void { this.clearCountdown(); }
+    const usernameCtrl = this.form.get('username');
+    if (usernameCtrl) {
+      this.usernameAvailSub = usernameCtrl.valueChanges
+        .pipe(
+          debounceTime(450),
+          distinctUntilChanged(),
+          tap(() => {
+            this.usernameTakenMsg = '';
+            this.usernameChecking = false;
+          }),
+          switchMap((v) => {
+            const s = String(v ?? '').trim();
+            if (s.length < 3 || s.length > 50) return of(null);
+            if (!/^(?!\d+$)[\p{L}\d\s]+$/u.test(s)) return of(null);
+            this.usernameChecking = true;
+            return this.http
+              .get<{ available: boolean }>(`${this.API}/auth/register/check-username`, {
+                params: { username: s },
+              })
+              .pipe(
+                finalize(() => {
+                  this.usernameChecking = false;
+                  this.cdr.markForCheck();
+                }),
+                catchError(() => of(null))
+              );
+          })
+        )
+        .subscribe((res) => {
+          if (res && res.available === false) {
+            this.usernameTakenMsg =
+              'Tên tài khoản đã tồn tại. Vui lòng chọn tên khác.';
+          } else {
+            this.usernameTakenMsg = '';
+          }
+          this.cdr.markForCheck();
+        });
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.clearCountdown();
+    this.usernameAvailSub?.unsubscribe();
+  }
 
   get passwordMismatch(): boolean {
     return this.form.get('password')?.value !== this.form.get('confirmPassword')?.value;
@@ -89,6 +147,8 @@ export class Register implements OnInit, OnDestroy {
     this.resetOtpUI();
     this.message = '';
     this.error   = '';
+    this.usernameTakenMsg = '';
+    this.usernameChecking = false;
   }
 
   closeOtpPopup(): void {
@@ -106,6 +166,11 @@ export class Register implements OnInit, OnDestroy {
     if (this.form.invalid || this.passwordMismatch) {
       this.form.markAllAsTouched();
       if (this.passwordMismatch) this.error = 'Mật khẩu xác nhận không khớp.';
+      return;
+    }
+
+    if (this.usernameTakenMsg) {
+      this.error = this.usernameTakenMsg;
       return;
     }
 
@@ -337,6 +402,11 @@ export class Register implements OnInit, OnDestroy {
     }
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      return;
+    }
+
+    if (this.usernameTakenMsg) {
+      this.otpError = this.usernameTakenMsg;
       return;
     }
 

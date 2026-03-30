@@ -127,6 +127,7 @@ router.get('/', async (req, res) => {
       const stats = statsForUser(u, statsMaps);
       const recentSpent90d = recentMap.get(String(u._id)) || 0;
       const membershipTier = membershipTierFromTotalSpent90d(recentSpent90d);
+      const joinedAt = u.registeredAt || u.createdAt;
 
       const audit = deactivationAuditForDoc(u);
       return {
@@ -141,7 +142,7 @@ router.get('/', async (req, res) => {
         deactivationReason: audit.deactivationReason,
         deactivatedBy:    audit.deactivatedBy,
         deactivatedAt:    audit.deactivatedAt,
-        createdAt:    u.createdAt,
+        createdAt:    joinedAt,
         totalOrders:  stats.totalOrders,
         totalSpent:   stats.totalSpent,
         /** true khi có đơn delivered đang requested|approved — tiền/hạng vẫn cộng nhưng đang chờ kết quả hoàn. */
@@ -380,6 +381,7 @@ router.get('/:id', async (req, res) => {
     const membershipTier = membershipTierFromTotalSpent90d(recentSpent90d);
 
     const audit = deactivationAuditForDoc(user);
+    const joinedAt = user.registeredAt || user.createdAt;
     res.json({
       id:           String(user._id),
       customerID:   user.customerID || '',
@@ -392,7 +394,7 @@ router.get('/:id', async (req, res) => {
       deactivationReason: audit.deactivationReason,
       deactivatedBy:    audit.deactivatedBy,
       deactivatedAt:    audit.deactivatedAt,
-      createdAt:    user.createdAt,
+      createdAt:    joinedAt,
       /** Đơn chưa hủy (theo rule groupCustomerStatsFields) — dùng cho hạng / tổng quan CRM. */
       totalOrders:  stats.totalOrders,
       /** Đơn đã giao (trừ hoàn xong) cộng dồn — toàn thời gian, khớp totalSpent trên /api/users/:id. */
@@ -446,6 +448,7 @@ router.put('/:id', async (req, res) => {
     ]);
     const membershipTier = membershipTierFromTotalSpent90d(recentSpent90dPut);
     const audit = deactivationAuditForDoc(user);
+    const joinedAt = user.registeredAt || user.createdAt;
 
     res.json({
       message: 'Cập nhật khách hàng thành công',
@@ -461,7 +464,7 @@ router.put('/:id', async (req, res) => {
         deactivationReason: audit.deactivationReason,
         deactivatedBy:    audit.deactivatedBy,
         deactivatedAt:    audit.deactivatedAt,
-        createdAt:    user.createdAt,
+        createdAt:    joinedAt,
         totalOrders:  stats.totalOrders,
         totalSpent:   stats.totalSpent,
         hasProvisionalSpend: !!stats.hasProvisionalSpend,

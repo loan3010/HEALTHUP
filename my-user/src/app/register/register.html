@@ -25,11 +25,13 @@
         <div class="control">
           <span class="inp-icon"><i class="bi bi-person"></i></span>
           <input class="inp" formControlName="username" name="reg_username"
-                 autocomplete="off" placeholder="Nhập tên của bạn" />
+                 autocomplete="off" placeholder="Nhập tên tài khoản của bạn" />
           <button type="button" class="clear"
                   (click)="form.controls['username'].setValue('')">x</button>
         </div>
-        <div class="err" *ngIf="showErr('username')">{{ errText('username') }}</div>
+        <div class="err info-check" *ngIf="usernameChecking">Đang kiểm tra tên tài khoản…</div>
+        <div class="err" *ngIf="usernameTakenMsg && !usernameChecking">{{ usernameTakenMsg }}</div>
+        <div class="err" *ngIf="showErr('username') && !usernameTakenMsg && !usernameChecking">{{ errText('username') }}</div>
       </div>
 
       <!-- PHONE -->

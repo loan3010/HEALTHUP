@@ -161,6 +161,26 @@ export class Customer implements OnInit {
     return map[key] || this.sortBy;
   }
 
+  /** Thông báo rõ hơn khi API không tới được (status 0) hoặc server trả JSON lỗi. */
+  private formatCustomerListError(err: unknown): string {
+    const e = err as { status?: number; error?: { message?: string }; message?: string };
+    const apiMsg =
+      typeof e?.error?.message === 'string' && e.error.message.trim()
+        ? e.error.message.trim()
+        : '';
+    if (e?.status === 0) {
+      return (
+        'Không kết nối được API (thường do backend chưa chạy hoặc không phải cổng 3000). ' +
+        'Hãy chạy `npm start` trong thư mục `backend` và thử lại.'
+      );
+    }
+    if (apiMsg) return apiMsg;
+    if (e?.status) {
+      return `Lỗi ${e.status}: ${e.message || 'Không thể tải danh sách'}`;
+    }
+    return e?.message || 'Không thể tải danh sách';
+  }
+
   // ── LOAD ──
   loadCustomers(): void {
     this.isLoading = true;
@@ -187,8 +207,8 @@ export class Customer implements OnInit {
         this.isLoading  = false;
         this.updateSelectedCount();
       },
-      error: err => {
-        this.errorMsg  = err?.error?.message || 'Không thể tải danh sách';
+      error: (err: unknown) => {
+        this.errorMsg = this.formatCustomerListError(err);
         this.isLoading = false;
       }
     });

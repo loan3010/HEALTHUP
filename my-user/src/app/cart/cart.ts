@@ -326,6 +326,25 @@ export class Cart implements OnInit, OnDestroy {
   updateTotal(): void { this.calcTotal(); }
 
 
+  /**
+   * Bấm vào vùng dòng sản phẩm để chọn/bỏ chọn (không bắt buộc tick ô vuông).
+   * Giữ nguyên hành vi riêng cho: checkbox, ảnh/tên (xem SP), phân loại, SL, xóa.
+   */
+  onItemRowClick(ev: MouseEvent, it: CartItem): void {
+    const el = ev.target as HTMLElement | null;
+    if (!el) return;
+    if (el.closest('input[type="checkbox"]')) return;
+    if (el.closest('.thumb-wrap')) return;
+    if (el.closest('.product-name-link')) return;
+    if (el.closest('.variant-row')) return;
+    if (el.closest('.qty')) return;
+    if (el.closest('button.remove')) return;
+
+    it.selected = !it.selected;
+    this.updateTotal();
+  }
+
+
   // ================= SELECT =================
   get selectedCount(): number {
     return this.items.filter(it => it.selected).length;
@@ -383,7 +402,7 @@ export class Cart implements OnInit, OnDestroy {
 
     if (item.optionType === 'weight') {
       this.api.showToast(`Đã chọn "${newOption.label}"`, 'success');
-      this.api.updateCartItem(item.productId, item.quantity, item.variantId).subscribe({
+      this.api.updateCartItem(item.productId, item.quantity, item.variantId, item.variantLabel).subscribe({
         error: () => this.rollback(item, oldVariantId, oldVariantLabel, oldPrice)
       });
       return;
@@ -391,7 +410,7 @@ export class Cart implements OnInit, OnDestroy {
 
 
     // Variant: xóa item cũ → thêm item mới
-    this.api.removeCartItem(item.productId, oldVariantId).subscribe({
+    this.api.removeCartItem(item.productId, oldVariantId, oldVariantLabel).subscribe({
       next: () => {
         this.api.addToCart(
           item.productId, item.quantity, item.name,
@@ -482,7 +501,7 @@ export class Cart implements OnInit, OnDestroy {
       }
     };
     targets.forEach(it => {
-      this.api.removeCartItem(it.productId, it.variantId).subscribe({
+      this.api.removeCartItem(it.productId, it.variantId, it.variantLabel).subscribe({
         next: () => done(),
         error: () => {
           done();
@@ -520,7 +539,7 @@ export class Cart implements OnInit, OnDestroy {
     this.closeModal();
     if (isClear) { this.execClearSelected(); return; }
     if (!target) return;
-    this.api.removeCartItem(target.productId, target.variantId).subscribe({
+    this.api.removeCartItem(target.productId, target.variantId, target.variantLabel).subscribe({
       next: () => {
         this.items = this.items.filter(x => this.itemKey(x) !== this.itemKey(target));
         delete this.overQtyMsg[this.itemKey(target)];
@@ -546,7 +565,7 @@ export class Cart implements OnInit, OnDestroy {
     delete this.overQtyMsg[this.itemKey(it)];
     this.calcTotal();
     this.cdr.detectChanges();
-    this.api.updateCartItem(it.productId, newQty, it.variantId).subscribe({
+    this.api.updateCartItem(it.productId, newQty, it.variantId, it.variantLabel).subscribe({
       error: () => {
         it.quantity = newQty + 1;
         this.calcTotal();
@@ -579,7 +598,7 @@ export class Cart implements OnInit, OnDestroy {
     it.quantity  = newQty;
     this.calcTotal();
     this.cdr.detectChanges();
-    this.api.updateCartItem(it.productId, newQty, it.variantId).subscribe({
+    this.api.updateCartItem(it.productId, newQty, it.variantId, it.variantLabel).subscribe({
       error: () => {
         it.quantity = newQty - 1;
         this.calcTotal();
@@ -614,7 +633,7 @@ export class Cart implements OnInit, OnDestroy {
     }
 
 
-    this.api.updateCartItem(it.productId, safeQty, it.variantId).subscribe({
+    this.api.updateCartItem(it.productId, safeQty, it.variantId, it.variantLabel).subscribe({
       error: () => {
         it.quantity = prev;
         this.calcTotal();

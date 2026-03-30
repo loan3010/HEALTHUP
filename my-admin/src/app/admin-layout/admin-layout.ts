@@ -1,9 +1,21 @@
-import { Component, ViewChild, ViewContainerRef, ComponentRef, OnInit, OnDestroy } from '@angular/core';
+import {
+  Component,
+  ViewChild,
+  ViewContainerRef,
+  ComponentRef,
+  OnInit,
+  OnDestroy,
+  AfterViewInit,
+  inject,
+  DestroyRef,
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { Router, NavigationEnd } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
 import { AdminHeader } from '../admin-header/admin-header';
 import { AdminSidebar } from '../admin-sidebar/admin-sidebar';
+import { AdminNavBridgeService } from '../admin-nav-bridge.service';
 import { AdminDashboard } from '../admin-dashboard/admin-dashboard';
 import { ProductComponent } from '../admin-product/product/product';
 import { Customer } from '../admin-customer/customer/customer';
@@ -24,13 +36,17 @@ import { AdminAlertModalComponent } from '../admin-alert-modal/admin-alert-modal
   templateUrl: './admin-layout.html',
   styleUrls: ['./admin-layout.css']
 })
-export class AdminLayout implements OnInit, OnDestroy {
+export class AdminLayout implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild('contentContainer', { read: ViewContainerRef, static: true }) contentContainer!: ViewContainerRef;
-  
+  @ViewChild('sideNav') sideNav?: AdminSidebar;
+
   isSidebarOpen = true;
   currentTab = 'tong-quan';
   private routerSubscription!: Subscription;
   private currentComponentRef: ComponentRef<any> | null = null;
+
+  private readonly navBridge = inject(AdminNavBridgeService);
+  private readonly destroyRef = inject(DestroyRef);
 
   constructor(private router: Router) {}
 
@@ -44,6 +60,19 @@ export class AdminLayout implements OnInit, OnDestroy {
     
     // Mặc định load dashboard
     this.loadComponent('tong-quan');
+  }
+
+  ngAfterViewInit(): void {
+    /** Chuông thông báo / dashboard gọi goToOrder, goToProduct — chỉ emit switchTab$; cần đổi tab thật. */
+    this.navBridge.switchTab$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((tabName) => {
+        const t = String(tabName || '').trim();
+        if (!t) return;
+        this.currentTab = t;
+        this.sideNav?.setActiveTabSilent(t);
+        this.loadComponent(t);
+      });
   }
 
   ngOnDestroy(): void {

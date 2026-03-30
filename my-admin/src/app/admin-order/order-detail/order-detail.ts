@@ -265,6 +265,14 @@ export class OrderDetail implements OnChanges {
   }
 
   /**
+   * Đơn cũ không có buyerLinkType trên DB — nhãn «đơn cũ» suy từ tài khoản liên kết hiện tại,
+   * không phải trạng thái lúc đặt đơn.
+   */
+  orderSegmentNeedsLegacyBuyerHint(o: AdminOrder | null | undefined): boolean {
+    return !!o?.userId && o.buyerLinkType == null;
+  }
+
+  /**
    * Sai địa chỉ / khách từ chối → backend không cho `delivery_failed` → `shipping`.
    */
   redeliveryAllowedByPreset(o: AdminOrder | null | undefined): boolean {

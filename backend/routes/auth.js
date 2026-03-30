@@ -165,6 +165,24 @@ router.post('/register/request-otp', async (req, res) => {
   }
 });
 
+/**
+ * Kiểm tra tên tài khoản đã có trong hệ thống chưa (đăng ký — phản hồi ngay, không cần OTP).
+ * GET ?username=
+ */
+router.get('/register/check-username', async (req, res) => {
+  try {
+    const raw = String(req.query.username || '').trim();
+    if (!raw || raw.length < 3 || raw.length > 50) {
+      return res.json({ available: true, skipped: true });
+    }
+    const exists = await User.findOne({ username: raw }).select('_id').lean();
+    return res.json({ available: !exists, skipped: false });
+  } catch (err) {
+    console.error('CHECK USERNAME ERROR:', err);
+    return res.status(500).json({ message: 'Không kiểm tra được tên tài khoản.' });
+  }
+});
+
 router.post('/register', async (req, res) => {
   try {
     const { username, phone, email, password, role, otp } = req.body;
@@ -253,6 +271,7 @@ router.post('/register', async (req, res) => {
       existsPhone.email = emailVal || undefined;
       existsPhone.passwordHash = passwordHash;
       existsPhone.role = role === 'admin' ? 'admin' : 'user';
+      existsPhone.registeredAt = new Date();
       existsPhone.customerID = customerID;
       await existsPhone.save();
       user = existsPhone;
@@ -264,6 +283,7 @@ router.post('/register', async (req, res) => {
         email: emailVal || undefined,
         passwordHash,
         role: role === 'admin' ? 'admin' : 'user',
+        registeredAt: new Date(),
       });
     }
 
