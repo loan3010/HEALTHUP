@@ -119,8 +119,8 @@ export class AdminHeader implements OnInit, OnDestroy {
         error: () => this.alerts.patchLocalRead(n._id),
       });
     }
-    if (n.type === 'review_new' && n.productId) {
-      this.navBridge.goToProduct(n.productId);
+    if (n.type === 'review_new') {
+      this.navBridge.goToReview(n.productId || '', n.reviewId);
     } else if (n.type === 'consulting_pending' && n.productId) {
       this.navBridge.goToConsulting(n.productId);
     } else if (n.orderId) {

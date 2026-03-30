@@ -4,8 +4,14 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ApiService, STATIC_BASE } from '../services/api.service';
 
-
-
+/** Tab danh sách đơn (`/profile/order-management?tab=`) — khớp với OrderManagement. */
+const ORDER_LIST_TAB_IDS = new Set([
+  'all',
+  'pending',
+  'waiting_shipping',
+  'delivered',
+  'cancelled',
+]);
 
 @Component({
   selector: 'app-order-detail',
@@ -56,9 +62,13 @@ export class OrderDetail implements OnInit {
   }
 
 
-  // Quay lại trang order-management
+  /** Quay lại danh sách đơn, giữ tab đang lọc (query `tab` từ URL chi tiết). */
   goBack(): void {
-    this.router.navigate(['/profile/order-management']);
+    const raw = this.route.snapshot.queryParamMap.get('tab');
+    const tab = raw && ORDER_LIST_TAB_IDS.has(raw) ? raw : null;
+    this.router.navigate(['/profile/order-management'], {
+      queryParams: tab && tab !== 'all' ? { tab } : {},
+    });
   }
 
 
@@ -177,7 +187,10 @@ export class OrderDetail implements OnInit {
 
 
   goToOrder(id: string): void {
-    this.router.navigate(['/profile/order-detail', id]);
+    const tab = this.route.snapshot.queryParamMap.get('tab');
+    this.router.navigate(['/profile/order-detail', id], {
+      queryParams: tab && tab !== 'all' && ORDER_LIST_TAB_IDS.has(tab) ? { tab } : {},
+    });
   }
 
 

@@ -1,8 +1,10 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, inject, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ApiService } from '../services/api.service';
+import { ApiService, STATIC_BASE } from '../services/api.service';
 import { Router } from '@angular/router';
+import { AdminNavBridgeService } from '../admin-nav-bridge.service';
 
 interface Review {
   _id: string;
@@ -33,6 +35,9 @@ interface Review {
   styleUrls: ['./admin-review.css']
 })
 export class AdminReviewComponent implements OnInit {
+  private readonly navBridge = inject(AdminNavBridgeService);
+  private readonly destroyRef = inject(DestroyRef);
+
   reviews: Review[] = [];
   isLoading = false;
   
@@ -71,8 +76,53 @@ export class AdminReviewComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.navBridge.openReviewFocus$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((payload) => this.focusReviewFromNotification(payload));
+
     this.loadStats(); // Tải thống kê trước
     this.loadReviews();
+  }
+
+  /** Chuông admin: mở modal phản hồi đúng đánh giá, đồng thời làm mới danh sách. */
+  private focusReviewFromNotification(payload: {
+    productId: string;
+    reviewId: string | null;
+  }): void {
+    const reviewId = String(payload.reviewId || '').trim();
+    const productId = String(payload.productId || '').trim();
+
+    this.api
+      .getAllReviews({
+        page: 1,
+        limit: 1,
+        search: '',
+        hasReply: 'all',
+        ...(reviewId ? { reviewId } : {}),
+        ...(!reviewId && productId ? { productId } : {}),
+      })
+      .subscribe({
+        next: (res: any) => {
+          const row = res.reviews?.[0] as Review | undefined;
+          if (row) {
+            this.openReplyModal(row);
+          } else {
+            this.api.showToast(
+              'Không tìm thấy đánh giá (có thể đã bị xóa).',
+              'info'
+            );
+          }
+          this.filterHasReply = 'all';
+          this.searchKeyword = '';
+          this.currentPage = 1;
+          this.loadReviews();
+          this.loadStats();
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.api.showToast('Không tải được đánh giá từ thông báo.', 'error');
+        },
+      });
   }
 
   // Tải thống kê tổng số từ API (3 API riêng biệt)
@@ -321,7 +371,7 @@ export class AdminReviewComponent implements OnInit {
   getProductImage(product: any): string {
     if (product?.images && product.images.length > 0) {
       const img = product.images[0];
-      return img.startsWith('http') ? img : `http://localhost:3000${img}`;
+      return img.startsWith('http') ? img : `${STATIC_BASE}${String(img).startsWith('/') ? '' : '/'}${img}`;
     }
     return '/assets/images/placeholder.png';
   }

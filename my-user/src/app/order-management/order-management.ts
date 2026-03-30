@@ -1,7 +1,7 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { ActivatedRoute, ParamMap, Router, RouterModule } from '@angular/router';
 import { ApiService } from '../services/api.service';
 import { STORE_ZALO_PHONE, buildZaloMeUrl } from '../constants/store-contact.constants';
 
@@ -15,6 +15,14 @@ import { STORE_ZALO_PHONE, buildZaloMeUrl } from '../constants/store-contact.con
 })
 export class OrderManagement implements OnInit {
   private readonly shippingStatuses = ['confirmed', 'shipping', 'delivery_failed'];
+  /** Tab hợp lệ trên URL (?tab=) — đồng bộ với `tabs[].id`. */
+  private readonly listTabIds = new Set<string>([
+    'all',
+    'pending',
+    'waiting_shipping',
+    'delivered',
+    'cancelled',
+  ]);
 
   // Dữ liệu gốc
   allOrders: any[] = [];
@@ -56,11 +64,27 @@ export class OrderManagement implements OnInit {
   constructor(
     private api: ApiService,
     private router: Router,
+    private route: ActivatedRoute,
     private cdr: ChangeDetectorRef
   ) {}
 
-  ngOnInit(): void { 
-    this.loadOrders(); 
+  ngOnInit(): void {
+    this.route.queryParamMap.subscribe((params: ParamMap) => {
+      this.applyTabFromQuery(params);
+      if (this.allOrders.length > 0) {
+        this.applyFilters();
+      }
+    });
+    this.loadOrders();
+  }
+
+  private applyTabFromQuery(params: ParamMap): void {
+    const t = params.get('tab');
+    if (t && this.listTabIds.has(t)) {
+      this.activeTab = t;
+    } else {
+      this.activeTab = 'all';
+    }
   }
 
   private getUserId(): string {
@@ -205,7 +229,9 @@ export class OrderManagement implements OnInit {
   }
 
   goToDetail(orderId: string): void {
-    this.router.navigate(['/profile/order-detail', orderId]);
+    this.router.navigate(['/profile/order-detail', orderId], {
+      queryParams: this.activeTab === 'all' ? {} : { tab: this.activeTab },
+    });
   }
 
   goToReview(order: any): void {

@@ -219,10 +219,21 @@ export class ApiService {
   /**
    * ADMIN: Lấy danh sách tất cả đánh giá
    */
-  getAllReviews(params: { page?: number; limit?: number; search?: string; hasReply?: string }): Observable<any> {
+  getAllReviews(params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    hasReply?: string;
+    /** Lọc đúng một đánh giá (từ thông báo admin). */
+    reviewId?: string;
+    /** Lọc theo sản phẩm (productId lưu dạng string trong Review). */
+    productId?: string;
+  }): Observable<any> {
     let query = `?page=${params.page || 1}&limit=${params.limit || 20}`;
     if (params.search) query += `&search=${encodeURIComponent(params.search)}`;
     if (params.hasReply && params.hasReply !== 'all') query += `&hasReply=${params.hasReply}`;
+    if (params.reviewId) query += `&reviewId=${encodeURIComponent(params.reviewId)}`;
+    if (params.productId) query += `&productId=${encodeURIComponent(params.productId)}`;
     return this.http.get(`${this.baseUrl}/reviews/admin/all${query}`);
   }
 

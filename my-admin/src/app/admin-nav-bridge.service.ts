@@ -15,6 +15,11 @@ export class AdminNavBridgeService {
   readonly openProductEditor$ = new Subject<string>();
   /** Mở tab Tư vấn → chi tiết câu hỏi theo productId. */
   readonly openConsultingProduct$ = new Subject<string>();
+  /** Mở tab Đánh giá → lọc/highlight theo reviewId hoặc sản phẩm. */
+  readonly openReviewFocus$ = new Subject<{
+    productId: string;
+    reviewId: string | null;
+  }>();
 
   goToOrder(orderId: string): void {
     const id = String(orderId || '').trim();
@@ -35,5 +40,17 @@ export class AdminNavBridgeService {
     if (!id) return;
     this.switchTab$.next('tu-van');
     setTimeout(() => this.openConsultingProduct$.next(id), 120);
+  }
+
+  /** Chuông thông báo: đánh giá mới — vào màn Quản lý đánh giá (có thể mở modal phản hồi). */
+  goToReview(productId: string, reviewId: string | null | undefined): void {
+    const pid = String(productId || '').trim();
+    const rid = reviewId ? String(reviewId).trim() : '';
+    if (!pid && !rid) return;
+    this.switchTab$.next('danh-gia');
+    setTimeout(
+      () => this.openReviewFocus$.next({ productId: pid, reviewId: rid || null }),
+      120
+    );
   }
 }
