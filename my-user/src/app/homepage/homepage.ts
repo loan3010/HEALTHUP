@@ -6,12 +6,16 @@ import { Subscription } from 'rxjs';
 import { ApiService, STATIC_BASE } from '../services/api.service';
 
 
+
+
 export interface Category {
   name: string;
   count: string;
   color: string;
   image: string;
 }
+
+
 
 
 export interface BlogPost {
@@ -25,11 +29,15 @@ export interface BlogPost {
 }
 
 
+
+
 export interface TrustItem {
   icon: string;
   title: string;
   sub: string;
 }
+
+
 
 
 // Cấu hình Interface phù hợp với dữ liệu từ Database
@@ -44,6 +52,8 @@ export interface BannerSlide {
 }
 
 
+
+
 @Component({
   selector: 'app-homepage',
   standalone: true,
@@ -54,6 +64,8 @@ export interface BannerSlide {
 export class HomepageComponent implements OnInit, OnDestroy {
 
 
+
+
   // ── State chung ──────────────────────────────────────────────────────────
   activeCategory = 0;
   featuredProducts: any[] = [];
@@ -62,13 +74,19 @@ export class HomepageComponent implements OnInit, OnDestroy {
   blogPosts: BlogPost[] = [];
 
 
+
+
   wishlist: string[] = [];
   private wishlistSub!: Subscription;
+
+
 
 
   readonly STATIC_BASE         = STATIC_BASE;
   readonly PLACEHOLDER_PRODUCT = `${STATIC_BASE}/images/products/placeholder.png`;
   readonly PLACEHOLDER_BLOG    = `${STATIC_BASE}/images/blogs/placeholder.png`;
+
+
 
 
   // ── BANNER SLIDER (Dữ liệu thực tế từ API) ────────────────────────────────
@@ -80,6 +98,8 @@ export class HomepageComponent implements OnInit, OnDestroy {
   readonly TRANSITION_LOCK_MS = 700;
 
 
+
+
   constructor(
     private router: Router,
     public  api: ApiService,
@@ -87,10 +107,14 @@ export class HomepageComponent implements OnInit, OnDestroy {
   ) {}
 
 
+
+
   ngOnInit(): void {
     this.loadBanners();
     this.loadFeaturedProducts();
     this.loadBlogs();
+
+
 
 
     this.wishlistSub = this.api.wishlist$.subscribe(list => {
@@ -100,10 +124,14 @@ export class HomepageComponent implements OnInit, OnDestroy {
   }
 
 
+
+
   ngOnDestroy(): void {
     this.wishlistSub?.unsubscribe();
     this.stopTimer();
   }
+
+
 
 
   /**
@@ -120,10 +148,14 @@ export class HomepageComponent implements OnInit, OnDestroy {
           const ngày_kết_thúc = b.endDate ? new Date(b.endDate) : null;
 
 
+
+
           if (ngày_bắt_đầu && hiện_tại < ngày_bắt_đầu) return false;
           if (ngày_kết_thúc && hiện_tại > ngày_kết_thúc) return false;
           return true;
         });
+
+
 
 
         // Chỉ bắt đầu bộ đếm thời gian nếu có từ 2 banner trở lên
@@ -139,6 +171,8 @@ export class HomepageComponent implements OnInit, OnDestroy {
   }
 
 
+
+
   /**
    * Xử lý URL hình ảnh banner
    */
@@ -146,6 +180,8 @@ export class HomepageComponent implements OnInit, OnDestroy {
     if (!url) return this.PLACEHOLDER_PRODUCT;
     return url.startsWith('http') ? url : `${STATIC_BASE}${url}`;
   }
+
+
 
 
   /**
@@ -159,6 +195,8 @@ export class HomepageComponent implements OnInit, OnDestroy {
     }
 
 
+
+
     if (url.startsWith('http')) {
       // Mở liên kết bên ngoài trong tab mới
       window.open(url, '_blank');
@@ -167,6 +205,8 @@ export class HomepageComponent implements OnInit, OnDestroy {
       this.router.navigateByUrl(url);
     }
   }
+
+
 
 
   private goToSlide(index: number): void {
@@ -178,9 +218,13 @@ export class HomepageComponent implements OnInit, OnDestroy {
   }
 
 
+
+
   prevBanner(): void { this.goToSlide(this.currentBanner - 1); this.resetTimer(); }
   nextBanner(): void { this.goToSlide(this.currentBanner + 1); this.resetTimer(); }
   goToBanner(i: number): void { this.goToSlide(i); this.resetTimer(); }
+
+
 
 
   startTimer(): void {
@@ -191,11 +235,15 @@ export class HomepageComponent implements OnInit, OnDestroy {
   }
 
 
+
+
   stopTimer(): void {
     if (this.bannerTimer) {
       clearInterval(this.bannerTimer);
     }
   }
+
+
 
 
   resetTimer(): void {
@@ -207,12 +255,16 @@ export class HomepageComponent implements OnInit, OnDestroy {
   // ──────────────────────────────────────────────────────────────────────────
 
 
+
+
   trustItems: TrustItem[] = [
     { icon: 'bi-patch-check',  title: 'Nguồn gốc rõ ràng', sub: 'Truy xuất tận nơi sản xuất' },
     { icon: 'bi-star-fill',    title: '4.9/5 đánh giá',     sub: 'Từ 10.000+ khách hàng'      },
     { icon: 'bi-arrow-repeat', title: 'Đổi trả 7 ngày',     sub: 'Không cần lý do'            },
     { icon: 'bi-shield-check', title: 'Thanh toán bảo mật', sub: 'VNPay · Momo · COD'        },
   ];
+
+
 
 
   categories: Category[] = [
@@ -225,12 +277,16 @@ export class HomepageComponent implements OnInit, OnDestroy {
   ];
 
 
+
+
   private loadFeaturedProducts(): void {
     this.api.getProducts({ sort: 'popular', limit: 8 }).subscribe({
       next:  (res) => { this.featuredProducts = res.products || []; this.isLoading = false; this.cdr.detectChanges(); },
       error: ()    => { this.isLoading = false; this.cdr.detectChanges(); },
     });
   }
+
+
 
 
   private loadBlogs(): void {
@@ -241,10 +297,43 @@ export class HomepageComponent implements OnInit, OnDestroy {
   }
 
 
+
+
+  /**
+   * ✅ CẬP NHẬT: Xử lý URL ảnh Blog chuẩn xác hơn
+   */
   getBlogImageUrl(coverImage: string): string {
-    if (!coverImage) return this.PLACEHOLDER_BLOG;
-    return coverImage.startsWith('http') ? coverImage : `${STATIC_BASE}${coverImage}`;
+    if (!coverImage || coverImage.trim() === '') {
+      return this.PLACEHOLDER_BLOG;
+    }
+    if (coverImage.startsWith('http')) {
+      return coverImage;
+    }
+    // Đảm bảo có dấu / ở giữa STATIC_BASE và đường dẫn ảnh
+    const path = coverImage.startsWith('/') ? coverImage : '/' + coverImage;
+    return `${this.STATIC_BASE}${path}`;
   }
+
+
+
+
+  /**
+   * ✅ MỚI: Dập tắt vòng lặp tải ảnh lỗi (Infinite Error Loop)
+   */
+  handleBlogImageError(event: any): void {
+    const img = event.target as HTMLImageElement;
+   
+    // Nếu ảnh hiện tại không phải là placeholder thì mới gán placeholder
+    if (img.src !== this.PLACEHOLDER_BLOG) {
+      img.src = this.PLACEHOLDER_BLOG;
+    } else {
+      // Nếu đến cả placeholder cũng lỗi (404), gán ảnh trắng base64 để ngắt loop hoàn toàn
+      img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+      img.style.display = 'none'; // Ẩn luôn cho đỡ xấu
+    }
+  }
+
+
 
 
   getStars(rating: number): string {
@@ -253,7 +342,11 @@ export class HomepageComponent implements OnInit, OnDestroy {
   }
 
 
+
+
   isWishlisted(id: string): boolean { return this.wishlist.includes(id); }
+
+
 
 
   onCategoryClick(index: number, catName: string): void {
@@ -262,15 +355,21 @@ export class HomepageComponent implements OnInit, OnDestroy {
   }
 
 
+
+
   toggleWishlist(event: Event, id: string, productName?: string): void {
     event.stopPropagation();
     this.api.toggleWishlist(id, productName);
   }
 
 
+
+
   isOutOfStock(product: any): boolean {
     if (!product) return true;
     if (product.isOutOfStock) return true;
+
+
 
 
     if (Array.isArray(product.variants) && product.variants.length > 0) {
@@ -281,6 +380,8 @@ export class HomepageComponent implements OnInit, OnDestroy {
     }
     return Number(product.stock || 0) <= 0;
   }
+
+
 
 
   /**
@@ -301,6 +402,8 @@ export class HomepageComponent implements OnInit, OnDestroy {
   }
 
 
+
+
   /**
    * FIX: Thêm vào giỏ với variant mặc định để đồng bộ giỏ hàng
    */
@@ -309,21 +412,28 @@ export class HomepageComponent implements OnInit, OnDestroy {
     if (!product?._id) return;
 
 
+
+
     if (this.isOutOfStock(product)) {
       this.api.showToast('Sản phẩm hiện đã hết hàng.', 'error');
       return;
     }
 
 
+
+
     const { variantId, variantLabel } = this.getDefaultVariant(product);
-    
+   
     this.api.addToCart(product._id, 1, product.name, variantId, variantLabel).subscribe({
       error: () => this.api.showToast('Không thể thêm sản phẩm vào giỏ hàng.', 'error'),
     });
   }
 
 
-  goToDetail(id: string):     void { if (id) this.router.navigate(['/product-detail-page', id]); }
+
+
+  goToDetail(id: string):      void { if (id) this.router.navigate(['/product-detail-page', id]); }
   goToBlogDetail(id: string): void { if (id) this.router.navigate(['/blog', id]); }
   goToAllBlogs():             void { this.router.navigate(['/blog']); }
 }
+

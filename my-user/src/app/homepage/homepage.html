@@ -1,7 +1,8 @@
-<section class="banner-slider" 
-         *ngIf="banners && banners.length > 0" 
-         (mouseenter)="resetTimer()" 
-         (mouseleave)="startTimer()">
+<section class="banner-slider"
+          *ngIf="banners && banners.length > 0"
+          (mouseenter)="resetTimer()"
+          (mouseleave)="startTimer()">
+
 
   <div class="banner-track">
     <div
@@ -12,7 +13,9 @@
       (click)="onBannerClick(slide.linkUrl)"
       style="cursor: pointer;">
 
+
       <div class="banner-overlay"></div>
+
 
       <div class="banner-content" [class.visible]="i === currentBanner">
         <p class="banner-eyebrow">
@@ -30,17 +33,19 @@
     </div>
   </div>
 
+
   <ng-container *ngIf="banners.length > 1">
-    <button class="banner-arrow banner-prev" 
-            (click)="prevBanner(); $event.stopPropagation()" 
+    <button class="banner-arrow banner-prev"
+            (click)="prevBanner(); $event.stopPropagation()"
             aria-label="Hình ảnh trước">
       <i class="bi bi-chevron-left"></i>
     </button>
-    <button class="banner-arrow banner-next" 
-            (click)="nextBanner(); $event.stopPropagation()" 
+    <button class="banner-arrow banner-next"
+            (click)="nextBanner(); $event.stopPropagation()"
             aria-label="Hình ảnh sau">
       <i class="bi bi-chevron-right"></i>
     </button>
+
 
     <div class="banner-footer">
       <div class="banner-dots">
@@ -55,7 +60,9 @@
     </div>
   </ng-container>
 
+
 </section>
+
 
 <div class="trust-strip py-3">
   <div class="container">
@@ -74,6 +81,7 @@
   </div>
 </div>
 
+
 <section class="section-bg py-5">
   <div class="container">
     <div class="section-header">
@@ -83,6 +91,7 @@
       </div>
       <a class="link-more" routerLink="/product-listing-page">Xem tất cả →</a>
     </div>
+
 
     <div class="row g-3">
       <div class="col-4 col-md-2" *ngFor="let cat of categories; let i = index">
@@ -103,6 +112,7 @@
   </div>
 </section>
 
+
 <section class="section-bg py-5">
   <div class="container">
     <div class="section-header">
@@ -112,6 +122,7 @@
       </div>
       <a class="link-more" routerLink="/product-listing-page">Xem thêm →</a>
     </div>
+
 
     <div class="row g-4" *ngIf="isLoading">
       <div class="col-12 col-sm-6 col-md-3" *ngFor="let s of [1,2,3,4]">
@@ -126,11 +137,13 @@
       </div>
     </div>
 
+
     <div class="row g-4" *ngIf="!isLoading">
       <div class="col-12 text-center py-5" *ngIf="featuredProducts.length === 0">
         <i class="bi bi-box-seam fs-1 text-secondary d-block mb-2"></i>
         <p class="text-secondary">Hiện tại chưa có sản phẩm nổi bật.</p>
       </div>
+
 
       <div class="col-12 col-sm-6 col-md-3" *ngFor="let p of featuredProducts">
         <div class="product-card h-100" (click)="goToDetail(p._id)">
@@ -139,14 +152,17 @@
             <span class="badge-label badge-hot" *ngIf="p.badge === 'hot'">Nổi bật</span>
             <span class="badge-label badge-sale" *ngIf="p.sale">{{ p.sale }}</span>
 
+
             <img
               [src]="p.image || PLACEHOLDER_PRODUCT"
               [alt]="p.name"
               (error)="$any($event.target).src = PLACEHOLDER_PRODUCT" />
 
+
             <div class="oos-overlay" *ngIf="isOutOfStock(p)">
               <span class="oos-label">Tạm hết hàng</span>
             </div>
+
 
             <button
               class="btn-wishlist"
@@ -158,6 +174,7 @@
                  [class.bi-heart]="!isWishlisted(p._id)"></i>
             </button>
           </div>
+
 
           <div class="p-3">
             <div class="product-cat mb-1">{{ p.cat }}</div>
@@ -190,6 +207,7 @@
   </div>
 </section>
 
+
 <section class="section-bg py-5">
   <div class="container">
     <div class="promo-banner p-5">
@@ -221,6 +239,7 @@
   </div>
 </section>
 
+
 <section class="section-bg py-5">
   <div class="container">
     <div class="section-header">
@@ -230,6 +249,7 @@
       </div>
       <a class="link-more" style="cursor:pointer;" (click)="goToAllBlogs()">Xem tất cả →</a>
     </div>
+
 
     <div class="row g-4" *ngIf="isBlogLoading">
       <div class="col-12 col-md-4" *ngFor="let s of [1,2,3]">
@@ -244,6 +264,7 @@
       </div>
     </div>
 
+
     <div class="row g-4" *ngIf="!isBlogLoading">
       <div class="col-12 col-md-4" *ngFor="let post of blogPosts">
         <div class="blog-card h-100" (click)="goToBlogDetail(post._id || '')">
@@ -252,7 +273,7 @@
               [src]="getBlogImageUrl(post.coverImage)"
               [alt]="post.title"
               class="blog-cover-img"
-              (error)="$any($event.target).src = PLACEHOLDER_BLOG" />
+              (error)="handleBlogImageError($event)" />
           </div>
           <div class="p-3 d-flex flex-column flex-grow-1">
             <div class="blog-tag mb-1">{{ post.tag }}</div>
@@ -270,5 +291,7 @@
       </div>
     </div>
 
+
   </div>
 </section>
+
