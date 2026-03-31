@@ -155,7 +155,7 @@
             <tbody>
               <tr *ngFor="let item of order.items">
                 <td class="product">
-                  <img [src]="item.imageUrl ? 'http://localhost:3000' + item.imageUrl : 'assets/no-image.png'" alt="" />
+                  <img [src]="item.imageUrl ? (item.imageUrl.startsWith('http') ? item.imageUrl : 'http://localhost:3000' + item.imageUrl) : 'assets/no-image.png'" alt="" />
                   <div>
                     <div class="name">{{ item.name }}</div>
                     <div class="sku">{{ item.variantLabel || 'SKU' }}</div>

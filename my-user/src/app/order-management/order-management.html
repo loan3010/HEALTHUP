@@ -59,7 +59,7 @@
 
       <!-- PRODUCTS -->
       <div *ngFor="let item of order.items" class="order-product">
-        <img [src]="item.imageUrl ? 'http://localhost:3000' + item.imageUrl : '/assets/no-image.png'"
+        <img [src]="item.imageUrl ? (item.imageUrl.startsWith('http') ? item.imageUrl : 'http://localhost:3000' + item.imageUrl) : '/assets/no-image.png'"
           class="product-img" onerror="this.src='/assets/no-image.png'" [alt]="item.name" />
         <div class="product-info">
           <div class="product-name">{{ item.name }}</div>

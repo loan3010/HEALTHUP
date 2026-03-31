@@ -15,7 +15,7 @@ const ReviewSchema = new mongoose.Schema({
   helpful: { type: Number, default: 0 },
   verified: { type: Boolean, default: false },
   date: { type: String, default: () => new Date().toLocaleDateString('vi-VN') },
-  createdAt: { type: Date, default: Date.now },
+  createdAt: { type: Date, default: Date.now }
 });
 
 module.exports = mongoose.model('Review', ReviewSchema);

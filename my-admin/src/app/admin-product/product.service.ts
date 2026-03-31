@@ -99,7 +99,8 @@ export class ProductService {
     minPrice?: number,
     maxPrice?: number,
     minRating?: number,
-    isAdmin = false
+    isAdmin = false,
+    search = ''
   ): Observable<ProductResponse> {
     let params = new HttpParams()
       .set('page', page)
@@ -110,6 +111,7 @@ export class ProductService {
     if (maxPrice != null) params = params.set('maxPrice', maxPrice);
     if (minRating != null) params = params.set('minRating', minRating);
     if (isAdmin)        params = params.set('isAdmin', 'true');
+    if (search)         params = params.set('search', search);
     return this.http.get<ProductResponse>(this.apiUrl, { params });
   }
 

@@ -231,7 +231,8 @@
                   <div class="thumb-wrap">
                     <img
                       *ngIf="p.images && p.images.length"
-                      [src]="staticBase + p.images[0]"
+                 
+                      [src]="p.images[0].startsWith('http') ? p.images[0] : staticBase + p.images[0]"
                       class="product-thumb" alt=""
                     />
                     <div class="product-thumb placeholder" *ngIf="!p.images || !p.images.length">

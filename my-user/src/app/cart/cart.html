@@ -55,7 +55,7 @@
         <div class="thumb-wrap">
           <img *ngIf="it.imageUrl"
                class="thumb clickable-thumb"
-               [src]="it.imageUrl"
+               [src]="it.imageUrl.startsWith('http') ? it.imageUrl : 'http://localhost:3000' + it.imageUrl"
                [title]="'Xem: ' + it.name"
                (click)="viewProduct(it)" />
           <div *ngIf="!it.imageUrl"

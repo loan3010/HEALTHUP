@@ -61,7 +61,7 @@ export class ProductFormComponent implements OnInit, OnChanges {
     if (this.product?._id) {
       this.isEditMode = true;
       this.formData = { ...this.product };
-      this.imagePreview = (this.product.images || []).map((img) => this.staticBase + img);
+      this.imagePreview = (this.product.images || []).map((img) => img.startsWith('http') ? img : this.staticBase + img);
     } else {
       this.isEditMode = false;
       this.formData = this.emptyForm();
@@ -1096,7 +1096,7 @@ export class ProductFormComponent implements OnInit, OnChanges {
       next: (res) => {
         if (!this.formData.images) this.formData.images = [];
         this.formData.images.push(res.url);
-        this.imagePreview.push(this.staticBase + res.url);
+        this.imagePreview.push(res.url.startsWith('http') ? res.url : this.staticBase + res.url);
         input.value = '';
       },
       error: (err) => console.error(err)

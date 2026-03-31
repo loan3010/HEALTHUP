@@ -359,7 +359,8 @@ export class ProductComponent implements OnInit {
       this.filterMinPrice  ?? undefined,
       this.filterMaxPrice  ?? undefined,
       this.filterMinRating ?? undefined,
-      true   // isAdmin = true → thấy cả sản phẩm ẩn
+      true,  // isAdmin = true → thấy cả sản phẩm ẩn
+      this.searchText.trim()
     ).subscribe({
       next: (res) => {
         let products = res.products;
@@ -398,7 +399,7 @@ export class ProductComponent implements OnInit {
     this.allChecked = this.filteredProducts.length > 0 && this.filteredProducts.every(p => this.selectedIds.has(p._id!));
   }
 
-  onSearch() { this.applySearch(); }
+  onSearch() { this.currentPage = 1; this.loadProducts(); }
 
   // ── CHECKBOX ──
   toggleAll(checked: boolean) {

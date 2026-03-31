@@ -368,6 +368,11 @@ export class AdminReviewComponent implements OnInit {
     }
   }
 
+  reviewImgUrl(img: string): string {
+    if (!img) return '';
+    return img.startsWith('http') ? img : `${STATIC_BASE}${img.startsWith('/') ? '' : '/'}${img}`;
+  }
+
   getProductImage(product: any): string {
     if (product?.images && product.images.length > 0) {
       const img = product.images[0];
